@@ -1,0 +1,77 @@
+---
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <h4 class="footer-h">About</h4>
+      <p>StemVault collects interactive teaching tools and curriculum-aligned resources across Mathematics, Chemistry, Physics, and Biology. The library is curated for secondary school years 7–12.</p>
+    </div>
+    <div>
+      <h4 class="footer-h">Disclaimer</h4>
+      <p>Embedded applets and linked files come from a mix of original and third-party sources. Original authors are credited where known. Please report errors or attribution issues.</p>
+    </div>
+  </div>
+  <div class="container footer-foot">
+    <span class="footer-copy">© {year} StemVault</span>
+    <a href="#" class="footer-edit" id="svault-footer-edit">Edit mode</a>
+  </div>
+</footer>
+
+<script>
+  // Footer "Edit mode" link opens the header EditToggle popover.
+  document.getElementById('svault-footer-edit')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('svault-edit-trigger')?.click();
+    document.getElementById('svault-edit-toggle')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+</script>
+
+<style>
+  .site-footer {
+    margin-top: 4rem;
+    border-top: 1px solid var(--line);
+    background: var(--paper-warm);
+    padding: 3rem 0 1.5rem;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+  }
+  .footer-h {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--pine);
+    margin-bottom: 0.6rem;
+  }
+  .footer-grid p {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .footer-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line-soft);
+    font-size: 0.78rem;
+    color: var(--ink-mute);
+  }
+  .footer-edit {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-mute);
+  }
+  .footer-edit:hover { color: var(--pine); }
+  @media (max-width: 720px) {
+    .footer-grid { grid-template-columns: 1fr; gap: 1.75rem; }
+  }
+</style>

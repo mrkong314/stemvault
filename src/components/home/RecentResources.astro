@@ -1,0 +1,83 @@
+---
+import { getRecentResources, resourceHref, isExternalHref } from '~/lib/collections';
+import { TYPE_LABEL } from '~/lib/types';
+const recent = await getRecentResources(5);
+---
+<aside class="recent">
+  <div class="recent-head">
+    <span class="eyebrow">Recently added</span>
+  </div>
+  <ul class="recent-list">
+    {recent.map(r => {
+      const href = resourceHref(r);
+      const external = isExternalHref(r);
+      return (
+        <li>
+          <a
+            href={href}
+            class="recent-item"
+            target={external ? '_blank' : undefined}
+            rel={external ? 'noopener noreferrer' : undefined}
+          >
+            <div class="recent-meta">
+              <span class="recent-subject">{r.data.subject}</span>
+              <span class="recent-type">{TYPE_LABEL[r.data.type]}</span>
+            </div>
+            <div class="recent-title">{r.data.title}</div>
+            <div class="recent-year">Yr {r.data.yearLevel.join(', ')}</div>
+          </a>
+        </li>
+      );
+    })}
+  </ul>
+</aside>
+
+<style>
+  .recent {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-soft);
+  }
+  .recent-head { margin-bottom: 0.75rem; }
+  .recent-list { list-style: none; margin: 0; padding: 0; }
+  .recent-list li + li {
+    border-top: 1px solid var(--line-soft);
+  }
+  .recent-item {
+    display: block;
+    padding: 0.7rem 0;
+    color: var(--ink);
+  }
+  .recent-item:hover { color: var(--pine); }
+  .recent-item:hover .recent-title { color: var(--pine); }
+  .recent-meta {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-mute);
+    margin-bottom: 0.2rem;
+  }
+  .recent-subject { color: var(--pine); }
+  .recent-type { color: var(--ink-mute); }
+  .recent-title {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 400;
+    line-height: 1.25;
+    color: var(--ink);
+    transition: color 0.15s;
+  }
+  .recent-year {
+    margin-top: 0.15rem;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+</style>

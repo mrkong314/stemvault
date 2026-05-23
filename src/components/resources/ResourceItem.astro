@@ -1,0 +1,99 @@
+---
+import TypeBadge from './TypeBadge.astro';
+import type { ResourceEntry } from '~/lib/collections';
+import { resourceHref, isExternalHref } from '~/lib/collections';
+
+interface Props {
+  resource: ResourceEntry;
+}
+const { resource } = Astro.props;
+const { title, type, subject, yearLevel, tags, format, sourceNote } = resource.data;
+const href = resourceHref(resource);
+const external = isExternalHref(resource);
+---
+<a
+  class="resource-row"
+  href={href}
+  target={external ? '_blank' : undefined}
+  rel={external ? 'noopener noreferrer' : undefined}
+  data-resource
+  data-type={type}
+  data-subject={subject}
+  data-years={yearLevel.join(',')}
+  data-tags={tags.join('|')}
+  data-title={title}
+>
+  <span class="badge-wrap"><TypeBadge type={type} format={format} /></span>
+  <div class="body">
+    <div class="row-title">{title}</div>
+    <div class="row-meta">
+      <span class="meta-year">Yr {yearLevel.join(', ')}</span>
+      {sourceNote && <span class="meta-source">· {sourceNote}</span>}
+    </div>
+    {tags.length > 0 && (
+      <div class="row-tags">
+        {tags.slice(0, 5).map(t => <span class="t">{t}</span>)}
+      </div>
+    )}
+  </div>
+  <span class="row-arrow" aria-hidden="true">{external ? '↗' : '→'}</span>
+</a>
+
+<style>
+  .resource-row {
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    gap: 1.2rem;
+    align-items: start;
+    padding: 1rem 1.2rem;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    color: var(--ink);
+    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+  }
+  .resource-row + .resource-row { margin-top: 0.5rem; }
+  .resource-row:hover {
+    border-color: var(--pine);
+    transform: translateX(2px);
+    box-shadow: var(--shadow-soft);
+    color: var(--ink);
+  }
+  .badge-wrap { padding-top: 2px; }
+  .body { min-width: 0; }
+  .row-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 0.25rem;
+  }
+  .row-meta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.4rem;
+  }
+  .meta-source { text-transform: none; letter-spacing: 0; }
+  .row-tags { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+  .t {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    background: var(--paper-warm);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    color: var(--ink-mute);
+  }
+  .row-arrow {
+    font-family: var(--font-mono);
+    color: var(--ink-mute);
+    align-self: center;
+  }
+  .resource-row:hover .row-arrow { color: var(--pine); }
+  @media (max-width: 620px) {
+    .resource-row { grid-template-columns: 80px 1fr; }
+    .row-arrow { display: none; }
+  }
+</style>

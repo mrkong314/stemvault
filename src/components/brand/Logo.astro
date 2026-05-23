@@ -1,0 +1,55 @@
+---
+import CosineMark from './CosineMark.astro';
+
+interface Props {
+  size?: number;
+  showWordmark?: boolean;
+  href?: string | null;
+}
+const { size = 36, showWordmark = true, href = '/' } = Astro.props;
+const wordmarkSize = Math.round(size * 0.62);
+const isLink = href !== null && href !== undefined;
+---
+{isLink ? (
+  <a href={href} class="logo-link" aria-label="StemVault home">
+    <span class="logo">
+      <CosineMark size={size} />
+      {showWordmark && (
+        <span class="wordmark" style={`font-size: ${wordmarkSize}px`}>
+          <span class="stem">Stem</span><span class="vault">Vault</span>
+        </span>
+      )}
+    </span>
+  </a>
+) : (
+  <span class="logo">
+    <CosineMark size={size} />
+    {showWordmark && (
+      <span class="wordmark" style={`font-size: ${wordmarkSize}px`}>
+        <span class="stem">Stem</span><span class="vault">Vault</span>
+      </span>
+    )}
+  </span>
+)}
+
+<style>
+  .logo-link {
+    display: inline-flex;
+    align-items: center;
+    color: inherit;
+  }
+  .logo-link:hover { color: inherit; }
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+  .wordmark {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .stem { color: var(--ink); }
+  .vault { color: var(--pine); }
+</style>

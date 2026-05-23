@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quadratic Explorer</title>
+  <style>
+    :root {
+      --pine: #1f5d4c;
+      --amber: #c97a28;
+      --paper: #f6f3ed;
+      --ink: #1a1a1a;
+      --ink-mute: #6a6a6a;
+      --line: rgba(26,26,26,0.12);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+    }
+    .wrap { display: grid; grid-template-columns: 1fr 280px; height: 100%; gap: 0; }
+    canvas { display: block; width: 100%; height: 100%; background: var(--paper); }
+    .panel {
+      padding: 1.25rem 1rem;
+      border-left: 1px solid var(--line);
+      background: #fff;
+      overflow-y: auto;
+    }
+    .panel h1 { font-size: 1rem; margin: 0 0 1rem; color: var(--pine); }
+    .ctrl { margin-bottom: 1rem; }
+    .ctrl label {
+      display: flex; justify-content: space-between;
+      font-size: 0.78rem; color: var(--ink-mute);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 0.25rem;
+    }
+    .ctrl input[type=range] { width: 100%; accent-color: var(--pine); }
+    .read { font-family: ui-monospace, monospace; font-size: 0.85rem; }
+    .read div { display: flex; justify-content: space-between; padding: 2px 0; }
+    .read span:first-child { color: var(--ink-mute); }
+    @media (max-width: 640px) {
+      .wrap { grid-template-columns: 1fr; grid-template-rows: 60vh auto; }
+      .panel { border-left: none; border-top: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="cv"></canvas>
+    <div class="panel">
+      <h1>y = ax² + bx + c</h1>
+      <div class="ctrl">
+        <label><span>a</span><span id="va">1.00</span></label>
+        <input type="range" id="a" min="-3" max="3" step="0.05" value="1" />
+      </div>
+      <div class="ctrl">
+        <label><span>b</span><span id="vb">0.00</span></label>
+        <input type="range" id="b" min="-5" max="5" step="0.05" value="0" />
+      </div>
+      <div class="ctrl">
+        <label><span>c</span><span id="vc">0.00</span></label>
+        <input type="range" id="c" min="-5" max="5" step="0.05" value="0" />
+      </div>
+      <div class="read" id="read"></div>
+    </div>
+  </div>
+<script>
+(() => {
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const sliders = { a: document.getElementById('a'), b: document.getElementById('b'), c: document.getElementById('c') };
+  const labels = { a: document.getElementById('va'), b: document.getElementById('vb'), c: document.getElementById('vc') };
+  const read = document.getElementById('read');
+
+  function resize() {
+    const r = cv.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    cv.width = r.width * dpr;
+    cv.height = r.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+  window.addEventListener('resize', resize);
+
+  function draw() {
+    const a = parseFloat(sliders.a.value);
+    const b = parseFloat(sliders.b.value);
+    const c = parseFloat(sliders.c.value);
+    labels.a.textContent = a.toFixed(2);
+    labels.b.textContent = b.toFixed(2);
+    labels.c.textContent = c.toFixed(2);
+
+    const w = cv.clientWidth, h = cv.clientHeight;
+    const scale = Math.min(w, h) / 14;
+    const ox = w / 2, oy = h / 2;
+    ctx.fillStyle = '#f6f3ed';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(26,26,26,0.08)';
+    ctx.lineWidth = 1;
+    for (let i = -7; i <= 7; i++) {
+      ctx.beginPath(); ctx.moveTo(ox + i * scale, 0); ctx.lineTo(ox + i * scale, h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, oy + i * scale); ctx.lineTo(w, oy + i * scale); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(26,26,26,0.4)';
+    ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(w, oy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, h); ctx.stroke();
+
+    ctx.strokeStyle = '#1f5d4c';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    let first = true;
+    for (let px = 0; px <= w; px++) {
+      const x = (px - ox) / scale;
+      const y = a*x*x + b*x + c;
+      const py = oy - y * scale;
+      if (first) { ctx.moveTo(px, py); first = false; } else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    if (Math.abs(a) > 1e-6) {
+      const vx = -b / (2*a);
+      const vy = a*vx*vx + b*vx + c;
+      ctx.fillStyle = '#c97a28';
+      ctx.beginPath(); ctx.arc(ox + vx*scale, oy - vy*scale, 5, 0, Math.PI*2); ctx.fill();
+
+      const d = b*b - 4*a*c;
+      let roots = '-';
+      if (d >= 0) {
+        const r1 = (-b - Math.sqrt(d)) / (2*a);
+        const r2 = (-b + Math.sqrt(d)) / (2*a);
+        ctx.fillStyle = '#1f5d4c';
+        ctx.beginPath(); ctx.arc(ox + r1*scale, oy, 4, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(ox + r2*scale, oy, 4, 0, Math.PI*2); ctx.fill();
+        roots = d < 1e-6 ? r1.toFixed(2) : `${r1.toFixed(2)}, ${r2.toFixed(2)}`;
+      }
+      read.innerHTML = `
+        <div><span>vertex</span><span>(${vx.toFixed(2)}, ${vy.toFixed(2)})</span></div>
+        <div><span>axis</span><span>x = ${vx.toFixed(2)}</span></div>
+        <div><span>discriminant</span><span>${d.toFixed(2)}</span></div>
+        <div><span>roots</span><span>${roots}</span></div>
+      `;
+    } else {
+      read.innerHTML = `<div><span>line</span><span>y = ${b.toFixed(2)}x + ${c.toFixed(2)}</span></div>`;
+    }
+  }
+
+  Object.values(sliders).forEach(s => s.addEventListener('input', draw));
+  resize();
+})();
+</script>
+</body>
+</html>

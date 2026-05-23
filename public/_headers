@@ -1,0 +1,8 @@
+/applets/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/files/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable

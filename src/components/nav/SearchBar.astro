@@ -1,0 +1,133 @@
+---
+// Global search bar. Loads /search-index.json lazily on first focus,
+// then runs case-insensitive substring matching against title + tags.
+---
+<div class="search" id="svault-search">
+  <svg class="search-icon" viewBox="0 0 20 20" aria-hidden="true">
+    <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <line x1="13.5" y1="13.5" x2="18" y2="18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  </svg>
+  <input
+    type="search"
+    placeholder="Search resources"
+    aria-label="Search StemVault"
+    autocomplete="off"
+    class="search-input"
+    id="svault-search-input"
+  />
+  <div class="search-dropdown" id="svault-search-results" hidden>
+    <div class="search-empty" data-empty>Start typing to search.</div>
+    <div class="search-group" data-group="applet" hidden>
+      <div class="search-group-label">Applets</div>
+      <ul data-list="applet"></ul>
+    </div>
+    <div class="search-group" data-group="file" hidden>
+      <div class="search-group-label">Files</div>
+      <ul data-list="file"></ul>
+    </div>
+    <div class="search-group" data-group="video" hidden>
+      <div class="search-group-label">Videos</div>
+      <ul data-list="video"></ul>
+    </div>
+    <div class="search-group" data-group="quiz" hidden>
+      <div class="search-group-label">Quizzes</div>
+      <ul data-list="quiz"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  import '~/scripts/search.ts';
+</script>
+
+<style>
+  .search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--paper-warm);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    width: min(380px, 100%);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .search:focus-within {
+    border-color: var(--pine);
+    background: #fff;
+  }
+  .search-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--ink-mute);
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+  }
+  .search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font: inherit;
+    font-size: 0.9rem;
+    color: var(--ink);
+    min-width: 0;
+  }
+  .search-input::placeholder { color: var(--ink-mute); }
+  .search-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 0.5rem;
+    max-height: 60vh;
+    overflow-y: auto;
+    z-index: 50;
+  }
+  .search-empty {
+    padding: 0.6rem 0.8rem;
+    color: var(--ink-mute);
+    font-size: 0.85rem;
+  }
+  .search-group { margin-bottom: 0.25rem; }
+  .search-group:last-child { margin-bottom: 0; }
+  .search-group-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-mute);
+    padding: 0.4rem 0.8rem 0.2rem;
+  }
+  .search-group ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .search-group :global(li a) {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0.8rem;
+    border-radius: var(--radius);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .search-group :global(li a:hover) {
+    background: var(--paper-warm);
+    color: var(--pine);
+  }
+  .search-group :global(.search-title) {
+    font-weight: 500;
+    font-size: 0.92rem;
+  }
+  .search-group :global(.search-sub) {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ink-mute);
+    margin-top: 2px;
+  }
+</style>

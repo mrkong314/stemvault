@@ -1,0 +1,67 @@
+---
+import { SUBJECTS } from '~/data/subjects';
+---
+<section class="band" aria-label="Browse by subject">
+  <div class="container-wide band-inner">
+    {SUBJECTS.map(s => (
+      <a class="band-tile" href={`/resources/${s.slug}`} style={`--accent: ${s.accent}`}>
+        <span class="band-tile-name">{s.name}</span>
+        <span class="band-tile-arrow" aria-hidden="true">→</span>
+      </a>
+    ))}
+  </div>
+</section>
+
+<style>
+  .band {
+    background: var(--dark);
+    color: #f7f1e3;
+    padding: 1.75rem 0;
+  }
+  .band-inner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+  }
+  .band-tile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.4rem 1.6rem;
+    color: #f7f1e3;
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 400;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    position: relative;
+    transition: background 0.18s, color 0.18s;
+  }
+  .band-tile:last-child { border-right: none; }
+  .band-tile::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s;
+  }
+  .band-tile:hover { background: var(--dark-2); color: #fff; }
+  .band-tile:hover::before { transform: scaleX(1); }
+  .band-tile-arrow {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-size: 1rem;
+    transition: transform 0.2s;
+  }
+  .band-tile:hover .band-tile-arrow { transform: translateX(4px); }
+  @media (max-width: 900px) {
+    .band-inner { grid-template-columns: repeat(2, 1fr); }
+    .band-tile:nth-child(2) { border-right: none; }
+  }
+  @media (max-width: 520px) {
+    .band-inner { grid-template-columns: 1fr; }
+    .band-tile { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  }
+</style>

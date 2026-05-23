@@ -1,0 +1,65 @@
+---
+import { getResourcesByType, getSubjectTopicTree } from '~/lib/collections';
+
+const applets = await getResourcesByType('applet');
+const files = await getResourcesByType('file');
+const videos = await getResourcesByType('video');
+const quizzes = await getResourcesByType('quiz');
+const tree = await getSubjectTopicTree();
+const topicCount = Object.values(tree).reduce((n, ts) => n + ts.length, 0);
+
+const stats = [
+  { label: 'Resources', value: applets.length + files.length + videos.length + quizzes.length },
+  { label: 'Applets', value: applets.length },
+  { label: 'Topics', value: topicCount },
+  { label: 'Subjects', value: 4 },
+];
+---
+<section class="stats">
+  <div class="container stats-inner">
+    {stats.map(s => (
+      <div class="stat">
+        <span class="stat-value">{s.value}</span>
+        <span class="stat-label">{s.label}</span>
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+  .stats {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 1.75rem 0;
+    background: var(--paper-warm);
+  }
+  .stats-inner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 2.4rem;
+    font-weight: 600;
+    color: var(--pine);
+    line-height: 1;
+  }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-mute);
+    margin-top: 0.4rem;
+  }
+  @media (max-width: 620px) {
+    .stats-inner { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+  }
+</style>

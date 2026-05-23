@@ -1,0 +1,183 @@
+---
+// Tiny lock/unlock indicator that opens a pin entry popover.
+// State is owned by ~/scripts/editMode.ts (exposed on window.StemVaultEdit).
+---
+<div class="edit-toggle" id="svault-edit-toggle">
+  <button
+    type="button"
+    class="edit-trigger"
+    id="svault-edit-trigger"
+    aria-label="Toggle edit mode"
+    aria-expanded="false"
+    aria-controls="svault-edit-popover"
+  >
+    <svg viewBox="0 0 20 20" aria-hidden="true" class="edit-icon edit-icon-locked">
+      <path fill="currentColor" d="M14 8V6a4 4 0 0 0-8 0v2H4v10h12V8h-2zM8 6a2 2 0 0 1 4 0v2H8V6z"/>
+    </svg>
+    <svg viewBox="0 0 20 20" aria-hidden="true" class="edit-icon edit-icon-unlocked">
+      <path fill="currentColor" d="M14 8V6a4 4 0 0 0-7.46-2L8.27 5a2 2 0 0 1 3.73 1v2H4v10h12V8h-2z"/>
+    </svg>
+    <span class="edit-label">Edit</span>
+  </button>
+  <div class="edit-popover" id="svault-edit-popover" role="dialog" aria-label="Enter edit pin" hidden>
+    <label class="label-mono" for="svault-edit-pin">PIN</label>
+    <div class="edit-row">
+      <input
+        id="svault-edit-pin"
+        type="password"
+        inputmode="numeric"
+        autocomplete="off"
+        maxlength="8"
+        placeholder="••••"
+      />
+      <button type="button" id="svault-edit-submit" class="edit-submit">Unlock</button>
+    </div>
+    <div class="edit-msg" id="svault-edit-msg" aria-live="polite"></div>
+    <button type="button" id="svault-edit-lock" class="edit-lock" hidden>Lock</button>
+  </div>
+</div>
+
+<script>
+  function init() {
+    const trigger = document.getElementById('svault-edit-trigger');
+    const popover = document.getElementById('svault-edit-popover');
+    const input = document.getElementById('svault-edit-pin') as HTMLInputElement | null;
+    const submit = document.getElementById('svault-edit-submit');
+    const lock = document.getElementById('svault-edit-lock');
+    const msg = document.getElementById('svault-edit-msg');
+    if (!trigger || !popover || !input || !submit || !lock || !msg) return;
+
+    const api = () => (window as any).StemVaultEdit;
+
+    const sync = () => {
+      const on = document.body.dataset.edit === 'on';
+      trigger.classList.toggle('is-unlocked', on);
+      lock.hidden = !on;
+    };
+
+    trigger.addEventListener('click', () => {
+      const open = !popover.hidden;
+      popover.hidden = open;
+      trigger.setAttribute('aria-expanded', String(!open));
+      if (!open) {
+        sync();
+        setTimeout(() => input.focus(), 0);
+      }
+    });
+
+    const tryUnlock = () => {
+      const ok = api()?.unlockWithPin(input.value);
+      msg.textContent = ok ? 'Unlocked.' : 'Incorrect pin.';
+      msg.style.color = ok ? 'var(--pine)' : 'var(--amber)';
+      if (ok) { input.value = ''; sync(); }
+    };
+    submit.addEventListener('click', tryUnlock);
+    input.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Enter') tryUnlock();
+    });
+    lock.addEventListener('click', () => {
+      api()?.lock();
+      msg.textContent = 'Locked.';
+      msg.style.color = 'var(--ink-mute)';
+      sync();
+    });
+
+    document.addEventListener('click', (e) => {
+      const root = document.getElementById('svault-edit-toggle');
+      if (!root || root.contains(e.target as Node)) return;
+      popover.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    });
+
+    document.body.addEventListener('svault:edit-mode', sync);
+    sync();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+</script>
+
+<style>
+  .edit-toggle { position: relative; }
+  .edit-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    padding: 0.4rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .edit-trigger:hover { border-color: var(--pine); color: var(--pine); }
+  .edit-icon { width: 14px; height: 14px; }
+  .edit-icon-unlocked { display: none; }
+  .edit-trigger.is-unlocked .edit-icon-locked { display: none; }
+  .edit-trigger.is-unlocked .edit-icon-unlocked { display: inline-block; }
+  .edit-trigger.is-unlocked { color: var(--pine); border-color: var(--pine); background: rgba(31, 93, 76, 0.06); }
+  .edit-label { font-weight: 500; }
+
+  .edit-popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 0.85rem;
+    box-shadow: var(--shadow-card);
+    width: 230px;
+    z-index: 60;
+  }
+  .edit-row {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.3rem;
+  }
+  .edit-row input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 0.4rem 0.55rem;
+    font: inherit;
+    background: var(--paper);
+  }
+  .edit-row input:focus { outline: none; border-color: var(--pine); }
+  .edit-submit {
+    background: var(--pine);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.4rem 0.7rem;
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .edit-submit:hover { background: var(--pine-deep); }
+  .edit-msg {
+    font-size: 0.78rem;
+    margin-top: 0.5rem;
+    min-height: 1em;
+  }
+  .edit-lock {
+    margin-top: 0.5rem;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    color: var(--ink-mute);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .edit-lock:hover { color: var(--amber); border-color: var(--amber); }
+</style>

@@ -1,0 +1,43 @@
+---
+import EditOnly from './EditOnly.astro';
+
+interface Props {
+  label: string;
+  kind?: 'applet' | 'file' | 'tool';
+  href?: string;
+}
+const { label, kind = 'applet', href } = Astro.props;
+---
+<EditOnly>
+  <a
+    class="add-btn"
+    href={href ?? '#'}
+    data-add-kind={kind}
+    onclick={href ? undefined : 'event.preventDefault(); alert("Edit mode is UI-only in this build. Add the corresponding markdown file under src/content/ and rebuild.");'}
+  >
+    {label}
+  </a>
+</EditOnly>
+
+<style>
+  .add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--amber);
+    color: #fff;
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1px solid var(--amber);
+    transition: background 0.15s, color 0.15s;
+  }
+  .add-btn:hover {
+    background: var(--amber-soft);
+    color: #fff;
+    border-color: var(--amber-soft);
+  }
+</style>

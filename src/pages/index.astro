@@ -1,0 +1,60 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import Hero from '~/components/home/Hero.astro';
+import SubjectsBand from '~/components/home/SubjectsBand.astro';
+import StatsBar from '~/components/home/StatsBar.astro';
+import FilterPanel from '~/components/filters/FilterPanel.astro';
+import ResourceGrid from '~/components/resources/ResourceGrid.astro';
+import { getResources } from '~/lib/collections';
+
+const resources = await getResources();
+---
+<BaseLayout title="StemVault - interactive teaching tools">
+  <Hero />
+  <SubjectsBand />
+
+  <section class="browse">
+    <div class="container">
+      <header class="section-head">
+        <span class="eyebrow">Browse</span>
+        <h2>Browse resources</h2>
+        <p class="section-sub">Applets, files, videos, and quizzes - filter by type, subject, year level, and tags.</p>
+      </header>
+      <div class="browse-layout">
+        <FilterPanel target="[data-resource]" />
+        <div class="browse-grid">
+          <ResourceGrid resources={resources} />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <StatsBar />
+</BaseLayout>
+
+<style>
+  .browse {
+    padding: 4rem 0 3rem;
+  }
+  .section-head {
+    margin-bottom: 1.5rem;
+  }
+  .section-head h2 {
+    margin: 0.4rem 0 0.4rem;
+  }
+  .section-sub {
+    color: var(--ink-soft);
+    margin: 0 0 1.5rem;
+    max-width: 56ch;
+  }
+  .browse-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+  .browse-grid { min-width: 0; }
+  @media (max-width: 880px) {
+    .browse-layout { grid-template-columns: 1fr; gap: 1.5rem; }
+  }
+</style>

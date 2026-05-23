@@ -1,0 +1,131 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import FilterPanel from '~/components/filters/FilterPanel.astro';
+import ResourceItem from '~/components/resources/ResourceItem.astro';
+import AddButton from '~/components/edit/AddButton.astro';
+import { SUBJECTS, subjectFromSlug } from '~/data/subjects';
+import {
+  getResources,
+  getSubjectTopicTree,
+  topicSlug,
+  topicFor,
+} from '~/lib/collections';
+
+export async function getStaticPaths() {
+  const tree = await getSubjectTopicTree();
+  const paths: any[] = [];
+  for (const s of SUBJECTS) {
+    const topics = tree[s.name] ?? [];
+    for (const t of topics) {
+      paths.push({
+        params: { subject: s.slug, topic: topicSlug(t) },
+        props: { subjectName: s.name, topicName: t },
+      });
+    }
+  }
+  return paths;
+}
+
+const { subjectName, topicName } = Astro.props;
+const subjectInfo = subjectFromSlug(Astro.params.subject!);
+
+const all = await getResources();
+
+const matching = all.filter(r => {
+  if (r.data.subject !== subjectName) return false;
+  const t = topicFor(r);
+  if (!t) return false;
+  if (t.toLowerCase() === topicName.toLowerCase()) return true;
+  return r.data.tags.some(tag => tag.toLowerCase() === topicName.toLowerCase());
+});
+
+const total = matching.length;
+---
+<BaseLayout
+  title={`${topicName} · ${subjectName} · StemVault`}
+  description={`Resources for ${topicName} in ${subjectName}.`}
+>
+  <div class="container topic-page">
+    <nav class="crumbs">
+      <a href="/resources">Resources</a>
+      <span aria-hidden="true">·</span>
+      <a href={`/resources/${subjectInfo?.slug}`}>{subjectName}</a>
+    </nav>
+
+    <header class="page-head">
+      <div class="head-row">
+        <div>
+          <span class="eyebrow" style={`color: ${subjectInfo?.accent}`}>{subjectName}</span>
+          <h1>{topicName}</h1>
+          <p class="page-sub">{total} resource{total === 1 ? '' : 's'} in this topic.</p>
+        </div>
+        <div class="head-actions">
+          <AddButton label="+ Applet" kind="applet" />
+          <AddButton label="+ File" kind="file" />
+        </div>
+      </div>
+    </header>
+
+    <div class="topic-layout">
+      <FilterPanel target="[data-resource]" hideSubject />
+      <div class="topic-main">
+        {total === 0 ? (
+          <p class="empty">No resources here yet.</p>
+        ) : (
+          <div class="resource-list">
+            {matching.map(r => <ResourceItem resource={r} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .topic-page {
+    padding-top: 2.5rem;
+    padding-bottom: 3rem;
+  }
+  .crumbs {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+  .crumbs a { color: var(--ink-mute); }
+  .crumbs a:hover { color: var(--pine); }
+  .head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .head-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .page-head { margin-bottom: 1.5rem; }
+  .page-head h1 { margin: 0.3rem 0 0.4rem; }
+  .page-sub { color: var(--ink-soft); margin: 0; }
+
+  .topic-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+  .topic-main { min-width: 0; }
+  .empty {
+    color: var(--ink-mute);
+    background: var(--paper-warm);
+    padding: 1rem 1.2rem;
+    border-radius: var(--radius);
+  }
+
+  @media (max-width: 880px) {
+    .topic-layout { grid-template-columns: 1fr; gap: 1.5rem; }
+  }
+</style>

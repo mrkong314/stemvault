@@ -1,0 +1,60 @@
+---
+import RecentResources from './RecentResources.astro';
+---
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow">StemVault · interactive teaching</p>
+      <h1 class="hero-title">
+        A place for <em>interactive</em> teaching tools.
+      </h1>
+      <p class="hero-tag">
+        Curated applets, notes, and resources across Mathematics, Chemistry, Physics, and Biology - built for Years 7 to 12.
+      </p>
+    </div>
+    <div class="hero-aside">
+      <RecentResources />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    padding: 4.5rem 0 3rem;
+    background:
+      radial-gradient(1100px 380px at 0% 0%, rgba(31, 93, 76, 0.06), transparent 60%),
+      var(--paper);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 3rem;
+    align-items: center;
+  }
+  .hero-title {
+    font-family: var(--font-display);
+    font-feature-settings: normal;
+    font-size: clamp(2.5rem, 5vw, 4.25rem);
+    line-height: 1.05;
+    font-weight: 400;
+    margin: 0.6rem 0 1.1rem;
+    letter-spacing: -0.02em;
+  }
+  .hero-title em {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    color: var(--pine);
+  }
+  .hero-tag {
+    font-size: 1.1rem;
+    line-height: 1.55;
+    max-width: 38ch;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .hero { padding: 3rem 0 2rem; }
+  }
+</style>

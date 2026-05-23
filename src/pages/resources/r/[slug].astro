@@ -1,0 +1,150 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import ResourceEmbed from '~/components/resources/ResourceEmbed.astro';
+import TypeBadge from '~/components/resources/TypeBadge.astro';
+import AddButton from '~/components/edit/AddButton.astro';
+import { getResources, embedSrc, fileHref } from '~/lib/collections';
+import { TYPE_LABEL } from '~/lib/types';
+import { subjectFromSlug, slugForSubject } from '~/data/subjects';
+
+export async function getStaticPaths() {
+  const resources = await getResources();
+  // File entries link directly to fileUrl/externalUrl, no detail page.
+  return resources
+    .filter(r => r.data.type !== 'file')
+    .map(r => ({
+      params: { slug: r.slug },
+      props: { resource: r },
+    }));
+}
+
+const { resource } = Astro.props;
+const { title, type, subject, yearLevel, tags, description, embedUrl, format } = resource.data;
+const { Content } = await resource.render();
+const src = embedSrc(resource);
+const isExternal = Boolean(embedUrl);
+const subjectInfo = subjectFromSlug(slugForSubject(subject));
+---
+<BaseLayout title={`${title} · StemVault`} description={description}>
+  <article class="resource-page">
+    <div class="container">
+      <nav class="crumbs">
+        <a href="/resources">Resources</a>
+        <span aria-hidden="true">·</span>
+        <a href={`/resources/${subjectInfo?.slug}`}>{subject}</a>
+        <span aria-hidden="true">·</span>
+        <span>{TYPE_LABEL[type]}</span>
+      </nav>
+      <header class="page-head">
+        <div class="head-row">
+          <div>
+            <div class="head-badges">
+              <TypeBadge type={type} format={format} />
+              <span class="eyebrow">{subject} · Yr {yearLevel.join(', ')}</span>
+            </div>
+            <h1>{title}</h1>
+            {description && <p class="lede">{description}</p>}
+          </div>
+          <AddButton label={`Edit ${TYPE_LABEL[type].toLowerCase()}`} kind="applet" />
+        </div>
+        {tags.length > 0 && (
+          <ul class="tag-list">
+            {tags.map(t => <li>{t}</li>)}
+          </ul>
+        )}
+      </header>
+
+      {src ? (
+        <ResourceEmbed src={src} title={title} />
+      ) : (
+        <p class="no-embed">No embeddable source for this resource.</p>
+      )}
+
+      <footer class="resource-foot">
+        <div class="meta">
+          <span class="label-mono">Source</span>
+          <span>{src && (isExternal ? new URL(src, 'https://x').hostname.replace('x', '') : `Hosted at ${src}`)}</span>
+        </div>
+        <div class="prose">
+          <Content />
+        </div>
+      </footer>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .resource-page { padding: 2.5rem 0 3rem; }
+  .crumbs {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .crumbs a { color: var(--ink-mute); }
+  .crumbs a:hover { color: var(--pine); }
+  .head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .head-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .page-head h1 { margin: 0.4rem 0 0.6rem; max-width: 22ch; }
+  .lede { color: var(--ink-soft); margin: 0; max-width: 60ch; }
+  .tag-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .tag-list li {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    background: var(--paper-warm);
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    color: var(--ink-mute);
+  }
+  .no-embed {
+    background: var(--paper-warm);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    color: var(--ink-mute);
+    text-align: center;
+    font-style: italic;
+  }
+  .resource-foot {
+    margin-top: 1.5rem;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+  }
+  .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+  }
+  .prose :global(p) { line-height: 1.65; color: var(--ink-soft); }
+  @media (max-width: 760px) {
+    .resource-foot { grid-template-columns: 1fr; }
+    .head-row { flex-direction: column; }
+  }
+</style>

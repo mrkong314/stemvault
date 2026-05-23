@@ -1,0 +1,38 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+---
+<BaseLayout title="Not found · StemVault">
+  <section class="not-found">
+    <div class="container inner">
+      <span class="eyebrow">404</span>
+      <h1>That page isn't in the vault.</h1>
+      <p>The link may have moved or the resource has been retired. Try the library or jump back home.</p>
+      <div class="actions">
+        <a href="/" class="btn">Home</a>
+        <a href="/resources" class="btn ghost">Browse resources</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .not-found { padding: 5rem 0 4rem; }
+  .inner { text-align: center; max-width: 540px; }
+  .inner h1 { margin: 0.6rem 0 1rem; }
+  .inner p { color: var(--ink-soft); margin: 0 0 1.5rem; }
+  .actions { display: inline-flex; gap: 0.6rem; }
+  .btn {
+    display: inline-block;
+    padding: 0.6rem 1.1rem;
+    background: var(--pine);
+    color: #fff;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .btn:hover { background: var(--pine-deep); color: #fff; }
+  .btn.ghost { background: transparent; color: var(--pine); border: 1px solid var(--pine); }
+  .btn.ghost:hover { background: rgba(31, 93, 76, 0.08); color: var(--pine); }
+</style>

@@ -1,0 +1,117 @@
+---
+import { SUBJECTS } from '~/data/subjects';
+import { getSubjectTopicTree, topicSlug } from '~/lib/collections';
+import AddButton from '~/components/edit/AddButton.astro';
+
+interface Props {
+  activeSubject?: string;
+  activeTopic?: string;
+}
+const { activeSubject, activeTopic } = Astro.props;
+const tree = await getSubjectTopicTree();
+---
+<aside class="sidebar">
+  <div class="sidebar-head">
+    <span class="label-mono">Topics</span>
+    <AddButton label="+ File" kind="file" />
+  </div>
+  <nav aria-label="Resource topics">
+    <ul class="subject-list">
+      {SUBJECTS.map(s => {
+        const topics = tree[s.name] ?? [];
+        const isOpen = activeSubject === s.slug;
+        return (
+          <li class:list={["subject", { "is-open": isOpen }]}>
+            <a class:list={["subject-link", { active: isOpen }]} href={`/resources/${s.slug}`}>
+              <span class="dot" style={`--dot: ${s.accent}`}></span>
+              {s.name}
+            </a>
+            {topics.length > 0 && (
+              <ul class="topic-list">
+                {topics.map(t => {
+                  const slug = topicSlug(t);
+                  const active = isOpen && activeTopic === slug;
+                  return (
+                    <li>
+                      <a
+                        href={`/resources/${s.slug}/${slug}`}
+                        class:list={["topic-link", { active }]}
+                      >
+                        {t}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  </nav>
+</aside>
+
+<style>
+  .sidebar {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1rem;
+    box-shadow: var(--shadow-soft);
+    position: sticky;
+    top: 5.5rem;
+  }
+  .sidebar-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding: 0 0.25rem;
+  }
+  .subject-list, .topic-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .subject + .subject { margin-top: 0.4rem; }
+  .subject-link {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: var(--radius);
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--ink);
+  }
+  .subject-link.active { color: var(--pine); }
+  .subject-link:hover { background: var(--paper-warm); color: var(--pine); }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--dot);
+  }
+  .topic-list {
+    margin-left: 1.3rem;
+    border-left: 1px solid var(--line-soft);
+    padding-left: 0.6rem;
+    margin-top: 0.2rem;
+    margin-bottom: 0.5rem;
+    display: none;
+  }
+  .subject.is-open .topic-list { display: block; }
+  .topic-link {
+    display: block;
+    padding: 0.3rem 0.5rem;
+    border-radius: var(--radius);
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+  }
+  .topic-link:hover { background: var(--paper-warm); color: var(--pine); }
+  .topic-link.active {
+    background: rgba(31, 93, 76, 0.08);
+    color: var(--pine);
+    font-weight: 500;
+  }
+</style>

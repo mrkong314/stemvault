@@ -1,0 +1,37 @@
+---
+interface Props {
+  size?: number;
+  fill?: string;
+  stroke?: string;
+}
+const { size = 48, fill = 'var(--pine)', stroke = '#ffffff' } = Astro.props;
+---
+<svg
+  width={size}
+  height={size}
+  viewBox="0 0 64 64"
+  xmlns="http://www.w3.org/2000/svg"
+  aria-hidden="true"
+  role="img"
+>
+  <rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill={fill} />
+  <!--
+    One full cosine period from x=10 to x=54.
+    y(x) = 32 - 20 * cos((x - 10) * 2π / 44)
+    Starts FLAT at top (y=12), dips through midline (y=32) at x=21,
+    bottoms FLAT at y=52, rises back through midline at x=43, ends FLAT at top.
+    Four cubic-bezier quarter-periods with C1 continuity at the joins.
+  -->
+  <path
+    d="M 10 12
+       C 14 12, 18 24, 21 32
+       C 24 40, 28 52, 32 52
+       C 36 52, 40 40, 43 32
+       C 46 24, 50 12, 54 12"
+    fill="none"
+    stroke={stroke}
+    stroke-width="3.2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

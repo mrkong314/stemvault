@@ -1,0 +1,38 @@
+---
+import { TYPE_LABEL, FORMAT_LABEL, type ResourceType, type FileFormat } from '~/lib/types';
+
+interface Props {
+  type: ResourceType;
+  format?: FileFormat;
+}
+const { type, format } = Astro.props;
+const label = type === 'file' && format ? FORMAT_LABEL[format] : TYPE_LABEL[type];
+const cls = type === 'file' && format ? `type-${format}` : `type-${type}`;
+---
+<span class={`type-badge ${cls}`} aria-label={`Resource type: ${label}`}>
+  {label.toUpperCase()}
+</span>
+
+<style>
+  .type-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    border: 1px solid currentColor;
+    background: transparent;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .type-applet { color: var(--pine); background: rgba(31, 93, 76, 0.08); border-color: var(--pine); }
+  .type-file   { color: #6a6a6a; border-color: #6a6a6a; }
+  .type-video  { color: #8a2b6b; background: rgba(138, 43, 107, 0.08); border-color: #8a2b6b; }
+  .type-quiz   { color: #b8861b; background: rgba(184, 134, 27, 0.08); border-color: #b8861b; }
+  .type-pdf    { color: #b03a2e; border-color: #b03a2e; }
+  .type-ppt    { color: #c97a28; border-color: #c97a28; }
+  .type-doc    { color: #2d6a8f; border-color: #2d6a8f; }
+  .type-link   { color: #6a6a6a; border-color: #6a6a6a; }
+</style>

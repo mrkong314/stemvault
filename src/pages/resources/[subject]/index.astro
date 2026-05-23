@@ -1,0 +1,93 @@
+---
+import ResourceLayout from '~/layouts/ResourceLayout.astro';
+import { SUBJECTS, subjectFromSlug } from '~/data/subjects';
+import { getSubjectTopicTree, topicSlug } from '~/lib/collections';
+import AddButton from '~/components/edit/AddButton.astro';
+
+export async function getStaticPaths() {
+  return SUBJECTS.map(s => ({ params: { subject: s.slug }, props: { subject: s.name } }));
+}
+
+const { subject } = Astro.props;
+const subjectInfo = subjectFromSlug(Astro.params.subject!);
+const tree = await getSubjectTopicTree();
+const topics = tree[subject] ?? [];
+---
+<ResourceLayout
+  title={`${subject} · Resources · StemVault`}
+  description={`Topics in ${subject}.`}
+  activeSubject={subjectInfo?.slug}
+>
+  <header class="page-head">
+    <span class="eyebrow">Subject</span>
+    <div class="head-row">
+      <h1 style={`color: ${subjectInfo?.accent}`}>{subject}</h1>
+      <AddButton label="+ File" kind="file" />
+    </div>
+    <p class="page-sub">Pick a topic to see the applets and files for {subject.toLowerCase()}.</p>
+  </header>
+
+  {topics.length === 0 ? (
+    <p class="empty">No topics yet for {subject}. Add a file under <code>src/content/files/</code> with this subject.</p>
+  ) : (
+    <ul class="topic-list">
+      {topics.map(t => (
+        <li>
+          <a class="topic-link" href={`/resources/${subjectInfo?.slug}/${topicSlug(t)}`}>
+            <span class="topic-name">{t}</span>
+            <span class="topic-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )}
+</ResourceLayout>
+
+<style>
+  .head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .page-head h1 { margin: 0.4rem 0 0.6rem; }
+  .page-sub { color: var(--ink-soft); margin: 0 0 1rem; }
+  .empty {
+    color: var(--ink-mute);
+    background: var(--paper-warm);
+    padding: 1rem 1.2rem;
+    border-radius: var(--radius);
+  }
+  .empty code {
+    font-family: var(--font-mono);
+    background: rgba(0, 0, 0, 0.04);
+    padding: 0.05em 0.35em;
+    border-radius: 3px;
+  }
+  .topic-list {
+    list-style: none;
+    margin: 1.5rem 0 0;
+    padding: 0;
+  }
+  .topic-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.2rem;
+    color: var(--ink);
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .topic-list li + li { margin-top: 0.5rem; }
+  .topic-link:hover { border-color: var(--pine); transform: translateX(2px); color: var(--pine); }
+  .topic-name {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 400;
+  }
+  .topic-arrow { font-family: var(--font-mono); color: var(--ink-mute); }
+  .topic-link:hover .topic-arrow { color: var(--pine); }
+</style>

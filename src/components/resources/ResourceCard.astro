@@ -1,0 +1,121 @@
+---
+import TypeBadge from './TypeBadge.astro';
+import type { ResourceEntry } from '~/lib/collections';
+import { resourceHref, isExternalHref } from '~/lib/collections';
+
+interface Props {
+  resource: ResourceEntry;
+}
+const { resource } = Astro.props;
+const { title, type, subject, yearLevel, tags, description, format } = resource.data;
+const href = resourceHref(resource);
+const external = isExternalHref(resource);
+---
+<article
+  class="resource-card"
+  data-resource
+  data-type={type}
+  data-subject={subject}
+  data-years={yearLevel.join(',')}
+  data-tags={tags.join('|')}
+  data-title={title}
+>
+  <a
+    href={href}
+    class="card-inner"
+    target={external ? '_blank' : undefined}
+    rel={external ? 'noopener noreferrer' : undefined}
+  >
+    <header class="card-head">
+      <TypeBadge type={type} format={format} />
+      <span class="card-years">Yr {yearLevel.join(', ')}</span>
+    </header>
+    <h3 class="card-title">{title}</h3>
+    {description && <p class="card-desc">{description}</p>}
+    <footer class="card-foot">
+      <span class="card-subject">{subject}</span>
+      {tags.length > 0 && (
+        <div class="card-tags">
+          {tags.slice(0, 3).map(t => <span class="tag">{t}</span>)}
+        </div>
+      )}
+    </footer>
+  </a>
+</article>
+
+<style>
+  .resource-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+  .resource-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card);
+    border-color: var(--pine);
+  }
+  .card-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1.1rem 1.2rem 1rem;
+    color: var(--ink);
+  }
+  .card-inner:hover { color: var(--ink); }
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.7rem;
+  }
+  .card-years {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+  }
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 400;
+    margin: 0 0 0.4rem;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+  .card-desc {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin: 0 0 1rem;
+    flex: 1;
+  }
+  .card-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: auto;
+  }
+  .card-subject {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--pine);
+  }
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: lowercase;
+    color: var(--ink-mute);
+    background: var(--paper-warm);
+    padding: 0.18rem 0.55rem;
+    border-radius: 999px;
+  }
+</style>

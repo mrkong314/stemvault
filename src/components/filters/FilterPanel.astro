@@ -1,0 +1,368 @@
+---
+import { SUBJECT_NAMES } from '~/data/subjects';
+import { YEAR_LEVELS } from '~/data/yearLevels';
+import { getAllTags } from '~/lib/collections';
+import { TYPE_LABEL } from '~/lib/types';
+
+interface Props {
+  /** Selector for the items the panel filters (cards or list rows). */
+  target: string;
+  /** Hide the subject section (e.g., on subject-scoped pages). */
+  hideSubject?: boolean;
+}
+const { target, hideSubject = false } = Astro.props;
+const tags = await getAllTags();
+
+const COLLAPSE_AFTER = 5;
+
+const subjectOpts = SUBJECT_NAMES.map(n => ({ value: n, label: n }));
+const typeOpts = (['applet', 'file', 'video', 'quiz'] as const).map(t => ({ value: t, label: TYPE_LABEL[t] }));
+const yearOpts = YEAR_LEVELS.map(y => ({ value: String(y), label: `Year ${y}` }));
+
+const sections = [
+  ...(hideSubject ? [] : [{ name: 'subject', title: 'Subject', options: subjectOpts }]),
+  { name: 'year', title: 'Year Level', options: yearOpts },
+  { name: 'type', title: 'Type', options: typeOpts },
+];
+const tagVisible = tags.slice(0, COLLAPSE_AFTER);
+const tagOverflow = tags.slice(COLLAPSE_AFTER);
+---
+<aside class="filter-panel" data-filter-panel data-target={target} aria-label="Filter resources">
+  <div class="filter-header">
+    <span class="label-mono">Filters</span>
+    <button type="button" class="filter-clear" data-filter-clear>Clear</button>
+  </div>
+
+  {sections.map(s => {
+    const visible = s.options.slice(0, COLLAPSE_AFTER);
+    const overflow = s.options.slice(COLLAPSE_AFTER);
+    return (
+      <details class="filter-section">
+        <summary>
+          <span>{s.title}</span>
+          <span class="chev" aria-hidden="true">▾</span>
+        </summary>
+        <ul class="check-list">
+          {visible.map(o => (
+            <li>
+              <label class="check">
+                <input type="checkbox" name={s.name} value={o.value} />
+                <span class="check-box" aria-hidden="true"></span>
+                <span class="check-label">{o.label}</span>
+              </label>
+            </li>
+          ))}
+          {overflow.length > 0 && (
+            <div class="overflow" data-check-overflow hidden>
+              {overflow.map(o => (
+                <li>
+                  <label class="check">
+                    <input type="checkbox" name={s.name} value={o.value} />
+                    <span class="check-box" aria-hidden="true"></span>
+                    <span class="check-label">{o.label}</span>
+                  </label>
+                </li>
+              ))}
+            </div>
+          )}
+        </ul>
+        {overflow.length > 0 && (
+          <button
+            type="button"
+            class="show-more"
+            data-show-more
+            data-overflow-count={overflow.length}
+          >
+            <span data-more-label>+{overflow.length} more</span>
+          </button>
+        )}
+      </details>
+    );
+  })}
+
+  <details class="filter-section">
+    <summary>
+      <span>Tags</span>
+      <span class="chev" aria-hidden="true">▾</span>
+    </summary>
+    <div class="tag-search">
+      <svg class="search-ico" viewBox="0 0 20 20" aria-hidden="true">
+        <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <line x1="13.5" y1="13.5" x2="18" y2="18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <input
+        type="search"
+        placeholder="Search tags…"
+        data-tag-search
+        autocomplete="off"
+        aria-label="Search tags"
+      />
+    </div>
+    <ul class="check-list" data-tag-list>
+      {tagVisible.map(t => (
+        <li data-tag-item={t.toLowerCase()}>
+          <label class="check">
+            <input type="checkbox" name="tag" value={t} />
+            <span class="check-box" aria-hidden="true"></span>
+            <span class="check-label">{t}</span>
+          </label>
+        </li>
+      ))}
+      {tagOverflow.length > 0 && (
+        <div class="overflow" data-check-overflow hidden>
+          {tagOverflow.map(t => (
+            <li data-tag-item={t.toLowerCase()}>
+              <label class="check">
+                <input type="checkbox" name="tag" value={t} />
+                <span class="check-box" aria-hidden="true"></span>
+                <span class="check-label">{t}</span>
+              </label>
+            </li>
+          ))}
+        </div>
+      )}
+    </ul>
+    {tagOverflow.length > 0 && (
+      <button
+        type="button"
+        class="show-more"
+        data-show-more
+        data-overflow-count={tagOverflow.length}
+      >
+        <span data-more-label>+{tagOverflow.length} more</span>
+      </button>
+    )}
+  </details>
+
+  <div class="filter-foot">
+    <span class="filter-count" data-filter-count>-</span>
+  </div>
+</aside>
+
+<script>
+  import '~/scripts/filters.ts';
+
+  // "+N more" toggle for collapsed option lists
+  document.querySelectorAll<HTMLButtonElement>('[data-show-more]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const section = btn.closest('details');
+      const overflow = section?.querySelector<HTMLElement>('[data-check-overflow]');
+      const label = btn.querySelector<HTMLElement>('[data-more-label]');
+      if (!overflow || !label) return;
+      const wasHidden = overflow.hidden;
+      overflow.hidden = !wasHidden;
+      label.textContent = wasHidden ? 'Show fewer' : `+${btn.dataset.overflowCount} more`;
+    });
+  });
+
+  // Tag-search input filters which tag checkboxes are visible (does not affect resource filtering).
+  document.querySelectorAll<HTMLInputElement>('[data-tag-search]').forEach(input => {
+    const list = input.closest('details')?.querySelector<HTMLElement>('[data-tag-list]');
+    if (!list) return;
+    input.addEventListener('input', () => {
+      const q = input.value.trim().toLowerCase();
+      list.querySelectorAll<HTMLElement>('[data-tag-item]').forEach(item => {
+        const t = item.dataset.tagItem ?? '';
+        item.hidden = q !== '' && !t.includes(q);
+      });
+    });
+  });
+</script>
+
+<style>
+  .filter-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.1rem;
+    box-shadow: var(--shadow-soft);
+    position: sticky;
+    top: 5.5rem;
+    align-self: start;
+    max-height: calc(100vh - 6.5rem);
+    overflow-y: auto;
+  }
+
+  .filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid var(--line-soft);
+    margin-bottom: 0.4rem;
+  }
+  .filter-clear {
+    background: transparent;
+    border: none;
+    color: var(--ink-mute);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    padding: 0;
+  }
+  .filter-clear:hover { color: var(--amber); }
+
+  .filter-section {
+    border-top: 1px solid var(--line-soft);
+    padding: 0.3rem 0 0.4rem;
+  }
+  .filter-section:first-of-type {
+    border-top: none;
+    padding-top: 0;
+  }
+  .filter-section > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+    padding: 0.5rem 0;
+  }
+  .filter-section > summary::-webkit-details-marker { display: none; }
+  .filter-section > summary::marker { content: ''; }
+  .filter-section > summary:hover { color: var(--pine); }
+  .chev {
+    transition: transform 0.15s;
+    font-size: 0.7rem;
+    color: var(--ink-mute);
+  }
+  .filter-section[open] > summary .chev { transform: rotate(180deg); }
+
+  .tag-search {
+    position: relative;
+    margin: 0.3rem 0 0.5rem;
+  }
+  .tag-search input {
+    width: 100%;
+    padding: 0.4rem 0.6rem 0.4rem 1.85rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper-warm);
+    font: inherit;
+    font-size: 0.82rem;
+    outline: none;
+    color: var(--ink);
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .tag-search input:focus { background: #fff; border-color: var(--pine); }
+  .tag-search input::placeholder { color: var(--ink-mute); }
+  .search-ico {
+    position: absolute;
+    left: 0.55rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 13px;
+    height: 13px;
+    color: var(--ink-mute);
+    pointer-events: none;
+  }
+
+  .check-list {
+    list-style: none;
+    margin: 0.2rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+  }
+  .overflow {
+    display: contents;
+  }
+  .overflow[hidden] {
+    display: none;
+  }
+
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.3rem 0.25rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .check:hover { background: var(--paper-warm); }
+  .check input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+  }
+  .check-box {
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 3px;
+    background: #fff;
+    flex-shrink: 0;
+    position: relative;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .check:hover .check-box { border-color: var(--pine); }
+  .check input:checked + .check-box {
+    background: var(--pine);
+    border-color: var(--pine);
+  }
+  .check input:checked + .check-box::after {
+    content: '';
+    position: absolute;
+    left: 3.5px;
+    top: 0.5px;
+    width: 4px;
+    height: 8px;
+    border: solid #fff;
+    border-width: 0 1.6px 1.6px 0;
+    transform: rotate(45deg);
+  }
+  .check input:focus-visible + .check-box {
+    outline: 2px solid var(--pine);
+    outline-offset: 1px;
+  }
+  .check-label {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    user-select: none;
+    line-height: 1.3;
+  }
+
+  .show-more {
+    background: transparent;
+    border: none;
+    color: var(--pine);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    padding: 0.45rem 0.25rem 0.1rem;
+  }
+  .show-more:hover { color: var(--pine-deep); }
+
+  .filter-foot {
+    margin-top: 0.6rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--line-soft);
+  }
+  .filter-count {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  @media (max-width: 880px) {
+    .filter-panel {
+      position: static;
+      max-height: none;
+    }
+  }
+</style>

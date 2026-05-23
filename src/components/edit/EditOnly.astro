@@ -1,0 +1,11 @@
+---
+// Wraps children that should only render when edit mode is unlocked.
+// Hiding is enforced by global CSS (body:not([data-edit="on"]) [data-edit-only]).
+---
+<span data-edit-only class="edit-only">
+  <slot />
+</span>
+
+<style>
+  .edit-only { display: contents; }
+</style>

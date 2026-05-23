@@ -1,0 +1,81 @@
+---
+import ResourceLayout from '~/layouts/ResourceLayout.astro';
+import { SUBJECTS } from '~/data/subjects';
+import { getSubjectTopicTree } from '~/lib/collections';
+
+const tree = await getSubjectTopicTree();
+---
+<ResourceLayout title="Resources · StemVault" description="Browse resources by subject and topic.">
+  <header class="page-head">
+    <span class="eyebrow">Library</span>
+    <h1>Resources</h1>
+    <p class="page-sub">Pick a subject to drill down into topics. Each topic gathers applets and files for that area.</p>
+  </header>
+  <div class="subject-grid">
+    {SUBJECTS.map(s => {
+      const topics = tree[s.name] ?? [];
+      return (
+        <a class="subject-card" href={`/resources/${s.slug}`} style={`--accent: ${s.accent}`}>
+          <h3>{s.name}</h3>
+          <p class="topic-count">{topics.length} topic{topics.length === 1 ? '' : 's'}</p>
+          {topics.length > 0 && (
+            <ul class="topic-peek">
+              {topics.slice(0, 4).map(t => <li>{t}</li>)}
+            </ul>
+          )}
+        </a>
+      );
+    })}
+  </div>
+</ResourceLayout>
+
+<style>
+  .page-head { margin-bottom: 1.5rem; }
+  .page-head h1 { margin: 0.4rem 0 0.6rem; }
+  .page-sub { color: var(--ink-soft); margin: 0; max-width: 60ch; }
+
+  .subject-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  .subject-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-top: 4px solid var(--accent);
+    border-radius: var(--radius-lg);
+    padding: 1.2rem 1.3rem;
+    color: var(--ink);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .subject-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); color: var(--ink); }
+  .subject-card h3 { margin: 0 0 0.3rem; color: var(--ink); }
+  .topic-count {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-mute);
+    margin: 0 0 0.6rem;
+  }
+  .topic-peek {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .topic-peek li {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    background: var(--paper-warm);
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    color: var(--ink-mute);
+  }
+  @media (max-width: 700px) {
+    .subject-grid { grid-template-columns: 1fr; }
+  }
+</style>

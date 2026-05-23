@@ -1,0 +1,35 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import ResourceSidebar from '~/components/resources/ResourceSidebar.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  activeSubject?: string;
+  activeTopic?: string;
+}
+const { title, description, activeSubject, activeTopic } = Astro.props;
+---
+<BaseLayout title={title} description={description}>
+  <div class="container resources">
+    <ResourceSidebar activeSubject={activeSubject} activeTopic={activeTopic} />
+    <div class="resources-main">
+      <slot />
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .resources {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 2rem;
+    padding-top: 2.5rem;
+    padding-bottom: 3rem;
+    align-items: start;
+  }
+  .resources-main { min-width: 0; }
+  @media (max-width: 880px) {
+    .resources { grid-template-columns: 1fr; }
+  }
+</style>

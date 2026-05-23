@@ -1,0 +1,81 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+import AddButton from '~/components/edit/AddButton.astro';
+import { TOOLS } from '~/data/tools';
+---
+<BaseLayout title="Tools · StemVault" description="Standalone tools for teaching workflows.">
+  <section class="page">
+    <div class="container">
+      <header class="page-head">
+        <span class="eyebrow">Workshop</span>
+        <div class="head-row">
+          <h1>Tools</h1>
+          <AddButton label="+ Add tool" kind="tool" />
+        </div>
+        <p class="page-sub">General-purpose tools that aren't tied to a single subject - handy utilities for preparing teaching materials.</p>
+      </header>
+      <ul class="tool-grid">
+        {TOOLS.map(t => (
+          <li>
+            <a class="tool-card" href={t.href}>
+              <h3>{t.title}</h3>
+              <p>{t.description}</p>
+              <span class="tool-arrow" aria-hidden="true">→</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page { padding: 3rem 0 4rem; }
+  .head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .page-head h1 { margin: 0.4rem 0 0.6rem; }
+  .page-sub { color: var(--ink-soft); max-width: 60ch; margin: 0 0 1.5rem; }
+
+  .tool-grid {
+    list-style: none;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  .tool-card {
+    display: block;
+    position: relative;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 1.3rem 1.4rem 1.5rem;
+    color: var(--ink);
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+  .tool-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card);
+    border-color: var(--pine);
+    color: var(--ink);
+  }
+  .tool-card h3 { margin: 0 0 0.4rem; }
+  .tool-card p { margin: 0; color: var(--ink-soft); font-size: 0.95rem; }
+  .tool-arrow {
+    position: absolute;
+    top: 1.3rem;
+    right: 1.3rem;
+    font-family: var(--font-mono);
+    color: var(--ink-mute);
+  }
+  .tool-card:hover .tool-arrow { color: var(--pine); }
+  @media (max-width: 700px) {
+    .tool-grid { grid-template-columns: 1fr; }
+  }
+</style>
