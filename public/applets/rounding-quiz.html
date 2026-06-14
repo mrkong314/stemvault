@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rounding Practice</title>
+<style>
+  :root {
+    --ink: #1a2332;
+    --paper: #f6f4ee;
+    --rule: #d4cfc2;
+    --accent: #2f6f5e;
+    --accent-soft: #e4efe9;
+    --correct: #2f6f5e;
+    --wrong: #b23b3b;
+    --wrong-soft: #f4e3e3;
+    --muted: #6b6557;
+    --shadow: rgba(26, 35, 50, 0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 560px;
+  }
+
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .scoreboard {
+    display: flex;
+    gap: 1rem;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .score-item { white-space: nowrap; }
+  .score-item strong { color: var(--ink); }
+  .score-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-right: 0.15rem;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+  }
+
+  .control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .control label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .seg {
+    display: inline-flex;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .seg button {
+    border: none;
+    background: #fff;
+    padding: 0.45rem 0.7rem;
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    color: var(--ink);
+    border-right: 1px solid var(--rule);
+    transition: background 0.12s;
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button:hover { background: var(--accent-soft); }
+  .seg button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 1.75rem 1.5rem;
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+
+  .prompt {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .number {
+    font-variant-numeric: tabular-nums;
+    font-size: 2.4rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.25rem;
+    word-break: break-all;
+  }
+
+  .answer-row {
+    display: flex;
+    gap: 0.6rem;
+  }
+  .answer-row input {
+    flex: 1;
+    font: inherit;
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+    padding: 0.6rem 0.8rem;
+    border: 1.5px solid var(--rule);
+    border-radius: 6px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .answer-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+  }
+  .answer-row input:disabled { opacity: 0.7; }
+
+  .btn {
+    border: none;
+    border-radius: 6px;
+    padding: 0.6rem 1.2rem;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--accent);
+    color: #fff;
+    transition: filter 0.12s;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn.ghost { background: var(--ink); }
+
+  .feedback {
+    margin-top: 1.1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    display: none;
+  }
+  .feedback.show { display: block; }
+  .feedback.ok {
+    background: var(--accent-soft);
+    color: var(--correct);
+    border: 1px solid var(--correct);
+  }
+  .feedback.no {
+    background: var(--wrong-soft);
+    color: var(--wrong);
+    border: 1px solid var(--wrong);
+  }
+  .feedback .reveal {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+  .feedback .work {
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .actions {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .next-btn { display: none; }
+  .next-btn.show { display: inline-block; }
+
+  footer {
+    margin-top: 1.25rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: center;
+  }
+  .reset-btn {
+    border: 1px solid var(--rule);
+    background: #fff;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.8rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .reset-btn:hover {
+    background: var(--wrong-soft);
+    color: var(--wrong);
+    border-color: var(--wrong);
+  }
+
+  @media (max-width: 480px) {
+    .number { font-size: 1.9rem; }
+    header { flex-direction: column; gap: 0.25rem; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Rounding Practice</h1>
+    <div class="scoreboard" id="scoreboard">
+      <div class="score-item"><span class="score-label">Easy</span> <strong id="easyVal">0</strong> / <span id="easyAtt">0</span></div>
+      <div class="score-item"><span class="score-label">Medium</span> <strong id="mediumVal">0</strong> / <span id="mediumAtt">0</span></div>
+      <div class="score-item"><span class="score-label">Hard</span> <strong id="hardVal">0</strong> / <span id="hardAtt">0</span></div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="control">
+      <label>Decimal places</label>
+      <div class="seg" id="dpSeg">
+        <button data-dp="0">0</button>
+        <button data-dp="1" class="active">1</button>
+        <button data-dp="2">2</button>
+        <button data-dp="3">3</button>
+      </div>
+    </div>
+    <div class="control">
+      <label>Difficulty</label>
+      <div class="seg" id="diffSeg">
+        <button data-diff="easy" class="active">Easy</button>
+        <button data-diff="medium">Medium</button>
+        <button data-diff="hard">Hard</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="prompt" id="prompt">Round to 1 decimal place</div>
+    <div class="number" id="number">0.0</div>
+    <div class="answer-row">
+      <input type="text" id="answer" inputmode="decimal" autocomplete="off" placeholder="Your answer" aria-label="Your answer">
+      <button class="btn" id="checkBtn">Check</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="actions">
+      <button class="btn ghost next-btn" id="nextBtn">Next question</button>
+    </div>
+  </div>
+
+  <footer>
+    <button class="reset-btn" id="resetBtn">Reset all scores</button>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var state = {
+    dp: 1,
+    diff: 'easy',
+    current: 0,
+    correctAnswer: '',
+    answered: false,
+    stats: {
+      easy:   { score: 0, attempts: 0 },
+      medium: { score: 0, attempts: 0 },
+      hard:   { score: 0, attempts: 0 }
+    }
+  };
+
+  var STORAGE_KEY = 'rounding-quiz:stats';
+
+  var el = {
+    prompt: document.getElementById('prompt'),
+    number: document.getElementById('number'),
+    answer: document.getElementById('answer'),
+    checkBtn: document.getElementById('checkBtn'),
+    nextBtn: document.getElementById('nextBtn'),
+    feedback: document.getElementById('feedback'),
+    resetBtn: document.getElementById('resetBtn'),
+    dpSeg: document.getElementById('dpSeg'),
+    diffSeg: document.getElementById('diffSeg'),
+    scores: {
+      easy:   { val: document.getElementById('easyVal'),   att: document.getElementById('easyAtt') },
+      medium: { val: document.getElementById('mediumVal'), att: document.getElementById('mediumAtt') },
+      hard:   { val: document.getElementById('hardVal'),   att: document.getElementById('hardAtt') }
+    }
+  };
+
+  // Difficulty controls magnitude range and how many decimals the source number carries.
+  var DIFF = {
+    easy:   { min: 0,    max: 100,    extra: 1 },
+    medium: { min: 0,    max: 1000,   extra: 2 },
+    hard:   { min: 0,    max: 100000, extra: 3 }
+  };
+
+  function randomNumber() {
+    var cfg = DIFF[state.diff];
+    // Source number always has more decimals than the target, so rounding is meaningful.
+    var sourceDp = state.dp + cfg.extra;
+    var magnitude = cfg.min + Math.random() * (cfg.max - cfg.min);
+    var factor = Math.pow(10, sourceDp);
+    // Build a value whose decimal expansion is exactly sourceDp digits (avoids float artefacts).
+    var n = Math.round(magnitude * factor) / factor;
+    return { value: n, sourceDp: sourceDp };
+  }
+
+  // Round half away from zero to dp decimal places, return fixed-string form.
+  function roundHalfAway(value, dp) {
+    var factor = Math.pow(10, dp);
+    var scaled = value * factor;
+    // Nudge to counter binary float representation before rounding the half.
+    var rounded = Math.sign(scaled) * Math.round(Math.abs(scaled) + 1e-9);
+    var result = rounded / factor;
+    return result.toFixed(dp);
+  }
+
+  function normaliseInput(raw) {
+    var s = raw.trim();
+    if (s === '') return null;
+    // Accept comma decimal separator and leading +.
+    s = s.replace(',', '.').replace(/^\+/, '');
+    if (!/^-?\d*\.?\d*$/.test(s) || s === '.' || s === '-') return null;
+    var num = parseFloat(s);
+    if (isNaN(num)) return null;
+    return num;
+  }
+
+  function newQuestion() {
+    var q = randomNumber();
+    state.current = q.value;
+    state.correctAnswer = roundHalfAway(q.value, state.dp);
+    state.answered = false;
+
+    el.prompt.textContent = 'Round to ' + state.dp + ' decimal place' + (state.dp === 1 ? '' : 's');
+    // Show the source number with its full precision.
+    el.number.textContent = q.value.toFixed(q.sourceDp);
+
+    el.answer.value = '';
+    el.answer.disabled = false;
+    el.checkBtn.disabled = false;
+    el.feedback.className = 'feedback';
+    el.feedback.innerHTML = '';
+    el.nextBtn.classList.remove('show');
+    el.answer.focus();
+  }
+
+  function check() {
+    if (state.answered) return;
+    var parsed = normaliseInput(el.answer.value);
+    if (parsed === null) {
+      el.feedback.className = 'feedback no show';
+      el.feedback.innerHTML = 'Enter a valid number.';
+      return;
+    }
+
+    state.answered = true;
+    var bucket = state.stats[state.diff];
+    bucket.attempts++;
+
+    // Compare numerically so 1.5 and 1.50 both count.
+    var userRounded = parsed.toFixed(state.dp);
+    var isCorrect = (userRounded === state.correctAnswer);
+
+    if (isCorrect) bucket.score++;
+    updateScore();
+    saveStats();
+
+    el.answer.disabled = true;
+    el.checkBtn.disabled = true;
+
+    if (isCorrect) {
+      el.feedback.className = 'feedback ok show';
+      el.feedback.innerHTML = 'Correct. <span class="reveal">' + state.correctAnswer + '</span>';
+    } else {
+      el.feedback.className = 'feedback no show';
+      el.feedback.innerHTML =
+        'Not quite. The answer is <span class="reveal">' + state.correctAnswer + '</span>.';
+    }
+
+    el.nextBtn.classList.add('show');
+    el.nextBtn.focus();
+  }
+
+  function updateScore() {
+    ['easy', 'medium', 'hard'].forEach(function (d) {
+      el.scores[d].val.textContent = state.stats[d].score;
+      el.scores[d].att.textContent = state.stats[d].attempts;
+    });
+  }
+
+  function saveStats() {
+    try {
+      window.storage.set(STORAGE_KEY, JSON.stringify(state.stats));
+    } catch (e) {
+      // Storage unavailable; scores stay in-session only.
+    }
+  }
+
+  function loadStats() {
+    try {
+      var res = window.storage.get(STORAGE_KEY);
+      // get may return a promise or a resolved value depending on the host.
+      Promise.resolve(res).then(function (r) {
+        if (r && r.value) {
+          var saved = JSON.parse(r.value);
+          ['easy', 'medium', 'hard'].forEach(function (d) {
+            if (saved[d]) {
+              state.stats[d].score = saved[d].score || 0;
+              state.stats[d].attempts = saved[d].attempts || 0;
+            }
+          });
+          updateScore();
+        }
+      }).catch(function () { /* no saved stats */ });
+    } catch (e) {
+      // Storage unavailable; start fresh.
+    }
+  }
+
+  function resetStats() {
+    ['easy', 'medium', 'hard'].forEach(function (d) {
+      state.stats[d].score = 0;
+      state.stats[d].attempts = 0;
+    });
+    updateScore();
+    try {
+      window.storage.delete(STORAGE_KEY);
+    } catch (e) { /* nothing to delete */ }
+  }
+
+  function bindSeg(seg, key, cast) {
+    seg.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      [].forEach.call(seg.querySelectorAll('button'), function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      state[key] = cast(btn.dataset[key === 'dp' ? 'dp' : 'diff']);
+      newQuestion();
+    });
+  }
+
+  bindSeg(el.dpSeg, 'dp', function (v) { return parseInt(v, 10); });
+  bindSeg(el.diffSeg, 'diff', function (v) { return v; });
+
+  el.checkBtn.addEventListener('click', check);
+  el.nextBtn.addEventListener('click', newQuestion);
+
+  el.answer.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); check(); }
+  });
+  el.nextBtn.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); newQuestion(); }
+  });
+
+  el.resetBtn.addEventListener('click', resetStats);
+
+  loadStats();
+  newQuestion();
+})();
+</script>
+</body>
+</html>
