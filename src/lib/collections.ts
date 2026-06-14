@@ -4,9 +4,12 @@ import type { ResourceType } from '~/lib/types';
 
 export type ResourceEntry = CollectionEntry<'resources'>;
 
-export async function getResources(): Promise<ResourceEntry[]> {
+export async function getResources(opts?: { includeUnlisted?: boolean }): Promise<ResourceEntry[]> {
   const all = await getCollection('resources');
-  return all.sort((a, b) => +new Date(b.data.addedAt) - +new Date(a.data.addedAt));
+  // Listing contexts (index, subject, topic, search) get only listed entries.
+  // The detail route passes includeUnlisted so unlisted resources still get pages.
+  const visible = opts?.includeUnlisted ? all : all.filter(r => !r.data.unlisted);
+  return visible.sort((a, b) => +new Date(b.data.addedAt) - +new Date(a.data.addedAt));
 }
 
 export async function getResourcesByType(type: ResourceType): Promise<ResourceEntry[]> {

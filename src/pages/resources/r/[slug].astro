@@ -8,7 +8,8 @@ import { TYPE_LABEL } from '~/lib/types';
 import { subjectFromSlug, slugForSubject } from '~/data/subjects';
 
 export async function getStaticPaths() {
-  const resources = await getResources();
+  // Include unlisted resources so their detail pages still build (direct links work).
+  const resources = await getResources({ includeUnlisted: true });
   // File entries link directly to fileUrl/externalUrl, no detail page.
   return resources
     .filter(r => r.data.type !== 'file')
@@ -19,13 +20,13 @@ export async function getStaticPaths() {
 }
 
 const { resource } = Astro.props;
-const { title, type, subject, yearLevel, tags, description, embedUrl, format } = resource.data;
+const { title, type, subject, yearLevel, tags, description, embedUrl, format, unlisted } = resource.data;
 const { Content } = await resource.render();
 const src = embedSrc(resource);
 const isExternal = Boolean(embedUrl);
 const subjectInfo = subjectFromSlug(slugForSubject(subject));
 ---
-<BaseLayout title={`${title} · StemVault`} description={description}>
+<BaseLayout title={`${title} · StemVault`} description={description} noindex={unlisted}>
   <article class="resource-page">
     <div class="container">
       <nav class="crumbs">

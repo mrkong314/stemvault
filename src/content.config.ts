@@ -22,6 +22,7 @@ const resources = defineCollection({
     topic: z.string().optional(),
     addedAt: z.coerce.date(),
     featured: z.boolean().default(false),
+    unlisted: z.boolean().default(false),
 
     // applet / video / quiz embed sources
     embedUrl: z.string().url().optional(),

@@ -6,10 +6,12 @@ import Footer from '~/components/Footer.astro';
 interface Props {
   title?: string;
   description?: string;
+  noindex?: boolean;
 }
 const {
   title = 'StemVault - interactive teaching tools',
   description = 'A place for interactive teaching tools and STEM resources.',
+  noindex = false,
 } = Astro.props;
 ---
 <!doctype html>
@@ -26,6 +28,7 @@ const {
     />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
     <title>{title}</title>
   </head>
   <body>
