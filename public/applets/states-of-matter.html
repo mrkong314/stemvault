@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>States of Matter</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    const { useState, useRef, useEffect } = React;
+
+    const PW = 720;
+    const PH = 410;
+    const BOX = { x: 16, y: 16, w: 688, h: 378 };
+    const TMIN = -273;
+    const TMAX = 160;
+    const TRANGE = TMAX - TMIN;
+
+    const B1 = 0.1;
+    const B2 = 0.34;
+    const B3 = 0.46;
+    const B4 = 0.88;
+
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+    function thermo(E) {
+      if (E < B1)
+        return {
+          regime: "solidHeat",
+          temp: TMIN + (E / B1) * (0 - TMIN),
+          meltP: 0,
+          boilP: 0,
+        };
+      if (E < B2)
+        return { regime: "melting", temp: 0, meltP: (E - B1) / (B2 - B1), boilP: 0 };
+      if (E < B3)
+        return {
+          regime: "liquidHeat",
+          temp: ((E - B2) / (B3 - B2)) * 100,
+          meltP: 1,
+          boilP: 0,
+        };
+      if (E < B4)
+        return { regime: "boiling", temp: 100, meltP: 1, boilP: (E - B3) / (B4 - B3) };
+      return {
+        regime: "gasHeat",
+        temp: 100 + ((E - B4) / (1 - B4)) * 60,
+        meltP: 1,
+        boilP: 1,
+      };
+    }
+
+    const REGIME = {
+      solidHeat: { label: "Solid", color: "#60a5fa" },
+      melting: { label: "Melting", color: "#22d3ee" },
+      liquidHeat: { label: "Liquid", color: "#34d399" },
+      boiling: { label: "Boiling", color: "#fb923c" },
+      gasHeat: { label: "Gas", color: "#f97316" },
+    };
+
+    const PHASE_COLOR = ["#60a5fa", "#34d399", "#f97316"];
+
+    function useRaf(cb, playing) {
+      const ref = useRef(cb);
+      ref.current = cb;
+      useEffect(() => {
+        if (!playing) return;
+        let id;
+        let last = performance.now();
+        const tick = (now) => {
+          const dt = Math.min(0.04, (now - last) / 1000);
+          last = now;
+          ref.current(dt);
+          id = requestAnimationFrame(tick);
+        };
+        id = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(id);
+      }, [playing]);
+    }
+
+    function makeParticles() {
+      const cols = 15;
+      const rows = 8;
+      const gapX = 44;
+      const gapY = 40;
+      const startX = BOX.x + (BOX.w - (cols - 1) * gapX) / 2;
+      const baseY = BOX.y + BOX.h - 44;
+      const arr = [];
+      for (let row = 0; row < rows; row++) {
+        for (let c = 0; c < cols; c++) {
+          const hx = startX + c * gapX;
+          const hy = baseY - (rows - 1 - row) * gapY;
+          arr.push({
+            x: hx,
+            y: hy,
+            vx: 0,
+            vy: 0,
+            hx,
+            hy,
+            meltT: 0.08 + Math.random() * 0.84,
+            boilT: 0.08 + Math.random() * 0.84,
+            ph: 0,
+          });
+        }
+      }
+      return arr;
+    }
+
+    function ParticleField({ eRef, partRef, playing }) {
+      const canvasRef = useRef(null);
+
+      useEffect(() => {
+        const cv = canvasRef.current;
+        if (!cv) return;
+        cv.width = PW * 2;
+        cv.height = PH * 2;
+        cv.getContext("2d").setTransform(2, 0, 0, 2, 0, 0);
+      }, []);
+
+      useRaf((dt) => {
+        const E = eRef.current;
+        const { temp, meltP, boilP } = thermo(E);
+        const parts = partRef.current;
+        const r = 8;
+        const fk = dt * 60;
+
+        const uS = clamp((temp - TMIN) / (0 - TMIN), 0, 1);
+        const uL = clamp(temp / 100, 0, 1);
+        const uG = clamp((temp - 100) / 60, 0, 1);
+        const jS = uS * 36;
+        const jL = 50 + uL * 115;
+        const jG = 270 + uG * 130;
+
+        for (const p of parts) {
+          const isGas = boilP > 0 && boilP >= p.boilT;
+          const isLiquid = !isGas && meltP >= p.meltT;
+          p.ph = isGas ? 2 : isLiquid ? 1 : 0;
+
+          if (p.ph === 0) {
+            p.vx += (p.hx - p.x) * 70 * dt;
+            p.vy += (p.hy - p.y) * 70 * dt;
+            p.vx += (Math.random() - 0.5) * jS * fk;
+            p.vy += (Math.random() - 0.5) * jS * fk;
+            const d = Math.pow(0.88, fk);
+            p.vx *= d;
+            p.vy *= d;
+          } else if (p.ph === 1) {
+            p.vy += 540 * dt;
+            p.vx += (Math.random() - 0.5) * jL * fk;
+            p.vy += (Math.random() - 0.5) * jL * fk;
+            const d = Math.pow(0.985, fk);
+            p.vx *= d;
+            p.vy *= d;
+          } else {
+            p.vx += (Math.random() - 0.5) * jG * fk;
+            p.vy += (Math.random() - 0.5) * jG * fk;
+            const d = Math.pow(0.995, fk);
+            p.vx *= d;
+            p.vy *= d;
+          }
+        }
+
+        for (let i = 0; i < parts.length; i++) {
+          for (let j2 = i + 1; j2 < parts.length; j2++) {
+            const a = parts[i];
+            const b = parts[j2];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const d2 = dx * dx + dy * dy;
+            const minD = a.ph === 2 || b.ph === 2 ? 18 : 17;
+            if (d2 < minD * minD && d2 > 0.01) {
+              const d = Math.sqrt(d2);
+              const ux = dx / d;
+              const uy = dy / d;
+              const push = (minD - d) * 0.5;
+              a.x -= ux * push;
+              a.y -= uy * push;
+              b.x += ux * push;
+              b.y += uy * push;
+              const rv = (b.vx - a.vx) * ux + (b.vy - a.vy) * uy;
+              if (rv < 0) {
+                a.vx += rv * ux * 0.5;
+                a.vy += rv * uy * 0.5;
+                b.vx -= rv * ux * 0.5;
+                b.vy -= rv * uy * 0.5;
+              }
+            }
+          }
+        }
+
+        for (const p of parts) {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          const damp = p.ph === 2 ? 0.96 : 0.4;
+          if (p.x < BOX.x + r) {
+            p.x = BOX.x + r;
+            p.vx = Math.abs(p.vx) * damp;
+          }
+          if (p.x > BOX.x + BOX.w - r) {
+            p.x = BOX.x + BOX.w - r;
+            p.vx = -Math.abs(p.vx) * damp;
+          }
+          if (p.y < BOX.y + r) {
+            p.y = BOX.y + r;
+            p.vy = Math.abs(p.vy) * damp;
+          }
+          if (p.y > BOX.y + BOX.h - r) {
+            p.y = BOX.y + BOX.h - r;
+            p.vy = -Math.abs(p.vy) * damp;
+          }
+        }
+
+        const ctx = canvasRef.current && canvasRef.current.getContext("2d");
+        if (!ctx) return;
+        ctx.clearRect(0, 0, PW, PH);
+        ctx.fillStyle = "#0a0f1a";
+        ctx.fillRect(0, 0, PW, PH);
+        ctx.strokeStyle = "#26344a";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(BOX.x, BOX.y, BOX.w, BOX.h);
+
+        for (const p of parts) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = PHASE_COLOR[p.ph];
+          ctx.fill();
+        }
+      }, playing);
+
+      return React.createElement("canvas", {
+        ref: canvasRef,
+        className: "w-full rounded-xl",
+        style: { aspectRatio: "720 / 410" },
+      });
+    }
+
+    function Thermometer({ temp }) {
+      const barL = 32;
+      const barW = 414;
+      const xOf = (t) => barL + clamp((t - TMIN) / TRANGE, 0, 1) * barW;
+      const fillX = xOf(temp);
+      const h = clamp((temp - TMIN) / TRANGE, 0, 1);
+      const mercury =
+        h < 0.55
+          ? `rgb(${59 + h * 1.8 * 130},${130 - h * 1.8 * 50},${246 - h * 1.8 * 190})`
+          : `rgb(${211 + (h - 0.55) * 80},${68 - (h - 0.55) * 10},${50})`;
+
+      const ticks = [
+        { t: -273, label: "0 K", sub: "", c: "#64748b" },
+        { t: 0, label: "0 °C", sub: "freezing", c: "#60a5fa" },
+        { t: 100, label: "100 °C", sub: "boiling", c: "#fb923c" },
+        { t: 160, label: "160 °C", sub: "", c: "#64748b" },
+      ];
+
+      return React.createElement("svg", { viewBox: "0 0 470 60", className: "w-full" },
+        React.createElement("circle", { cx: 18, cy: 24, r: 13, fill: mercury, stroke: "#334155", strokeWidth: 2 }),
+        React.createElement("rect", { x: barL, y: 17, width: barW, height: 14, rx: 7, fill: "#0a0f1a", stroke: "#334155", strokeWidth: 2 }),
+        React.createElement("rect", { x: barL, y: 17, width: Math.max(0, fillX - barL), height: 14, rx: 7, fill: mercury }),
+        ticks.map((tk) => {
+          const x = xOf(tk.t);
+          const anchor = tk.t === -273 ? "start" : tk.t === 160 ? "end" : "middle";
+          return React.createElement("g", { key: tk.t },
+            React.createElement("line", { x1: x, y1: 32, x2: x, y2: 38, stroke: tk.c, strokeWidth: 1.5 }),
+            React.createElement("text", { x: x, y: 48, textAnchor: anchor, fontSize: 10, fontWeight: 700, fill: tk.c }, tk.label),
+            tk.sub && React.createElement("text", { x: x, y: 58, textAnchor: anchor, fontSize: 8.5, fill: tk.c }, tk.sub)
+          );
+        })
+      );
+    }
+
+    const HC = { mL: 56, mR: 26, top: 20, bot: 168, vbW: 900, vbH: 206 };
+
+    function HeatingCurve({ E }) {
+      const plotW = HC.vbW - HC.mL - HC.mR;
+      const xOf = (e) => HC.mL + e * plotW;
+      const yOf = (t) => HC.bot - ((t - TMIN) / TRANGE) * (HC.bot - HC.top);
+      const pts = [
+        [0, TMIN],
+        [B1, 0],
+        [B2, 0],
+        [B3, 100],
+        [B4, 100],
+        [1, 160],
+      ].map(([e, t]) => `${xOf(e)},${yOf(t)}`);
+      const { temp } = thermo(E);
+
+      const yLabels = [
+        { t: 160, txt: "160", c: "#64748b" },
+        { t: 100, txt: "100", c: "#fb923c" },
+        { t: 0, txt: "0", c: "#60a5fa" },
+        { t: -273, txt: "−273", c: "#64748b" },
+      ];
+
+      return React.createElement("svg", { viewBox: `0 0 ${HC.vbW} ${HC.vbH}`, className: "w-full" },
+        [0, 100].map((t) =>
+          React.createElement("line", {
+            key: t,
+            x1: HC.mL,
+            y1: yOf(t),
+            x2: HC.vbW - HC.mR,
+            y2: yOf(t),
+            stroke: t === 0 ? "#60a5fa" : "#fb923c",
+            strokeWidth: 1.5,
+            strokeDasharray: "5 5",
+            opacity: 0.55,
+          })
+        ),
+        React.createElement("line", { x1: HC.mL, y1: HC.top, x2: HC.mL, y2: HC.bot, stroke: "#334155", strokeWidth: 1.5 }),
+        React.createElement("line", { x1: HC.mL, y1: HC.bot, x2: HC.vbW - HC.mR, y2: HC.bot, stroke: "#334155", strokeWidth: 1.5 }),
+        yLabels.map((yl) =>
+          React.createElement("text", {
+            key: yl.t,
+            x: HC.mL - 8,
+            y: yOf(yl.t) + 4,
+            textAnchor: "end",
+            fontSize: 11,
+            fontWeight: 700,
+            fill: yl.c,
+          }, yl.txt)
+        ),
+        React.createElement("text", { x: HC.mL - 8, y: yOf(TMIN) + 16, textAnchor: "end", fontSize: 9, fill: "#64748b" }, "0 K"),
+        React.createElement("polyline", {
+          points: pts.join(" "),
+          fill: "none",
+          stroke: "#e2e8f0",
+          strokeWidth: 3,
+          strokeLinejoin: "round",
+        }),
+        React.createElement("text", { x: xOf((B1 + B2) / 2), y: yOf(0) - 9, textAnchor: "middle", fontSize: 10, fontWeight: 600, fill: "#60a5fa" }, "freezing point"),
+        React.createElement("text", { x: xOf((B3 + B4) / 2), y: yOf(100) - 9, textAnchor: "middle", fontSize: 10, fontWeight: 600, fill: "#fb923c" }, "boiling point"),
+        React.createElement("circle", { cx: xOf(E), cy: yOf(temp), r: 7, fill: "#fbbf24", stroke: "#0a0f1a", strokeWidth: 2 }),
+        React.createElement("text", { x: HC.vbW - HC.mR, y: HC.bot + 16, textAnchor: "end", fontSize: 11, fill: "#64748b", fontWeight: 600 }, "Internal energy →"),
+        React.createElement("text", { x: 13, y: HC.top + 4, fontSize: 11, fill: "#64748b", fontWeight: 600, transform: `rotate(-90 13 ${HC.top + 4})` }, "Temperature (°C)")
+      );
+    }
+
+    function Seg({ count, color, total }) {
+      return count > 0 ? React.createElement("div", {
+        className: "flex items-center justify-center text-[10px] font-semibold text-slate-950",
+        style: { flex: count, background: color },
+      }, Math.round((count / total) * 100) + "%") : null;
+    }
+
+    function App() {
+      const [E, setE] = useState(0.05);
+      const [playing, setPlaying] = useState(true);
+      const eRef = useRef(E);
+      eRef.current = E;
+      const partRef = useRef(null);
+      if (!partRef.current) partRef.current = makeParticles();
+      const holdRef = useRef(null);
+
+      const stepE = (dir) => setE((e) => clamp(e + dir * 0.012, 0, 1));
+      const startHold = (dir) => {
+        stepE(dir);
+        holdRef.current = setInterval(() => stepE(dir), 55);
+      };
+      const endHold = () => {
+        if (holdRef.current) {
+          clearInterval(holdRef.current);
+          holdRef.current = null;
+        }
+      };
+      useEffect(() => () => endHold(), []);
+
+      const reset = () => {
+        for (const p of partRef.current) {
+          p.x = p.hx;
+          p.y = p.hy;
+          p.vx = 0;
+          p.vy = 0;
+          p.ph = 0;
+        }
+        setE(0.05);
+      };
+
+      const { temp, regime, meltP, boilP } = thermo(E);
+      const reg = REGIME[regime];
+
+      let solid = 0;
+      let liquid = 0;
+      let gas = 0;
+      for (const p of partRef.current) {
+        if (boilP > 0 && boilP >= p.boilT) gas++;
+        else if (meltP >= p.meltT) liquid++;
+        else solid++;
+      }
+      const total = solid + liquid + gas;
+
+      const padL = `${(HC.mL / HC.vbW) * 100}%`;
+      const padR = `${(HC.mR / HC.vbW) * 100}%`;
+
+      return React.createElement("div", { className: "min-h-screen w-full bg-slate-950 px-4 py-3 text-slate-100" },
+        React.createElement("div", { className: "mx-auto max-w-5xl" },
+          React.createElement("header", { className: "mb-3 flex items-end justify-between" },
+            React.createElement("div", {},
+              React.createElement("h1", { className: "text-lg font-bold tracking-tight" }, "States of Matter"),
+              React.createElement("p", { className: "font-mono text-[10px] uppercase tracking-widest text-slate-500" }, "Internal energy & temperature · water at standard pressure")
+            ),
+            React.createElement("div", { className: "flex gap-2" },
+              React.createElement("button", {
+                onClick: () => setPlaying((v) => !v),
+                className: "flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-800",
+              }, playing ? "⏸ Pause" : "▶ Play"),
+              React.createElement("button", {
+                onClick: reset,
+                className: "flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs font-medium hover:bg-slate-800",
+              }, "↻ Reset")
+            )
+          ),
+          React.createElement("div", { className: "grid gap-3 md:grid-cols-[1.7fr_1fr]" },
+            React.createElement(ParticleField, { eRef, partRef, playing }),
+            React.createElement("div", { className: "flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/50 p-3" },
+              React.createElement("div", { className: "flex items-baseline gap-2" },
+                React.createElement("span", { className: "text-4xl font-bold tabular-nums" }, Math.round(temp)),
+                React.createElement("span", { className: "text-lg text-slate-400" }, "°C"),
+                React.createElement("span", { className: "ml-auto text-sm font-semibold uppercase tracking-widest", style: { color: reg.color } }, reg.label)
+              ),
+              React.createElement("div", { className: "my-2" },
+                React.createElement(Thermometer, { temp })
+              ),
+              React.createElement("div", {},
+                React.createElement("div", { className: "mb-1 font-mono text-[10px] uppercase tracking-widest text-slate-500" }, "State breakdown"),
+                React.createElement("div", { className: "flex h-5 overflow-hidden rounded" },
+                  React.createElement(Seg, { count: solid, color: PHASE_COLOR[0], total }),
+                  React.createElement(Seg, { count: liquid, color: PHASE_COLOR[1], total }),
+                  React.createElement(Seg, { count: gas, color: PHASE_COLOR[2], total })
+                ),
+                React.createElement("div", { className: "mt-1 flex justify-between font-mono text-[10px] uppercase tracking-widest" },
+                  React.createElement("span", { style: { color: PHASE_COLOR[0] } }, "Solid"),
+                  React.createElement("span", { style: { color: PHASE_COLOR[1] } }, "Liquid"),
+                  React.createElement("span", { style: { color: PHASE_COLOR[2] } }, "Gas")
+                )
+              )
+            )
+          ),
+          React.createElement("div", { className: "mt-3 rounded-xl border border-slate-800 bg-slate-900/50 p-3" },
+            React.createElement(HeatingCurve, { E }),
+            React.createElement("div", { style: { paddingLeft: padL, paddingRight: padR } },
+              React.createElement("input", {
+                type: "range",
+                min: 0,
+                max: 1000,
+                value: Math.round(E * 1000),
+                onChange: (e) => setE(Number(e.target.value) / 1000),
+                className: "w-full accent-amber-400",
+              }),
+              React.createElement("div", { className: "flex justify-between font-mono text-[10px] uppercase tracking-widest text-slate-500" },
+                React.createElement("span", {}, "Absolute zero · 0 K"),
+                React.createElement("span", {}, "Hot gas · 160 °C")
+              )
+            ),
+            React.createElement("div", { className: "mt-1.5 flex items-center justify-between", style: { paddingLeft: padL, paddingRight: padR } },
+              React.createElement("div", { className: "flex items-center gap-2" },
+                React.createElement("button", {
+                  onPointerDown: () => startHold(-1),
+                  onPointerUp: endHold,
+                  onPointerLeave: endHold,
+                  className: "rounded-md border border-slate-700 bg-slate-800 p-1.5 hover:bg-slate-700",
+                }, "−"),
+                React.createElement("button", {
+                  onPointerDown: () => startHold(1),
+                  onPointerUp: endHold,
+                  onPointerLeave: endHold,
+                  className: "rounded-md border border-slate-700 bg-slate-800 p-1.5 hover:bg-slate-700",
+                }, "+")
+              ),
+              React.createElement("div", { className: "font-mono text-xs uppercase tracking-widest text-slate-400" },
+                "Internal energy ",
+                React.createElement("span", { className: "text-amber-400" }, Math.round(E * 100) + "%")
+              )
+            ),
+            React.createElement("p", { className: "mt-1.5 text-[11px] leading-relaxed text-slate-500" },
+              "At absolute zero (0 K) particle motion stops. Temperature then holds steady at the melting and boiling points while the state changes."
+            )
+          )
+        )
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
