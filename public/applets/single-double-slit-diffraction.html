@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diffraction &amp; Interference</title>
+<style>
+  :root{
+    --bg:#0e1116;
+    --panel:#171b22;
+    --panel-2:#1f242d;
+    --line:#2c333d;
+    --ink:#e8edf2;
+    --muted:#9aa6b2;
+    --accent:#4cc9f0;
+    --accent-warm:#f4a259;
+    --good:#74d680;
+    --warn:#f4a259;
+    --bad:#ef6f6c;
+    --mono:'SFMono-Regular',ui-monospace,'Cascadia Code','Consolas',monospace;
+    --sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);}
+  body{min-height:100vh;display:flex;flex-direction:column;}
+
+  header{
+    display:flex;align-items:stretch;justify-content:space-between;
+    border-bottom:1px solid var(--line);background:var(--panel);
+  }
+  .title{padding:14px 20px;}
+  .title h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.02em;}
+  .title p{margin:2px 0 0;font-size:12px;color:var(--muted);}
+  nav{display:flex;}
+  nav button{
+    background:transparent;border:none;border-left:1px solid var(--line);
+    color:var(--muted);font:inherit;font-size:13px;padding:0 22px;cursor:pointer;
+    letter-spacing:.02em;transition:background .15s,color .15s;
+  }
+  nav button:hover{color:var(--ink);background:var(--panel-2);}
+  nav button.active{color:var(--ink);background:var(--panel-2);box-shadow:inset 0 -2px 0 var(--accent);}
+
+  main{flex:1;display:grid;grid-template-columns:300px 1fr;min-height:0;}
+  .controls{
+    border-right:1px solid var(--line);background:var(--panel);
+    padding:18px;overflow-y:auto;
+  }
+  .stage{display:flex;flex-direction:column;min-width:0;}
+  .canvas-wrap{flex:1;position:relative;background:#070a0e;min-height:0;}
+  canvas{display:block;width:100%;height:100%;}
+
+  .group{margin-bottom:22px;}
+  .group h2{
+    font-size:11px;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--muted);margin:0 0 12px;font-weight:600;
+  }
+  .ctrl{margin-bottom:16px;}
+  .ctrl label{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:6px;}
+  .ctrl label .val{font-family:var(--mono);color:var(--accent);font-size:13px;}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;
+    background:var(--line);border-radius:2px;outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:2px solid var(--bg);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:16px;height:16px;border-radius:50%;background:var(--accent);
+    cursor:pointer;border:2px solid var(--bg);
+  }
+
+  .readout{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    padding:14px;font-family:var(--mono);font-size:13px;
+  }
+  .readout .row{display:flex;justify-content:space-between;margin-bottom:8px;}
+  .readout .row:last-child{margin-bottom:0;}
+  .readout .row span:first-child{color:var(--muted);}
+  .ratio-badge{
+    margin-top:12px;padding:8px 10px;border-radius:6px;font-size:12px;
+    font-family:var(--sans);font-weight:600;text-align:center;letter-spacing:.02em;
+  }
+  .ratio-badge.good{background:rgba(116,214,128,.14);color:var(--good);border:1px solid rgba(116,214,128,.3);}
+  .ratio-badge.warn{background:rgba(244,162,89,.14);color:var(--warn);border:1px solid rgba(244,162,89,.3);}
+  .ratio-badge.bad{background:rgba(239,111,108,.14);color:var(--bad);border:1px solid rgba(239,111,108,.3);}
+
+  .transport{
+    display:flex;align-items:center;gap:14px;padding:12px 18px;
+    border-top:1px solid var(--line);background:var(--panel);
+  }
+  .transport button{
+    width:38px;height:38px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel-2);color:var(--ink);cursor:pointer;display:flex;
+    align-items:center;justify-content:center;transition:background .15s,border-color .15s;
+  }
+  .transport button:hover{background:var(--line);border-color:var(--accent);}
+  .transport button svg{width:16px;height:16px;fill:currentColor;}
+  .scrub-wrap{flex:1;display:flex;align-items:center;gap:12px;}
+  #scrub{flex:1;}
+  .time-label{font-family:var(--mono);font-size:12px;color:var(--muted);min-width:64px;text-align:right;}
+
+  .legend{
+    position:absolute;top:12px;left:12px;font-size:11px;color:var(--muted);
+    background:rgba(7,10,14,.7);border:1px solid var(--line);border-radius:6px;
+    padding:8px 10px;line-height:1.7;pointer-events:none;
+  }
+  .legend b{color:var(--ink);font-weight:600;}
+
+  @media (max-width:760px){
+    main{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
+    .controls{border-right:none;border-bottom:1px solid var(--line);max-height:42vh;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="title">
+    <h1>Wave Optics</h1>
+    <p>Propagation to the screen, with the pattern building in real time</p>
+  </div>
+  <nav>
+    <button id="tab-single" class="active">Single slit</button>
+    <button id="tab-double">Double slit</button>
+  </nav>
+</header>
+
+<main>
+  <aside class="controls">
+    <!-- SINGLE SLIT CONTROLS -->
+    <div id="ctrl-single">
+      <div class="group">
+        <h2>Source</h2>
+        <div class="ctrl">
+          <label>Wavelength <span class="val" id="s-wl-val">550 nm</span></label>
+          <input type="range" id="s-wl" min="0" max="3000" step="10" value="550">
+        </div>
+      </div>
+      <div class="group">
+        <h2>Geometry (fixed)</h2>
+        <div class="readout" style="font-size:12px;">
+          <div class="row"><span>Slit width w</span><span id="s-w-val">2000 nm</span></div>
+        </div>
+      </div>
+      <div class="group">
+        <h2>Diffraction significance</h2>
+        <div class="readout">
+          <div class="row"><span>&lambda; / w</span><span id="s-ratio">0.275</span></div>
+          <div class="row"><span>Half-angle &theta;&#8321;</span><span id="s-theta">--</span></div>
+          <div class="ratio-badge" id="s-badge">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOUBLE SLIT CONTROLS -->
+    <div id="ctrl-double" style="display:none;">
+      <div class="group">
+        <h2>Source</h2>
+        <div class="ctrl">
+          <label>Wavelength <span class="val" id="d-wl-val">550 nm</span></label>
+          <input type="range" id="d-wl" min="380" max="750" step="1" value="550">
+        </div>
+      </div>
+      <div class="group">
+        <h2>Geometry</h2>
+        <div class="ctrl">
+          <label>Slit separation d <span class="val" id="d-sep-val">8.0 &micro;m</span></label>
+          <input type="range" id="d-sep" min="3000" max="20000" step="100" value="8000">
+        </div>
+        <div class="ctrl">
+          <label>Screen distance L <span class="val" id="d-L-val">1.0 m</span></label>
+          <input type="range" id="d-L" min="0.5" max="2.5" step="0.05" value="1.0">
+        </div>
+        <div class="readout" style="font-size:12px;">
+          <div class="row"><span>Slit width</span><span>fixed</span></div>
+        </div>
+      </div>
+      <div class="group">
+        <h2>Fringe pattern</h2>
+        <div class="readout">
+          <div class="row"><span>Fringe spacing &Delta;y</span><span id="d-fringe">--</span></div>
+          <div class="row"><span>&lambda; L / d</span><span id="d-formula">--</span></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="stage">
+    <div class="canvas-wrap">
+      <canvas id="cv"></canvas>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="transport">
+      <button id="rewind" title="Rewind to start">
+        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+      <button id="playpause" title="Play / pause">
+        <svg id="pp-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <div class="scrub-wrap">
+        <input type="range" id="scrub" min="0" max="1000" step="1" value="0">
+        <span class="time-label" id="time-label">0.00 s</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- constants / scales --------------------------------------------------
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+
+  // Simulation "time" is decoupled from wall-clock so scrubbing is exact.
+  const T_MAX = 6.0;            // seconds of timeline
+  let simTime = 0;             // current time on the timeline
+  let playing = false;
+  let lastFrame = null;
+
+  let mode = 'single';
+
+  // Wave appearance: a wavefront is emitted continuously; we render the
+  // instantaneous field as concentric phase rings travelling at speed c_px.
+  const C_PX = 260;            // propagation speed in px per simulation second
+
+  // Geometry in canvas: slit plane at x = SLIT_X, screen (wall) at x = WALL_X.
+  let W = 0, H = 0, DPR = 1;
+  let SLIT_X = 0, WALL_X = 0, srcY = 0;
+
+  // physical fixed values
+  const SINGLE_W_NM = 2000;    // fixed slit width, single slit
+  const DOUBLE_SLIT_W_NM = 1500;
+
+  // control state
+  const state = {
+    single:{ wl:550 },
+    double:{ wl:550, d:8000, L:1.0 }
+  };
+
+  // ---- DOM -----------------------------------------------------------------
+  const tabSingle=document.getElementById('tab-single');
+  const tabDouble=document.getElementById('tab-double');
+  const ctrlSingle=document.getElementById('ctrl-single');
+  const ctrlDouble=document.getElementById('ctrl-double');
+
+  const sWl=document.getElementById('s-wl'), sWlVal=document.getElementById('s-wl-val');
+  const sRatio=document.getElementById('s-ratio'), sTheta=document.getElementById('s-theta');
+  const sBadge=document.getElementById('s-badge');
+  document.getElementById('s-w-val').textContent = SINGLE_W_NM+' nm';
+
+  const dWl=document.getElementById('d-wl'), dWlVal=document.getElementById('d-wl-val');
+  const dSep=document.getElementById('d-sep'), dSepVal=document.getElementById('d-sep-val');
+  const dL=document.getElementById('d-L'), dLVal=document.getElementById('d-L-val');
+  const dFringe=document.getElementById('d-fringe'), dFormula=document.getElementById('d-formula');
+
+  const scrub=document.getElementById('scrub');
+  const timeLabel=document.getElementById('time-label');
+  const playBtn=document.getElementById('playpause');
+  const ppIcon=document.getElementById('pp-icon');
+  const rewindBtn=document.getElementById('rewind');
+  const legend=document.getElementById('legend');
+
+  // ---- helpers -------------------------------------------------------------
+  // Map visible-light wavelength (nm) to an approximate RGB colour. Values
+  // outside 380-750 nm are clamped to the nearest visible hue so the wave
+  // stays visible (the single-slit slider extends beyond visible light).
+  function wlToRGB(wlIn){
+    const wl=Math.max(380,Math.min(750,wlIn));
+    let r=0,g=0,b=0;
+    if(wl>=380&&wl<440){r=-(wl-440)/60;b=1;}
+    else if(wl<490){g=(wl-440)/50;b=1;}
+    else if(wl<510){g=1;b=-(wl-510)/20;}
+    else if(wl<580){r=(wl-510)/70;g=1;}
+    else if(wl<645){r=1;g=-(wl-645)/65;}
+    else if(wl<=750){r=1;}
+    let f=1;
+    if(wl<420) f=0.3+0.7*(wl-380)/40;
+    else if(wl>700) f=0.3+0.7*(750-wl)/50;
+    const adj=v=>Math.round(255*Math.pow(Math.max(0,v)*f,0.8));
+    return [adj(r),adj(g),adj(b)];
+  }
+
+  function resize(){
+    DPR=Math.min(window.devicePixelRatio||1,2);
+    const rect=cv.parentElement.getBoundingClientRect();
+    W=rect.width; H=rect.height;
+    cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    SLIT_X=Math.round(W*0.30);
+    WALL_X=Math.round(W*0.82);
+    srcY=H/2;
+  }
+  window.addEventListener('resize',()=>{resize();draw();});
+
+  // ---- physics readouts ----------------------------------------------------
+  function updateSingleReadout(){
+    const wl=state.single.wl;
+    const ratio=wl/SINGLE_W_NM;
+    sRatio.textContent=ratio.toFixed(3);
+    // first minimum half-angle: sin(theta) = lambda / w
+    const s=wl/SINGLE_W_NM;
+    if(s<=1){
+      const theta=Math.asin(s)*180/Math.PI;
+      sTheta.textContent=theta.toFixed(1)+'\u00B0';
+    } else {
+      sTheta.textContent='no minimum';
+    }
+    let cls,txt;
+    if(ratio<0.3){cls='bad';txt='Negligible diffraction (\u03BB \u226A w)';}
+    else if(ratio<0.9){cls='warn';txt='Some diffraction (\u03BB < w)';}
+    else if(ratio<1.1){cls='good';txt='Significant diffraction (\u03BB \u2248 w)';}
+    else {cls='good';txt='Significant diffraction (\u03BB > w)';}
+    sBadge.className='ratio-badge '+cls;
+    sBadge.textContent=txt;
+  }
+
+  function updateDoubleReadout(){
+    const wl=state.double.wl;        // nm
+    const d=state.double.d;          // nm
+    const L=state.double.L;          // m
+    // fringe spacing dy = lambda L / d  (consistent SI)
+    const wl_m=wl*1e-9, d_m=d*1e-9;
+    const dy=wl_m*L/d_m;             // metres
+    dFringe.textContent=(dy*1000).toFixed(2)+' mm';
+    dFormula.textContent='('+wl+'nm \u00D7 '+L.toFixed(2)+'m) / '+(d/1000).toFixed(1)+'\u00B5m';
+  }
+
+  // ---- field model ---------------------------------------------------------
+  // Single-slit far-field intensity: sinc^2(beta), beta = (pi w / lambda) sin(theta)
+  function singleIntensity(sinTheta,wl){
+    const beta=Math.PI*SINGLE_W_NM/wl*sinTheta;
+    if(Math.abs(beta)<1e-6) return 1;
+    const s=Math.sin(beta)/beta;
+    return s*s;
+  }
+  // Double-slit: two-slit interference modulated by single-slit envelope.
+  function doubleIntensity(sinTheta,wl,d){
+    const beta=Math.PI*DOUBLE_SLIT_W_NM/wl*sinTheta;
+    const gamma=Math.PI*d/wl*sinTheta;
+    let env=1;
+    if(Math.abs(beta)>1e-6){const s=Math.sin(beta)/beta;env=s*s;}
+    const interf=Math.cos(gamma)*Math.cos(gamma);
+    return env*interf;
+  }
+
+  // ---- drawing -------------------------------------------------------------
+  // Canvas pixel scale: slit aperture is rendered at APERTURE_PX pixels wide,
+  // representing SINGLE_W_NM nanometres. All other physical lengths use this scale.
+  const APERTURE_PX = 44; // px -- matches the halfPx=22 used in drawApparatus
+  const NM_TO_PX = APERTURE_PX / SINGLE_W_NM; // px per nm
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const cfg = mode==='single' ? state.single : state.double;
+    const wl = cfg.wl;
+    const [r,g,b]=wlToRGB(wl);
+
+    // Incoming plane wave: its leading edge starts at the far left (x=0)
+    // and travels right toward the slit plane at C_PX.
+    const frontX = simTime*C_PX;                 // leading edge position (px from left)
+    // Time elapsed since the wave passed through the slit; circular wavefronts
+    // on the right only begin emitting after the plane wave arrives.
+    const tSinceSlit = (frontX - SLIT_X)/C_PX;   // seconds (negative before arrival)
+    const reach = tSinceSlit>0 ? tSinceSlit*C_PX : 0; // radius of circular fronts
+
+    // slit centres (canvas y)
+    let slitYs;
+    let slitGap=0;
+    if(mode==='single'){
+      slitYs=[srcY];
+    } else {
+      // map physical separation to a visible gap (clamped for legibility)
+      slitGap = Math.min(H*0.32, 30 + (state.double.d-3000)/17000 * (H*0.30));
+      slitYs=[srcY-slitGap/2, srcY+slitGap/2];
+    }
+
+    drawIncoming(frontX, [r,g,b]);
+    drawHuygens(slitYs, tSinceSlit, [r,g,b], wl);
+    drawApparatus(slitYs);
+    drawScreenPattern([r,g,b], wl, reach);
+
+    updateLegend(wl);
+  }
+
+  // plane wave approaching the slit from the left, moving left -> right
+  function drawIncoming(frontX, rgb){
+    const wl=mode==='single'?state.single.wl:state.double.wl;
+    const spacing = Math.max(3, wl * NM_TO_PX);
+    const travel=simTime*C_PX;
+    const edge=Math.min(frontX, SLIT_X);
+    if(edge<=0) return;
+    ctx.lineWidth=1;
+    ctx.strokeStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.35)';
+    let startX = travel;
+    if(startX>edge) startX -= Math.ceil((travel-edge)/spacing)*spacing;
+    for(let x=startX; x>0; x-=spacing){
+      ctx.beginPath();
+      ctx.moveTo(x,0); ctx.lineTo(x,H);
+      ctx.stroke();
+    }
+  }
+
+  // Huygens construction: N secondary sources spread across each slit aperture,
+  // each emitting persistent expanding wavelets. Their superposition forms the
+  // diffracted wavefront -- this replaces the single-point drawWaves entirely.
+  function drawHuygens(slitYs, tSinceSlit, rgb, wl){
+    if(tSinceSlit <= 0) return;
+
+    const spacing = Math.max(3, wl * NM_TO_PX);
+    const travel = tSinceSlit * C_PX; // distance leading edge has travelled from slit
+    const maxR = Math.max(W, H) * 1.4;
+
+    const N = mode==='single' ? 7 : 5;
+    const halfPx = mode==='single' ? 22 : 10;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(SLIT_X, 0, WALL_X - SLIT_X, H);
+    ctx.clip();
+
+    const globalOff = (simTime * C_PX) % spacing;
+
+    for(const cy of slitYs){
+      for(let i=0; i<N; i++){
+        const sy = cy - halfPx + (i / (N-1)) * halfPx * 2;
+
+        // persistent rings from this source -- same grid as incoming wave
+        for(let rad = globalOff; rad <= travel && rad <= maxR; rad += spacing){
+          if(rad <= 0) continue;
+          // fade in only at the very leading edge; otherwise full opacity
+          const edgeFade = Math.min(1, (travel - rad) / 30);
+          // divide alpha by N so N overlapping sources sum to roughly the same
+          // visual brightness as the old single-source wavefront
+          const alpha = (0.55 / N) * edgeFade;
+          if(alpha < 0.005) continue;
+          ctx.strokeStyle = 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+alpha+')';
+          ctx.lineWidth = 1.0;
+          ctx.beginPath();
+          ctx.arc(SLIT_X, sy, rad, -Math.PI/2, Math.PI/2);
+          ctx.stroke();
+        }
+
+        // small dot marking each Huygens source
+        const srcFade = Math.min(1, travel / 20);
+        ctx.beginPath();
+        ctx.arc(SLIT_X, sy, 2, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+(0.85 * srcFade)+')';
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  // barrier with slit aperture(s)
+  function drawApparatus(slitYs){
+    ctx.fillStyle='#11161d';
+    ctx.strokeStyle='#3a4350';
+    // barrier as full-height bar with gaps at slit positions
+    const barW=8;
+    let openings;
+    if(mode==='single'){
+      const halfPx=22; // fixed visible aperture
+      openings=[[srcY-halfPx,srcY+halfPx]];
+    } else {
+      const halfPx=10;
+      openings=slitYs.map(y=>[y-halfPx,y+halfPx]);
+    }
+    // draw barrier segments around the openings
+    ctx.fillStyle='#1b222b';
+    let segs=[[0,H]];
+    for(const [a,bb] of openings){
+      const next=[];
+      for(const [s,e] of segs){
+        if(bb<s||a>e){next.push([s,e]);continue;}
+        if(a>s) next.push([s,a]);
+        if(bb<e) next.push([bb,e]);
+      }
+      segs=next;
+    }
+    for(const [s,e] of segs){
+      ctx.fillRect(SLIT_X-barW/2,s,barW,e-s);
+    }
+    ctx.strokeStyle='#39424e';
+    ctx.lineWidth=1;
+    ctx.strokeRect(SLIT_X-barW/2,0,barW,H);
+
+    // wall / screen
+    ctx.fillStyle='#0c0f14';
+    ctx.fillRect(WALL_X,0,6,H);
+    ctx.fillStyle='#2a323c';
+    ctx.fillRect(WALL_X,0,2,H);
+  }
+
+  // intensity pattern painted onto the screen (right of the wall)
+  function drawScreenPattern(rgb, wl, reach){
+    // only show pattern once waves have reached the wall
+    const arrived = reach >= (WALL_X-SLIT_X);
+    if(!arrived){
+      // hint text
+      ctx.fillStyle='rgba(154,166,178,0.5)';
+      ctx.font='11px var(--mono)';
+      ctx.fillText('pattern forms when the wave reaches the screen',WALL_X+14,srcY);
+      return;
+    }
+    const panelX=WALL_X+8;
+    const panelW=Math.max(40, W-panelX-12);
+    const L_screen=panelX+panelW; // far edge
+
+    // angular spread mapped to vertical position on screen
+    // Fixed angular window so secondary maxima are always visible.
+    // Single slit: window covers sinTheta = -0.95..0.95 (near full angular range).
+    // Double slit: narrower window to keep fringes legible at small d.
+    const maxSin = mode==='single' ? 0.95
+                                   : Math.min(0.06, 6*state.double.wl/state.double.d);
+    // build the bar
+    for(let yy=0; yy<H; yy++){
+      const rel=(yy-srcY)/(H*0.5); // -1..1
+      const sinTheta = rel*maxSin;
+      let I;
+      if(mode==='single') I=singleIntensity(sinTheta,wl);
+      else I=doubleIntensity(sinTheta,wl,state.double.d);
+      const a=Math.min(1,I);
+      ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+a+')';
+      ctx.fillRect(panelX,yy,panelW,1);
+    }
+    // frame
+    ctx.strokeStyle='#2a323c';
+    ctx.lineWidth=1;
+    ctx.strokeRect(panelX,0.5,panelW,H-1);
+
+    // intensity profile curve drawn over the panel
+    ctx.beginPath();
+    for(let yy=0; yy<H; yy++){
+      const rel=(yy-srcY)/(H*0.5);
+      const sinTheta=rel*maxSin;
+      let I = mode==='single' ? singleIntensity(sinTheta,wl)
+                              : doubleIntensity(sinTheta,wl,state.double.d);
+      const cx=panelX+panelW-2 - I*(panelW-6);
+      if(yy===0) ctx.moveTo(cx,yy); else ctx.lineTo(cx,yy);
+    }
+    ctx.strokeStyle='rgba(255,255,255,0.55)';
+    ctx.lineWidth=1.2;
+    ctx.stroke();
+  }
+
+  function updateLegend(wl){
+    if(mode==='single'){
+      legend.innerHTML='<b>Single slit</b><br>'+
+        '\u03BB = '+wl+' nm &nbsp; w = '+SINGLE_W_NM+' nm<br>'+
+        '\u03BB/w = '+(wl/SINGLE_W_NM).toFixed(3);
+    } else {
+      legend.innerHTML='<b>Young\u2019s double slit</b><br>'+
+        '\u03BB = '+wl+' nm &nbsp; d = '+(state.double.d/1000).toFixed(1)+' \u00B5m<br>'+
+        'L = '+state.double.L.toFixed(2)+' m';
+    }
+  }
+
+  // ---- animation loop ------------------------------------------------------
+  function loop(ts){
+    if(playing){
+      if(lastFrame==null) lastFrame=ts;
+      const dt=(ts-lastFrame)/1000;
+      lastFrame=ts;
+      simTime+=dt;
+      if(simTime>=T_MAX){ simTime=T_MAX; setPlaying(false); }
+      syncScrub();
+    } else {
+      lastFrame=null;
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function syncScrub(){
+    scrub.value=Math.round(simTime/T_MAX*1000);
+    timeLabel.textContent=simTime.toFixed(2)+' s';
+  }
+
+  function setPlaying(p){
+    playing=p;
+    lastFrame=null;
+    ppIcon.innerHTML = p
+      ? '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>'   // pause
+      : '<path d="M8 5v14l11-7z"/>';              // play
+  }
+
+  // ---- events --------------------------------------------------------------
+  playBtn.addEventListener('click',()=>{
+    if(simTime>=T_MAX) simTime=0;
+    setPlaying(!playing);
+  });
+  rewindBtn.addEventListener('click',()=>{
+    simTime=0; syncScrub(); setPlaying(false); draw();
+  });
+  scrub.addEventListener('input',()=>{
+    simTime=scrub.value/1000*T_MAX;
+    timeLabel.textContent=simTime.toFixed(2)+' s';
+    setPlaying(false);
+    draw();
+  });
+
+  // single slit controls
+  sWl.addEventListener('input',()=>{
+    state.single.wl=+sWl.value;
+    sWlVal.textContent=sWl.value+' nm';
+    updateSingleReadout();
+    draw();
+  });
+  // double slit controls
+  dWl.addEventListener('input',()=>{
+    state.double.wl=+dWl.value;
+    dWlVal.textContent=dWl.value+' nm';
+    updateDoubleReadout(); draw();
+  });
+  dSep.addEventListener('input',()=>{
+    state.double.d=+dSep.value;
+    dSepVal.textContent=(dSep.value/1000).toFixed(1)+' \u00B5m';
+    updateDoubleReadout(); draw();
+  });
+  dL.addEventListener('input',()=>{
+    state.double.L=+dL.value;
+    dLVal.textContent=(+dL.value).toFixed(2)+' m';
+    updateDoubleReadout(); draw();
+  });
+
+  // tabs
+  function setMode(m){
+    mode=m;
+    const single=(m==='single');
+    tabSingle.classList.toggle('active',single);
+    tabDouble.classList.toggle('active',!single);
+    ctrlSingle.style.display=single?'':'none';
+    ctrlDouble.style.display=single?'none':'';
+    simTime=0; setPlaying(false); syncScrub(); draw();
+  }
+  tabSingle.addEventListener('click',()=>setMode('single'));
+  tabDouble.addEventListener('click',()=>setMode('double'));
+
+  // ---- init ----------------------------------------------------------------
+  resize();
+  updateSingleReadout();
+  updateDoubleReadout();
+  syncScrub();
+  draw();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
