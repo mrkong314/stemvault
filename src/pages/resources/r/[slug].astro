@@ -64,7 +64,11 @@ const subjectInfo = subjectFromSlug(slugForSubject(subject));
       <footer class="resource-foot">
         <div class="meta">
           <span class="label-mono">Source</span>
-          <span>{src && (isExternal ? new URL(src, 'https://x').hostname.replace('x', '') : `Hosted at ${src}`)}</span>
+          {src && (
+            <a href={src} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined} class="source-link">
+              {isExternal ? new URL(src, 'https://x').hostname.replace('x', '') : 'Download applet'}
+            </a>
+          )}
         </div>
         <div class="prose">
           <Content />
@@ -143,6 +147,8 @@ const subjectInfo = subjectFromSlug(slugForSubject(subject));
     font-size: 0.88rem;
     color: var(--ink-soft);
   }
+  .meta a { color: var(--pine); text-decoration: none; transition: color 0.15s; }
+  .meta a:hover { color: var(--pine-dark); text-decoration: underline; }
   .prose :global(p) { line-height: 1.65; color: var(--ink-soft); }
   @media (max-width: 760px) {
     .resource-foot { grid-template-columns: 1fr; }

@@ -79,6 +79,16 @@ If a URL does not look embeddable and you cannot safely rewrite it, ask the user
 - **Self-hosted applet** (`type: applet` with a local HTML file): the file must be a single self-contained `.html` (assets referenced by relative paths work, but a single file is the norm). Copy it into `public/applets/<filename>.html` and set `appletFile: <filename>.html`.
 - **Embed / video link / linked file**: no copy. Just set the URL field.
 
+## Source links on detail pages
+
+Every resource detail page shows a clickable **Source** link at the bottom that users can click to access or download the resource:
+- **Self-hosted applets** (`appletFile`): link shows "Download applet" and points to `/applets/<filename>.html`
+- **Self-hosted files** (`fileUrl`): link shows the domain or "Download applet" and points to `/files/<filename>`
+- **Embed URLs** (Desmos, GeoGebra, PhET, Amplify, etc.): link shows the domain (e.g., "desmos.com", "geogebra.org") and opens the embed in a new tab
+- **External URLs** (Google Drive, Forms, YouTube, etc.): link shows the domain and opens the external resource in a new tab
+
+No extra configuration is needed — the links are automatically generated from `embedUrl`, `appletFile`, `fileUrl`, and `externalUrl` fields.
+
 ## Validate before committing
 
 Author all entries (and copy all assets) first, then validate against the real schema by building the site from the repo root:
