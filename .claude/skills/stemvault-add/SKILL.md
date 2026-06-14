@@ -7,6 +7,13 @@ Add one or more resources to the StemVault Astro catalogue. Each resource become
 
 Always read `src/content.config.ts` first so you author against the live schema (it changes over time). Do not assume the fields below are still complete; reconcile with the actual schema before writing.
 
+## Prerequisites (check before you start)
+
+Run these once up front and fix any failure before authoring, so validation and publishing do not fail halfway:
+
+- **Node 18+**: `node -v`. Astro requires `>=18.20.8`. If the version is older, stop and tell the user how to get a supported Node on PATH (for example `brew install node@20 && brew link --overwrite --force node@20`, or use nvm/fnm). Do not try to build on Node 16; it fails with "Node.js vXX is not supported by Astro".
+- **Authenticated git push**: this skill commits to `main` and pushes, which deploys. Confirm push access first, e.g. `gh auth status` (if `gh` is installed) or that `git remote -v` plus credentials are in place. If auth is missing, author and validate the entry locally, then tell the user to run `gh auth login` (or set up a credential) before you push, rather than leaving a half-finished state.
+
 ## The five input paths
 
 | Input the user gives you | `type` | URL/asset field | File handling |
