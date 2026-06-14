@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Find the Missing Angle — Practice</title>
+<style>
+  :root {
+    --ink: #1a2a33;
+    --paper: #f6f3ec;
+    --line: #d8d1c2;
+    --slate: #5c6b73;
+    --given: #2c6e6b;        /* teal: the given angle */
+    --given-fill: rgba(44,110,107,0.16);
+    --unknown: #c25b1f;      /* orange: the angle to find */
+    --unknown-fill: rgba(194,91,31,0.16);
+    --geo: #3a4a52;
+    --right: #2c6e6b;
+    --wrong: #c25b1f;
+    --accent: #2c6e6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 14px; margin-bottom: 22px;
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  .eyebrow { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin: 0 0 6px; }
+  h1 { font-size: clamp(24px, 4.5vw, 36px); margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+
+  .score { font-family: "Helvetica Neue", Arial, sans-serif; text-align: right; }
+  .score .big { font-size: 30px; font-weight: 700; color: var(--accent); }
+  .score .lbl { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--slate); }
+
+  .stage { display: grid; grid-template-columns: 1.25fr 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 720px) { .stage { grid-template-columns: 1fr; } }
+
+  .canvas-card { background: #fffefb; border: 1px solid var(--line); border-radius: 3px; padding: 8px; }
+  svg { display: block; width: 100%; height: auto; }
+
+  .panel { padding-top: 2px; }
+  .qnum { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 12px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--slate); margin: 0 0 6px; }
+  .prompt { font-size: 19px; margin: 0 0 18px; }
+  .prompt b.given { color: var(--given); }
+  .prompt b.unknown { color: var(--unknown); }
+
+  .answer-row { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+  input[type=number] {
+    font-family: inherit; font-size: 22px; width: 110px; padding: 9px 12px;
+    border: 1.5px solid var(--ink); border-radius: 2px; background: #fffefb; color: var(--ink);
+  }
+  input[type=number]:disabled { background: #efeadf; color: var(--slate); }
+  .deg-suffix { font-size: 20px; color: var(--slate); }
+  .btn {
+    font-family: "Helvetica Neue", Arial, sans-serif; font-size: 13px;
+    letter-spacing: 0.06em; text-transform: uppercase; padding: 10px 20px;
+    border: 1.5px solid var(--ink); border-radius: 2px; background: var(--ink);
+    color: var(--paper); cursor: pointer;
+  }
+  .btn.ghost { background: transparent; color: var(--ink); }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+
+  .feedback { margin-top: 14px; font-size: 16px; min-height: 1.5em; }
+  .feedback.right { color: var(--right); }
+  .feedback.wrong { color: var(--wrong); }
+  .feedback .reason { display: block; font-size: 14px; color: var(--ink); margin-top: 4px; }
+  .feedback .reason b { color: var(--accent); }
+
+  .hint-line { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 12px;
+    color: var(--slate); margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .legend-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; font-size: 13px;
+    font-family: "Helvetica Neue", Arial, sans-serif; color: var(--ink); }
+  .sw { width: 15px; height: 15px; border-radius: 3px; flex: none; }
+  .sw.given { background: var(--given-fill); border: 1.5px solid var(--given); }
+  .sw.unknown { background: var(--unknown-fill); border: 1.5px solid var(--unknown); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow">Geometry · Parallel Lines &amp; a Transversal</p>
+      <h1>Find the Missing Angle</h1>
+    </div>
+    <div class="score">
+      <div class="big"><span id="correct">0</span>/<span id="attempts">0</span></div>
+      <div class="lbl">Correct</div>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="canvas-card">
+      <svg id="svg" viewBox="0 0 460 320" role="img" aria-label="Parallel lines crossed by a transversal with one angle given and one to find"></svg>
+    </div>
+
+    <div class="panel">
+      <p class="qnum" id="qnum">Question 1</p>
+      <p class="prompt" id="prompt"></p>
+
+      <div class="answer-row">
+        <input type="number" id="answer" placeholder="?" autocomplete="off">
+        <span class="deg-suffix">°</span>
+        <button class="btn" id="checkBtn">Check</button>
+        <button class="btn ghost" id="nextBtn" disabled>Next</button>
+      </div>
+
+      <p class="feedback" id="feedback"></p>
+
+      <div class="hint-line">
+        <div class="legend-row"><span class="sw given"></span> Given angle (teal)</div>
+        <div class="legend-row"><span class="sw unknown"></span> Angle to find (orange, marked x)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("svg");
+  const answerEl = document.getElementById("answer");
+  const checkBtn = document.getElementById("checkBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const feedback = document.getElementById("feedback");
+  const promptEl = document.getElementById("prompt");
+  const qnumEl = document.getElementById("qnum");
+  const correctEl = document.getElementById("correct");
+  const attemptsEl = document.getElementById("attempts");
+
+  // ---- Figure geometry (460 x 320 viewBox) ----
+  const Y_TOP = 130, Y_BOT = 200;     // close gap keeps the bottom crossing on-canvas
+  const X_LEFT = 40, X_RIGHT = 420;
+  const TX_TOP = 230;
+  function slopeFor(t) { return -1 / Math.tan(t * Math.PI / 180); }
+  function norm(x, y) { const m = Math.hypot(x, y); return [x / m, y / m]; }
+  const horiz = norm(1, 0);
+
+  // Quadrant boundary rays, given the current transversal direction.
+  function quadDirs(quad, trans) {
+    const H = horiz, Hn = [-H[0], -H[1]];
+    const T = trans, Tn = [-T[0], -T[1]];
+    switch (quad) {
+      case "UR": return [H, Tn];
+      case "UL": return [Tn, Hn];
+      case "LL": return [Hn, T];
+      case "LR": return [T, H];
+    }
+  }
+  // type "A" = equal to theta; type "B" = supplementary. Pattern: UR/LL = A, UL/LR = B.
+  const QUAD_TYPE = { UR: "A", UL: "B", LL: "A", LR: "B" };
+
+  function el(tag, attrs) {
+    const e = document.createElementNS(svgNS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function wedgePath(ix, iy, quad, r, trans) {
+    const [d1, d2] = quadDirs(quad, trans);
+    const p1 = [ix + d1[0] * r, iy + d1[1] * r];
+    const p2 = [ix + d2[0] * r, iy + d2[1] * r];
+    const cross = d1[0] * d2[1] - d1[1] * d2[0];
+    const sweep = cross > 0 ? 1 : 0;
+    return `M ${ix} ${iy} L ${p1[0].toFixed(2)} ${p1[1].toFixed(2)} A ${r} ${r} 0 0 ${sweep} ${p2[0].toFixed(2)} ${p2[1].toFixed(2)} Z`;
+  }
+  function bisector(quad, trans) {
+    const [d1, d2] = quadDirs(quad, trans);
+    let bx = d1[0] + d2[0], by = d1[1] + d2[1];
+    const m = Math.hypot(bx, by) || 1; return [bx / m, by / m];
+  }
+
+  // ---- Question model ----
+  // A question picks: theta (the type-A value), a "given" sector and an "unknown" sector,
+  // and the relationship between them (which determines equal vs supplementary).
+  const RELATIONSHIPS = [
+    { name: "vertically opposite", equal: true,  pick: g => sameCross(g, opp(g.quad)) },
+    { name: "corresponding",       equal: true,  pick: g => otherCross(g, g.quad) },
+    { name: "alternate",           equal: true,  pick: g => otherCross(g, zPartner(g.quad)) },
+    { name: "co-interior",         equal: false, pick: g => otherCross(g, cPartner(g.quad)) },
+    { name: "angles on a straight line", equal: false, pick: g => sameCross(g, adj(g.quad)) }
+  ];
+
+  function sameCross(g, quad) { return { cross: g.cross, quad }; }
+  function otherCross(g, quad) { return { cross: g.cross === "top" ? "bottom" : "top", quad }; }
+  function opp(q)  { return ({ UR: "LL", LL: "UR", UL: "LR", LR: "UL" })[q]; }   // vertical
+  function adj(q)  { return ({ UR: "UL", UL: "UR", LL: "LR", LR: "LL" })[q]; }   // straight-line neighbour
+  // alternate (Z): cross to the diagonally opposite interior corner on the other line
+  function zPartner(q){ return ({ UR: "LL", UL: "LR", LL: "UR", LR: "UL" })[q]; }
+  // co-interior (C): same side, between the lines, other crossing
+  function cPartner(q){ return ({ UR: "LR", UL: "LL", LL: "UL", LR: "UR" })[q]; }
+
+  let state = null;
+  let qCount = 0;
+  let correctCount = 0;
+
+  function newQuestion() {
+    qCount++;
+    qnumEl.textContent = "Question " + qCount;
+
+    const theta = Math.floor(Math.random() * 100) + 30;   // 30..129, integer
+    const quads = ["UR", "UL", "LL", "LR"];
+    const givenQuad = quads[Math.floor(Math.random() * 4)];
+    const givenCross = Math.random() < 0.5 ? "top" : "bottom";
+    const given = { cross: givenCross, quad: givenQuad };
+    const givenValue = QUAD_TYPE[givenQuad] === "A" ? theta : 180 - theta;
+
+    const rel = RELATIONSHIPS[Math.floor(Math.random() * RELATIONSHIPS.length)];
+    const unknown = rel.pick(given);
+    const unknownValue = QUAD_TYPE[unknown.quad] === "A" ? theta : 180 - theta;
+
+    state = { theta, given, givenValue, unknown, unknownValue, rel, answered: false };
+
+    promptEl.innerHTML =
+      `One angle measures <b class="given">${givenValue}°</b>. ` +
+      `Find the size of the angle marked <b class="unknown">x</b>.`;
+    answerEl.value = "";
+    answerEl.disabled = false;
+    checkBtn.disabled = false;
+    nextBtn.disabled = true;
+    feedback.textContent = "";
+    feedback.className = "feedback";
+    draw();
+    answerEl.focus();
+  }
+
+  function draw() {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const { theta, given, unknown } = state;
+    const slope = slopeFor(theta);
+    const TX_BOT = TX_TOP + slope * (Y_BOT - Y_TOP);
+    const trans = norm(slope, 1);
+    const xy = c => c === "top" ? { ix: TX_TOP, iy: Y_TOP } : { ix: TX_BOT, iy: Y_BOT };
+
+    // Highlight only the two relevant wedges (keeps the task clear for Yr 7-8)
+    [{ s: given, kind: "given" }, { s: unknown, kind: "unknown" }].forEach(({ s, kind }) => {
+      const { ix, iy } = xy(s.cross);
+      svg.appendChild(el("path", {
+        d: wedgePath(ix, iy, s.quad, 30, trans),
+        fill: kind === "given" ? "var(--given-fill)" : "var(--unknown-fill)",
+        stroke: kind === "given" ? "var(--given)" : "var(--unknown)",
+        "stroke-width": 2.5
+      }));
+    });
+
+    // Parallel lines
+    svg.appendChild(el("line", { x1: X_LEFT, y1: Y_TOP, x2: X_RIGHT, y2: Y_TOP, stroke: "var(--geo)", "stroke-width": 2.5 }));
+    svg.appendChild(el("line", { x1: X_LEFT, y1: Y_BOT, x2: X_RIGHT, y2: Y_BOT, stroke: "var(--geo)", "stroke-width": 2.5 }));
+
+    // Parallel arrow markers
+    [Y_TOP, Y_BOT].forEach(y => {
+      const cx = 90;
+      svg.appendChild(el("path", { d: `M ${cx-7} ${y-5} L ${cx+1} ${y} L ${cx-7} ${y+5}`, fill: "none", stroke: "var(--geo)", "stroke-width": 1.6 }));
+      svg.appendChild(el("path", { d: `M ${cx-1} ${y-5} L ${cx+7} ${y} L ${cx-1} ${y+5}`, fill: "none", stroke: "var(--geo)", "stroke-width": 1.6 }));
+    });
+
+    // Transversal
+    const ex = 30;
+    svg.appendChild(el("line", {
+      x1: TX_TOP - slope * ex, y1: Y_TOP - ex,
+      x2: TX_BOT + slope * ex, y2: Y_BOT + ex,
+      stroke: "var(--ink)", "stroke-width": 2.5
+    }));
+
+    // Labels: given value, and "x" for the unknown
+    function place(s, label, fill) {
+      const { ix, iy } = xy(s.cross);
+      const [bx, by] = bisector(s.quad, trans);
+      const t = el("text", {
+        x: (ix + bx * 22).toFixed(1), y: (iy + by * 22 + 5).toFixed(1),
+        "text-anchor": "middle", "font-size": 16,
+        "font-family": "Helvetica Neue, Arial, sans-serif", "font-weight": 700, fill
+      });
+      t.textContent = label;
+      svg.appendChild(t);
+    }
+    place(given, state.givenValue + "°", "var(--given)");
+    place(unknown, "x", "var(--unknown)");
+
+    // Intersection dots
+    [{ x: TX_TOP, y: Y_TOP }, { x: TX_BOT, y: Y_BOT }].forEach(p =>
+      svg.appendChild(el("circle", { cx: p.x, cy: p.y, r: 3.5, fill: "var(--ink)" })));
+  }
+
+  function reasonText() {
+    const { rel, givenValue, unknownValue } = state;
+    if (rel.equal) {
+      return `These are <b>${rel.name}</b> angles, so they are equal: x = ${givenValue}°.`;
+    }
+    return `These are <b>${rel.name}</b>, so they add to 180°: x = 180° − ${givenValue}° = ${unknownValue}°.`;
+  }
+
+  function check() {
+    if (!state || state.answered) return;
+    const v = parseInt(answerEl.value, 10);
+    if (isNaN(v)) { feedback.textContent = "Type an answer first."; feedback.className = "feedback wrong"; return; }
+
+    state.answered = true;
+    qCount; // attempts tracked below
+    correctEl.textContent = (v === state.unknownValue) ? (++correctCount) : correctCount;
+    attemptsEl.textContent = qCount;
+
+    answerEl.disabled = true;
+    checkBtn.disabled = true;
+    nextBtn.disabled = false;
+
+    if (v === state.unknownValue) {
+      feedback.innerHTML = `Correct. <span class="reason">${reasonText()}</span>`;
+      feedback.className = "feedback right";
+    } else {
+      feedback.innerHTML = `Not quite — x = ${state.unknownValue}°. <span class="reason">${reasonText()}</span>`;
+      feedback.className = "feedback wrong";
+    }
+    nextBtn.focus();
+  }
+
+  checkBtn.addEventListener("click", check);
+  nextBtn.addEventListener("click", newQuestion);
+  answerEl.addEventListener("keydown", e => { if (e.key === "Enter") { state.answered ? newQuestion() : check(); } });
+
+  newQuestion();
+})();
+</script>
+</body>
+</html>
