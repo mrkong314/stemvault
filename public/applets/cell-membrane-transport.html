@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cell Membrane Transport</title>
+<style>
+  :root{
+    --bg:#f5f3ee; --surface:#ffffff; --ink:#2c2c2a; --muted:#5f5e5a;
+    --line:rgba(0,0,0,.13); --line2:rgba(0,0,0,.22);
+    --accent:#185fa5; --accent-bg:#b5d4f4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+    line-height:1.55;padding:24px 16px;}
+  .wrap{max-width:720px;margin:0 auto;}
+  #errbar{display:none;background:#fcebeb;border:1px solid #e24b4a;color:#791f1f;
+    padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;}
+  header{margin-bottom:16px}
+  h1{font-family:Georgia,"Times New Roman",serif;font-weight:600;
+    font-size:24px;letter-spacing:-.01em}
+  .sub{font-size:13px;color:var(--muted);margin-top:3px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .btn{padding:7px 15px;font-size:13px;border-radius:8px;cursor:pointer;
+    border:1px solid var(--line2);background:var(--surface);color:var(--ink);
+    font-family:inherit;}
+  .btn:hover{background:#efece6}
+  .btn.active{background:var(--accent-bg);border-color:var(--accent);color:#042c53}
+  .label-bar{display:flex;justify-content:space-between;
+    padding:4px 14px;font-size:12px;color:var(--muted)}
+  .scene{border:1px solid var(--line);border-radius:12px;
+    background:var(--surface);overflow:hidden;}
+  #fallback{padding:40px 24px;font-size:13px;color:var(--muted);text-align:center}
+  canvas{display:block;width:100%;background:var(--surface)}
+  .scrub{display:flex;align-items:center;gap:11px;margin-top:11px}
+  .iconbtn{width:36px;height:36px;flex-shrink:0;border-radius:8px;cursor:pointer;
+    border:1px solid var(--line2);background:var(--surface);color:var(--ink);
+    font-size:14px;line-height:1;}
+  .iconbtn:hover{background:#efece6}
+  .scrub input[type=range]{flex:1;height:4px}
+  .tlabel{font-size:12px;color:var(--muted);
+    font-family:ui-monospace,Menlo,Consolas,monospace;min-width:84px;text-align:right}
+  .info{margin-top:12px;padding:11px 14px;background:var(--surface);
+    border:1px solid var(--line);border-radius:8px;font-size:13px;color:var(--muted)}
+  .info strong{font-weight:600;color:var(--ink)}
+  .legend{display:flex;gap:13px;flex-wrap:wrap;margin-top:11px}
+  .leg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.25)}
+  footer{margin-top:16px;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="errbar"></div>
+
+  <header>
+    <h1>Cell Membrane Transport</h1>
+    <div class="sub">A 10-second animation of four transport mechanisms. Live molecule counts show the gradient; use the timeline to compare the start and end states.</div>
+  </header>
+
+  <noscript><p style="color:#791f1f">This animation needs JavaScript. Please open the file in a web browser with JavaScript enabled.</p></noscript>
+
+  <div class="controls">
+    <button class="btn active" data-mode="simple" onclick="setMode('simple')">Simple diffusion</button>
+    <button class="btn" data-mode="facilitated" onclick="setMode('facilitated')">Facilitated diffusion</button>
+    <button class="btn" data-mode="active" onclick="setMode('active')">Active transport</button>
+    <button class="btn" data-mode="osmosis" onclick="setMode('osmosis')">Osmosis</button>
+  </div>
+
+  <div class="label-bar"><span id="lblL"></span><span id="lblR"></span></div>
+  <div class="scene">
+    <div id="fallback">Loading animation&hellip;<br><br>If this message stays here, the file is being shown by a viewer that does not run JavaScript. Open it directly in a web browser (Chrome, Safari, Firefox, or Edge).</div>
+    <canvas id="cv" width="1360" height="760"></canvas>
+  </div>
+
+  <div class="scrub">
+    <button class="iconbtn" id="play" onclick="togglePlay()" aria-label="Play, pause or replay">&#10073;&#10073;</button>
+    <input type="range" id="time" min="0" max="600" value="0" step="1" oninput="onScrub()" aria-label="Timeline scrubber">
+    <span class="tlabel" id="tlabel">0.0 / 10.0s</span>
+  </div>
+
+  <div class="info" id="info"></div>
+
+  <div class="legend">
+    <div class="leg"><span class="dot" style="background:#378ADD"></span>Water</div>
+    <div class="leg"><span class="dot" style="background:#8E8D85"></span>Non-polar molecules (e.g. O&#8322;, CO&#8322;)</div>
+    <div class="leg"><span class="dot" style="background:#7F77DD"></span>Ion (positively charged)</div>
+    <div class="leg"><span class="dot" style="background:#1F6FB2"></span>Aquaporin</div>
+    <div class="leg"><span class="dot" style="background:#1D9E75"></span>Ion channel</div>
+    <div class="leg"><span class="dot" style="background:#D9821C"></span>Carrier pump</div>
+    <div class="leg"><span class="dot" style="background:#D85A30"></span>ATP</div>
+    <div class="leg"><span class="dot" style="background:#BA7517"></span>P&#7522; (phosphate)</div>
+  </div>
+
+  <footer>Diffusion and osmosis settle at equilibrium; active transport uses a gated carrier whose gates rotate open and shut, driven by ATP hydrolysis.</footer>
+</div>
+
+<script>
+window.onerror=function(msg,url,line,col,e){
+  try{
+    var b=document.getElementById('errbar');
+    if(b){b.style.display='block';
+      b.textContent='Error: '+msg+(line?(' (line '+line+')'):'');}
+  }catch(_){}
+  return false;
+};
+
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    if(r<0)r=0;r=Math.min(r,Math.abs(w)/2,Math.abs(h)/2);
+    this.moveTo(x+r,y);
+    this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);
+    this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);
+    this.closePath();return this;
+  };
+}
+
+var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var fb=document.getElementById('fallback');
+if(fb)fb.style.display='none';
+
+var W=680,H=380,MID=340,MB=34,LEFT_X=MID-MB,RIGHT_X=MID+MB,N=600;
+var FONT='-apple-system,Segoe UI,Helvetica,Arial,sans-serif';
+cv.width=W*2;cv.height=H*2;ctx.scale(2,2);
+
+function sizeCanvas(){
+  var w=cv.clientWidth;
+  if(!w&&cv.parentNode)w=cv.parentNode.clientWidth;
+  if(!w)w=680;
+  cv.style.height=(w*H/W)+'px';
+}
+sizeCanvas();
+window.addEventListener('resize',sizeCanvas);
+window.addEventListener('load',sizeCanvas);
+
+var C={water:'#378ADD',waterS:'#185FA5',gas:'#8E8D85',gasS:'#5F5E5A',
+ion:'#7F77DD',ionS:'#4B43A8',solute:'#9A93E6',head:'#F0A92B',headS:'#B9740F',
+tail:'#A8A79E',atp:'#D85A30',atpD:'#993C1D',pi:'#BA7517'};
+var PCOL={aquaporin:{f:'#1F6FB2',d:'#0C447C',l:'#7FB4E0'},
+ionchannel:{f:'#1D9E75',d:'#0F6E56',l:'#74D6B5'},
+pump:{f:'#D9821C',d:'#94530C',l:'#F2B45E'}};
+
+var mode='simple',parts=[],prots=[],t=0;
+var frames=[],viewIdx=0,playing=true;
+
+var INFO={
+simple:"<strong>Simple diffusion</strong> &mdash; small, non-polar molecules (O\u2082, CO\u2082) diffuse directly through the bilayer, down the concentration gradient. Net movement continues until the concentration is equal on both sides (dynamic equilibrium). No proteins or energy.",
+facilitated:"<strong>Facilitated diffusion</strong> &mdash; charged ions cross through ion channel proteins, moving passively down the concentration gradient until the concentration is equal on both sides. No ATP is used.",
+active:"<strong>Active transport</strong> &mdash; the carrier alternates between two conformations using gates that open and shut. An ion binds while the outer gate is open; ATP is hydrolysed and the phosphate (P\u1d62) drives the gates to swap, releasing the ion against the gradient.",
+osmosis:"<strong>Osmosis</strong> &mdash; water moves through aquaporins toward the higher solute concentration. Net movement slows and stops at equilibrium, leaving more water on the high-solute (cytoplasm) side. Solutes cannot cross."
+};
+var LABELS={
+simple:['Cytoplasm \u2014 low O\u2082/CO\u2082','Extracellular fluid \u2014 high O\u2082/CO\u2082'],
+facilitated:['Cytoplasm \u2014 low solute','Extracellular fluid \u2014 high solute'],
+active:['Cytoplasm \u2014 high solute','Extracellular fluid \u2014 low solute'],
+osmosis:['Cytoplasm \u2014 high solute / low water','Extracellular fluid \u2014 low solute / high water']
+};
+
+function rand(a,b){return a+Math.random()*(b-a);}
+function ss(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);}
+
+function P(type,x,y,passed,charge){
+  var r=type==='water'?4.2:type==='gas'?4.6:type==='solute'?6:5;
+  return{x:x,y:y,vx:rand(-.5,-.05),vy:rand(-.4,.4),r:r,type:type,
+    charge:charge||0,passed:!!passed,held:false};
+}
+function build(){
+  parts=[];prots=[];t=0;
+  var i,fy=[58,142,226,310];
+  if(mode==='simple'){
+    for(i=0;i<93;i++)parts.push(P('gas',rand(RIGHT_X+14,W-14),rand(20,H-16),false));
+    for(i=0;i<7;i++)parts.push(P('gas',rand(14,LEFT_X-14),rand(20,H-16),true));
+  }
+  if(mode==='facilitated'){
+    for(i=0;i<fy.length;i++)prots.push({kind:'ionchannel',y:fy[i],h:72,pore:8});
+    for(i=0;i<92;i++)parts.push(P('ion',rand(RIGHT_X+14,W-14),rand(20,H-16),false,1));
+    for(i=0;i<8;i++)parts.push(P('ion',rand(14,LEFT_X-14),rand(20,H-16),true,1));
+  }
+  if(mode==='osmosis'){
+    for(i=0;i<fy.length;i++)prots.push({kind:'aquaporin',y:fy[i],h:72,pore:5});
+    for(i=0;i<33;i++)parts.push(P('water',rand(RIGHT_X+14,W-14),rand(20,H-16),false));
+    for(i=0;i<7;i++)parts.push(P('water',rand(14,LEFT_X-14),rand(20,H-16),true));
+    for(i=0;i<27;i++)parts.push(P('solute',rand(14,LEFT_X-16),rand(20,H-16),true));
+    for(i=0;i<3;i++)parts.push(P('solute',rand(RIGHT_X+16,W-14),rand(20,H-16),false));
+  }
+  if(mode==='active'){
+    prots.push({kind:'pump',y:114,h:108,state:'wait',ph:0,loaded:null});
+    prots.push({kind:'pump',y:266,h:108,state:'wait',ph:0,loaded:null});
+    for(i=0;i<80;i++)parts.push(P('ion',rand(14,LEFT_X-16),rand(20,H-16),true,1));
+    for(i=0;i<20;i++)parts.push(P('ion',rand(RIGHT_X+18,W-14),rand(20,H-16),false,1));
+  }
+  frames=[snapshot()];
+  for(i=0;i<N;i++){step();frames.push(snapshot());}
+  viewIdx=0;playing=true;updateBtn();
+  document.getElementById('time').max=N;
+}
+
+function step(){
+  t++;
+  prots.forEach(function(p){
+    if(p.kind!=='pump')return;
+    if(p.state==='wait'){
+      if(!p.loaded||p.loaded.length===0){
+        var cand=[];
+        for(var k=0;k<parts.length;k++){
+          var q=parts[k];
+          if(q.type!=='ion'||q.passed||q.held)continue;
+          if(q.x<RIGHT_X-10||q.x>RIGHT_X+34)continue;
+          if(Math.abs(q.y-p.y)>p.h/2-2)continue;
+          cand.push({q:q,d:Math.abs(q.y-p.y)});
+        }
+        cand.sort(function(a,b){return a.d-b.d;});
+        var grab=cand.slice(0,3);
+        if(grab.length>0){
+          p.loaded=grab.map(function(g){return g.q;});
+          p.loaded.forEach(function(q){q.held=true;});
+          p.state='flip';p.ph=0;
+        }
+      }
+    }else if(p.state==='flip'){
+      p.ph+=1/60;
+      if(p.loaded){
+        var ld=p.loaded,n=ld.length,ix;
+        var rM=RIGHT_X-4,lM=LEFT_X+4;
+        if(p.ph<0.40)ix=rM+(MID-rM)*ss(p.ph/0.40);
+        else if(p.ph<0.58)ix=MID;
+        else ix=MID+(lM-MID)*ss((p.ph-0.58)/0.42);
+        ld.forEach(function(q,idx){
+          q.x=ix;q.y=p.y+(idx-(n-1)/2)*8;
+        });
+        if(p.ph>=0.92){
+          ld.forEach(function(q,idx){
+            q.held=false;q.passed=true;
+            q.x=LEFT_X-q.r-3-idx*4;
+            q.vx=-.5;q.vy=rand(-.4,.4);
+          });
+          p.loaded=null;
+        }
+      }
+      if(p.ph>=1){p.state='reset';p.ph=0;}
+    }else{
+      p.ph+=1/40;
+      if(p.ph>=1){p.state='wait';p.ph=0;}
+    }
+  });
+
+  var gL=0,gR=0,iL=0,iR=0,wL=0,wR=0,sL=0,sR=0;
+  for(var j=0;j<parts.length;j++){
+    var qq=parts[j],lf=qq.x<MID;
+    if(qq.type==='gas')lf?gL++:gR++;
+    else if(qq.type==='ion')lf?iL++:iR++;
+    else if(qq.type==='water')lf?wL++:wR++;
+    else lf?sL++:sR++;
+  }
+  var settle=Math.min(1,Math.max(0,(t-300)/180));
+  var jf=1-0.5*settle, df=0.95-0.08*settle;
+  var MINX=0.8;
+  parts.forEach(function(p){
+    if(p.held)return;
+    p.vx+=rand(-.68,.68)*jf;p.vy+=rand(-.68,.68)*jf;
+    if(mode==='simple'&&p.type==='gas')p.vx-=0.0022*(gR-gL);
+    else if(mode==='facilitated'&&p.type==='ion')p.vx-=0.0027*(iR-iL);
+    else if(mode==='osmosis'&&p.type==='water')p.vx-=(0.0017*(sL-sR)-0.00234*(wL-wR));
+    else if(mode==='active'&&p.type==='ion'&&!p.passed){
+      p.vx-=0.016;
+      var py=Math.abs(p.y-114)<Math.abs(p.y-266)?114:266;
+      var dy=py-p.y;
+      if(Math.abs(dy)>4){
+        var bias=p.x>MID-70?0.16:0.08;
+        p.vy+=(dy>0?1:-1)*bias;
+      }
+    }
+    p.vx*=df;p.vy*=df;
+    var sp=Math.hypot(p.vx,p.vy);
+    if(sp>3.0){p.vx*=3.0/sp;p.vy*=3.0/sp;}
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.y<p.r){p.y=p.r;p.vy=Math.abs(p.vy);}
+    if(p.y>H-p.r){p.y=H-p.r;p.vy=-Math.abs(p.vy);}
+    if(p.x>W-p.r){p.x=W-p.r;p.vx=-Math.abs(p.vx);}
+    if(p.x<p.r){p.x=p.r;p.vx=Math.abs(p.vx);}
+
+    if(mode==='simple'&&p.type==='gas'){
+      if(p.x>LEFT_X&&p.x<RIGHT_X){
+        if(!p.cross)p.cross=p.vx<0?-1:1;
+        p.vx=p.cross*Math.max(MINX,Math.abs(p.vx));
+      }else p.cross=0;
+    }else if((mode==='facilitated'&&p.type==='ion')||(mode==='osmosis'&&p.type==='water')){
+      var aligned=false,nc=prots[0],nd=1e9;
+      for(var c=0;c<prots.length;c++){
+        var dd=Math.abs(p.y-prots[c].y);
+        if(dd<prots[c].h/2-6)aligned=true;
+        if(dd<nd){nd=dd;nc=prots[c];}
+      }
+      if(p.x>LEFT_X&&p.x<RIGHT_X){
+        if(p.cross){
+          p.vx=p.cross*Math.max(MINX,Math.abs(p.vx));
+          if(nc)p.y+=(nc.y-p.y)*0.2;
+        }else if(aligned){
+          p.cross=p.vx<0?-1:1;
+          p.vx=p.cross*Math.max(MINX,Math.abs(p.vx));
+        }else if(p.x<MID){p.x=LEFT_X-p.r;p.vx=-Math.abs(p.vx);}
+        else{p.x=RIGHT_X+p.r;p.vx=Math.abs(p.vx);}
+      }else p.cross=0;
+    }else{
+      if(p.x<MID&&p.x+p.r>LEFT_X){p.x=LEFT_X-p.r;p.vx=-Math.abs(p.vx);}
+      else if(p.x>MID&&p.x-p.r<RIGHT_X){p.x=RIGHT_X+p.r;p.vx=Math.abs(p.vx);}
+    }
+  });
+}
+
+function snapshot(){
+  var pos=new Float32Array(parts.length*2);
+  for(var i=0;i<parts.length;i++){pos[i*2]=parts[i].x;pos[i*2+1]=parts[i].y;}
+  return{t:t,pos:pos,
+    pumps:prots.map(function(p){
+      return p.kind==='pump'?{st:p.state,ph:p.ph}:null;})};
+}
+
+function lipid(hx,hy,dir,seed,tt){
+  var splays=[-3.2,3.2];
+  for(var n=0;n<2;n++){
+    var splay=splays[n],len=MB-23;
+    ctx.beginPath();ctx.moveTo(hx+dir*5,hy);
+    for(var s=1;s<=10;s++){
+      var f=s/10;
+      ctx.lineTo(hx+dir*(5+len*f),hy+splay*f+Math.sin(s*.95+tt*.07+seed*.9+(splay>0?1.7:0))*2);
+    }
+    ctx.lineWidth=2.3;ctx.strokeStyle=C.tail;ctx.lineCap='round';ctx.stroke();
+  }
+  var r=6.4+(seed%3)*.4;
+  ctx.beginPath();ctx.arc(hx,hy,r,0,6.29);
+  ctx.fillStyle=C.head;ctx.fill();
+  ctx.lineWidth=1.3;ctx.strokeStyle=C.headS;ctx.stroke();
+}
+function drawMembrane(tt){
+  ctx.fillStyle='rgba(55,138,221,0.10)';ctx.fillRect(0,0,LEFT_X,H);
+  ctx.fillStyle='rgba(240,169,43,0.07)';ctx.fillRect(LEFT_X-2,0,MB*2+4,H);
+  var sp=16.5,n=Math.ceil(H/sp)+1;
+  for(var i=0;i<n;i++){
+    var ry=i*sp+5,skip=false;
+    for(var j=0;j<prots.length;j++)
+      if(ry>prots[j].y-prots[j].h/2-5&&ry<prots[j].y+prots[j].h/2+5){skip=true;break;}
+    if(skip)continue;
+    lipid(LEFT_X+9,ry+Math.sin(tt*.05+i*.7)*2.3,1,i,tt);
+    lipid(RIGHT_X-9,ry+Math.sin(tt*.05+i*.7+2)*2.3,-1,i+3,tt);
+  }
+}
+function drawChannel(p){
+  var co=PCOL[p.kind],top=p.y-p.h/2,bot=p.y+p.h/2;
+  var oL=LEFT_X-5,oR=RIGHT_X+5,ph=p.pore;
+  ctx.fillStyle=co.d;
+  var loops=[[oL,top+8],[oL,bot-8],[oR,top+8],[oR,bot-8]];
+  for(var i=0;i<4;i++){
+    ctx.beginPath();ctx.arc(loops[i][0],loops[i][1],7,0,6.29);ctx.fill();
+  }
+  ctx.fillStyle=co.f;ctx.strokeStyle=co.d;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(oL,top,oR-oL,p.h,6);ctx.fill();ctx.stroke();
+  var lumH=p.h*0.8, lumT=p.y-lumH/2;
+  ctx.fillStyle=co.l;
+  ctx.beginPath();ctx.roundRect(oL,lumT,oR-oL,lumH,5);ctx.fill();
+  ctx.strokeStyle=co.d;ctx.lineWidth=2;ctx.globalAlpha=.42;ctx.lineCap='round';
+  for(var s=-1;s<=1;s+=2){
+    var ly=p.y+s*(lumH/2-2);
+    ctx.beginPath();var first=true;
+    for(var x=oL+8;x<=oR-8;x+=4){
+      var yy=ly+Math.sin(x*.4)*1.6;
+      if(first){ctx.moveTo(x,yy);first=false;}else ctx.lineTo(x,yy);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha=1;ctx.lineCap='butt';
+}
+function token(x,y,w,h,fill,txt,tc){
+  ctx.beginPath();ctx.roundRect(x,y,w,h,4);
+  ctx.lineWidth=3.4;ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.stroke();
+  ctx.fillStyle=fill;ctx.fill();
+  ctx.lineWidth=1.4;ctx.strokeStyle='rgba(0,0,0,0.34)';ctx.stroke();
+  ctx.fillStyle=tc;ctx.font='700 '+Math.round(h*0.56)+'px '+FONT;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(txt,x+w/2,y+h/2+.5);
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+}
+function piBadge(x,y,r){
+  r=r||12;
+  ctx.beginPath();ctx.arc(x,y,r,0,6.29);
+  ctx.lineWidth=3.4;ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.stroke();
+  ctx.fillStyle=C.pi;ctx.fill();
+  ctx.lineWidth=1.5;ctx.strokeStyle='rgba(0,0,0,0.36)';ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='700 '+Math.round(r*1.05)+'px '+FONT;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('P',x,y+.5);
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+}
+function confOf(st,ph){
+  if(st==='flip')return ss(ph);
+  if(st==='reset')return 1-ss(ph);
+  return 0;
+}
+function drawCarrierBody(p,ps){
+  var co=PCOL.pump,conf=confOf(ps.st,ps.ph);
+  var xL=LEFT_X-9,xR=RIGHT_X+9;
+  var top=p.y-p.h/2,bot=p.y+p.h/2;
+  var MAXG=21;
+  var gapR=MAXG*Math.max(0,Math.min(1,(0.65-conf)/0.65));
+  var gapL=MAXG*Math.max(0,Math.min(1,(conf-0.35)/0.65));
+  var pk=Math.max(gapL,gapR)+13;
+  var R=10;
+  if(ps.st==='flip'&&ps.ph>0.24&&ps.ph<0.62){
+    var gl=0.30+0.24*Math.sin(ps.ph*40);
+    ctx.strokeStyle='rgba(216,90,48,'+gl+')';ctx.lineWidth=5;
+    ctx.beginPath();ctx.roundRect(xL-3,top-3,(xR-xL)+6,p.h+6,12);ctx.stroke();
+  }
+  // top half
+  ctx.beginPath();
+  ctx.moveTo(xL,top+R);
+  ctx.quadraticCurveTo(xL,top,xL+R,top);
+  ctx.lineTo(xR-R,top);
+  ctx.quadraticCurveTo(xR,top,xR,top+R);
+  ctx.lineTo(xR,p.y-gapR);
+  ctx.quadraticCurveTo(MID,p.y-pk,xL,p.y-gapL);
+  ctx.closePath();
+  ctx.fillStyle=co.f;ctx.fill();
+  ctx.lineWidth=2;ctx.strokeStyle=co.d;ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(xR,p.y-gapR);
+  ctx.quadraticCurveTo(MID,p.y-pk,xL,p.y-gapL);
+  ctx.lineWidth=3;ctx.strokeStyle=co.l;ctx.stroke();
+  // bottom half
+  ctx.beginPath();
+  ctx.moveTo(xL,bot-R);
+  ctx.quadraticCurveTo(xL,bot,xL+R,bot);
+  ctx.lineTo(xR-R,bot);
+  ctx.quadraticCurveTo(xR,bot,xR,bot-R);
+  ctx.lineTo(xR,p.y+gapR);
+  ctx.quadraticCurveTo(MID,p.y+pk,xL,p.y+gapL);
+  ctx.closePath();
+  ctx.fillStyle=co.f;ctx.fill();
+  ctx.lineWidth=2;ctx.strokeStyle=co.d;ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(xR,p.y+gapR);
+  ctx.quadraticCurveTo(MID,p.y+pk,xL,p.y+gapL);
+  ctx.lineWidth=3;ctx.strokeStyle=co.l;ctx.stroke();
+}
+function drawCarrierATP(p,ps){
+  var st=ps.st,ph=ps.ph;
+  var DPx=MID-14,DPy=p.y+26;
+  var BPx=MID+10,BPy=p.y+30;
+  if(st==='flip'){
+    if(ph>0.03&&ph<0.46){
+      var ax;
+      if(ph<0.22){var tin=ss((ph-0.03)/0.19);ax=(LEFT_X-104)+(DPx-(LEFT_X-104))*tin;}
+      else ax=DPx;
+      token(ax-24,DPy-11,48,22,C.atp,'ATP','#fff');
+    }
+    if(ph>0.38&&ph<0.74){
+      var fp=(ph-0.38)/0.36,fa=Math.max(0,1-fp);
+      ctx.beginPath();ctx.arc(DPx,DPy,9+fp*33,0,6.29);
+      ctx.strokeStyle='rgba(216,90,48,'+(fa*0.95)+')';ctx.lineWidth=5;ctx.stroke();
+      ctx.beginPath();ctx.arc(DPx,DPy,5+fp*19,0,6.29);
+      ctx.strokeStyle='rgba(240,169,43,'+(fa*0.85)+')';ctx.lineWidth=3.5;ctx.stroke();
+    }
+    if(ph>=0.45){
+      var dp=(ph-0.45)/0.55;
+      var ox=dp*78,oy=dp*30,al=Math.max(0,1-dp*0.85);
+      ctx.globalAlpha=al;
+      token(DPx-21-ox,DPy-10+oy,42,20,C.atpD,'ADP','#fff');
+      ctx.globalAlpha=1;
+      var pin=Math.min(1,(ph-0.45)/0.13);
+      piBadge(DPx+(BPx-DPx)*ss(pin),DPy+(BPy-DPy)*ss(pin),12);
+    }
+  }else if(st==='reset'){
+    if(ph<0.42)piBadge(BPx,BPy,12);
+    else if(ph<0.96){
+      var rp=(ph-0.42)/0.54,ral=Math.max(0,1-rp);
+      ctx.globalAlpha=ral;piBadge(BPx-rp*80,BPy+rp*30,12);ctx.globalAlpha=1;
+    }
+  }
+}
+function drawParticle(x,y,m){
+  var f,s;
+  if(m.type==='water'){f=C.water;s=C.waterS;}
+  else if(m.type==='gas'){f=C.gas;s=C.gasS;}
+  else if(m.type==='solute'){f=C.solute;s=C.ionS;}
+  else{f=C.ion;s=C.ionS;}
+  ctx.globalAlpha=m.type==='solute'?.8:.95;
+  ctx.beginPath();ctx.arc(x,y,m.r,0,6.29);ctx.fillStyle=f;ctx.fill();
+  ctx.globalAlpha=1;ctx.lineWidth=1.1;ctx.strokeStyle=s;ctx.stroke();
+  if(m.charge){
+    var k=m.r*.62;
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x-k,y);ctx.lineTo(x+k,y);ctx.stroke();
+    if(m.charge>0){ctx.beginPath();ctx.moveTo(x,y-k);ctx.lineTo(x,y+k);ctx.stroke();}
+  }
+}
+function drawBox(bx,by,title,rows){
+  var lh=15,h=22+rows.length*lh+4;
+  ctx.fillStyle='rgba(255,255,255,0.92)';
+  ctx.beginPath();ctx.roundRect(bx,by,128,h,7);ctx.fill();
+  ctx.lineWidth=1;ctx.strokeStyle='rgba(0,0,0,0.16)';ctx.stroke();
+  ctx.fillStyle='#2c2c2a';ctx.font='600 9px '+FONT;
+  ctx.fillText(title,bx+10,by+15);
+  rows.forEach(function(r,i){
+    var ry=by+22+i*lh+11;
+    ctx.fillStyle=r.col;
+    ctx.beginPath();ctx.arc(bx+14,ry-3.5,4,0,6.29);ctx.fill();
+    ctx.lineWidth=1;ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.stroke();
+    ctx.fillStyle='#555';ctx.font='11px '+FONT;
+    ctx.fillText(r.label,bx+23,ry);
+    ctx.fillStyle='#2c2c2a';ctx.font='600 13px '+FONT;
+    ctx.textAlign='right';ctx.fillText(String(r.val),bx+118,ry+1);
+    ctx.textAlign='left';
+  });
+}
+function drawReadout(snap){
+  var c={water:[0,0],gas:[0,0],ion:[0,0],solute:[0,0]};
+  for(var i=0;i<parts.length;i++){
+    var ty=parts[i].type,sd=snap.pos[i*2]<MID?0:1;
+    c[ty][sd]++;
+  }
+  var defs;
+  if(mode==='osmosis')defs=[['Water',C.water,'water'],['Solute',C.solute,'solute']];
+  else if(mode==='simple')defs=[['Non-polar',C.gas,'gas']];
+  else defs=[['Ions',C.ion,'ion']];
+  function rowset(side){
+    return defs.map(function(d){return{label:d[0],col:d[1],val:c[d[2]][side]};});
+  }
+  drawBox(8,8,'CYTOPLASM',rowset(0));
+  drawBox(W-136,8,'EXTRACELLULAR FLUID',rowset(1));
+}
+function render(snap){
+  ctx.clearRect(0,0,W,H);
+  drawMembrane(snap.t);
+  var i;
+  for(i=0;i<prots.length;i++){
+    if(prots[i].kind==='pump')drawCarrierBody(prots[i],snap.pumps[i]);
+    else drawChannel(prots[i]);
+  }
+  for(i=0;i<parts.length;i++)
+    drawParticle(snap.pos[i*2],snap.pos[i*2+1],parts[i]);
+  for(i=0;i<prots.length;i++)
+    if(prots[i].kind==='pump')drawCarrierATP(prots[i],snap.pumps[i]);
+  drawReadout(snap);
+}
+
+function updateBtn(){
+  var atEnd=viewIdx>=N;
+  document.getElementById('play').innerHTML=
+    playing?'&#10073;&#10073;':atEnd?'&#8634;':'&#9654;';
+}
+function togglePlay(){
+  if(!playing&&viewIdx>=N)viewIdx=0;
+  playing=!playing;updateBtn();
+}
+function onScrub(){
+  playing=false;
+  viewIdx=+document.getElementById('time').value;
+  updateBtn();
+}
+function setMode(m){
+  mode=m;
+  var btns=document.querySelectorAll('.btn');
+  for(var i=0;i<btns.length;i++)
+    btns[i].classList.toggle('active',btns[i].getAttribute('data-mode')===m);
+  document.getElementById('info').innerHTML=INFO[m];
+  document.getElementById('lblL').textContent=LABELS[m][0];
+  document.getElementById('lblR').textContent=LABELS[m][1];
+  build();
+}
+function loop(){
+  if(playing){
+    if(viewIdx<N)viewIdx++;
+    if(viewIdx>=N){viewIdx=N;playing=false;updateBtn();}
+  }
+  var snap=frames[viewIdx];
+  render(snap);
+  document.getElementById('time').value=viewIdx;
+  document.getElementById('tlabel').textContent=(snap.t/60).toFixed(1)+' / 10.0s';
+  requestAnimationFrame(loop);
+}
+
+try{
+  setMode('simple');
+  loop();
+}catch(e){
+  var eb=document.getElementById('errbar');
+  if(eb){eb.style.display='block';
+    eb.textContent='Startup error: '+(e&&e.message?e.message:e)+
+      (e&&e.stack?('\n'+e.stack):'');}
+}
+</script>
+</body>
+</html>
