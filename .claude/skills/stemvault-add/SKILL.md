@@ -47,6 +47,10 @@ Type-specific requirements enforced by the schema's `superRefine` (verify agains
 
 Do not invent fields that are not in the schema. `embedUrl` and `externalUrl` are validated as proper URLs, so they must be absolute `http(s)` URLs.
 
+### YAML safety (quote risky strings)
+
+Frontmatter is parsed as YAML, which is strict. Always wrap string values in double quotes when the value contains any of: a colon followed by a space (`: `), a `#`, a leading `[`, `{`, `*`, `&`, `!`, `|`, `>`, `@`, `` ` ``, `%`, `"`, or `'`, or a leading/trailing space. In practice, just quote `title`, `description`, and `sourceNote` by default, since human prose routinely contains colons (e.g. `description: "Four mechanisms: diffusion, osmosis..."`). An unquoted colon makes YAML read the rest as a nested mapping and the build fails with "bad indentation of a mapping entry". Escape any literal `"` inside a double-quoted value as `\"`. Tags with spaces are fine inside the `[...]` flow list, but quote a tag if it contains a comma or colon.
+
 ## Slug
 
 Derive a clean slug from the title: lowercase, spaces and punctuation to single hyphens, trim leading/trailing hyphens. Example: `Quadratic Explorer` -> `quadratic-explorer`. Keep it short and descriptive. If `src/content/resources/<slug>.md` already exists, append a short qualifier (subject or year) rather than overwriting, and tell the user.
@@ -85,9 +89,8 @@ Commit the new markdown **and** any copied asset together in one commit, then pu
 
 - Stage exactly the files you created or copied (the `src/content/resources/*.md` entries plus any `public/files/*` or `public/applets/*` assets).
 - Use a short, plain commit message, e.g. `Add resource: <title>` or, for a batch, `Add N resources to catalogue`. No em dashes.
-- Push to the current branch. Confirm the push succeeded and report the committed files back to the user.
-
-The site is `output: 'static'` and deploys to Cloudflare Pages on push, so a successful push is what publishes the resource.
+- Default: commit to `main` and push, which publishes the resource. The site is `output: 'static'` and deploys to Cloudflare Pages on every push to `main`, so a push to `main` is what makes the resource live. Confirm the push succeeded and report the committed files and their URLs back to the user.
+- If the user instead wants a review step, put the commit on a feature branch and open a PR against `main` rather than pushing to `main` directly. Nothing deploys until the PR is merged.
 
 ## Batch mode
 
