@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supplementary &amp; Complementary Angles</title>
+<style>
+  :root {
+    --ink: #1a2a33;
+    --paper: #f6f3ec;
+    --line: #d8d1c2;
+    --slate: #5c6b73;
+    --known: #2c6e6b;      /* teal: the angle you set */
+    --known-fill: rgba(44,110,107,0.14);
+    --partner: #c25b1f;    /* burnt orange: the partner angle */
+    --partner-fill: rgba(194,91,31,0.14);
+    --arc: #b08900;        /* the relationship arc */
+    --accent: #2c6e6b;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 32px 20px 64px;
+  }
+
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 14px;
+    margin-bottom: 28px;
+  }
+  .eyebrow {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin: 0 0 6px;
+  }
+  h1 {
+    font-size: clamp(26px, 5vw, 40px);
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .mode-switch {
+    display: flex;
+    gap: 0;
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 28px;
+    width: fit-content;
+  }
+  .mode-switch button {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .mode-switch button + button { border-left: 1.5px solid var(--ink); }
+  .mode-switch button.active { background: var(--ink); color: var(--paper); }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+  @media (max-width: 680px) {
+    .stage { grid-template-columns: 1fr; }
+  }
+
+  .canvas-card {
+    background: #fffefb;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 8px;
+  }
+  svg { display: block; width: 100%; height: auto; }
+
+  .panel { padding-top: 4px; }
+
+  .relation {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--slate);
+  }
+  .sum-label {
+    font-size: 30px;
+    margin: 2px 0 18px;
+    font-weight: 600;
+  }
+  .sum-label .deg { color: var(--arc); }
+
+  .readout {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  .chip {
+    flex: 1;
+    border: 1px solid var(--line);
+    border-left-width: 4px;
+    border-radius: 2px;
+    padding: 10px 12px;
+    background: #fffefb;
+  }
+  .chip.known { border-left-color: var(--known); }
+  .chip.partner { border-left-color: var(--partner); }
+  .chip .nm {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 2px;
+  }
+  .chip .val { font-size: 26px; font-weight: 600; }
+  .chip.known .val { color: var(--known); }
+  .chip.partner .val { color: var(--partner); }
+
+  .control label {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--slate);
+    display: block;
+    margin-bottom: 8px;
+  }
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--known);
+    margin: 0;
+  }
+  .control .ends {
+    display: flex;
+    justify-content: space-between;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px;
+    color: var(--slate);
+    margin-top: 4px;
+  }
+
+  .note {
+    margin-top: 24px;
+    font-size: 15px;
+    color: var(--ink);
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+  .note b { color: var(--accent); }
+
+  /* Quiz */
+  .quiz {
+    margin-top: 22px;
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+  }
+  .quiz-q {
+    font-size: 17px;
+    margin-bottom: 14px;
+  }
+  .quiz-q b { color: var(--accent); }
+  .answer-row { display: flex; gap: 10px; align-items: center; }
+  input[type=number] {
+    font-family: inherit;
+    font-size: 18px;
+    width: 90px;
+    padding: 8px 10px;
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    background: #fffefb;
+    color: var(--ink);
+  }
+  .btn {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 9px 18px;
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    background: var(--ink);
+    color: var(--paper);
+    cursor: pointer;
+  }
+  .btn.ghost { background: transparent; color: var(--ink); }
+  .feedback {
+    margin-top: 12px;
+    font-size: 15px;
+    min-height: 1.5em;
+  }
+  .feedback.right { color: var(--known); }
+  .feedback.wrong { color: var(--partner); }
+  .deg-suffix { font-size: 18px; color: var(--slate); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Geometry · Angle Relationships</p>
+    <h1>Supplementary &amp; Complementary Angles</h1>
+  </header>
+
+  <div class="mode-switch" id="modeSwitch">
+    <button data-mode="supp" class="active">Supplementary (180°)</button>
+    <button data-mode="comp">Complementary (90°)</button>
+    <button data-mode="quiz">Practice</button>
+  </div>
+
+  <div class="stage">
+    <div class="canvas-card">
+      <svg id="svg" viewBox="0 0 400 300" role="img" aria-label="Two angles meeting at a vertex"></svg>
+    </div>
+
+    <div class="panel">
+      <!-- EXPLORE PANEL -->
+      <div id="explorePanel">
+        <p class="relation" id="relationText">The two angles add to</p>
+        <p class="sum-label"><span id="sumValue">180</span><span class="deg">°</span></p>
+
+        <div class="readout">
+          <div class="chip known">
+            <div class="nm">Angle a</div>
+            <div class="val"><span id="knownVal">60</span>°</div>
+          </div>
+          <div class="chip partner">
+            <div class="nm">Angle b</div>
+            <div class="val"><span id="partnerVal">120</span>°</div>
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="slider">Drag to change angle a</label>
+          <input type="range" id="slider" min="1" max="179" value="60">
+          <div class="ends"><span>1°</span><span id="sliderMax">179°</span></div>
+        </div>
+
+        <p class="note" id="explainNote"></p>
+      </div>
+
+      <!-- QUIZ PANEL -->
+      <div id="quizPanel" style="display:none;">
+        <p class="relation" id="quizRelation">Supplementary</p>
+        <div class="quiz">
+          <p class="quiz-q" id="quizQ"></p>
+          <div class="answer-row">
+            <input type="number" id="quizInput" placeholder="?" autocomplete="off">
+            <span class="deg-suffix">°</span>
+            <button class="btn" id="checkBtn">Check</button>
+            <button class="btn ghost" id="nextBtn">New</button>
+          </div>
+          <p class="feedback" id="feedback"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("svg");
+
+  // Vertex and geometry constants for the SVG (400 x 300 viewBox)
+  const VX = 70, VY = 230;     // vertex position
+  const R = 160;               // ray length
+  const ARC_R = 56;            // angle arc radius
+
+  // State
+  let mode = "supp";           // 'supp' | 'comp' | 'quiz'
+  let known = 60;              // angle a in degrees
+
+  // Elements
+  const modeSwitch = document.getElementById("modeSwitch");
+  const explorePanel = document.getElementById("explorePanel");
+  const quizPanel = document.getElementById("quizPanel");
+  const slider = document.getElementById("slider");
+  const sliderMax = document.getElementById("sliderMax");
+  const sumValue = document.getElementById("sumValue");
+  const relationText = document.getElementById("relationText");
+  const knownVal = document.getElementById("knownVal");
+  const partnerVal = document.getElementById("partnerVal");
+  const explainNote = document.getElementById("explainNote");
+
+  function total() { return mode === "comp" ? 90 : 180; }
+
+  // Convert a geometry angle (degrees, measured CCW from positive x-axis)
+  // to an SVG point. SVG y grows downward, so we negate the sine.
+  function pt(deg, r) {
+    const rad = deg * Math.PI / 180;
+    return [VX + r * Math.cos(rad), VY - r * Math.sin(rad)];
+  }
+
+  function arcPath(startDeg, endDeg, r) {
+    const [x1, y1] = pt(startDeg, r);
+    const [x2, y2] = pt(endDeg, r);
+    const large = (endDeg - startDeg) > 180 ? 1 : 0;
+    // sweep=0 because SVG y is flipped (CCW in math = sweep 0 here)
+    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+  }
+
+  function line(x1, y1, x2, y2, stroke, width) {
+    const l = document.createElementNS(svgNS, "line");
+    l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+    l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+    l.setAttribute("stroke", stroke);
+    l.setAttribute("stroke-width", width);
+    l.setAttribute("stroke-linecap", "round");
+    return l;
+  }
+
+  function wedge(startDeg, endDeg, r, fill) {
+    const [x1, y1] = pt(startDeg, r);
+    const [x2, y2] = pt(endDeg, r);
+    const large = (endDeg - startDeg) > 180 ? 1 : 0;
+    const p = document.createElementNS(svgNS, "path");
+    p.setAttribute("d", `M ${VX} ${VY} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`);
+    p.setAttribute("fill", fill);
+    return p;
+  }
+
+  function path(d, stroke, width) {
+    const p = document.createElementNS(svgNS, "path");
+    p.setAttribute("d", d);
+    p.setAttribute("fill", "none");
+    p.setAttribute("stroke", stroke);
+    p.setAttribute("stroke-width", width);
+    return p;
+  }
+
+  function text(x, y, str, fill, size, anchor) {
+    const t = document.createElementNS(svgNS, "text");
+    t.setAttribute("x", x); t.setAttribute("y", y);
+    t.setAttribute("fill", fill);
+    t.setAttribute("font-size", size);
+    t.setAttribute("font-family", "Helvetica Neue, Arial, sans-serif");
+    t.setAttribute("text-anchor", anchor || "middle");
+    t.setAttribute("font-weight", "600");
+    t.textContent = str;
+    return t;
+  }
+
+  function draw() {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    const partner = total() - known;
+    const baseDeg = 0;                 // angle a starts from the positive x-axis (the base ray)
+    const midDeg = known;              // dividing ray
+    const topDeg = total();            // outer ray (180 for supp, 90 for comp)
+
+    // Filled wedges
+    svg.appendChild(wedge(baseDeg, midDeg, ARC_R + 8, "var(--known-fill)"));
+    svg.appendChild(wedge(midDeg, topDeg, ARC_R + 8, "var(--partner-fill)"));
+
+    // For complementary, draw a small right-angle square marker at the vertex
+    if (mode === "comp") {
+      const s = 18;
+      const sq = document.createElementNS(svgNS, "path");
+      sq.setAttribute("d", `M ${VX + s} ${VY} L ${VX + s} ${VY - s} L ${VX} ${VY - s}`);
+      sq.setAttribute("fill", "none");
+      sq.setAttribute("stroke", "var(--slate)");
+      sq.setAttribute("stroke-width", "1.5");
+      svg.appendChild(sq);
+    }
+
+    // Rays
+    const [bx, by] = pt(baseDeg, R);
+    const [tx, ty] = pt(topDeg, R);
+    const [mx, my] = pt(midDeg, R);
+    svg.appendChild(line(VX, VY, bx, by, "var(--ink)", 2.5));   // base ray
+    svg.appendChild(line(VX, VY, tx, ty, "var(--ink)", 2.5));   // outer ray
+    svg.appendChild(line(VX, VY, mx, my, "var(--slate)", 2.5)); // dividing ray
+
+    // Arcs delineating each angle
+    svg.appendChild(path(arcPath(baseDeg, midDeg, ARC_R), "var(--known)", 2.5));
+    svg.appendChild(path(arcPath(midDeg, topDeg, ARC_R), "var(--partner)", 2.5));
+
+    // Angle labels positioned at the bisector of each wedge
+    const [lax, lay] = pt(known / 2, ARC_R + 26);
+    const [lbx, lby] = pt(known + partner / 2, ARC_R + 26);
+    svg.appendChild(text(lax, lay, known + "°", "var(--known)", 17));
+    svg.appendChild(text(lbx, lby, partner + "°", "var(--partner)", 17));
+
+    // a / b name tags closer in
+    const [nax, nay] = pt(known / 2, 22);
+    const [nbx, nby] = pt(known + partner / 2, 22);
+    svg.appendChild(text(nax, nay, "a", "var(--known)", 13));
+    svg.appendChild(text(nbx, nby, "b", "var(--partner)", 13));
+
+    // Vertex dot
+    const dot = document.createElementNS(svgNS, "circle");
+    dot.setAttribute("cx", VX); dot.setAttribute("cy", VY);
+    dot.setAttribute("r", 3.5); dot.setAttribute("fill", "var(--ink)");
+    svg.appendChild(dot);
+  }
+
+  function syncReadout() {
+    const partner = total() - known;
+    knownVal.textContent = known;
+    partnerVal.textContent = partner;
+    sumValue.textContent = total();
+    relationText.textContent = (mode === "comp")
+      ? "Complementary — they add to"
+      : "Supplementary — they add to";
+    explainNote.innerHTML = (mode === "comp")
+      ? `Two angles are <b>complementary</b> when they add to 90°. Here a = ${known}°, so the angle that completes the right angle is 90° − ${known}° = <b>${partner}°</b>.`
+      : `Two angles are <b>supplementary</b> when they add to 180° (a straight line). Here a = ${known}°, so its supplement is 180° − ${known}° = <b>${partner}°</b>.`;
+  }
+
+  function configureSlider() {
+    const max = total() - 1;       // leave at least 1° for the partner
+    slider.min = 1;
+    slider.max = max;
+    sliderMax.textContent = max + "°";
+    if (known > max) known = max;
+    slider.value = known;
+  }
+
+  function refresh() {
+    syncReadout();
+    draw();
+  }
+
+  slider.addEventListener("input", function () {
+    known = parseInt(this.value, 10);
+    refresh();
+  });
+
+  // ---- Quiz ----
+  const quizRelation = document.getElementById("quizRelation");
+  const quizQ = document.getElementById("quizQ");
+  const quizInput = document.getElementById("quizInput");
+  const checkBtn = document.getElementById("checkBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const feedback = document.getElementById("feedback");
+  let quizGiven = 0, quizAnswer = 0, quizTotal = 180, quizName = "supplementary";
+
+  function newQuestion() {
+    quizTotal = Math.random() < 0.5 ? 180 : 90;
+    quizName = quizTotal === 180 ? "supplementary" : "complementary";
+    quizRelation.textContent = quizTotal === 180 ? "Supplementary" : "Complementary";
+    quizGiven = Math.floor(Math.random() * (quizTotal - 2)) + 1;
+    quizAnswer = quizTotal - quizGiven;
+    quizQ.innerHTML = `One of two <b>${quizName}</b> angles is <b>${quizGiven}°</b>. What is the other?`;
+    quizInput.value = "";
+    feedback.textContent = "";
+    feedback.className = "feedback";
+    // mirror the quiz angle on the diagram
+    mode = quizTotal === 180 ? "supp" : "comp";
+    known = quizGiven;
+    configureSlider();
+    draw();
+    quizInput.focus();
+  }
+
+  function checkAnswer() {
+    const v = parseInt(quizInput.value, 10);
+    if (isNaN(v)) { feedback.textContent = "Enter a value first."; feedback.className = "feedback wrong"; return; }
+    if (v === quizAnswer) {
+      feedback.textContent = `Correct. ${quizTotal} − ${quizGiven} = ${quizAnswer}°.`;
+      feedback.className = "feedback right";
+    } else {
+      feedback.textContent = `Not quite. ${quizName} angles sum to ${quizTotal}°, so ${quizTotal} − ${quizGiven} = ${quizAnswer}°.`;
+      feedback.className = "feedback wrong";
+    }
+  }
+
+  checkBtn.addEventListener("click", checkAnswer);
+  nextBtn.addEventListener("click", newQuestion);
+  quizInput.addEventListener("keydown", e => { if (e.key === "Enter") checkAnswer(); });
+
+  // ---- Mode switching ----
+  modeSwitch.addEventListener("click", function (e) {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    [...modeSwitch.children].forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    mode = btn.dataset.mode;
+
+    if (mode === "quiz") {
+      explorePanel.style.display = "none";
+      quizPanel.style.display = "block";
+      newQuestion();
+    } else {
+      quizPanel.style.display = "none";
+      explorePanel.style.display = "block";
+      if (mode === "comp" && known > 89) known = 60;
+      configureSlider();
+      refresh();
+    }
+  });
+
+  // Init
+  configureSlider();
+  refresh();
+})();
+</script>
+</body>
+</html>
