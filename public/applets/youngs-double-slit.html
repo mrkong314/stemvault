@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Young's Double Slit</title>
+<style>
+  :root {
+    --ink: #11131a;
+    --panel: #f5f3ee;
+    --line: #d8d3c7;
+    --accent: #c7501f;
+    --accent-soft: #e8a888;
+    --muted: #6a6557;
+    --wave: #3b7dd8;
+    --field-bg: #05070f;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: #ece8df;
+    color: var(--ink);
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 18px 60px; }
+  header { margin-bottom: 20px; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin: 0 0 4px;
+  }
+  h1 { font-size: clamp(26px, 4vw, 38px); margin: 0; font-weight: 700; letter-spacing: -0.02em; }
+  .lede { color: var(--muted); margin: 6px 0 0; max-width: 60ch; font-size: 15px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start; }
+  @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+
+  .stage {
+    background: var(--field-bg);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #000;
+    position: relative;
+  }
+  canvas#field { display: block; width: 100%; height: auto; }
+
+  .readout {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-top: 14px;
+    padding: 14px 16px;
+  }
+  .readout canvas { display: block; width: 100%; height: auto; }
+  .readout .label {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin: 0 0 8px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .panel h2 {
+    font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 14px; font-weight: 600;
+  }
+
+  .control { margin-bottom: 16px; }
+  .control:last-child { margin-bottom: 0; }
+  .control .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+  .control label { font-size: 14px; font-weight: 500; }
+  .control .val { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--accent); font-weight: 600; }
+
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px; border-radius: 2px;
+    background: var(--line); outline: none; margin: 0;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: 2px solid #fff;
+  }
+  input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .divider { height: 1px; background: var(--line); margin: 16px 0; border: 0; }
+
+  .toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; cursor: pointer; user-select: none;
+    padding: 6px 10px; border: 1px solid var(--line);
+    border-radius: 6px; background: #fff;
+  }
+  .toggle input { accent-color: var(--accent); cursor: pointer; }
+  .toggle.on { border-color: var(--accent); background: #fbf0ea; }
+  .toggle.disabled { opacity: 0.4; cursor: not-allowed; }
+  .toggle.disabled input { cursor: not-allowed; }
+
+  .btn {
+    width: 100%; padding: 9px; border: 1px solid var(--accent);
+    background: var(--accent); color: #fff; border-radius: 6px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .btn.ghost { background: #fff; color: var(--accent); }
+
+  .play-row { display: flex; gap: 8px; align-items: center; }
+  .play-row .btn { width: auto; padding: 9px 16px; }
+
+  .stats {
+    margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+    background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+  }
+  .stat { background: var(--panel); padding: 10px 12px; }
+  .stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .stat .v { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .stat .u { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+
+  .refcard {
+    margin-top: 14px; padding: 12px 14px;
+    background: #fff; border: 1px solid var(--line); border-radius: 8px;
+  }
+  .ref {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; padding: 4px 0; transition: opacity 0.15s;
+  }
+  .ref em { font-style: italic; }
+  .ref .rtxt { color: var(--ink); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .dot-c { background: #1f8a44; }
+  .dot-d { background: #9a9a9a; }
+  .ref.dim { opacity: 0.4; }
+  .refnote { font-size: 11px; color: var(--muted); margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">VCE Physics &middot; Wave Interference</p>
+    <h1>Young's Double Slit</h1>
+    <p class="lede">Two coherent sources, one screen. Set the path difference (PD) at the screen and see whether the waves meet in phase (bright) or antiphase (dark).</p>
+  </header>
+
+  <div class="layout">
+    <div>
+      <div class="stage">
+        <canvas id="field" width="820" height="460"></canvas>
+      </div>
+      <div class="readout">
+        <p class="label">Intensity on screen</p>
+        <canvas id="screen" width="820" height="120"></canvas>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <h2>Animation</h2>
+      <div class="control">
+        <div class="row"><label for="probe">Path Difference (PD)</label><span class="val" id="probeV">1.0 λ</span></div>
+        <input type="range" id="probe" min="-6" max="6" value="2" step="1">
+      </div>
+      <div class="control">
+        <div class="row"><label for="phase">Time (s)</label><span class="val" id="phaseV">0.00 s</span></div>
+        <input type="range" id="phase" min="0" max="100" value="0" step="0.5">
+      </div>
+      <div class="play-row">
+        <button class="btn" id="play">Play</button>
+        <button class="btn ghost" id="reset">Reset</button>
+      </div>
+
+      <hr class="divider">
+      <h2>Show</h2>
+      <div class="toggles">
+        <label class="toggle on" id="t-paths"><input type="checkbox" id="paths" checked>Path rays</label>
+        <label class="toggle on" id="t-fringes"><input type="checkbox" id="fringes" checked>Fringes</label>
+        <label class="toggle on" id="t-guides"><input type="checkbox" id="guides" checked>Antinode lines</label>
+        <label class="toggle" id="t-wavefronts"><input type="checkbox" id="wavefronts">Wavefronts</label>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">PD</div><div class="v" id="pdl">0.0<span class="u"> &lambda;</span></div></div>
+        <div class="stat"><div class="k">At probe</div><div class="v" id="state" style="color:var(--accent)">&mdash;</div></div>
+        <div class="stat" style="grid-column:1 / -1"><div class="k">Condition</div><div class="v" id="nval" style="font-size:16px">&mdash;</div></div>
+      </div>
+      <p class="note" id="condition"></p>
+
+      <div class="refcard">
+        <div class="ref" id="ref-c">
+          <span class="dot dot-c"></span>
+          <span class="rtxt">Constructive (bright):&nbsp; PD = <em>n</em>&lambda;</span>
+        </div>
+        <div class="ref" id="ref-d">
+          <span class="dot dot-d"></span>
+          <span class="rtxt">Destructive (dark):&nbsp; PD = (<em>n</em> + &frac12;)&lambda;</span>
+        </div>
+        <p class="refnote">n = 0, 1, 2, &hellip; (order). VCAA convention.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // --- elements ---
+  const field = document.getElementById('field');
+  const fctx = field.getContext('2d');
+  const screen = document.getElementById('screen');
+  const sctx = screen.getContext('2d');
+
+  const ctl = {
+    phase: document.getElementById('phase'),
+    probe: document.getElementById('probe'),
+    paths: document.getElementById('paths'),
+    fringes: document.getElementById('fringes'),
+    wavefronts: document.getElementById('wavefronts'),
+    guides: document.getElementById('guides'),
+  };
+  const out = {
+    phase: document.getElementById('phaseV'),
+    probe: document.getElementById('probeV'),
+    pdl: document.getElementById('pdl'), state: document.getElementById('state'),
+    condition: document.getElementById('condition'),
+    nval: document.getElementById('nval'),
+    refC: document.getElementById('ref-c'), refD: document.getElementById('ref-d'),
+  };
+  const playBtn = document.getElementById('play');
+  const resetBtn = document.getElementById('reset');
+
+  // rounded-rect path helper (begins a path; caller fills/strokes)
+  function roundRect(x, y, w, h, rad) {
+    fctx.beginPath();
+    fctx.moveTo(x + rad, y);
+    fctx.arcTo(x + w, y, x + w, y + h, rad);
+    fctx.arcTo(x + w, y + h, x, y + h, rad);
+    fctx.arcTo(x, y + h, x, y, rad);
+    fctx.arcTo(x, y, x + w, y, rad);
+    fctx.closePath();
+  }
+
+  // --- geometry (canvas px) ---
+  const W = field.width, H = field.height;
+  const slitX = 150;          // x of the slit plane
+  const screenX = W - 40;     // x of the detection screen
+  const cy = H / 2;           // optical axis
+
+  // px-to-physical scale for the *visible field*: the window is sized so
+  // that exactly 7 bright fringes are shown — orders m = -3..+3, i.e. a
+  // path difference of -6..+6 half-wavelengths. The probe slider spans the
+  // same range, so both views stay locked together.
+  const PROBE_N_MAX = 6;        // half-wavelengths each side of axis
+  // half-height of the visible field, in mm, given current optics + headroom
+  function visibleHalfMM(v) {
+    const lambda = v.wl * 1e-9, dM = v.d * 1e-3;
+    const edgeMM = PROBE_N_MAX * (lambda/2) * v.L / dM * 1000; // n=+6 position
+    return edgeMM * 1.08; // small headroom past the outer fringe
+  }
+  function mmPerPx_y(v) { return visibleHalfMM(v) / (H / 2); }
+
+  // Light is rendered green throughout. The wavelength slider still drives
+  // the optics (fringe spacing, path difference); only the displayed colour
+  // is fixed, so changing λ shows its effect on the pattern, not the hue.
+  function wlToRGB(nm) {
+    return [40, 200, 90];
+  }
+
+  let animating = false, animPhase = 0, rafId = null, lastT = 0;
+
+  // Fixed internal optics. The simulation works entirely in units of λ via the
+  // PD slider, so these set the (arbitrary, unshown) scale for the derived
+  // screen position and the green colour. They are never displayed.
+  const WL = 550, D = 0.20, L_M = 1.5;   // nm, mm, m
+
+  function readVars() {
+    const wl = WL, d = D, L = L_M;
+    const probeN = +ctl.probe.value;   // path difference in units of λ/2 (integer)
+    // physical screen position for this path difference:
+    // Δ = d·y/L = probeN·(λ/2)  ⇒  y = probeN·(λ/2)·L/d
+    const lambda = wl * 1e-9, dM = d * 1e-3;
+    const probeMM = probeN * (lambda/2) * L / dM * 1000;
+    return {
+      wl, d, L,
+      phase: +ctl.phase.value/100 * 4,  // slider 0..100 → 0..4 periods
+      probeN,                       // half-wavelength index
+      probe: probeMM,               // mm on screen (derived)
+      showPaths: ctl.paths.checked,
+      showFringes: ctl.fringes.checked,
+      showWavefronts: ctl.wavefronts.checked,
+      showGuides: ctl.guides.checked,
+    };
+  }
+
+  // physical fringe model: y_m = m * lambda * L / d
+  function fringeSpacingMM(v) {
+    const lambda = v.wl * 1e-9, d = v.d * 1e-3, L = v.L;
+    return (lambda * L / d) * 1000; // mm
+  }
+  // path difference at screen position y (mm): approx d*sin(theta) = d*y/L
+  function pathDiffM(v, yMM) {
+    const d = v.d * 1e-3, L = v.L, y = yMM * 1e-3;
+    return d * y / L; // metres
+  }
+
+  // map a screen-position (mm) to a field-canvas y pixel
+  function mmToFieldY(v, yMM) { return cy - yMM / mmPerPx_y(v); }
+
+  // intensity (0..1) at screen position yMM for two-slit pattern
+  function intensity(v, yMM) {
+    const lambda = v.wl * 1e-9;
+    const delta = pathDiffM(v, yMM);
+    const phi = Math.PI * delta / lambda;        // half phase diff
+    return Math.cos(phi) * Math.cos(phi);        // cos^2
+  }
+
+  // --- draw the field: two sources, optional travelling wavefronts, paths ---
+  function drawField(v) {
+    const [r,g,b] = wlToRGB(v.wl);
+    fctx.fillStyle = '#05070f';
+    fctx.fillRect(0,0,W,H);
+
+    // Field geometry is exaggerated (true d/L would be sub-pixel), but kept
+    // INTERNALLY self-consistent: the slit gap and ring spacing are chosen so
+    // the two circular waves interfere constructively along exactly the same
+    // bright-fringe directions (orders m = -3..+3) that the intensity strip
+    // shows. So where two crests cross, that point really is on a bright fringe.
+    const baseX = screenX - slitX;               // slit→screen distance (px)
+    const halfPx = H / 2;                         // visible half-height (px)
+    const fringePx = halfPx / 1.08 / PROBE_N_MAX * 2; // px between bright fringes
+    const visGap = 130;                           // wider gap → wider, clearer wavefronts
+    const s1y = cy - visGap/2;   // top slit
+    const s2y = cy + visGap/2;   // bottom slit
+    // Ring spacing set so the EXACT path difference at the mid bright fringe
+    // (m = ±2) equals 2 wavelengths. This anchors the rings to true geometry
+    // and keeps every visible order within ~2% of an integer λ, so crest
+    // intersections sit on the bright-fringe lines the strip draws.
+    const yMid = cy - 2 * fringePx;
+    const rMid1 = Math.hypot(baseX, yMid - s1y);
+    const rMid2 = Math.hypot(baseX, yMid - s2y);
+    const wlPx = Math.abs(rMid2 - rMid1) / 2;
+
+    // wavefronts: incoming plane wave from the left, then circular waves
+    // spreading from each slit on the right. Both share spacing and phase
+    // so the wave is continuous as it passes through the slits.
+    if (v.showWavefronts) {
+      const phase = (animating ? animPhase : v.phase) % 1; // fractional period
+      drawPlaneWave(wlPx, phase, r,g,b, s1y, s2y);
+      drawRings(s1y, wlPx, phase, r,g,b);
+      drawRings(s2y, wlPx, phase, r,g,b);
+    }
+    // antinode/node lines — only shown together with wavefronts
+    if (v.showGuides && v.showWavefronts) drawFringeGuides(fringePx);
+
+    // barrier wall — a clear light-grey slab so it reads against the dark field
+    const wallW = 12;
+    fctx.fillStyle = '#c8ccd6';
+    fctx.fillRect(slitX - wallW/2, 0, wallW, H);
+    // carve the two slit openings
+    fctx.clearRect(slitX - wallW/2, s1y - 8, wallW, 16);
+    fctx.clearRect(slitX - wallW/2, s2y - 8, wallW, 16);
+    // dark inner edges on the wall faces for depth
+    fctx.fillStyle = '#7c8290';
+    fctx.fillRect(slitX - wallW/2, 0, 2, H);
+    fctx.fillRect(slitX + wallW/2 - 2, 0, 2, H);
+    fctx.clearRect(slitX - wallW/2, s1y - 8, wallW, 16);
+    fctx.clearRect(slitX - wallW/2, s2y - 8, wallW, 16);
+    // highlight the slit openings with a soft glow ring
+    [s1y, s2y].forEach(y => {
+      fctx.strokeStyle = 'rgba(120,255,160,0.7)';
+      fctx.lineWidth = 1.5;
+      fctx.strokeRect(slitX - wallW/2 - 0.5, y - 8.5, wallW + 1, 17);
+    });
+
+    // detection screen — light slab with the interference fringes painted on it
+    const scrW = 14;
+    fctx.fillStyle = '#1a1d26';
+    fctx.fillRect(screenX, 0, scrW, H);
+    if (v.showFringes) {
+      const [gr0, gg0, gb0] = wlToRGB(v.wl);
+      for (let yy = 0; yy < H; yy++) {
+        // field-y pixel → screen position (mm) → intensity
+        const yMM = (cy - yy) * mmPerPx_y(v);
+        const I = intensity(v, yMM);
+        fctx.fillStyle = `rgb(${Math.round(gr0*I)},${Math.round(gg0*I)},${Math.round(gb0*I)})`;
+        fctx.fillRect(screenX, yy, scrW, 1);
+      }
+    }
+    // slab edges so it still reads as a wall
+    fctx.fillStyle = '#7c8290';
+    fctx.fillRect(screenX, 0, 2, H);
+    fctx.fillRect(screenX + scrW - 1, 0, 1, H);
+
+    // optical axis
+    fctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    fctx.setLineDash([4,6]); fctx.lineWidth = 1;
+    fctx.beginPath(); fctx.moveTo(slitX, cy); fctx.lineTo(screenX, cy); fctx.stroke();
+    fctx.setLineDash([]);
+
+    // probe point on screen
+    const py = mmToFieldY(v, v.probe);
+
+    // path rays from each slit to probe
+    if (v.showPaths) {
+      const longer = v.probe >= 0 ? s2y : s1y; // farther slit
+      // shorter ray
+      fctx.strokeStyle = `rgba(${r},${g},${b},0.9)`;
+      fctx.lineWidth = 2;
+      fctx.beginPath(); fctx.moveTo(slitX, s1y); fctx.lineTo(screenX, py); fctx.stroke();
+      fctx.beginPath(); fctx.moveTo(slitX, s2y); fctx.lineTo(screenX, py); fctx.stroke();
+
+      // path-difference marker near the farther slit:
+      // drop a perpendicular foot from the nearer slit onto the farther ray.
+      const near = v.probe >= 0 ? s1y : s2y;
+      const far  = v.probe >= 0 ? s2y : s1y;
+      // unit vector from far slit to probe
+      const dx = screenX - slitX, dy = py - far;
+      const len = Math.hypot(dx,dy);
+      const ux = dx/len, uy = dy/len;
+      // vector from far slit to near slit, projected onto ray
+      const vx = 0, vy = near - far;
+      const proj = vx*ux + vy*uy;
+      const footX = slitX + ux*proj, footY = far + uy*proj;
+
+      const pdRatio = Math.abs(v.probeN) / 2;
+      const pdText = 'PD = ' + pdRatio.toFixed(1) + ' λ';
+      let lx, ly;
+      if (v.probeN === 0) {
+        // PD = 0: no extra path, no yellow line. Centre the label between slits.
+        lx = slitX + 14;
+        ly = cy + 8;
+      } else {
+        // the extra path = segment from far-slit to foot
+        fctx.strokeStyle = '#ffd23f';
+        fctx.lineWidth = 3;
+        fctx.beginPath(); fctx.moveTo(slitX, far); fctx.lineTo(footX, footY); fctx.stroke();
+        // connector (near slit to foot) — the equal-length cut
+        fctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        fctx.lineWidth = 1; fctx.setLineDash([3,3]);
+        fctx.beginPath(); fctx.moveTo(slitX, near); fctx.lineTo(footX, footY); fctx.stroke();
+        fctx.setLineDash([]);
+        lx = (slitX + footX)/2 + 10;
+        ly = (far + footY)/2 - 10;
+      }
+      // label: PD value in wavelengths, larger font
+      fctx.font = '800 22px Inter, sans-serif';
+      fctx.textAlign = 'left';
+      // dark backing for legibility over the rays
+      const tw = fctx.measureText(pdText).width;
+      fctx.fillStyle = 'rgba(8,11,18,0.78)';
+      roundRect(lx - 6, ly - 22, tw + 12, 30, 5); fctx.fill();
+      fctx.fillStyle = '#ffd23f';
+      fctx.fillText(pdText, lx, ly);
+    }
+
+    // slit markers — dark dots centred in the bright openings
+    fctx.fillStyle = '#11131a';
+    [s1y, s2y].forEach(y => { fctx.beginPath(); fctx.arc(slitX, y, 2.5, 0, 7); fctx.fill(); });
+    // labels on the dark (left) side where white text reads
+    fctx.font = '600 12px Inter, sans-serif';
+    fctx.fillStyle = 'rgba(255,255,255,0.85)';
+    fctx.fillText('S₁', slitX-30, s1y+4);
+    fctx.fillText('S₂', slitX-30, s2y+4);
+
+    // probe marker — on the outer face of the screen slab
+    fctx.fillStyle = '#ffd23f';
+    fctx.beginPath(); fctx.arc(screenX + 18, py, 5, 0, 7); fctx.fill();
+    fctx.strokeStyle = '#05070f'; fctx.lineWidth = 1.5; fctx.stroke();
+
+    // path-difference annotation, top-left of the gap
+    {
+      const pdMag = Math.abs(v.probeN) / 2;         // PD magnitude, in λ
+      const bright = (v.probeN % 2 === 0);
+      const accent = bright ? '#78ffa0' : '#c7ccd6';
+      const an = Math.abs(v.probeN);
+      const nVal = bright ? an/2 : (an-1)/2;         // VCAA order n
+      const condition = bright ? 'nλ,  n = ' + nVal
+                               : '(n + ½)λ,  n = ' + nVal;
+      const boxW = 280, boxH = 100;
+      const bx = slitX + 18;   // just right of the barrier wall
+      const by = 14;           // near the top
+
+      // box
+      fctx.fillStyle = 'rgba(8,11,18,0.94)';
+      fctx.strokeStyle = accent; fctx.lineWidth = 2;
+      roundRect(bx, by, boxW, boxH, 9); fctx.fill(); fctx.stroke();
+
+      // text
+      fctx.textAlign = 'left';
+      fctx.fillStyle = accent;
+      fctx.font = '800 22px Inter, sans-serif';
+      fctx.fillText((bright ? 'CONSTRUCTIVE' : 'DESTRUCTIVE'), bx + 16, by + 32);
+      fctx.fillStyle = 'rgba(255,255,255,0.92)';
+      fctx.font = '600 19px Inter, sans-serif';
+      fctx.fillText('PD = ' + pdMag.toFixed(1) + ' λ', bx + 16, by + 60);
+      fctx.fillStyle = 'rgba(255,255,255,0.7)';
+      fctx.font = '17px Inter, sans-serif';
+      fctx.fillText('= ' + condition, bx + 16, by + 85);
+    }
+  }
+
+  // incoming plane wave: vertical crests sweeping left → right toward the
+  // barrier. Phase is referenced to the slit plane (slitX) so a crest
+  // arriving at the slits coincides with a crest leaving them as rings.
+  function drawPlaneWave(spacing, phase, r,g,b, s1y, s2y) {
+    const offset = phase * spacing; // grows 0→spacing over one period
+    fctx.lineWidth = 2;
+    // crests start left of the barrier and march right as offset increases
+    for (let x = slitX - spacing + offset; x > 0; x -= spacing) {
+      if (x > slitX) continue;            // never paint past the barrier
+      const a = 0.45 * Math.max(0, x / slitX); // fade toward the source edge
+      fctx.strokeStyle = `rgba(${r},${g},${b},${a})`;
+      fctx.beginPath();
+      fctx.moveTo(x, 6);
+      fctx.lineTo(x, H - 6);
+      fctx.stroke();
+    }
+    // short stubs of incoming wave at the open slits, so the wave visibly
+    // reaches the apertures
+    fctx.save();
+    fctx.beginPath();
+    fctx.rect(slitX - spacing, s1y - 7, spacing, 14);
+    fctx.rect(slitX - spacing, s2y - 7, spacing, 14);
+    fctx.clip();
+    for (let x = slitX - spacing + offset; x > slitX - spacing*2; x -= spacing) {
+      if (x > slitX) continue;
+      fctx.strokeStyle = `rgba(${r},${g},${b},0.6)`;
+      fctx.beginPath(); fctx.moveTo(x, 0); fctx.lineTo(x, H); fctx.stroke();
+    }
+    fctx.restore();
+  }
+
+  // guide rays from the slit midpoint to each fringe on the screen:
+  // green = constructive (bright, integer λ), grey = destructive (dark).
+  // Crest intersections in the animated rings fall on the green lines.
+  function drawFringeGuides(fringePx) {
+    const mx = slitX, my = cy; // slit-pair midpoint
+    fctx.lineWidth = 1;
+    for (let n = -PROBE_N_MAX; n <= PROBE_N_MAX; n++) {
+      const y = cy - (n/2) * fringePx;   // n in half-wavelengths
+      if (y < 4 || y > H - 4) continue;
+      const bright = (n % 2 === 0);
+      fctx.strokeStyle = bright ? 'rgba(120,255,160,0.28)' : 'rgba(180,180,190,0.16)';
+      fctx.setLineDash(bright ? [] : [3,4]);
+      fctx.beginPath(); fctx.moveTo(mx, my); fctx.lineTo(screenX, y); fctx.stroke();
+    }
+    fctx.setLineDash([]);
+  }
+
+  function drawRings(syY, spacing, phase, r,g,b) {
+    const maxR = W; 
+    const offset = phase * spacing;
+    fctx.lineWidth = 2;
+    for (let rad = offset; rad < maxR; rad += spacing) {
+      const a = 0.5 * Math.max(0, 1 - rad/(W*0.9));
+      fctx.strokeStyle = `rgba(${r},${g},${b},${a})`;
+      fctx.beginPath();
+      // only draw the rightward-propagating arc past the slit plane
+      fctx.arc(slitX, syY, rad, -Math.PI/2.2, Math.PI/2.2);
+      fctx.stroke();
+    }
+  }
+
+  // --- draw screen intensity strip ---
+  function drawScreen(v) {
+    const sw = screen.width, sh = screen.height;
+    const [r,g,b] = wlToRGB(v.wl);
+    sctx.clearRect(0,0,sw,sh);
+
+    // window matches the field: exactly the 7-fringe span
+    const halfMM = visibleHalfMM(v);
+    const img = sctx.createImageData(sw, 1);
+    for (let x=0; x<sw; x++) {
+      const yMM = (x/sw*2 - 1) * halfMM;
+      const I = v.showFringes ? intensity(v, yMM) : 0.0;
+      const i4 = x*4;
+      img.data[i4]   = r*I;
+      img.data[i4+1] = g*I;
+      img.data[i4+2] = b*I;
+      img.data[i4+3] = 255;
+    }
+    // paint the band
+    const bandTop = 18, bandH = sh - 50;
+    sctx.fillStyle = '#05070f'; sctx.fillRect(0,0,sw,sh);
+    for (let yy=bandTop; yy<bandTop+bandH; yy++) sctx.putImageData(img, 0, yy);
+
+    // intensity curve overlay
+    sctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    sctx.lineWidth = 1.5; sctx.beginPath();
+    for (let x=0; x<sw; x++) {
+      const yMM = (x/sw*2 - 1) * halfMM;
+      const I = intensity(v, yMM);
+      const yy = bandTop + bandH - I*bandH;
+      x===0 ? sctx.moveTo(x,yy) : sctx.lineTo(x,yy);
+    }
+    sctx.stroke();
+
+    // probe line
+    const px = (v.probe/halfMM + 1)/2 * sw;
+    sctx.strokeStyle = '#ffd23f'; sctx.lineWidth = 2;
+    sctx.beginPath(); sctx.moveTo(px, 0); sctx.lineTo(px, bandTop+bandH); sctx.stroke();
+
+    // ticks at bright-fringe orders m = -3..+3
+    const fs = fringeSpacingMM(v); // bright-fringe spacing (mm)
+    sctx.fillStyle = 'rgba(255,255,255,0.55)';
+    sctx.font = '11px Inter, sans-serif'; sctx.textAlign = 'center';
+    for (let m=-3; m<=3; m++) {
+      const mm = m * fs;
+      const x = (mm/halfMM + 1)/2 * sw;
+      sctx.fillRect(x, bandTop+bandH, 1, 5);
+      sctx.fillText('n=' + Math.abs(m), x, sh-4);
+    }
+    sctx.textAlign = 'left';
+    sctx.fillText('bright-fringe order n', 6, 13);
+  }
+
+  // --- stats / readouts ---
+  function updateReadouts(v) {
+    out.phase.textContent = ((animating ? animPhase : v.phase) / RATE).toFixed(2) + ' s';
+    // PD is a magnitude (|S2P - S1P|); the slider's sign only selects the side.
+    const pdMag = Math.abs(v.probeN) / 2;
+    out.probe.textContent = pdMag.toFixed(1) + ' λ';
+    out.pdl.innerHTML = pdMag.toFixed(1) + '<span class="u"> λ</span>';
+
+    // probeN even → nλ (bright); odd → (n+½)λ (dark)
+    const an = Math.abs(v.probeN);
+    if (v.probeN % 2 === 0) {
+      const n = an / 2;
+      out.nval.textContent = 'nλ,  n = ' + n;
+      out.state.textContent = 'BRIGHT';
+      out.state.style.color = '#1f8a44';
+      out.condition.textContent = 'PD = ' + n +
+        'λ = nλ with n = ' + n + '. Waves arrive in phase → constructive interference, bright fringe.';
+      out.refC.classList.remove('dim');
+      out.refD.classList.add('dim');
+    } else {
+      const n = (an - 1) / 2;
+      out.nval.textContent = '(n + ½)λ,  n = ' + n;
+      out.state.textContent = 'DARK';
+      out.state.style.color = '#9a9a9a';
+      out.condition.textContent = 'PD = ' + pdMag.toFixed(1) +
+        'λ = (n + ½)λ with n = ' + n + '. Waves arrive antiphase → destructive interference, dark fringe.';
+      out.refD.classList.remove('dim');
+      out.refC.classList.add('dim');
+    }
+  }
+
+  function render() {
+    const v = readVars();
+    drawField(v);
+    drawScreen(v);
+    updateReadouts(v);
+  }
+
+  // --- animation loop ---
+  const CYCLES = 4;          // timeline spans 4 wave periods before repeating
+  const RATE = 0.30;         // periods per second (slower → clearer movement)
+  function loop(t) {
+    if (!animating) return;
+    if (!lastT) lastT = t;
+    const dt = (t - lastT) / 1000; lastT = t;
+    animPhase = (animPhase + dt * RATE) % CYCLES;
+    ctl.phase.value = (animPhase / CYCLES * 100).toFixed(1);
+    render();
+    rafId = requestAnimationFrame(loop);
+  }
+  function play() {
+    animating = true; lastT = 0; playBtn.textContent = 'Pause';
+    if (!ctl.wavefronts.checked) { ctl.wavefronts.checked = true; ctl.guides.checked = true; syncToggle(); }
+    rafId = requestAnimationFrame(loop);
+  }
+  function pause() {
+    animating = false; playBtn.textContent = 'Play';
+    if (rafId) cancelAnimationFrame(rafId);
+    render();
+  }
+
+  // --- toggle styling ---
+  function syncToggle() {
+    [['paths','t-paths'],['fringes','t-fringes'],['wavefronts','t-wavefronts']].forEach(([id,wrap]) => {
+      document.getElementById(wrap).classList.toggle('on', document.getElementById(id).checked);
+    });
+    // antinode lines depend on wavefronts: only "on" (and only interactable)
+    // while wavefronts is showing
+    const wfOn = ctl.wavefronts.checked;
+    ctl.guides.disabled = !wfOn;
+    document.getElementById('t-guides').classList.toggle('on', wfOn && ctl.guides.checked);
+    document.getElementById('t-guides').classList.toggle('disabled', !wfOn);
+  }
+
+  // --- events ---
+  ['probe','phase'].forEach(id => {
+    ctl[id].addEventListener('input', () => {
+      if (id === 'phase' && animating) pause();
+      if (id === 'phase' && !animating) animPhase = +ctl.phase.value/100 * 4;
+      render();
+    });
+  });
+  ['paths','fringes','guides','wavefronts'].forEach(id => {
+    ctl[id].addEventListener('change', () => {
+      // antinode lines follow wavefronts: enabling wavefronts switches them on,
+      // disabling wavefronts switches them off (still overridable while on).
+      if (id === 'wavefronts') ctl.guides.checked = ctl.wavefronts.checked;
+      syncToggle(); render();
+    });
+  });
+  playBtn.addEventListener('click', () => animating ? pause() : play());
+  resetBtn.addEventListener('click', () => {
+    pause(); animPhase = 0; ctl.phase.value = 0;
+    ctl.probe.value = 2;
+    render();
+  });
+
+  syncToggle();
+  render();
+})();
+</script>
+</body>
+</html>
