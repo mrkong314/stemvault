@@ -1,0 +1,2794 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Calculator</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.min.js"></script>
+
+<style>
+  :root, [data-theme="light"] {
+    --bg:        #eef1f6;
+    --panel:     #ffffff;
+    --surface:   #f5f5f7;
+    --line-bg:   #ffffff;
+    --line-hover:#f5f5f7;
+    --folder-bg: #f0f0f2;
+    --ink:       #1d1d1f;
+    --ink-dim:   #86868b;
+    --accent:    #0a84ff;
+    --assign:    #34c759;
+    --note:      #8e8e93;
+    --rule:      #e5e5ea;
+    --rule-strong:#d1d1d6;
+    --control:   #e9e9eb;
+    --key-bg:    #ffffff;
+    --header-bg: rgba(255,255,255,0.8);
+    --focus-bg:  #f0f7ff;
+    --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --drop:      #0a84ff;
+    /* liquid glass */
+    --glass:        rgba(255,255,255,0.55);
+    --glass-strong: rgba(255,255,255,0.72);
+    --glass-border: rgba(255,255,255,0.7);
+    --glass-edge:   rgba(255,255,255,0.9);
+    --glass-shadow: 0 8px 30px rgba(31,45,80,0.12), 0 2px 8px rgba(31,45,80,0.08);
+    --glass-key:    rgba(255,255,255,0.6);
+    --blur:         saturate(180%) blur(20px);
+    --ambient-1:    #cfe0ff;
+    --ambient-2:    #e7d9ff;
+    --ambient-3:    #d6f0e6;
+  }
+  [data-theme="dark"] {
+    --bg:        #0a0a0c;
+    --panel:     #1c1c1e;
+    --surface:   #1c1c1e;
+    --line-bg:   #1c1c1e;
+    --line-hover:#2c2c2e;
+    --folder-bg: #2c2c2e;
+    --ink:       #f5f5f7;
+    --ink-dim:   #98989f;
+    --accent:    #0a84ff;
+    --assign:    #30d158;
+    --note:      #98989f;
+    --rule:      #38383a;
+    --rule-strong:#48484a;
+    --control:   #2c2c2e;
+    --key-bg:    #1c1c1e;
+    --header-bg: rgba(0,0,0,0.7);
+    --focus-bg:  #0a2540;
+    --shadow:    0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+    --drop:      #0a84ff;
+    /* liquid glass */
+    --glass:        rgba(40,40,46,0.55);
+    --glass-strong: rgba(48,48,54,0.7);
+    --glass-border: rgba(255,255,255,0.12);
+    --glass-edge:   rgba(255,255,255,0.18);
+    --glass-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4);
+    --glass-key:    rgba(60,60,66,0.55);
+    --blur:         saturate(180%) blur(22px);
+    --ambient-1:    #16233f;
+    --ambient-2:    #2a1840;
+    --ambient-3:    #102b26;
+  }
+  /* If the browser can't blur, the translucent surfaces would just be a flat tint
+     over the ambient gradient and small text could lose contrast. Make the glass
+     near-opaque in that case so everything stays readable. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    [data-theme="light"] {
+      --glass: rgba(255,255,255,0.96); --glass-strong: rgba(255,255,255,0.98);
+      --glass-key: rgba(255,255,255,0.97);
+    }
+    [data-theme="dark"] {
+      --glass: rgba(28,28,32,0.96); --glass-strong: rgba(34,34,40,0.98);
+      --glass-key: rgba(40,40,46,0.97);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+    background: var(--bg);
+  }
+  /* ambient colour field behind the glass, so the blur has something to refract */
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(40rem 40rem at 12% 8%, var(--ambient-1), transparent 60%),
+      radial-gradient(36rem 36rem at 88% 14%, var(--ambient-2), transparent 60%),
+      radial-gradient(44rem 44rem at 70% 96%, var(--ambient-3), transparent 62%),
+      var(--bg);
+  }
+  #app {
+    display: flex; flex-direction: column;
+    height: 100dvh; max-width: 760px; margin: 0 auto;
+    background: transparent;
+  }
+
+  header {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 var(--glass-edge);
+  }
+  header .title {
+    font-size: 1.18rem; font-weight: 600; letter-spacing: -0.02em;
+  }
+  header .brand {
+    font-size: 0.68rem; color: var(--ink-dim); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em; align-self: flex-end;
+    padding-bottom: 0.18rem;
+  }
+  header .spacer { flex: 1; }
+
+  /* iOS-style segmented control (glassy) */
+  .seg {
+    display: inline-flex; background: var(--glass-key); border-radius: 9px;
+    padding: 2px; gap: 2px; border: 1px solid var(--glass-border);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  }
+  .seg button {
+    border: none; background: transparent; color: var(--ink);
+    font-size: 0.75rem; font-weight: 500; padding: 0.28rem 0.6rem;
+    border-radius: 7px; cursor: pointer; transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent; min-width: 2.6rem;
+  }
+  .seg button.on {
+    background: var(--glass-strong); color: var(--ink);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.14), inset 0 1px 0 var(--glass-edge);
+    font-weight: 600;
+  }
+
+  header .pill {
+    border: none; background: var(--accent); color: #fff;
+    border-radius: 9px; padding: 0.32rem 0.7rem; font-size: 0.78rem;
+    font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.05s;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 2px 8px rgba(10,132,255,0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  header .pill:active { opacity: 0.8; transform: translateY(1px); }
+  header .pill.ghost {
+    background: var(--glass); color: var(--accent);
+    border: 1px solid var(--glass-border); box-shadow: inset 0 1px 0 var(--glass-edge);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  }
+
+  #folders {
+    flex: 1 1 auto; overflow-y: auto; padding: 0.6rem 0 7rem;
+    -webkit-overflow-scrolling: touch; background: transparent;
+    position: relative;
+  }
+
+  .folder {
+    margin: 0.6rem 0.75rem; border-radius: 18px; overflow: hidden;
+    background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+  }
+  .folder.drag-ghost { opacity: 0.4; }
+  .folder.drop-before { box-shadow: 0 -3px 0 var(--drop), var(--glass-shadow); }
+  .folder.drop-after  { box-shadow: 0 3px 0 var(--drop), var(--glass-shadow); }
+
+  .folder-head {
+    display: flex; align-items: center; gap: 0.45rem;
+    padding: 0.55rem 0.7rem; background: transparent; user-select: none;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .folder.collapsed .folder-head { border-bottom: none; }
+  .folder-head .twist {
+    flex: 0 0 auto; width: 1rem; color: var(--ink-dim); cursor: pointer;
+    font-size: 0.7rem; transition: transform 0.15s; text-align: center;
+  }
+  .folder.collapsed .twist { transform: rotate(-90deg); }
+  .folder-head .fhandle {
+    flex: 0 0 auto; color: var(--rule-strong); cursor: grab;
+    font-size: 0.9rem; line-height: 1; touch-action: none;
+  }
+  .folder-head .fname {
+    flex: 1 1 auto; min-width: 0; font-size: 0.92rem; font-weight: 600;
+    color: var(--ink); background: transparent; border: none; outline: none;
+    padding: 0.15rem 0.2rem; border-radius: 6px; letter-spacing: -0.01em;
+  }
+  .folder-head .fname:focus { background: var(--surface); }
+  .folder-head .count {
+    flex: 0 0 auto; font-size: 0.7rem; color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .folder-head .fbtn {
+    flex: 0 0 auto; background: transparent; border: none; color: var(--ink-dim);
+    cursor: pointer; font-size: 1rem; line-height: 1;
+    padding: 0.2rem 0.35rem; border-radius: 6px;
+  }
+  .folder-head .fbtn:hover { color: var(--ink); background: var(--surface); }
+  .folder-head .fbtn.del:hover { color: #ff3b30; }
+
+  .folder-lines { display: block; }
+  .folder.collapsed .folder-lines { display: none; }
+
+  /* hover-revealed add-line strip at the bottom of each folder */
+  .add-line-strip {
+    display: block; width: 100%; border: none; background: transparent;
+    color: var(--accent); cursor: pointer; padding: 0; margin: 0;
+    height: 0; overflow: hidden; opacity: 0;
+    transition: height 0.15s ease, opacity 0.15s ease;
+    border-top: 1px solid transparent;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .add-line-strip span {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; font-size: 1.1rem; line-height: 1; font-weight: 500;
+  }
+  .folder:hover .add-line-strip {
+    height: 1.7rem; opacity: 0.85; border-top: 1px solid var(--glass-border);
+  }
+  .add-line-strip:hover { background: rgba(10,132,255,0.08); opacity: 1 !important; }
+  .folder.collapsed .add-line-strip { display: none; }
+  /* on touch (no hover), keep it visible so it remains reachable */
+  @media (hover: none) {
+    .add-line-strip { height: 1.7rem; opacity: 0.7; border-top: 1px solid var(--glass-border); }
+  }
+
+  /* + folder button: hidden until the mouse is over the empty area below the
+     last entry; only this button creates a folder (not clicking empty space) */
+  #addFolderZone {
+    display: block; width: calc(100% - 1.5rem); margin: 0.1rem 0.75rem 0; padding: 0;
+    border: none; background: transparent; color: var(--accent); cursor: pointer;
+    height: 0; overflow: hidden; opacity: 0; border-radius: 14px;
+    transition: height 0.15s ease, opacity 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #addFolderZone span {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; font-size: 1.5rem; font-weight: 400; line-height: 1;
+    border: 1px dashed var(--glass-border); border-radius: 14px;
+  }
+  #folders.show-add-folder #addFolderZone { height: 2.6rem; opacity: 0.85; }
+  #addFolderZone:hover { opacity: 1; }
+  #folders.show-add-folder #addFolderZone:hover span { background: rgba(10,132,255,0.08); }
+  @media (hover: none) {
+    #addFolderZone { height: 2.6rem; opacity: 0.7; margin-bottom: 0.4rem; }
+  }
+  .folder-lines.drop-empty { box-shadow: inset 0 0 0 2px var(--drop); min-height: 2.2rem; }
+
+  .line {
+    position: relative; display: flex; align-items: stretch;
+    border-top: 1px solid var(--glass-border); background: transparent;
+    transition: background 0.12s;
+  }
+  .line:first-child { border-top: none; }
+  .line:hover { background: rgba(127,127,127,0.06); }
+  .line.focused { background: rgba(10,132,255,0.08); }
+  .line.drag-ghost { opacity: 0.4; }
+  .line.drop-before { box-shadow: inset 0 3px 0 var(--drop); }
+  .line.drop-after  { box-shadow: inset 0 -3px 0 var(--drop); }
+
+  .line .handle {
+    flex: 0 0 1.4rem; display: flex; align-items: center; justify-content: center;
+    color: var(--rule-strong); cursor: grab; font-size: 0.85rem; opacity: 0;
+    transition: opacity 0.12s; touch-action: none; user-select: none;
+  }
+  .line:hover .handle, .line.focused .handle { opacity: 1; }
+
+  .line .idx {
+    flex: 0 0 1.5rem; display: flex; align-items: flex-start; justify-content: center;
+    font-size: 0.68rem; color: var(--ink-dim); font-variant-numeric: tabular-nums;
+    user-select: none; padding-top: 0.78rem;
+  }
+  .line .body {
+    flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
+    padding: 0.5rem 0.6rem 0.55rem 0;
+  }
+
+  /* MathQuill: smaller so the fraction bar reads clearly */
+  .mq-field {
+    font-size: 1.05rem; color: var(--ink);
+    border: none !important; box-shadow: none !important; min-height: 1.5rem;
+  }
+  .mq-field.mq-focused { box-shadow: none !important; }
+  .mq-editable-field { border: none !important; }
+  .mq-field .mq-fraction { font-size: 95%; }
+
+  .line .result {
+    margin-top: 0.25rem; font-size: 1rem; color: var(--accent);
+    min-height: 0.9rem; font-variant-numeric: tabular-nums; word-break: break-word;
+    display: flex; justify-content: flex-end; align-items: baseline; gap: 0.15rem;
+    font-weight: 500;
+  }
+  .line .result.assign { color: var(--assign); }
+  .line .result .katex { font-size: 1.05rem; color: inherit; }
+
+  /* simultaneous-equation system block */
+  .sys-wrap { display: flex; align-items: stretch; gap: 0.5rem; padding: 0.15rem 0; }
+  .sys-brace {
+    flex: 0 0 auto; width: 0.7rem; border-left: 2px solid var(--ink-dim);
+    border-top-left-radius: 8px; border-bottom-left-radius: 8px;
+    border-top: 2px solid var(--ink-dim); border-bottom: 2px solid var(--ink-dim);
+    margin-left: 2px;
+  }
+  .sys-eqs { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+  .sys-eq { display: flex; align-items: center; gap: 0.3rem; }
+  .sys-eq .mq-field { flex: 1 1 auto; }
+  .sys-eq .sys-del {
+    flex: 0 0 auto; border: none; background: transparent; color: var(--ink-dim);
+    cursor: pointer; font-size: 1rem; line-height: 1; padding: 0.1rem 0.25rem; opacity: 0.5;
+  }
+  .sys-eq .sys-del:hover { opacity: 1; color: var(--accent); }
+  .sys-addrow {
+    align-self: flex-start; border: 1px dashed var(--glass-border); background: transparent;
+    color: var(--accent); font-size: 0.8rem; border-radius: 8px; padding: 0.2rem 0.6rem;
+    cursor: pointer; margin-top: 0.15rem;
+  }
+  .sys-result {
+    margin-top: 0.3rem; font-size: 1rem; color: var(--accent); text-align: right;
+    font-variant-numeric: tabular-nums; word-break: break-word; font-weight: 500;
+  }
+  .sys-result.err { color: var(--ink-dim); font-weight: 400; font-size: 0.85rem; }
+  .sys-result .katex { font-size: 1.05rem; }
+
+  /* undefined-variable chip */
+  .line .undef-chip {
+    display: none; margin-top: 0.4rem; align-items: center; gap: 0.4rem;
+    flex-wrap: wrap; font-size: 0.78rem; color: var(--ink-dim);
+  }
+  .line.has-undef .undef-chip { display: flex; }
+  .line .undef-chip .addvar {
+    background: var(--accent); color: #fff; border: none; border-radius: 7px;
+    padding: 0.22rem 0.55rem; font-size: 0.76rem; font-weight: 600; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .line .undef-chip .addvar:active { opacity: 0.7; }
+
+  /* inline slider for numeric assignments */
+  .line .slider {
+    display: none; margin-top: 0.45rem; align-items: center; gap: 0.6rem;
+  }
+  .line.has-slider .slider { display: flex; }
+  .line .slider input[type=range] {
+    flex: 1 1 auto; -webkit-appearance: none; appearance: none; height: 4px;
+    background: var(--rule-strong); border-radius: 2px; outline: none; cursor: pointer;
+  }
+  .line .slider input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 20px; height: 20px;
+    border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    border: 0.5px solid var(--rule-strong); cursor: pointer;
+  }
+  .line .slider input[type=range]::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25); border: 0.5px solid var(--rule-strong); cursor: pointer;
+  }
+  .line .slider .bound {
+    font-size: 0.7rem; color: var(--ink-dim); width: 2.4rem; text-align: center;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 0.1rem 0; outline: none; font-variant-numeric: tabular-nums;
+  }
+  .line .slider .bound.step {
+    border-style: dashed; margin-left: 0.1rem;
+  }
+  .line .slider .bound.step::placeholder { color: var(--ink-dim); opacity: 0.6; }
+
+  .line .note { margin: 0 0 0.4rem 0; display: none; }
+  .line.has-note .note { display: block; }
+  .line .note textarea {
+    width: 100%; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 8px; font-size: 0.82rem;
+    font-family: inherit; padding: 0.45rem 0.55rem; resize: vertical;
+    min-height: 2rem; outline: none;
+  }
+  .line .note textarea:focus { border-color: var(--accent); }
+  .line .note-marker {
+    display: none; font-size: 0.72rem; color: var(--note); cursor: pointer;
+    margin: 0 0 0.2rem 0; user-select: none;
+  }
+  .line.note-collapsed .note { display: none; }
+  .line.note-collapsed.has-note .note-marker { display: inline-block; }
+
+  .line .actions {
+    flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
+    gap: 0.1rem; margin: 0.4rem 0.4rem 0 0;
+  }
+  .line .actbtn {
+    background: transparent; border: none; color: var(--ink-dim);
+    font-size: 1rem; line-height: 1; cursor: pointer; opacity: 0;
+    transition: opacity 0.12s, color 0.12s; padding: 0.15rem 0.25rem; border-radius: 6px;
+  }
+  .line:hover .actbtn, .line.focused .actbtn { opacity: 1; }
+  .line .actbtn.note-btn:hover { color: var(--accent); }
+  .line .actbtn.del:hover { color: #ff3b30; }
+  .line.has-note .note-btn { color: var(--accent); opacity: 1; }
+
+  #keypad {
+    flex: 0 0 auto; display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 7px; padding: 10px;
+    background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border-top: 1px solid var(--glass-border); box-shadow: inset 0 1px 0 var(--glass-edge);
+  }
+  #keypad button {
+    color: var(--ink); border: 1px solid var(--glass-border);
+    height: 3rem; padding: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; border-radius: 13px; cursor: pointer;
+    background: var(--glass-key); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    box-shadow: 0 1px 4px rgba(31,45,80,0.1), inset 0 1px 0 var(--glass-edge);
+    transition: transform 0.05s, box-shadow 0.1s, background 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #keypad button:hover { background: var(--glass-strong); }
+  #keypad button:active { transform: scale(0.95); box-shadow: 0 1px 2px rgba(31,45,80,0.12); }
+  #keypad button.fn  { color: var(--accent); font-size: 0.9rem; font-weight: 600; }
+  #keypad button.op  { color: var(--ink); font-weight: 600; }
+  #keypad button.act { color: var(--ink-dim); font-size: 0.85rem; }
+  #keypad button.capskey.on {
+    color: #fff; background: var(--accent); border-color: transparent;
+    box-shadow: 0 2px 8px rgba(10,132,255,0.45), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  #keypad button.solvebtn { color: var(--ink); font-size: 0.9rem; font-weight: 600; }
+  #keypad button .katex { color: inherit; font-size: 1.05em; }
+  #keypad button.fn .katex { font-size: 1em; }
+  #keypad button.op .katex { font-size: 1.05em; }
+
+  /* ---- paged portrait keypad ---- */
+  #portraitPad { display: none; }            /* shown only in portrait (below) */
+  .pad-tabs {
+    display: flex; gap: 6px; margin-bottom: 8px;
+  }
+  .pad-tab {
+    flex: 1; border: 1px solid var(--glass-border); background: var(--glass-key);
+    color: var(--ink-dim); font-size: 0.85rem; font-weight: 600; padding: 0.45rem 0;
+    border-radius: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    opacity: 0.6; transition: background 0.15s, color 0.15s, opacity 0.15s, box-shadow 0.15s, transform 0.05s;
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  }
+  .pad-tab:hover { opacity: 0.8; }
+  .pad-tab.on {
+    color: #fff; background: var(--accent); opacity: 1; font-weight: 700;
+    border-color: transparent;
+    box-shadow: 0 3px 12px rgba(10,132,255,0.5), inset 0 1px 0 rgba(255,255,255,0.5);
+    transform: translateY(-1px);
+  }
+  .pad-tab.on:hover { opacity: 1; }
+  .pad-page { display: none; gap: 7px; }
+  .pad-page.on { display: grid; }
+  #keypad button.varkey { font-size: 1rem; font-style: italic; font-family: 'KaTeX_Math','Cambria Math',serif; }
+  #keypad button.greekkey { color: var(--accent); font-style: normal; }
+
+  /* fraction glyph on the a/b key */
+  .frac-glyph {
+    display: inline-flex; flex-direction: column; align-items: center;
+    line-height: 1; font-size: 0.92rem; gap: 2px;
+  }
+  .frac-glyph .fg-n, .frac-glyph .fg-d { font-size: 0.85em; opacity: 0.95; }
+  .frac-glyph .fg-bar {
+    width: 1.4em; height: 2px; background: currentColor; border-radius: 1px; margin: 1px 0;
+  }
+
+  @media (min-width: 720px) and (orientation: landscape) {
+    #app { max-width: 980px; flex-direction: row; }
+    #folders { flex: 1 1 auto; padding-bottom: 1rem; }
+    .header-wrap { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+    #keypad {
+      flex: 0 0 290px; border-top: none; border-left: 1px solid var(--glass-border);
+      align-content: start; grid-auto-rows: min-content;
+    }
+    #portraitPad { display: none; }   /* paged pad is portrait-only */
+  }
+
+  /* portrait / mobile: tighten the header, switch to the paged keypad, and cap
+     the keypad height so the active math cell above stays visible */
+  @media (orientation: portrait), (max-width: 719px) {
+    header { gap: 0.3rem; padding: 0.5rem 0.6rem; flex-wrap: nowrap; overflow: hidden; }
+    header .title { display: none; }          /* reclaim space; hamburger anchors the header */
+    .seg { padding: 2px; gap: 1px; }
+    .seg button { min-width: 0; padding: 0.26rem 0.4rem; font-size: 0.7rem; }
+    header .pill { padding: 0.3rem 0.5rem; font-size: 0.72rem; flex: 0 0 auto; }
+
+    /* the math entries scroll; the keypad keeps its full height and is always
+       completely visible (no internal scroll, no clipped bottom row) */
+    .header-wrap { min-height: 0; }
+    #folders { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 0.6rem; -webkit-overflow-scrolling: touch; }
+
+    #keypad {
+      display: block;                 /* no longer the math grid; holds the paged pad */
+      grid-template-columns: none;
+      flex: 0 0 auto;                 /* take exactly the height the pad needs */
+      padding: 8px;
+    }
+    #keypad > .landscape-key { display: none; }   /* hide the landscape math grid */
+    #portraitPad { display: block; }
+    .pad-page { grid-auto-rows: 2.6rem; }
+    #keypad button { height: 2.6rem; font-size: 1rem; border-radius: 11px; }
+  }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 4px; }
+
+  /* ---- hamburger toggle ---- */
+  .hamburger {
+    flex: 0 0 auto; width: 1.9rem; height: 1.9rem; border: none; background: transparent;
+    cursor: pointer; padding: 0.35rem; display: flex; flex-direction: column;
+    justify-content: space-between; margin-right: 0.2rem; border-radius: 6px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hamburger:hover { background: var(--surface); }
+  .hamburger span { display: block; height: 2px; width: 100%; background: var(--ink); border-radius: 2px; }
+
+  /* ---- side panel ---- */
+  #sidepanel {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 280px; max-width: 82vw;
+    background: var(--glass-strong); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border-right: 1px solid var(--glass-border);
+    transform: translateX(-100%); transition: transform 0.26s cubic-bezier(0.22,1,0.36,1);
+    z-index: 40; display: flex; flex-direction: column;
+    box-shadow: 2px 0 24px rgba(31,45,80,0.18);
+  }
+  #app.panel-open #sidepanel { transform: translateX(0); }
+  #panelScrim {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.22); opacity: 0; visibility: hidden;
+    transition: opacity 0.26s; z-index: 35; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  }
+  #app.panel-open #panelScrim { opacity: 1; visibility: visible; }
+
+  .sp-head {
+    display: flex; align-items: center; gap: 0.5rem; padding: 0.85rem 0.9rem 0.6rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .sp-title { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; flex: 1; }
+  .sp-new {
+    border: none; background: var(--accent); color: #fff; border-radius: 7px;
+    padding: 0.3rem 0.6rem; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  }
+  .sp-new:active { opacity: 0.7; }
+
+  #tabList { flex: 1 1 auto; overflow-y: auto; padding: 0.5rem; }
+  .tab {
+    display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.55rem;
+    border-radius: 9px; cursor: pointer; margin-bottom: 0.3rem; background: transparent;
+  }
+  .tab:hover { background: var(--surface); }
+  .tab.active { background: var(--focus-bg); }
+  .tab .tname {
+    flex: 1 1 auto; min-width: 0; font-size: 0.85rem; color: var(--ink);
+    background: transparent; border: none; outline: none; padding: 0.1rem 0.15rem;
+    border-radius: 5px; text-overflow: ellipsis;
+  }
+  .tab .tname:focus { background: var(--panel); box-shadow: 0 0 0 1px var(--rule-strong); }
+  .tab .tclose {
+    flex: 0 0 auto; border: none; background: transparent; color: var(--ink-dim);
+    font-size: 1rem; line-height: 1; cursor: pointer; padding: 0.1rem 0.25rem; border-radius: 5px;
+    opacity: 0; transition: opacity 0.12s;
+  }
+  .tab:hover .tclose, .tab.active .tclose { opacity: 1; }
+  .tab .tclose:hover { color: #ff3b30; }
+
+  .sp-foot {
+    border-top: 1px solid var(--rule); padding: 0.6rem; display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .sp-setting {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    padding: 0.15rem 0.1rem 0.4rem;
+  }
+  .sp-setting-label { font-size: 0.8rem; color: var(--ink-dim); font-weight: 600; }
+  .sp-act {
+    border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
+    border-radius: 8px; padding: 0.45rem 0.6rem; font-size: 0.8rem; cursor: pointer;
+    text-align: left; transition: background 0.12s;
+  }
+  .sp-act:hover { background: var(--line-hover); }
+  .sp-act:active { transform: translateY(1px); }
+
+  /* ---- symbol picker (@) ---- */
+  #symbolPicker {
+    position: fixed; z-index: 60; width: 280px; max-width: 90vw;
+    background: var(--glass-strong); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-border); border-radius: 16px;
+    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  #symbolPicker[hidden] { display: none; }   /* explicit display:flex above overrides UA [hidden], restore it */
+  #symbolSearch {
+    border: none; outline: none; background: transparent; color: var(--ink);
+    font-size: 0.9rem; font-family: inherit; padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  #symbolSearch::placeholder { color: var(--ink-dim); }
+  #symbolResults { max-height: 260px; overflow-y: auto; padding: 0.3rem; }
+  .sym-row {
+    display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.5rem;
+    border-radius: 9px; cursor: pointer;
+  }
+  .sym-row.active { background: var(--focus-bg); }
+  .sym-glyph {
+    flex: 0 0 1.6rem; text-align: center; font-size: 1.15rem; color: var(--accent);
+    font-family: 'KaTeX_Math','Cambria Math',serif;
+  }
+  .sym-name { flex: 1 1 auto; font-size: 0.85rem; color: var(--ink); }
+  .sym-empty { padding: 0.8rem; text-align: center; color: var(--ink-dim); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidepanel" aria-label="Saved tabs">
+    <div class="sp-head">
+      <span class="sp-title">Tabs</span>
+      <button id="newTab" class="sp-new" title="New tab">+ New</button>
+    </div>
+    <div id="tabList"></div>
+    <div class="sp-foot">
+      <div class="sp-setting">
+        <span class="sp-setting-label">Appearance</span>
+        <div class="seg" id="themeSeg">
+          <button data-mode="light" class="on">Light</button>
+          <button data-mode="dark">Dark</button>
+        </div>
+      </div>
+      <div class="sp-setting">
+        <span class="sp-setting-label">Gravity g</span>
+        <div class="seg" id="gravSeg">
+          <button data-g="9.81" class="on">9.81</button>
+          <button data-g="9.8">9.8</button>
+        </div>
+      </div>
+      <div class="sp-setting">
+        <span class="sp-setting-label">Sig figs</span>
+        <div class="seg" id="sigfigSeg">
+          <button data-sf="auto" class="on">Auto</button>
+          <button data-sf="2">2</button>
+          <button data-sf="3">3</button>
+          <button data-sf="4">4</button>
+        </div>
+      </div>
+      <button id="exportFile" class="sp-act" title="Save active tab to a file">Save to file</button>
+      <button id="importFile" class="sp-act" title="Open a saved file">Open file</button>
+      <button id="shareLink" class="sp-act" title="Copy a shareable link">Copy link</button>
+      <input id="fileInput" type="file" accept=".json,application/json" hidden>
+    </div>
+  </aside>
+  <div id="panelScrim"></div>
+
+  <div class="header-wrap" style="display:flex;flex-direction:column;flex:1 1 auto;min-width:0;">
+    <header>
+      <button id="panelToggle" class="hamburger" title="Tabs" aria-label="Toggle tabs panel">
+        <span></span><span></span><span></span>
+      </button>
+      <span class="title">Calculator</span>
+      <span class="spacer"></span>
+      <div class="seg" id="exactSeg">
+        <button data-mode="exact">Exact</button>
+        <button data-mode="decimal" class="on">Decimal</button>
+      </div>
+      <div class="seg" id="angleSeg">
+        <button data-mode="rad">Rad</button>
+        <button data-mode="deg" class="on">Deg</button>
+      </div>
+      <button id="clearAll" class="pill ghost" title="Clear everything">Clear</button>
+    </header>
+    <div id="folders"></div>
+  </div>
+  <div id="keypad"></div>
+</div>
+
+<div id="symbolPicker" hidden>
+  <input id="symbolSearch" type="text" placeholder="Search symbols, e.g. lambda, sigma, Delta" autocomplete="off" spellcheck="false">
+  <div id="symbolResults"></div>
+</div>
+
+<script>
+"use strict";
+const MQ = MathQuill.getInterface(2);
+
+// touch device detection (no physical keyboard -> use only the app's keypad)
+const IS_TOUCH = window.matchMedia('(pointer: coarse)').matches ||
+                 ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+/* Stop the OS onscreen keyboard from appearing for a MathQuill field on touch
+   devices. MathQuill keeps a hidden <textarea> for input; marking it
+   inputmode=none tells mobile browsers not to show their keyboard, while taps
+   still focus the field and place the caret (so the app keypad can insert via
+   the MathQuill API). NB: we must NOT set readonly -- a readonly textarea won't
+   take focus on tap on most mobile browsers, which would stop the caret from
+   being placed (a problem for multi-field blocks like the system editor). */
+function suppressOSKeyboard(fieldEl) {
+  const apply = () => {
+    fieldEl.querySelectorAll('textarea').forEach(ta => {
+      ta.setAttribute('inputmode', 'none');
+      ta.setAttribute('autocomplete', 'off');
+      ta.setAttribute('autocorrect', 'off');
+      ta.setAttribute('autocapitalize', 'off');
+    });
+  };
+  apply();
+  // re-apply if MathQuill swaps its textarea
+  const mo = new MutationObserver(apply);
+  mo.observe(fieldEl, { childList: true, subtree: true });
+}
+
+let idSeq = 0;
+let folders = [];           // points at the active tab's folder array
+const foldersEl = document.getElementById('folders');
+
+/* ---- tabs ----
+   Each tab is an independent calculator entry with its own folders and modes.
+   Only the active tab is rendered in #folders; switching tabs serialises the
+   current one, then rebuilds the DOM from the target. */
+let tabs = [];              // [{ id, name, data }]  data = serialised snapshot
+let activeTabId = null;
+let tabSeq = 0;
+
+let angleMode = 'deg';      // 'rad' | 'deg'
+let exactMode = false;      // false = decimal (default), true = exact
+const DEG = Math.PI / 180;
+
+function angleScope() {
+  if (angleMode === 'rad') return {};
+  return {
+    sin: x => Math.sin(x*DEG), cos: x => Math.cos(x*DEG), tan: x => Math.tan(x*DEG),
+    sec: x => 1/Math.cos(x*DEG), csc: x => 1/Math.sin(x*DEG), cot: x => 1/Math.tan(x*DEG),
+    arcsin: x => Math.asin(x)/DEG, arccos: x => Math.acos(x)/DEG, arctan: x => Math.atan(x)/DEG,
+    asin: x => Math.asin(x)/DEG, acos: x => Math.acos(x)/DEG, atan: x => Math.atan(x)/DEG
+  };
+}
+
+const FUNCS = ['sin','cos','tan','sec','csc','cot','sinh','cosh','tanh',
+  'arcsin','arccos','arctan','asin','acos','atan','ln','log','exp','sqrt',
+  'nthRoot','abs','floor','ceil','round','sign','deg','ans','mod','min','max',
+  'gcd','lcm','factorial','solve','integrate'];
+const CONSTS = ['pi','e'];
+const RESERVED = [...FUNCS, ...CONSTS];
+
+/* Predefined physics constants, available in every folder.
+   Charges to 2 sig figs (magnitude), masses to 3 sig figs. VCE/CODATA values.
+   For symbols with multiple uses (c, k) the primary VCE use is chosen; they can
+   be redefined on a line to override. */
+let gValue = 9.81;   // gravitational field strength; togg1eable 9.81 / 9.8 in settings
+const PHYS_CONSTANTS_BASE = {
+  q_e: 1.6e-19,    // electron charge magnitude (C), 2 sf
+  q_p: 1.6e-19,    // proton charge magnitude (C), 2 sf
+  m_e: 9.11e-31,   // electron mass (kg), 3 sf
+  m_p: 1.67e-27,   // proton mass (kg), 3 sf
+  c:   3.0e8,      // speed of light (m/s)
+  k:   8.99e9,     // Coulomb constant (N m^2 C^-2)
+  G:   6.67e-11,   // gravitational constant (N m^2 kg^-2)
+  h:   6.63e-34    // Planck constant (J s), 3 sf (VCE)
+};
+// g is added dynamically so the settings toggle can change its value
+function physConstants() { return { ...PHYS_CONSTANTS_BASE, g: gValue }; }
+const PHYS_CONSTANTS = physConstants();   // snapshot for name lookups
+const PHYS_NAMES = new Set(Object.keys(PHYS_CONSTANTS));
+
+/* Greek letters: LaTeX command -> unicode glyph used as the variable identifier.
+   math.js accepts single unicode letters as variable names. \pi is handled
+   separately (it stays the constant pi). Capitalized and lowercase forms are
+   distinct (\Sigma vs \sigma). */
+const GREEK = {
+  alpha:'α', beta:'β', gamma:'γ', delta:'δ', epsilon:'ε', zeta:'ζ', eta:'η',
+  theta:'θ', iota:'ι', kappa:'κ', lambda:'λ', mu:'μ', nu:'ν', xi:'ξ',
+  omicron:'ο', rho:'ρ', sigma:'σ', tau:'τ', upsilon:'υ', phi:'φ', chi:'χ',
+  psi:'ψ', omega:'ω', varphi:'ϕ', varepsilon:'ϵ', vartheta:'ϑ', varsigma:'ς',
+  varrho:'ϱ', varpi:'ϖ',
+  Gamma:'Γ', Delta:'Δ', Theta:'Θ', Lambda:'Λ', Xi:'Ξ', Pi:'Π', Sigma:'Σ',
+  Upsilon:'Υ', Phi:'Φ', Psi:'Ψ', Omega:'Ω'
+};
+/* the autoCommands list MathQuill uses to turn typed names into symbols */
+const GREEK_AUTOCOMMANDS = Object.keys(GREEK).join(' ');
+/* set of glyphs, for the tokenizer to recognise as single-letter variables */
+const GREEK_GLYPHS = new Set(Object.values(GREEK));
+/* searchable symbol list for the @ picker: {name, latex, glyph} */
+const SYMBOL_LIST = Object.entries(GREEK).map(([name, glyph]) => ({ name, latex: '\\' + name, glyph }));
+
+/* Convert a LaTeX definite integral into an integrate(...) call.
+   Handles \int_{a}^{b} <integrand> d<var>  and single-token limits \int_a^b.
+   The integrand runs from after the limits up to a trailing differential
+   d<var> (optionally preceded by \cdot, *, or spaces). */
+function parseIntegrals(s) {
+  let guard = 0;
+  while (guard++ < 10) {
+    const m = s.match(/\\int/);
+    if (!m) break;
+    let i = m.index;
+    let p = i + 4; // after \int
+    // optional _ lower then ^ upper, in either order
+    let lower = '0', upper = '1';
+    function readScript(str, idx) {
+      // expects str[idx] === '_' or '^'; returns {val, next}
+      let j = idx + 1;
+      if (str[j] === '{') { const close = matchBrace(str, j); return { val: str.slice(j+1, close), next: close+1 }; }
+      // single token (one char, or a \command)
+      if (str[j] === '\\') { let k=j+1; while(k<str.length && /[a-zA-Z]/.test(str[k])) k++; return { val: str.slice(j,k), next:k }; }
+      return { val: str[j], next: j+1 };
+    }
+    for (let pass=0; pass<2; pass++) {
+      if (s[p] === '_') { const r = readScript(s, p); lower = r.val; p = r.next; }
+      else if (s[p] === '^') { const r = readScript(s, p); upper = r.val; p = r.next; }
+    }
+    // integrand = from p up to the differential d<var>
+    const rest = s.slice(p);
+    // find the differential: optional \cdot/*/space, then 'd', then a variable token
+    const dm = rest.match(/(?:\\cdot|\\,|\*|\s)*d\s*([a-zA-Z]|\\[a-zA-Z]+)\s*$/);
+    let integrand, varTok, after = '';
+    if (dm) {
+      integrand = rest.slice(0, dm.index);
+      varTok = dm[1];
+    } else {
+      // no explicit dx: assume variable x, integrand is the rest
+      integrand = rest; varTok = 'x';
+    }
+    // recursively convert any nested constructs later in latexToMath; here just splice
+    const call = 'integrate(' + (integrand.trim()||'0') + ',' + varTok + ',' + lower + ',' + upper + ')';
+    s = s.slice(0, i) + call + after;
+  }
+  return s;
+}
+function matchBrace(str, openIdx) {
+  let depth = 0;
+  for (let k = openIdx; k < str.length; k++) {
+    if (str[k] === '{') depth++;
+    else if (str[k] === '}') { depth--; if (depth === 0) return k; }
+  }
+  return str.length - 1;
+}
+
+function latexToMath(latex) {
+  let s = latex;
+  s = s.replace(/\\left/g, '').replace(/\\right/g, '');
+  s = s.replace(/\\square/g, '');   // unfilled placeholder box -> empty (incomplete expr renders blank)
+  // Scientific E-notation typed inline as a letter: <number>E<exponent> ->
+  // <number>*10^(<exponent>). e.g. 3E8, 1.5E-3, 6.022E23. The exponent is always
+  // flat text here, so we never touch braces (the live ×10^ shortcut produces a
+  // real superscript handled separately). A standalone E variable or \exp is
+  // unaffected because a digit must precede E and a digit must follow the sign.
+  s = s.replace(/(\d(?:\.\d+)?)[eE](-?\d+)/g, '$1*10^($2)');
+  // absolute value bars |...| -> abs(...). Replace innermost pairs repeatedly so
+  // nested bars resolve from the inside out.
+  let pb;
+  do { pb = s; s = s.replace(/\|([^|]+)\|/g, 'abs($1)'); } while (s !== pb);
+  // Definite integral: \int_{a}^{b} integrand d<var>  ->  integrate(integrand, var, a, b)
+  // MathQuill emits \int_{a}^{b}; the integrand and the trailing d<var> are plain.
+  s = parseIntegrals(s);
+  let prev;
+  do { prev = s;
+    s = s.replace(/\\frac\{((?:[^{}]|\{[^{}]*\})*)\}\{((?:[^{}]|\{[^{}]*\})*)\}/g, '(($1)/($2))');
+  } while (s !== prev);
+  s = s.replace(/\\sqrt\[((?:[^{}]|\{[^{}]*\})*)\]\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'nthRoot(($2),($1))');
+  do { prev = s; s = s.replace(/\\sqrt\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'sqrt($1)'); } while (s !== prev);
+  do { prev = s; s = s.replace(/\^\{((?:[^{}]|\{[^{}]*\})*)\}/g, '^($1)'); } while (s !== prev);
+  s = s.replace(/\\operatorname\{([^}]*)\}/g, '$1');
+  s = s.replace(/\\log_\{((?:[^{}]|\{[^{}]*\})*)\}\s*\(((?:[^()]|\([^()]*\))*)\)/g, 'log($2,$1)');
+  s = s.replace(/\\log_(\w)\s*\(((?:[^()]|\([^()]*\))*)\)/g, 'log($2,$1)');
+  const fns = ['sin','cos','tan','sec','csc','cot','sinh','cosh','tanh',
+               'arcsin','arccos','arctan','ln','log','exp','abs','floor','ceil','round','sign'];
+  fns.forEach(fn => { s = s.replace(new RegExp('\\\\' + fn + '(?![a-zA-Z])', 'g'), fn); });
+  s = s.replace(/\\pi/g, 'pi');
+  // Greek letters -> unicode glyphs (used as variable identifiers). Longest
+  // names first so \vartheta isn't partially matched by \theta etc.
+  Object.keys(GREEK).sort((a,b) => b.length - a.length).forEach(name => {
+    s = s.replace(new RegExp('\\\\' + name + '(?![a-zA-Z])', 'g'), GREEK[name]);
+  });
+  s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*').replace(/\\div/g, '/');
+  s = s.replace(/\bln\b/g, 'log');
+  s = s.replace(/\\degree|°/g, ' deg');
+  s = s.replace(/_\{([^}]*)\}/g, '_$1');
+  s = s.replace(/[{}]/g, '').replace(/\\,/g, '').replace(/\\/g, '');
+  return s.trim();
+}
+
+function tokenize(s) {
+  const toks = []; let i = 0;
+  const isLatin = c => /[A-Za-z]/.test(c || '');
+  const isGreek = c => GREEK_GLYPHS.has(c);
+  const A = c => isLatin(c) || isGreek(c);   // "letter" for variable purposes
+  const D = c => /[0-9]/.test(c || '');
+  while (i < s.length) {
+    const c = s[i];
+    if (/\s/.test(c)) { i++; continue; }
+    if (D(c) || (c === '.' && D(s[i+1]))) {
+      let j = i+1; while (j < s.length && /[0-9.]/.test(s[j])) j++;
+      toks.push({ t:'num', v:s.slice(i,j) }); i = j; continue;
+    }
+    if (A(c)) {
+      let matched = null;
+      // reserved words are Latin-only (sin, pi, etc.); only match against Latin runs
+      if (isLatin(c)) {
+        for (const w of RESERVED) {
+          if (s.startsWith(w,i) && !isLatin(s[i+w.length])) { if (!matched || w.length>matched.length) matched = w; }
+        }
+      }
+      if (matched === 'e' && c !== 'e') matched = null;
+      if (matched) { toks.push({ t:'name', v:matched, fn:FUNCS.includes(matched) }); i += matched.length; continue; }
+      // single letter (Latin or Greek), optional _subscript
+      let j = i+1; let name = c;
+      if (s[j] === '_') { j++; let sub=''; while (j<s.length && /[A-Za-z0-9]/.test(s[j])) { sub+=s[j]; j++; } name = c+'_'+sub; }
+      let outName = name;
+      if (name === 'E') outName = 'E_usr';
+      toks.push({ t:'name', v:outName, display:name, fn:false }); i = j; continue;
+    }
+    if (c === '(') { toks.push({ t:'lparen', v:c }); i++; continue; }
+    if (c === ')') { toks.push({ t:'rparen', v:c }); i++; continue; }
+    if (c === ',') { toks.push({ t:'comma', v:c }); i++; continue; }
+    toks.push({ t:'op', v:c }); i++;
+  }
+  return toks;
+}
+
+function insertImplicitMult(s) {
+  const toks = tokenize(s); let out = '';
+  for (let k = 0; k < toks.length; k++) {
+    const cur = toks[k], nxt = toks[k+1];
+    out += cur.v;
+    if (!nxt) continue;
+    const e = cur.t==='num' || cur.t==='rparen' || (cur.t==='name'&&!cur.fn);
+    const st = nxt.t==='num' || nxt.t==='lparen' || nxt.t==='name';
+    if (e && st) out += '*';
+  }
+  return out;
+}
+
+function prepareExpr(latex) { return insertImplicitMult(latexToMath(latex)); }
+
+/* ---- numeric equation solver for solve(equation, variable) ----
+   Builds f(x) = LHS - RHS with all other variables taken from the folder scope,
+   then finds a root: exact for linear, Newton (multi-seed) for nonlinear. */
+function solveEquation(eqText, varName, scope) {
+  let L, R;
+  if (eqText.includes('=')) { const i = eqText.indexOf('='); L = eqText.slice(0,i); R = eqText.slice(i+1); }
+  else { L = eqText; R = '0'; }
+  const f = x => math.evaluate('(' + L + ')-(' + R + ')', { ...scope, [varName]: x });
+
+  const f0 = f(0), f1 = f(1), f2 = f(2);
+  const m = f1 - f0, m2 = f2 - f1;
+  if (isFinite(m) && Math.abs(m - m2) < 1e-9 && Math.abs(m) > 1e-12) return cleanRoot(-f0 / m);
+
+  const seeds = [0,1,-1,2,-2,0.5,-0.5,5,-5,10,-10,3.14159,1.5708];
+  for (const s0 of seeds) {
+    let x = s0;
+    for (let it = 0; it < 80; it++) {
+      const fx = f(x); if (!isFinite(fx)) break;
+      const h = 1e-6, d = (f(x+h) - f(x-h)) / (2*h);
+      if (!isFinite(d) || Math.abs(d) < 1e-12) break;
+      const nx = x - fx / d; if (!isFinite(nx)) break;
+      if (Math.abs(nx - x) < 1e-12) { if (Math.abs(f(nx)) < 1e-7) return cleanRoot(nx); break; }
+      x = nx;
+    }
+  }
+  return undefined;
+}
+function cleanRoot(x) { const r = Math.round(x); return Math.abs(x - r) < 1e-9 ? r : x; }
+
+/* Find the matching close paren for the '(' at index openIdx. */
+function matchParen(s, openIdx) {
+  let depth = 0;
+  for (let i = openIdx; i < s.length; i++) {
+    if (s[i] === '(') depth++;
+    else if (s[i] === ')') { depth--; if (depth === 0) return i; }
+  }
+  return -1;
+}
+
+/* Replace every solve(equation, var) in an expression with its numeric solution,
+   evaluated against the given scope. Handles nesting and inner parentheses.
+   Returns the rewritten expression (solve calls -> numbers), or throws on failure. */
+function resolveSolveCalls(expr, scope) {
+  let out = expr;
+  let guard = 0;
+  while (guard++ < 20) {
+    const idx = out.search(/\bsolve\s*\(/);
+    if (idx === -1) break;
+    const open = out.indexOf('(', idx);
+    const close = matchParen(out, open);
+    if (close === -1) throw new Error('solve: unbalanced parentheses');
+    const inner = out.slice(open + 1, close);
+    // split on the LAST top-level comma (variable is the final argument)
+    let depth = 0, commaPos = -1;
+    for (let i = 0; i < inner.length; i++) {
+      if (inner[i] === '(') depth++;
+      else if (inner[i] === ')') depth--;
+      else if (inner[i] === ',' && depth === 0) commaPos = i;
+    }
+    if (commaPos === -1) throw new Error('solve needs an equation and a variable');
+    const eqText = inner.slice(0, commaPos).trim();
+    const varName = inner.slice(commaPos + 1).trim();
+    const root = solveEquation(eqText, varName, scope);
+    if (root === undefined) throw new Error('no solution found');
+    out = out.slice(0, idx) + '(' + root + ')' + out.slice(close + 1);
+  }
+  return out;
+}
+
+function hasSolve(expr) { return /\bsolve\s*\(/.test(expr); }
+
+/* Solve a linear system. eqExprs are math.js expression strings (each "lhs=rhs",
+   or just "expr" treated as = 0). `scope` holds known values/constants. Unknowns
+   are every free symbol not in scope. Returns {solution:{var:val,...}, vars} or
+   {error: '...'}. Requires #equations == #unknowns and a unique solution. */
+function solveLinearSystem(eqExprs, scope) {
+  scope = scope || {};
+  const varSet = new Set();
+  const compiled = [];
+  for (const raw of eqExprs) {
+    const eq = (raw || '').trim();
+    if (eq === '') continue;
+    const i = eq.indexOf('=');
+    const L = i >= 0 ? eq.slice(0, i) : eq;
+    const R = i >= 0 ? eq.slice(i + 1) : '0';
+    const e = '(' + L + ')-(' + R + ')';
+    let node;
+    try { node = math.parse(e); } catch (err) { return { error: 'syntax error' }; }
+    node.traverse(n => {
+      if (n.type === 'SymbolNode' && !(n.name in scope) && !RESERVED.includes(n.name)) varSet.add(n.name);
+    });
+    compiled.push(node.compile());
+  }
+  if (compiled.length === 0) return { error: '' };
+  const vars = [...varSet];
+  if (vars.length === 0) return { error: 'no unknowns' };
+  if (compiled.length !== vars.length) {
+    return { error: vars.length + ' unknown' + (vars.length>1?'s':'') + ' (' + vars.map(prettyVarName).join(', ') + '), need ' + vars.length + ' equation' + (vars.length>1?'s':'') };
+  }
+  // linearity check + build A x = b via f(0) and unit vectors
+  const zero = {}; vars.forEach(v => zero[v] = 0);
+  const A = [], b = [];
+  for (const c of compiled) {
+    let f0;
+    try { f0 = c.evaluate({ ...scope, ...zero }); } catch (e) { return { error: 'cannot evaluate' }; }
+    if (typeof f0 !== 'number' || !isFinite(f0)) return { error: 'non-numeric' };
+    const row = [];
+    for (const v of vars) {
+      const u = { ...zero }; u[v] = 1;
+      let fv, f2;
+      try { fv = c.evaluate({ ...scope, ...u }); } catch (e) { return { error: 'cannot evaluate' }; }
+      // linearity sanity: coefficient from x=1 and x=2 must agree
+      const u2 = { ...zero }; u2[v] = 2;
+      try { f2 = c.evaluate({ ...scope, ...u2 }); } catch (e) { return { error: 'cannot evaluate' }; }
+      const co1 = fv - f0, co2 = (f2 - f0) / 2;
+      if (Math.abs(co1 - co2) > 1e-7 * (1 + Math.abs(co1))) return { error: 'not linear' };
+      row.push(co1);
+    }
+    A.push(row); b.push(-f0);
+  }
+  let sol;
+  try { sol = math.lusolve(A, b).map(r => r[0]); }
+  catch (e) { return { error: 'no unique solution' }; }
+  if (sol.some(x => !isFinite(x))) return { error: 'no unique solution' };
+  const out = {}; vars.forEach((v, i) => out[v] = cleanRoot(sol[i]));
+  return { solution: out, vars };
+}
+/* convert an internal var name (e.g. unicode glyphs, x_1) to display latex */
+function prettyVarName(v) { try { return varToLatex(v); } catch (e) { return v; } }
+
+/* numeric definite integral via Simpson's rule */
+function integrateNumeric(fExpr, varName, a, b, scope) {
+  const f = x => math.evaluate(fExpr, { ...scope, [varName]: x });
+  let n = 1000; if (n % 2) n++;
+  const h = (b - a) / n;
+  let s = f(a) + f(b);
+  for (let i = 1; i < n; i++) s += (i % 2 ? 4 : 2) * f(a + i * h);
+  const val = s * h / 3;
+  if (!isFinite(val)) throw new Error('integral did not converge');
+  return val;
+}
+
+/* Replace every integrate(integrand, var, a, b) with its numeric value. The
+   integrand and var are kept raw; the limits are evaluated against scope. */
+function resolveIntegrals(expr, scope) {
+  let out = expr; let guard = 0;
+  while (guard++ < 20) {
+    const idx = out.search(/\bintegrate\s*\(/);
+    if (idx === -1) break;
+    const open = out.indexOf('(', idx);
+    const close = matchParen(out, open);
+    if (close === -1) throw new Error('integral: unbalanced parentheses');
+    const inner = out.slice(open + 1, close);
+    // split into 4 top-level args: integrand, var, a, b
+    const parts = []; let depth = 0, last = 0;
+    for (let i = 0; i < inner.length; i++) {
+      if (inner[i] === '(') depth++;
+      else if (inner[i] === ')') depth--;
+      else if (inner[i] === ',' && depth === 0) { parts.push(inner.slice(last, i)); last = i + 1; }
+    }
+    parts.push(inner.slice(last));
+    if (parts.length < 4) throw new Error('integral needs integrand, variable, and limits');
+    const integrand = parts[0].trim();
+    const varName = parts[1].trim();
+    const a = math.evaluate(parts[2], scope);
+    const b = math.evaluate(parts[3], scope);
+    const val = integrateNumeric(integrand, varName, a, b, scope);
+    out = out.slice(0, idx) + '(' + val + ')' + out.slice(close + 1);
+  }
+  return out;
+}
+function hasIntegral(expr) { return /\bintegrate\s*\(/.test(expr); }
+
+/* collect the free variable names referenced in an expression (non-function
+   single-letter names, excluding constants, ans, predefined constants, and any
+   solve() target var) */
+function referencedVars(expr) {
+  const toks = tokenize(expr); const out = new Set();
+  for (const t of toks) {
+    if (t.t === 'name' && !t.fn && !CONSTS.includes(t.v) && t.v !== 'ans' && !PHYS_NAMES.has(t.v)) out.add(t.v);
+  }
+  const solveTargets = [...expr.matchAll(/solve\s*\(.*?,\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*\)/g)].map(m => m[1]);
+  solveTargets.forEach(v => out.delete(v));
+  // the integration variable in integrate(integrand, var, a, b) is bound, not free
+  const intVars = [...expr.matchAll(/integrate\s*\([^,]*,\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*,/g)].map(m => m[1]);
+  intVars.forEach(v => out.delete(v));
+  return [...out];
+}
+
+/* collect predefined physics constants referenced in an expression */
+function referencedPhys(expr) {
+  const toks = tokenize(expr); const out = new Set();
+  for (const t of toks) {
+    if (t.t === 'name' && !t.fn && PHYS_NAMES.has(t.v)) out.add(t.v);
+  }
+  return [...out];
+}
+
+/* ---- result formatting ---- */
+let sigFigs = 'auto';   // 'auto' | 2 | 3 | 4  (set from the sidebar)
+
+function decimalLatex(value) {
+  if (typeof value !== 'number' || !isFinite(value)) return null;
+  if (value === 0) return '0';
+  const prec = (sigFigs === 'auto') ? 12 : sigFigs;
+  const abs = Math.abs(value);
+  // plain (non-scientific) range
+  if (abs >= 1e-4 && abs < 1e7 && sigFigs === 'auto') {
+    return parseFloat(value.toPrecision(prec)).toString();
+  }
+  if (abs >= 1e-4 && abs < 1e7) {
+    // fixed sig figs but keep ordinary (non-exponential) notation where sensible
+    const s = value.toPrecision(prec);
+    return parseFloat(s).toString();
+  }
+  // scientific notation
+  let exp = Math.floor(Math.log10(abs));
+  let mant = value / Math.pow(10, exp);
+  mant = parseFloat(mant.toPrecision(prec));
+  if (Math.abs(mant) >= 10) { mant /= 10; exp++; }
+  return mant.toString() + ' \\times 10^{' + exp + '}';
+}
+
+function exactLatex(value) {
+  if (typeof value !== 'number' || !isFinite(value)) return null;
+  if (Number.isInteger(value)) return String(value);
+  // pi multiples
+  const overPi = value / Math.PI;
+  try {
+    const f = math.fraction(overPi);
+    if (Number(f.d) <= 12 && Math.abs(overPi - Number(f.n)/Number(f.d)*Number(f.s)) < 1e-9 && Number(f.n) !== 0) {
+      const n = Number(f.n)*Number(f.s), d = Number(f.d);
+      const num = (Math.abs(n)===1 ? (n<0?'-':'') : n) + '\\pi';
+      return d===1 ? num : '\\frac{'+num+'}{'+d+'}';
+    }
+  } catch (e) {}
+  // plain fraction
+  try {
+    const fr = math.fraction(value);
+    const approx = Number(fr.n)/Number(fr.d)*Number(fr.s);
+    if (Number(fr.d) <= 10000 && Math.abs(value - approx) < 1e-12) {
+      return '\\frac{' + (Number(fr.n)*Number(fr.s)) + '}{' + Number(fr.d) + '}';
+    }
+  } catch (e) {}
+  // surd: value = (p/q)*sqrt(r) for square-free r. Detect via value^2 being rational.
+  const surd = surdLatex(value);
+  if (surd !== null) return surd;
+  return null; // irrational, not a simple surd: fall back to decimal
+}
+
+/* Largest square factor extraction: returns [outside, inside] so that
+   sqrt(n) = outside * sqrt(inside), with inside square-free. n must be a
+   non-negative integer. */
+function simplifyRadical(n) {
+  let outside = 1, inside = n;
+  for (let f = 2; f * f <= inside; f++) {
+    while (inside % (f * f) === 0) { inside /= (f * f); outside *= f; }
+  }
+  return [outside, inside];
+}
+
+/* If value is a rational multiple of a square root, return its exact LaTeX,
+   e.g. sqrt(2), 2 sqrt(3), sqrt(2)/2, (3 sqrt(5))/2. Otherwise null. */
+function surdLatex(value) {
+  if (typeof value !== 'number' || !isFinite(value) || value === 0) return null;
+  const sign = value < 0 ? -1 : 1;
+  const sq = value * value;            // value^2 should be rational for a surd
+  let fr;
+  try { fr = math.fraction(sq); } catch (e) { return null; }
+  const n = Number(fr.n), d = Number(fr.d);
+  if (!Number.isInteger(n) || !Number.isInteger(d) || d === 0) return null;
+  if (d > 10000 || n > 1e9) return null;
+  // reject if value^2 isn't really this fraction (guards against irrationals)
+  if (Math.abs(sq - n / d) > 1e-12 * Math.max(1, sq)) return null;
+  // value = sqrt(n/d) = sqrt(n*d)/d
+  const [out, insideRaw] = simplifyRadical(n * d);
+  const inside = insideRaw;
+  // if inside is 1 it's actually rational -> let the fraction path handle it
+  if (inside === 1) return null;
+  // coefficient = out/d, reduced
+  let cn = out, cd = d;
+  const g = gcdInt(cn, cd); cn /= g; cd /= g;
+  const radical = '\\sqrt{' + inside + '}';
+  const signStr = sign < 0 ? '-' : '';
+  // build coefficient * radical / denominator
+  let numerator;
+  if (cn === 1) numerator = signStr + radical;
+  else numerator = signStr + cn + radical;
+  if (cd === 1) return numerator;
+  return '\\frac{' + numerator + '}{' + cd + '}';
+}
+
+function gcdInt(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; }
+
+/* Render a result line. prefixLatex (optional) is LaTeX for the leading
+   "name =" part (so subscripts render); plainPrefix is the fallback text. */
+/* CAS-style exact simplification. Takes a math.js expression string and returns
+   simplified LaTeX, keeping transcendental atoms (sin(8), log(2), sqrt(3), pi, e)
+   symbolic while folding all rational/constant arithmetic and combining like
+   terms. Returns null if it can't parse or doesn't help. */
+const CAS_ATOM_WORDS = ['ATOMAA','ATOMBB','ATOMCC','ATOMDD','ATOMEE','ATOMFF','ATOMGG','ATOMHH','ATOMII','ATOMJJ','ATOMKK','ATOMLL'];
+const CAS_PROTECT_FNS = new Set(['sin','cos','tan','sec','csc','cot','asin','acos','atan',
+  'sinh','cosh','tanh','asinh','acosh','atanh','log','ln','exp','abs','sqrt','nthRoot','cbrt']);
+
+function simplifyExactLatex(expr) {
+  if (typeof expr !== 'string' || expr.trim() === '') return null;
+  let node;
+  try { node = math.parse(expr); } catch (e) { return null; }
+  const atoms = new Map(); let idx = 0;
+
+  // First, try to fold a sqrt to an exact numeric/surd form; if it reduces to a
+  // pure number or a clean surd, inline that LaTeX as an atom so it stays exact.
+  function protect(n) {
+    n = n.map(protect);
+    if (n.type === 'FunctionNode' && n.fn && CAS_PROTECT_FNS.has(n.fn.name)) {
+      // sqrt with a constant arg: try exact surd/number
+      if ((n.fn.name === 'sqrt') && n.args.length === 1) {
+        let val = null;
+        try { val = n.compile().evaluate({}); } catch (e) {}
+        if (typeof val === 'number' && isFinite(val)) {
+          const ex = exactLatex(val);            // integer / fraction / surd
+          if (ex !== null) {
+            const key = '(' + ex + ')';
+            if (![...atoms.values()].includes(key)) {}
+            const sym = CAS_ATOM_WORDS[idx++] || ('ATOMX' + idx);
+            atoms.set(sym, ex);
+            return new math.SymbolNode(sym);
+          }
+        }
+      }
+      if (idx >= CAS_ATOM_WORDS.length) throw new Error('too many atoms');
+      const key = n.toTex({ implicit: 'hide' });
+      // reuse a symbol for identical atoms so like terms combine
+      let sym = null;
+      for (const [s, tex] of atoms) { if (tex === key) { sym = s; break; } }
+      if (!sym) { sym = CAS_ATOM_WORDS[idx++]; atoms.set(sym, key); }
+      return new math.SymbolNode(sym);
+    }
+    return n;
+  }
+
+  let prot;
+  try { prot = protect(node); } catch (e) { return null; }
+  let simp;
+  try { simp = math.simplify(prot, {}, { exactFractions: true }); } catch (e) { return null; }
+  let tex;
+  try { tex = simp.toTex({ implicit: 'hide' }); } catch (e) { return null; }
+  // restore atoms
+  for (const [sym, atomTex] of atoms) { tex = tex.split(sym).join(atomTex); }
+  // cosmetics: cdot between coefficient and atom -> thin space (implicit mult)
+  tex = tex.replace(/\\cdot/g, '\\,');
+  // E-notation that math.js prints as 1\cdot10^{+9} or 1e+9 -> tidy
+  tex = tex.replace(/(\d)\s*\\,\s*10\^\{?\+?(-?\d+)\}?/g, '$1\\times10^{$2}');
+  tex = tex.replace(/(\d)e\+?(-?\d+)/g, '$1\\times10^{$2}');
+  return tex;
+}
+
+/* Tidy raw MathQuill LaTeX for echoing as an exact symbolic result. Strips empty
+   placeholders; leaves structure (\frac, \sqrt, \sin ...) for KaTeX to render. */
+function cleanEchoLatex(latex) {
+  let s = (latex || '').trim();
+  if (s === '') return null;
+  s = s.replace(/\\square/g, '');
+  return s;
+}
+
+function renderResult(resEl, opts, value) {
+  resEl.textContent = '';
+  const prefixLatex = opts.prefixLatex || '';   // e.g. "e_{2} ="
+  const plainPrefix = opts.plainPrefix || '';   // e.g. "= "
+
+  let valLatex = null;
+  if (exactMode) {
+    valLatex = exactLatex(value);
+    // No closed numeric form (e.g. sin(12)): try CAS-style symbolic simplification
+    // of the expression, then fall back to echoing the input.
+    if (valLatex === null && opts.srcExpr) valLatex = simplifyExactLatex(opts.srcExpr);
+    if (valLatex === null && opts.srcLatex) valLatex = cleanEchoLatex(opts.srcLatex);
+  }
+  if (valLatex === null) valLatex = decimalLatex(value);
+
+  if (valLatex !== null && window.katex) {
+    const span = document.createElement('span');
+    const full = prefixLatex ? (prefixLatex + ' ' + valLatex) : valLatex;
+    try {
+      katex.render(full, span, { throwOnError:false });
+      if (!prefixLatex && plainPrefix) {
+        const pre = document.createElement('span'); pre.textContent = plainPrefix; resEl.appendChild(pre);
+      }
+      resEl.appendChild(span);
+      return;
+    } catch (e) {}
+  }
+  // fallback: plain text
+  let txt; try { txt = math.format(value, { precision:12 }); } catch (e) { txt = String(value); }
+  const span = document.createElement('span');
+  span.textContent = (prefixLatex ? prefixLatex.replace(/\\/g,'').replace(/[{}]/g,'') + ' ' : plainPrefix) + txt;
+  resEl.appendChild(span);
+}
+
+/* Solve and render a system-block line against the folder scope. */
+function renderSystem(line, scope) {
+  const resEl = line.resultEl;
+  resEl.textContent = ''; resEl.className = 'sys-result';
+  const eqStrs = line.eqFields.map(f => prepareExpr(f.mq.latex())).filter(s => s.trim() !== '');
+  if (eqStrs.length === 0) { return; }
+  let res;
+  try { res = solveLinearSystem(eqStrs, scope); }
+  catch (e) { res = { error: 'error' }; }
+  if (res.error !== undefined) {
+    if (res.error === '') return;
+    resEl.classList.add('err');
+    resEl.textContent = res.error;
+    return;
+  }
+  // build solution latex: x = .., y = ..
+  const parts = res.vars.map(v => {
+    const val = res.solution[v];
+    let valTex = null;
+    if (exactMode) valTex = exactLatex(val);
+    if (valTex === null) valTex = decimalLatex(val);
+    if (valTex === null) valTex = String(val);
+    return varToLatex(v) + ' = ' + valTex;
+  });
+  if (window.katex) {
+    try {
+      const span = document.createElement('span');
+      katex.render(parts.join(',\\quad '), span, { throwOnError:false });
+      resEl.appendChild(span);
+      return;
+    } catch (e) {}
+  }
+  resEl.textContent = parts.join(',  ').replace(/\\/g,'');
+}
+
+/* evaluate an expression against scope, resolving integrate() and solve() first */
+/* Make an expression evaluable when the user has left brackets unbalanced:
+   append any missing close parens, and drop stray close parens that have no
+   matching open. Keeps a half-finished expression computing instead of erroring. */
+function balanceParens(s) {
+  let depth = 0, out = '';
+  for (const ch of s) {
+    if (ch === '(') { depth++; out += ch; }
+    else if (ch === ')') { if (depth > 0) { depth--; out += ch; } /* else drop stray ) */ }
+    else out += ch;
+  }
+  if (depth > 0) out += ')'.repeat(depth);   // close what was left open
+  return out;
+}
+
+function evalExpr(text, scope) {
+  let t = text;
+  if (hasIntegral(t)) t = resolveIntegrals(t, scope);
+  if (hasSolve(t)) t = resolveSolveCalls(t, scope);
+  t = balanceParens(t);
+  const v = math.evaluate(t, scope);
+  // units aren't used here: a bare symbol like g, N, T that resolves to a math.js
+  // Unit means it was an undefined variable -> treat as unresolved (renders blank,
+  // and the undefined-variable prompt still fires).
+  if (v && typeof v === 'object' && v.isUnit) throw new Error('unit-as-variable');
+  return v;
+}
+
+/* ---------------------------------------------------------------------------
+   Order-independent evaluation per folder. Returns, per line, its value and the
+   set of variables it references that are nowhere defined in the folder.
+--------------------------------------------------------------------------- */
+function recompute() {
+  const angleFns = angleScope();
+  for (const folder of folders) {
+    const scope = { ...angleFns, ...physConstants() };
+    const definedNames = new Set();
+
+    const infos = folder.lines.map(line => {
+      if (line.isSystem) return { line, isSystem: true, expr: '', isAssign: false };
+      const expr = prepareExpr(line.mq.latex());
+      const m = expr.match(/^\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)\s*(.+)$/);
+      if (m) definedNames.add(m[1]);
+      return { line, expr, isAssign: !!m, name: m?m[1]:null, rhs: m?m[2]:null };
+    });
+
+    // Pass 1: resolve assignments order-independently
+    let pending = infos.filter(i => i.isAssign && i.expr !== '');
+    let progressed = true;
+    while (pending.length && progressed) {
+      progressed = false; const still = [];
+      for (const info of pending) {
+        try { scope[info.name] = evalExpr(info.rhs, scope); progressed = true; }
+        catch (e) { still.push(info); }
+      }
+      pending = still;
+    }
+
+    // ans = last non-empty line spatially
+    let ansVal;
+    for (let k = infos.length-1; k >= 0; k--) {
+      const info = infos[k]; if (info.expr === '') continue;
+      try { ansVal = info.isAssign ? scope[info.name] : evalExpr(info.expr, { ...scope }); }
+      catch (e) { ansVal = undefined; }
+      break;
+    }
+    if (ansVal !== undefined) scope.ans = ansVal;
+
+    // Pass 2: render + detect undefined vars
+    for (const info of infos) {
+      const line = info.line;
+      if (info.isSystem) { renderSystem(line, scope); continue; }
+      const resEl = line.resultEl;
+      resEl.className = 'result';
+      resEl.textContent = '';
+      line.lastValue = undefined;
+      line.undefVars = [];
+      line.undefPhys = [];
+
+      if (info.expr === '') { updateChip(line); continue; }
+
+      // undefined variable detection (referenced but not defined anywhere in folder)
+      const refExpr = info.isAssign ? info.rhs : info.expr;
+      let undef = referencedVars(refExpr).filter(v => !definedNames.has(v));
+      // if this line is (or is starting to be) an assignment, its own target name
+      // must never be flagged as undefined -- it's being defined right here
+      const assignLHS = info.expr.match(/^\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)/);
+      if (assignLHS) { const lhs = assignLHS[1]; undef = undef.filter(v => v !== lhs); }
+      // a bare standalone variable (the whole line is just one variable, no
+      // operation) shouldn't prompt to add itself -- it's just a reference
+      const bareVar = /^\s*[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?\s*$/.test(info.expr);
+      if (bareVar) undef = [];
+      line.undefVars = undef;
+      // predefined constants used but not explicitly defined in this folder
+      line.undefPhys = bareVar ? [] : referencedPhys(refExpr).filter(v => !definedNames.has(v));
+
+      try {
+        const fullLatex = line.mq.latex();
+        let value;
+        if (info.isAssign) {
+          value = evalExpr(info.rhs, { ...scope });
+          line.lastValue = value;
+          // RHS latex = everything after the first '=' (so the echo omits "name =")
+          const eqAt = fullLatex.indexOf('=');
+          const rhsLatex = eqAt >= 0 ? fullLatex.slice(eqAt + 1) : fullLatex;
+          renderResult(resEl, { prefixLatex: varToLatex(info.name) + ' =', srcLatex: rhsLatex, srcExpr: info.rhs }, value);
+        } else {
+          value = evalExpr(info.expr, { ...scope });
+          line.lastValue = value;
+          renderResult(resEl, { plainPrefix: '= ', srcLatex: fullLatex, srcExpr: info.expr }, value);
+        }
+      } catch (err) {
+        resEl.textContent = ''; // errors not shown
+      }
+      updateChip(line);
+      updateSlider(line, info);
+    }
+  }
+  if (typeof scheduleSave === 'function') scheduleSave();
+}
+
+/* undefined-variable chip under a line */
+function updateChip(line) {
+  const chip = line.undefChip;
+  chip.innerHTML = '';
+  const undef = line.undefVars || [];
+  if (undef.length === 0) { line.lineEl.classList.remove('has-undef'); return; }
+  line.lineEl.classList.add('has-undef');
+  const label = document.createElement('span');
+  label.textContent = (undef.length === 1 ? 'Add variable' : 'Add variables') + ':';
+  chip.appendChild(label);
+  undef.forEach(v => {
+    const b = document.createElement('button');
+    b.className = 'addvar';
+    b.textContent = prettyVarLabel(v) + ' = 1';
+    b.addEventListener('click', () => addVariable(line.folder, v));
+    chip.appendChild(b);
+  });
+}
+
+/* internal evaluation name -> user-facing display name */
+function displayName(name) {
+  if (name === 'E_usr') return 'E';
+  return name;
+}
+
+/* reverse Greek map: glyph -> latex command (built once) */
+const GLYPH_TO_LATEX = Object.fromEntries(Object.entries(GREEK).map(([n,g]) => [g, '\\' + n]));
+
+/* split a variable name into base char + optional subscript */
+function splitVar(name) {
+  name = displayName(name);
+  const m = name.match(/^(.)_(.+)$/u);   // first codepoint, then _subscript
+  if (m) return { base: m[1], sub: m[2] };
+  return { base: name, sub: null };
+}
+
+/* LaTeX for the base char (Greek glyph -> command, else the char) */
+function baseToLatex(base) { return GLYPH_TO_LATEX[base] || base; }
+
+function prettyVarLabel(name) {
+  const { base, sub } = splitVar(name);
+  return sub ? (base + '_' + sub) : base;
+}
+
+/* turn an internal var name back into MathQuill LaTeX (λ_0 -> \lambda_{0}) */
+function varToLatex(name) {
+  const { base, sub } = splitVar(name);
+  const b = baseToLatex(base);
+  return sub ? (b + '_{' + sub + '}') : b;
+}
+
+function addVariable(folder, name, focus = true, value = 1) {
+  // don't add if this name is already defined somewhere in the folder
+  const already = folder.lines.some(l => {
+    if (l.isSystem) return false;
+    const expr = prepareExpr(l.mq.latex());
+    const m = expr.match(/^\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)/);
+    return m && m[1] === name;
+  });
+  if (already) return null;
+  const rhs = numToLatex(value);
+  const line = createLine(folder, folder.lines[folder.lines.length-1], varToLatex(name) + '=' + rhs);
+  if (focus) { recompute(); line.mq.focus(); }
+  return line;
+}
+
+/* format a JS number as compact LaTeX for an assignment RHS (uses x10^n form
+   for very large/small magnitudes so seeded constants read naturally) */
+function numToLatex(v) {
+  if (typeof v !== 'number' || !isFinite(v)) return '1';
+  if (v === 0) return '0';
+  const abs = Math.abs(v);
+  if (abs >= 1e-4 && abs < 1e7) return String(parseFloat(v.toPrecision(12)));
+  let exp = Math.floor(Math.log10(abs));
+  let mant = parseFloat((v / Math.pow(10, exp)).toPrecision(12));
+  if (Math.abs(mant) >= 10) { mant /= 10; exp++; }
+  return mant + '\\times10^{' + exp + '}';
+}
+
+/* inline slider for assignment lines whose RHS is a single number (plain or
+   scientific, e.g. 5, -2.3, or 3*10^8 from a seeded constant) */
+function updateSlider(line, info) {
+  if (!info.isAssign) { line.lineEl.classList.remove('has-slider'); return; }
+  const rhs = (info.rhs || '').trim();
+  const isPlainNumber = /^-?\d*\.?\d+$/.test(rhs);
+  const isSciNumber = /^-?\d*\.?\d+\*10\^\(?-?\d+\)?$/.test(rhs);
+  if (!isPlainNumber && !isSciNumber) { line.lineEl.classList.remove('has-slider'); return; }
+
+  let val;
+  try { val = math.evaluate(rhs); } catch (e) { line.lineEl.classList.remove('has-slider'); return; }
+  if (typeof val !== 'number' || !isFinite(val)) { line.lineEl.classList.remove('has-slider'); return; }
+  line.lineEl.classList.add('has-slider');
+
+  // initialise bounds once, then keep them unless user edits them
+  if (line.sliderMin === undefined || line.sliderMax === undefined || line.sliderUserValue !== val) {
+    const span = Math.max(Math.abs(val) * 2, 10);
+    line.sliderMin = line.minBox.value !== '' ? parseFloat(line.minBox.value) : -span;
+    line.sliderMax = line.maxBox.value !== '' ? parseFloat(line.maxBox.value) :  span;
+    line.sliderUserValue = val;
+  }
+  const min = isFinite(line.sliderMin) ? line.sliderMin : -10;
+  const max = isFinite(line.sliderMax) ? line.sliderMax : 10;
+  const step = (line.sliderStep !== undefined && isFinite(line.sliderStep) && line.sliderStep > 0)
+               ? line.sliderStep : 1;
+
+  line.minBox.value = trimNum(min);
+  line.maxBox.value = trimNum(max);
+  line.stepBox.value = trimNum(step);
+  line.range.min = min; line.range.max = max; line.range.step = step;
+  line.range.value = Math.min(Math.max(val, min), max);
+}
+
+function trimNum(n) { return parseFloat(n.toPrecision(6)).toString(); }
+
+function renumber() {
+  for (const folder of folders) {
+    folder.lines.forEach((l,i) => { l.idxEl.textContent = i+1; });
+    folder.countEl.textContent = folder.lines.length;
+  }
+}
+function focusLine(lineObj) {
+  document.querySelectorAll('.line.focused').forEach(el => el.classList.remove('focused'));
+  lineObj.lineEl.classList.add('focused');
+}
+/* Focus a line regardless of type (system lines have no single .mq). */
+function focusLineSafe(lineObj) {
+  if (!lineObj) return;
+  if (lineObj.isSystem) { if (lineObj.eqFields[0]) lineObj.eqFields[0].mq.focus(); }
+  else if (lineObj.mq) lineObj.mq.focus();
+}
+function totalLines() { return folders.reduce((n,f) => n + f.lines.length, 0); }
+
+function createLine(folder, afterLine = null, initialLatex = '') {
+  const id = ++idSeq;
+  const lineEl = document.createElement('div');
+  lineEl.className = 'line'; lineEl.dataset.id = id;
+
+  const handle = document.createElement('div');
+  handle.className = 'handle'; handle.innerHTML = '&#8942;&#8942;'; handle.title = 'Drag to reorder';
+
+  const idxEl = document.createElement('div'); idxEl.className = 'idx';
+  const bodyEl = document.createElement('div'); bodyEl.className = 'body';
+  const fieldEl = document.createElement('div'); fieldEl.className = 'mq-field';
+  const resultEl = document.createElement('div'); resultEl.className = 'result';
+
+  // undefined-var chip
+  const undefChip = document.createElement('div'); undefChip.className = 'undef-chip';
+
+  // slider row
+  const sliderRow = document.createElement('div'); sliderRow.className = 'slider';
+  const minBox = document.createElement('input'); minBox.className = 'bound'; minBox.type = 'text'; minBox.title = 'min';
+  const range = document.createElement('input'); range.type = 'range';
+  const maxBox = document.createElement('input'); maxBox.className = 'bound'; maxBox.type = 'text'; maxBox.title = 'max';
+  const stepBox = document.createElement('input'); stepBox.className = 'bound step'; stepBox.type = 'text'; stepBox.title = 'step'; stepBox.placeholder = 'step';
+  sliderRow.appendChild(minBox); sliderRow.appendChild(range); sliderRow.appendChild(maxBox); sliderRow.appendChild(stepBox);
+
+  // note
+  const noteWrap = document.createElement('div'); noteWrap.className = 'note';
+  const noteArea = document.createElement('textarea'); noteArea.placeholder = 'Note\u2026'; noteArea.rows = 2;
+  noteWrap.appendChild(noteArea);
+  const noteMarker = document.createElement('div'); noteMarker.className = 'note-marker';
+  noteMarker.textContent = '\u201C note (click to show)';
+
+  bodyEl.appendChild(noteMarker);
+  bodyEl.appendChild(noteWrap);
+  bodyEl.appendChild(fieldEl);
+  bodyEl.appendChild(resultEl);
+  bodyEl.appendChild(undefChip);
+  bodyEl.appendChild(sliderRow);
+
+  const actions = document.createElement('div'); actions.className = 'actions';
+  const noteBtn = document.createElement('button'); noteBtn.className = 'actbtn note-btn';
+  noteBtn.innerHTML = '&#8220;'; noteBtn.title = 'Toggle note (or type ")';
+  const delBtn = document.createElement('button'); delBtn.className = 'actbtn del';
+  delBtn.innerHTML = '&times;'; delBtn.title = 'Delete line';
+  actions.appendChild(noteBtn); actions.appendChild(delBtn);
+
+  lineEl.appendChild(handle); lineEl.appendChild(idxEl);
+  lineEl.appendChild(bodyEl); lineEl.appendChild(actions);
+
+  if (afterLine) afterLine.lineEl.after(lineEl);
+  else folder.linesEl.appendChild(lineEl);
+
+  const lineObj = { id, folder, lineEl, resultEl, idxEl, noteWrap, noteArea, noteMarker,
+                    undefChip, sliderRow, minBox, range, maxBox, stepBox,
+                    mq: null, lastValue: undefined, undefVars: [],
+                    sliderMin: undefined, sliderMax: undefined, sliderStep: 1, sliderUserValue: undefined };
+
+  const mq = MQ.MathField(fieldEl, {
+    spaceBehavesLikeTab: false,
+    typingSlashWritesDivisionSymbol: false,   // "/" builds a fraction, pulling the preceding term into the numerator
+    charsThatBreakOutOfSupSub: '+-*/=',       // typing an operator exits a superscript/subscript (key on mobile, no arrow keys)
+    autoCommands: 'pi sqrt sum nthroot int ' + GREEK_AUTOCOMMANDS,
+    autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ' +
+                       'ln log exp abs floor ceil round sign deg ans solve',
+    handlers: {
+      edit: () => recompute(),
+      enter: () => {
+        normalizeSciNotation(lineObj.mq);   // turn any literal 7E-9 into upright 7×10^{-9}
+        // auto-add any undefined variables this line references (default = 1),
+        // and any predefined physics constants used (seeded with their value),
+        // then advance to / create the next line as usual
+        let added = false;
+        if (lineObj.undefVars && lineObj.undefVars.length) {
+          lineObj.undefVars.slice().forEach(v => { addVariable(lineObj.folder, v, false); added = true; });
+        }
+        if (lineObj.undefPhys && lineObj.undefPhys.length) {
+          lineObj.undefPhys.slice().forEach(v => { addVariable(lineObj.folder, v, false, PHYS_CONSTANTS[v]); added = true; });
+        }
+        if (added) recompute();
+        const f = lineObj.folder;
+        const idx = f.lines.indexOf(lineObj);
+        const next = f.lines[idx+1];
+        if (next) focusLineSafe(next);
+        else createLine(f, lineObj).mq.focus();
+      }
+    }
+  });
+  lineObj.mq = mq;
+
+  // On touch devices, suppress the OS onscreen keyboard for math fields: the
+  // app's own keypad is the input method. The field still focuses (caret, our
+  // keypad's mq.cmd/write/typedText) but iOS/Android won't raise their keyboard.
+  // Desktop (fine pointer) keeps full physical-keyboard typing.
+  if (IS_TOUCH) suppressOSKeyboard(fieldEl);
+
+  fieldEl.addEventListener('focusin', () => focusLine(lineObj));
+  fieldEl.addEventListener('focusout', () => { normalizeSciNotation(lineObj.mq); });
+
+  // slider interaction: dragging rewrites the assignment RHS
+  range.addEventListener('input', () => {
+    const v = parseFloat(range.value);
+    lineObj.sliderUserValue = v;
+    const expr = prepareExpr(mq.latex());
+    const m = expr.match(/^\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=/);
+    const nm = m ? varToLatex(m[1]) : null;
+    if (nm) { mq.latex(nm + '=' + numToLatex(v)); recompute(); }
+  });
+  function applyBounds() {
+    lineObj.sliderMin = parseFloat(minBox.value);
+    lineObj.sliderMax = parseFloat(maxBox.value);
+    const st = parseFloat(stepBox.value);
+    lineObj.sliderStep = (isFinite(st) && st > 0) ? st : 1;
+    recompute();
+  }
+  minBox.addEventListener('change', applyBounds);
+  maxBox.addEventListener('change', applyBounds);
+  stepBox.addEventListener('change', applyBounds);
+
+  // note toggling
+  function openNote() { lineObj.lineEl.classList.add('has-note'); lineObj.lineEl.classList.remove('note-collapsed'); noteArea.focus(); }
+  function toggleNote() {
+    if (!lineObj.lineEl.classList.contains('has-note')) { openNote(); return; }
+    lineObj.lineEl.classList.toggle('note-collapsed');
+    if (!lineObj.lineEl.classList.contains('note-collapsed')) noteArea.focus();
+  }
+  noteBtn.addEventListener('click', toggleNote);
+  noteMarker.addEventListener('click', () => { lineObj.lineEl.classList.remove('note-collapsed'); noteArea.focus(); });
+  noteArea.addEventListener('input', () => { if (typeof scheduleSave==='function') scheduleSave(); });
+  noteArea.addEventListener('blur', () => { if (noteArea.value.trim()==='') lineObj.lineEl.classList.remove('has-note','note-collapsed'); if (typeof scheduleSave==='function') scheduleSave(); });
+
+  fieldEl.addEventListener('keydown', (e) => {
+    if (e.key === '@') { e.preventDefault(); openSymbolPicker(lineObj); return; }
+    if (e.key === '"') { e.preventDefault(); openNote(); return; }
+    if (e.key === '{' && mq.latex().trim() === '') {
+      // empty line + "{" -> convert to a simultaneous-equation system block
+      e.preventDefault();
+      convertToSystem(lineObj);
+      return;
+    }
+    if (e.key === 'Backspace' && mq.latex()==='' && totalLines()>1) {
+      e.preventDefault();
+      const f = lineObj.folder; const idx = f.lines.indexOf(lineObj); const prev = f.lines[idx-1];
+      removeLine(lineObj);
+      if (prev) { if (prev.isSystem) focusLineSafe(prev); else { prev.mq.focus(); prev.mq.moveToRightEnd(); } }
+    }
+  }, true);
+
+  delBtn.addEventListener('click', () => removeLine(lineObj));
+  attachDrag(handle, lineObj, 'line');
+
+  if (afterLine) { const idx = folder.lines.indexOf(afterLine); folder.lines.splice(idx+1, 0, lineObj); }
+  else folder.lines.push(lineObj);
+
+  if (initialLatex) mq.latex(initialLatex);
+  renumber();
+  return lineObj;
+}
+
+function removeLine(lineObj) {
+  const f = lineObj.folder; const idx = f.lines.indexOf(lineObj);
+  if (idx === -1) return;
+  lineObj.lineEl.remove(); f.lines.splice(idx, 1);
+  if (totalLines() === 0) createLine(folders[0]);
+  else if (f.lines.length === 0) createLine(f);
+  renumber(); recompute();
+}
+
+/* ---------------------------------------------------------------------------
+   Simultaneous-equation system block. A system line holds N equation MathFields
+   stacked under a brace, auto-detects unknowns, and solves the linear system.
+--------------------------------------------------------------------------- */
+
+/* Build a single equation row (its own MathField) inside a system line. */
+function addSystemRow(lineObj, initialLatex = '', focusIt = true) {
+  const row = document.createElement('div'); row.className = 'sys-eq';
+  const fEl = document.createElement('div'); fEl.className = 'mq-field';
+  const del = document.createElement('button'); del.className = 'sys-del'; del.innerHTML = '&times;'; del.title = 'Remove equation';
+  row.appendChild(fEl); row.appendChild(del);
+  lineObj.eqsEl.insertBefore(row, lineObj.addRowBtn);
+
+  const mq = MQ.MathField(fEl, {
+    spaceBehavesLikeTab: false,
+    typingSlashWritesDivisionSymbol: false,
+    charsThatBreakOutOfSupSub: '+-*/=',
+    autoCommands: 'pi sqrt sum nthroot int ' + GREEK_AUTOCOMMANDS,
+    autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ln log exp abs floor ceil round sign deg',
+    handlers: {
+      edit: () => recompute(),
+      enter: () => {
+        const i = lineObj.eqFields.indexOf(entry);
+        const next = lineObj.eqFields[i + 1];
+        if (next) next.mq.focus();
+        else addSystemRow(lineObj);   // enter on last row adds a row
+      }
+    }
+  });
+  if (IS_TOUCH) suppressOSKeyboard(fEl);
+  const entry = { mq, row };
+  lineObj.eqFields.push(entry);
+  fEl.addEventListener('focusin', () => focusLine(lineObj));
+
+  // "{" inside a system adds another equation row
+  fEl.addEventListener('keydown', (e) => {
+    if (e.key === '{') { e.preventDefault(); addSystemRow(lineObj); return; }
+    if (e.key === 'Backspace' && mq.latex() === '' && lineObj.eqFields.length > 1) {
+      e.preventDefault();
+      const i = lineObj.eqFields.indexOf(entry);
+      removeSystemRow(lineObj, entry);
+      const prev = lineObj.eqFields[Math.max(0, i - 1)];
+      if (prev) { prev.mq.focus(); prev.mq.moveToRightEnd(); }
+    }
+  }, true);
+  del.addEventListener('click', () => {
+    if (lineObj.eqFields.length > 1) removeSystemRow(lineObj, entry);
+  });
+
+  if (initialLatex) mq.latex(initialLatex);
+  if (focusIt) mq.focus();
+  recompute();
+  return entry;
+}
+function removeSystemRow(lineObj, entry) {
+  const i = lineObj.eqFields.indexOf(entry); if (i === -1) return;
+  entry.row.remove(); lineObj.eqFields.splice(i, 1);
+  recompute();
+}
+
+/* Convert an existing (empty) normal line into a system block in place. */
+function convertToSystem(lineObj) {
+  const folder = lineObj.folder;
+  const afterLine = lineObj;
+  // create a fresh system line right after, then remove the old empty line
+  const sys = createSystemLine(folder, afterLine);
+  // remove the original empty normal line
+  const idx = folder.lines.indexOf(lineObj);
+  lineObj.lineEl.remove();
+  folder.lines.splice(idx, 1);
+  renumber(); recompute();
+  if (sys.eqFields[0]) sys.eqFields[0].mq.focus();
+}
+
+function createSystemLine(folder, afterLine = null, initialEqs = null) {
+  const id = ++idSeq;
+  const lineEl = document.createElement('div');
+  lineEl.className = 'line is-system'; lineEl.dataset.id = id;
+
+  const handle = document.createElement('div');
+  handle.className = 'handle'; handle.innerHTML = '&#8942;&#8942;'; handle.title = 'Drag to reorder';
+  const idxEl = document.createElement('div'); idxEl.className = 'idx';
+  const bodyEl = document.createElement('div'); bodyEl.className = 'body';
+
+  const wrap = document.createElement('div'); wrap.className = 'sys-wrap';
+  const brace = document.createElement('div'); brace.className = 'sys-brace';
+  const eqsEl = document.createElement('div'); eqsEl.className = 'sys-eqs';
+  const addRowBtn = document.createElement('button'); addRowBtn.className = 'sys-addrow'; addRowBtn.textContent = '+ equation';
+  eqsEl.appendChild(addRowBtn);
+  wrap.appendChild(brace); wrap.appendChild(eqsEl);
+
+  const resultEl = document.createElement('div'); resultEl.className = 'sys-result';
+
+  bodyEl.appendChild(wrap);
+  bodyEl.appendChild(resultEl);
+
+  const actions = document.createElement('div'); actions.className = 'actions';
+  const delBtn = document.createElement('button'); delBtn.className = 'actbtn del';
+  delBtn.innerHTML = '&times;'; delBtn.title = 'Delete system';
+  actions.appendChild(delBtn);
+
+  lineEl.appendChild(handle); lineEl.appendChild(idxEl);
+  lineEl.appendChild(bodyEl); lineEl.appendChild(actions);
+
+  if (afterLine) afterLine.lineEl.after(lineEl);
+  else folder.linesEl.appendChild(lineEl);
+
+  const lineObj = {
+    id, folder, lineEl, resultEl, idxEl,
+    isSystem: true, eqsEl, addRowBtn, eqFields: [],
+    lastValue: undefined
+  };
+
+  addRowBtn.addEventListener('click', () => addSystemRow(lineObj));
+  delBtn.addEventListener('click', () => removeLine(lineObj));
+  attachDrag(handle, lineObj, 'line');
+
+  if (afterLine) { const idx = folder.lines.indexOf(afterLine); folder.lines.splice(idx + 1, 0, lineObj); }
+  else folder.lines.push(lineObj);
+
+  // seed equations (two empty rows by default, or restored ones)
+  const seeds = (initialEqs && initialEqs.length) ? initialEqs : ['', ''];
+  seeds.forEach((eq, i) => addSystemRow(lineObj, eq, false));
+
+  renumber();
+  return lineObj;
+}
+
+function createFolder(name, afterFolder = null) {
+  const id = ++idSeq;
+  const el = document.createElement('div'); el.className = 'folder'; el.dataset.id = id;
+  const head = document.createElement('div'); head.className = 'folder-head';
+  const twist = document.createElement('span'); twist.className = 'twist'; twist.innerHTML = '&#9662;';
+  const fhandle = document.createElement('span'); fhandle.className = 'fhandle'; fhandle.innerHTML = '&#8942;&#8942;'; fhandle.title = 'Drag to reorder folder';
+  const nameEl = document.createElement('input'); nameEl.className = 'fname'; nameEl.value = name; nameEl.spellcheck = false;
+  const countEl = document.createElement('span'); countEl.className = 'count';
+  const dupBtn = document.createElement('button'); dupBtn.className = 'fbtn'; dupBtn.innerHTML = '&#10697;'; dupBtn.title = 'Duplicate folder';
+  const delBtn = document.createElement('button'); delBtn.className = 'fbtn del'; delBtn.innerHTML = '&times;'; delBtn.title = 'Delete folder';
+  head.appendChild(twist); head.appendChild(fhandle); head.appendChild(nameEl);
+  head.appendChild(countEl); head.appendChild(dupBtn); head.appendChild(delBtn);
+  const linesEl = document.createElement('div'); linesEl.className = 'folder-lines';
+  // hover-revealed strip to add a line below the last entry
+  const addLineStrip = document.createElement('button');
+  addLineStrip.className = 'add-line-strip'; addLineStrip.title = 'Add line';
+  addLineStrip.innerHTML = '<span>+</span>';
+  el.appendChild(head); el.appendChild(linesEl); el.appendChild(addLineStrip);
+
+  if (afterFolder) afterFolder.el.after(el);
+  else {
+    const zone = document.getElementById('addFolderZone');
+    if (zone) foldersEl.insertBefore(el, zone); else foldersEl.appendChild(el);
+  }
+
+  const folder = { id, name, collapsed:false, el, headEl:head, linesEl, nameEl, countEl, lines:[], userNamed:false };
+
+  twist.addEventListener('click', () => { folder.collapsed = !folder.collapsed; el.classList.toggle('collapsed', folder.collapsed); });
+  nameEl.addEventListener('input', () => {
+    folder.userNamed = nameEl.value.trim() !== '';
+    folder.name = nameEl.value;
+  });
+  nameEl.addEventListener('keydown', (e) => { if (e.key==='Enter') nameEl.blur(); });
+  addLineStrip.addEventListener('click', () => {
+    if (folder.collapsed) { folder.collapsed=false; el.classList.remove('collapsed'); }
+    createLine(folder).mq.focus(); recompute();
+  });
+  delBtn.addEventListener('click', () => removeFolder(folder));
+  dupBtn.addEventListener('click', () => duplicateFolder(folder));
+  attachDrag(fhandle, folder, 'folder');
+
+  if (afterFolder) { const idx = folders.indexOf(afterFolder); folders.splice(idx+1, 0, folder); }
+  else folders.push(folder);
+  renumberFolders();
+  return folder;
+}
+
+/* Duplicate a folder: create a copy directly after it, cloning the name and
+   every line (latex, note text + visibility, slider bounds). */
+function duplicateFolder(src) {
+  const copyName = src.userNamed ? (src.name + ' copy') : '';
+  const nf = createFolder(copyName, src);
+  nf.userNamed = src.userNamed;
+  if (src.userNamed) nf.nameEl.value = copyName;
+  src.lines.forEach(srcLine => {
+    if (srcLine.isSystem) {
+      createSystemLine(nf, nf.lines[nf.lines.length - 1] || null, srcLine.eqFields.map(f => f.mq.latex()));
+      return;
+    }
+    const nl = createLine(nf, nf.lines[nf.lines.length - 1] || null, srcLine.mq.latex());
+    // note
+    const noteText = srcLine.noteArea.value;
+    if (noteText) {
+      nl.noteArea.value = noteText;
+      nl.lineEl.classList.add('has-note');
+      if (srcLine.lineEl.classList.contains('note-collapsed')) nl.lineEl.classList.add('note-collapsed');
+    }
+    // slider bounds
+    if (srcLine.sliderMin !== undefined) nl.sliderMin = srcLine.sliderMin;
+    if (srcLine.sliderMax !== undefined) nl.sliderMax = srcLine.sliderMax;
+    if (srcLine.sliderStep !== undefined) nl.sliderStep = srcLine.sliderStep;
+  });
+  if (nf.lines.length === 0) createLine(nf);
+  // mirror collapsed state
+  if (src.collapsed) { nf.collapsed = true; nf.el.classList.add('collapsed'); }
+  renumberFolders(); renumber(); recompute();
+}
+
+/* Auto-name non-user-named folders: blank when there's a single folder,
+   otherwise sequential "1, 2, 3...". User-renamed folders keep their name and
+   are skipped (but still consume a number so the visible order reads naturally). */
+function renumberFolders() {
+  // No auto-numbering: folders are blank unless the user names them.
+  for (const f of folders) {
+    if (f.userNamed) continue;
+    f.name = '';
+    if (document.activeElement !== f.nameEl) f.nameEl.value = '';
+    f.nameEl.placeholder = '';
+  }
+}
+
+function removeFolder(folder) {
+  if (folders.length === 1) {
+    folder.lines.slice().forEach(l => l.lineEl.remove()); folder.lines.length = 0;
+    createLine(folder).mq.focus(); renumber(); recompute(); return;
+  }
+  const idx = folders.indexOf(folder); folder.el.remove();
+  folders.splice(idx, 1);
+  renumberFolders(); renumber(); recompute();
+}
+
+/* ---- drag & drop ---- */
+let drag = null;
+function attachDrag(handleEl, obj, kind) {
+  handleEl.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); handleEl.setPointerCapture(e.pointerId);
+    drag = { kind, obj, lastTarget:null };
+    const el = kind==='line' ? obj.lineEl : obj.el; el.classList.add('drag-ghost');
+    const move = (ev) => onDragMove(ev);
+    const up = () => {
+      handleEl.releasePointerCapture(e.pointerId);
+      handleEl.removeEventListener('pointermove', move);
+      handleEl.removeEventListener('pointerup', up);
+      handleEl.removeEventListener('pointercancel', up);
+      onDragEnd();
+    };
+    handleEl.addEventListener('pointermove', move);
+    handleEl.addEventListener('pointerup', up);
+    handleEl.addEventListener('pointercancel', up);
+  });
+}
+function clearDropMarks() {
+  document.querySelectorAll('.drop-before,.drop-after,.drop-empty').forEach(el => el.classList.remove('drop-before','drop-after','drop-empty'));
+}
+function onDragMove(ev) {
+  if (!drag) return; const y = ev.clientY; clearDropMarks();
+  if (drag.kind === 'line') {
+    let tf = null;
+    for (const f of folders) { const r = f.el.getBoundingClientRect(); if (y>=r.top && y<=r.bottom) { tf = f; break; } }
+    if (!tf) { drag.lastTarget = null; return; }
+    if (tf.collapsed || tf.lines.length === 0) { tf.linesEl.classList.add('drop-empty'); drag.lastTarget = { folder:tf, beforeLine:null }; return; }
+    let placed = false;
+    for (const l of tf.lines) {
+      if (l === drag.obj) continue;
+      const r = l.lineEl.getBoundingClientRect(); const mid = r.top + r.height/2;
+      if (y < mid) { l.lineEl.classList.add('drop-before'); drag.lastTarget = { folder:tf, beforeLine:l }; placed = true; break; }
+    }
+    if (!placed) { const last = tf.lines[tf.lines.length-1]; last.lineEl.classList.add('drop-after'); drag.lastTarget = { folder:tf, beforeLine:null }; }
+  } else {
+    let placed = false;
+    for (const f of folders) {
+      if (f === drag.obj) continue;
+      const r = f.el.getBoundingClientRect(); const mid = r.top + r.height/2;
+      if (y < mid) { f.el.classList.add('drop-before'); drag.lastTarget = { beforeFolder:f }; placed = true; break; }
+    }
+    if (!placed) { const last = folders[folders.length-1]; if (last !== drag.obj) { last.el.classList.add('drop-after'); drag.lastTarget = { beforeFolder:null }; } }
+  }
+}
+function onDragEnd() {
+  if (!drag) return; const t = drag.lastTarget;
+  const el = drag.kind==='line' ? drag.obj.lineEl : drag.obj.el;
+  el.classList.remove('drag-ghost'); clearDropMarks();
+  if (t) {
+    if (drag.kind === 'line') {
+      const line = drag.obj; const oldF = line.folder;
+      oldF.lines.splice(oldF.lines.indexOf(line), 1);
+      const tf = t.folder; line.folder = tf;
+      if (t.beforeLine) { const i = tf.lines.indexOf(t.beforeLine); tf.lines.splice(i, 0, line); t.beforeLine.lineEl.before(line.lineEl); }
+      else { tf.lines.push(line); tf.linesEl.appendChild(line.lineEl); }
+      if (oldF.lines.length === 0 && oldF !== tf) createLine(oldF);
+    } else {
+      const folder = drag.obj; folders.splice(folders.indexOf(folder), 1);
+      if (t.beforeFolder) { const i = folders.indexOf(t.beforeFolder); folders.splice(i, 0, folder); t.beforeFolder.el.before(folder.el); }
+      else { folders.push(folder); foldersEl.appendChild(folder.el); }
+    }
+  }
+  drag = null; renumberFolders(); renumber(); recompute();
+}
+function activeLine() {
+  for (const f of folders) for (const l of f.lines) if (l.lineEl.classList.contains('focused')) return l;
+  const lf = folders[folders.length-1]; return lf.lines[lf.lines.length-1];
+}
+function activeMQ() {
+  const l = activeLine();
+  if (l && l.isSystem) {
+    // return the focused equation field, or the first
+    const focused = l.eqFields.find(ef => ef.row.contains(document.activeElement));
+    return (focused || l.eqFields[0] || {}).mq || null;
+  }
+  return l ? l.mq : null;
+}
+
+/* Insert a system block from the keypad: convert the active line if it's an empty
+   normal line, else add a new system block after it. */
+function insertSystemBlock() {
+  const line = activeLine();
+  if (line && !line.isSystem && line.mq && line.mq.latex().trim() === '') {
+    convertToSystem(line);
+    return;
+  }
+  const folder = line ? line.folder : folders[folders.length - 1];
+  const sys = createSystemLine(folder, line || null);
+  renumber(); recompute();
+  if (sys.eqFields[0]) sys.eqFields[0].mq.focus();
+}
+
+const KEYS = [
+  // functions
+  {l:'sin', t:'fn', v:'sin', c:'fn'},
+  {l:'cos', t:'fn', v:'cos', c:'fn'},
+  {l:'tan', t:'fn', v:'tan', c:'fn'},
+  {l:'log', t:'fn', v:'log', c:'fn'},
+  {l:'ln',  t:'fn', v:'ln',  c:'fn'},
+  {l:'exp', t:'fn', v:'exp', c:'fn'},
+  // structures
+  {l:'\u221A', t:'cmd', v:'\\sqrt', c:'fn', katex:'\\sqrt{\\phantom{x}}'},
+  {l:'nrt', t:'nthroot', v:'', c:'fn', katex:'\\sqrt[n]{\\phantom{x}}'},
+  {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'},
+  {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'},
+  {l:'frac', t:'type', v:'/', c:'op', frac:true},
+  {l:'|x|', t:'abs', v:'', c:'fn', katex:'|x|'},
+  // symbols + grouping
+  {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'},
+  {l:'@', t:'act', v:'symbol', c:'act'},
+  {l:'\u222B', t:'int', v:'', c:'fn', katex:'\\int'},
+  {l:'(', t:'type', v:'('},
+  {l:')', t:'type', v:')'},
+  {l:'\u00D710\u207F', t:'exp10', v:'', c:'op', katex:'\\times 10^{n}'},
+  // operators + tools
+  {l:'ans', t:'write', v:'ans', c:'act'},
+  {l:'solve', t:'solve', v:'', c:'solvebtn'},
+  {l:'\u00D7', t:'cmd', v:'\\times', c:'op'},
+  {l:'\u2212', t:'type', v:'-', c:'op'},
+  {l:'+', t:'type', v:'+', c:'op'},
+  {l:'=', t:'write', v:'=', c:'op'},
+];
+const keypadEl = document.getElementById('keypad');
+
+/* Insert a superscript ('^') or subscript ('_'). If there's an operand before
+   the cursor the script attaches to it; if not, MathQuill creates an editable
+   empty base box and we drop the caret into it so it can be typed. fillVal
+   pre-fills the script slot (e.g. '2' for x²). */
+function scriptKey(mq, op, fillVal) {
+  const cur = mq.latex();
+  const noOperand = cur === '' || /[+\-*/^_=(,]$/.test(cur) ||
+                    /\\(cdot|div|times|left\()$/.test(cur);
+  mq.cmd(op);                  // {base}op{slot}; base is an editable empty box when nothing precedes
+  if (fillVal) mq.typedText(fillVal);
+  if (noOperand) {
+    // caret is in/after the script slot; step left into the empty base box to type the value
+    mq.keystroke('Left');
+    if (fillVal) mq.keystroke('Left');
+  }
+}
+function powerKey(mq, expVal) { scriptKey(mq, '^', expVal); }
+
+/* Rewrite a literal E-notation mantissa/exponent (e.g. 7E-9, 3E8) sitting in the
+   field as an upright ×10^{...} so it never displays as an italic variable E.
+   Runs on blur/enter (not mid-keystroke), so replacing the latex is safe. */
+function normalizeSciNotation(mq) {
+  if (!mq) return;
+  const cur = mq.latex();
+  // <digit or .>  E/e  <optional sign> <digits>  ->  ...\times10^{<exp>}
+  const next = cur.replace(/(\d(?:\.\d+)?)[eE](-?\d+)/g, '$1\\times10^{$2}');
+  if (next !== cur) {
+    mq.latex(next);
+    mq.moveToRightEnd();
+  }
+}
+
+// caps/shift state for the letters page; letter buttons register here so their
+// labels flip live when caps is toggled.
+let capsOn = false;
+const letterButtons = [];   // { btn, ch }
+function applyCaps() {
+  letterButtons.forEach(({ btn, ch }) => { btn.textContent = capsOn ? ch.toUpperCase() : ch; });
+  document.querySelectorAll('.capskey').forEach(b => b.classList.toggle('on', capsOn));
+}
+
+function makeKey(k) {
+  const b = document.createElement('button');
+  if (k.frac) {
+    b.innerHTML = '<span class="frac-glyph"><span class="fg-n">\u25A1</span>' +
+                  '<span class="fg-bar"></span><span class="fg-d">\u25A1</span></span>';
+  } else if (k.katex && window.katex) {
+    const span = document.createElement('span');
+    try { katex.render(k.katex, span, { throwOnError:false }); b.appendChild(span); }
+    catch (e) { b.textContent = k.l; }
+  } else {
+    b.textContent = k.l;
+  }
+  if (k.c) k.c.split(' ').forEach(c => b.classList.add(c));
+  if (k.letter) letterButtons.push({ btn: b, ch: k.v });
+  if (k.t === 'caps') b.classList.add('capskey');
+  b.addEventListener('click', () => {
+    // system block: works regardless of the active line type
+    if (k.t === 'system') { insertSystemBlock(); return; }
+    const line = activeLine();
+    if (!line) return;
+    // resolve the target MathField: a normal line's field, or the focused
+    // equation field inside a system block.
+    const mq = activeMQ();
+    if (!mq) return;
+    mq.focus();
+    switch (k.t) {
+      case 'write': mq.write(k.v); break;
+      case 'cmd': mq.cmd(k.v); break;
+      case 'keystroke': mq.keystroke(k.v); break;
+      case 'type': mq.typedText(k.v); break;
+      case 'var': {
+        const ch = capsOn && k.letter ? k.v.toUpperCase() : k.v;
+        // E (capital) right after a number = scientific notation -> ×10^, not a variable
+        if (ch === 'E' && /\d$/.test(mq.latex())) {
+          mq.cmd('\\times'); mq.typedText('10'); mq.cmd('^');
+        } else {
+          mq.typedText(ch);
+        }
+        if (capsOn && k.letter) { capsOn = false; applyCaps(); }   // shift: one capital, then back to lowercase
+        break;
+      }
+      case 'caps':
+        capsOn = !capsOn; applyCaps();
+        return;   // don't refocus-insert anything
+      case 'subscript':
+        scriptKey(mq, '_', null);   // editable subscript; placeholder base if nothing precedes
+        break;
+      case 'greek': mq.cmd(k.v); break;
+      case 'fn':
+        mq.typedText(k.v); mq.typedText('(');
+        break;
+      case 'solve':
+        mq.typedText('solve'); mq.typedText('(');
+        break;
+      case 'nthroot':
+        mq.typedText('nthroot');
+        break;
+      case 'pow':       // xʸ
+        powerKey(mq, null);
+        break;
+      case 'sq':        // x²
+        powerKey(mq, '2');
+        break;
+      case 'exp10':     // ×10ⁿ scientific notation; caret lands in the exponent
+        mq.cmd('\\times'); mq.typedText('10'); mq.cmd('^');
+        break;
+      case 'abs':
+        mq.cmd('|');
+        break;
+      case 'int':
+        mq.typedText('int');
+        break;
+      case 'act':
+        if (k.v === 'newline') {
+          const f = line.folder; const idx = f.lines.indexOf(line); const next = f.lines[idx+1];
+          if (next) focusLineSafe(next); else createLine(f, line).mq.focus();
+        } else if (k.v === 'note') {
+          if (line.isSystem) break;   // system blocks have no note
+          line.lineEl.classList.add('has-note'); line.lineEl.classList.remove('note-collapsed'); line.noteArea.focus();
+        } else if (k.v === 'symbol') {
+          openSymbolPicker(line, mq);
+        }
+        break;
+    }
+  });
+  return b;
+}
+
+// math keys for the landscape pad (rendered directly into #keypad)
+KEYS.forEach(k => { const b = makeKey(k); b.classList.add('landscape-key'); keypadEl.appendChild(b); });
+
+/* ---- portrait paged keypad ----
+   Three pages: Calc (numbers + core operators), Vars (letters + Greek),
+   Fns (functions + structures + symbols). A tab bar switches pages. Shown only
+   in portrait; the landscape math grid above is hidden in portrait. */
+const PAGE_CALC = [
+  {l:'7', t:'write', v:'7'}, {l:'8', t:'write', v:'8'}, {l:'9', t:'write', v:'9'},
+  {l:'(', t:'type', v:'('}, {l:')', t:'type', v:')'}, {l:'frac', t:'type', v:'/', c:'op', frac:true},
+  {l:'4', t:'write', v:'4'}, {l:'5', t:'write', v:'5'}, {l:'6', t:'write', v:'6'},
+  {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'}, {l:'\u00D7', t:'cmd', v:'\\times', c:'op'},
+  {l:'1', t:'write', v:'1'}, {l:'2', t:'write', v:'2'}, {l:'3', t:'write', v:'3'},
+  {l:'\u00D710\u207F', t:'exp10', v:'', c:'op', katex:'\\times 10^{n}'}, {l:'\u221A', t:'cmd', v:'\\sqrt', c:'op', katex:'\\sqrt{\\phantom{x}}'}, {l:'\u2212', t:'type', v:'-', c:'op'},
+  {l:'0', t:'write', v:'0'}, {l:'.', t:'write', v:'.'}, {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
+  {l:'ans', t:'write', v:'ans', c:'act'}, {l:'=', t:'write', v:'=', c:'op'}, {l:'+', t:'type', v:'+', c:'op'},
+];
+const PAGE_VARS = [
+  ...'abcdefghijklmnopqrstuvwxyz'.split('')
+      .map(ch => ({ l:ch, t:'var', v:ch, c:'varkey', letter:true })),
+  {l:'\u21E7', t:'caps', v:'', c:'act'},                 // shift / caps toggle
+  {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}' },  // subscript
+  {l:'@', t:'act', v:'symbol', c:'act'},
+  {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
+];
+const PAGE_FNS = [
+  {l:'sin', t:'fn', v:'sin', c:'fn'}, {l:'cos', t:'fn', v:'cos', c:'fn'}, {l:'tan', t:'fn', v:'tan', c:'fn'},
+  {l:'log', t:'fn', v:'log', c:'fn'}, {l:'ln', t:'fn', v:'ln', c:'fn'}, {l:'exp', t:'fn', v:'exp', c:'fn'},
+  {l:'\u221A', t:'cmd', v:'\\sqrt', c:'fn', katex:'\\sqrt{\\phantom{x}}'}, {l:'nrt', t:'nthroot', v:'', c:'fn', katex:'\\sqrt[n]{\\phantom{x}}'},
+  {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'},
+  {l:'frac', t:'type', v:'/', c:'op', frac:true}, {l:'\u222B', t:'int', v:'', c:'fn', katex:'\\int'},
+  {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'},
+  {l:'sys', t:'system', v:'', c:'fn', katex:'\\begin{cases}\\square\\\\\\square\\end{cases}'},
+  {l:'@', t:'act', v:'symbol', c:'act'}, {l:'solve', t:'solve', v:'', c:'solvebtn'}, {l:'=', t:'write', v:'=', c:'op'},
+  {l:',', t:'type', v:',', c:'op'},
+  {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
+];
+
+const portraitPad = document.createElement('div'); portraitPad.id = 'portraitPad';
+const padTabs = document.createElement('div'); padTabs.className = 'pad-tabs';
+const pagesWrap = document.createElement('div'); pagesWrap.className = 'pad-pages';
+const PAGES = [
+  { name:'123',  cls:'page-calc', keys:PAGE_CALC, cols:6 },
+  { name:'abc',  cls:'page-vars', keys:PAGE_VARS, cols:6 },
+  { name:'f(x)', cls:'page-fns',  keys:PAGE_FNS,  cols:6 },
+];
+const pageEls = [];
+PAGES.forEach((pg, i) => {
+  const tab = document.createElement('button'); tab.className = 'pad-tab' + (i===0?' on':''); tab.textContent = pg.name;
+  tab.addEventListener('click', () => setPadPage(i));
+  padTabs.appendChild(tab);
+  const page = document.createElement('div'); page.className = 'pad-page ' + pg.cls + (i===0?' on':'');
+  page.style.gridTemplateColumns = 'repeat(' + pg.cols + ', 1fr)';
+  pg.keys.forEach(k => page.appendChild(makeKey(k)));
+  pagesWrap.appendChild(page); pageEls.push({ tab, page });
+});
+function setPadPage(idx) {
+  pageEls.forEach((p, i) => { p.tab.classList.toggle('on', i===idx); p.page.classList.toggle('on', i===idx); });
+}
+portraitPad.appendChild(padTabs); portraitPad.appendChild(pagesWrap);
+keypadEl.appendChild(portraitPad);
+
+/* ---- symbol picker (@) ---- */
+const symbolPicker = document.getElementById('symbolPicker');
+const symbolSearch = document.getElementById('symbolSearch');
+const symbolResults = document.getElementById('symbolResults');
+let symbolTargetLine = null;
+let symbolTargetMQ = null;
+let symbolActiveIdx = 0;
+
+function openSymbolPicker(line, mq) {
+  symbolTargetLine = line;
+  symbolTargetMQ = mq || (line && !line.isSystem ? line.mq : null) || activeMQ();
+  symbolSearch.value = '';
+  renderSymbolResults('');
+  symbolPicker.hidden = false;
+  const r = line.lineEl.getBoundingClientRect();
+  const pw = 280, ph = 320;
+  let left = Math.min(r.left + 40, window.innerWidth - pw - 12);
+  let top = Math.min(r.bottom + 6, window.innerHeight - ph - 12);
+  left = Math.max(12, left); top = Math.max(12, top);
+  symbolPicker.style.left = left + 'px';
+  symbolPicker.style.top = top + 'px';
+  // defer focus so MathQuill (which just handled the @ keydown) doesn't grab it back
+  setTimeout(() => { symbolSearch.focus(); symbolSearch.select(); }, 0);
+}
+function closeSymbolPicker() { symbolPicker.hidden = true; symbolTargetLine = null; symbolTargetMQ = null; }
+
+function filterSymbols(q) {
+  q = q.trim().toLowerCase();
+  if (!q) return SYMBOL_LIST;
+  const list = SYMBOL_LIST.filter(s => s.name.toLowerCase().includes(q));
+  return list.sort((a,b) => {
+    const as = a.name.toLowerCase().startsWith(q) ? 0 : 1;
+    const bs = b.name.toLowerCase().startsWith(q) ? 0 : 1;
+    return as - bs || a.name.localeCompare(b.name);
+  });
+}
+
+function renderSymbolResults(q) {
+  const items = filterSymbols(q);
+  symbolActiveIdx = 0;
+  symbolResults.innerHTML = '';
+  if (items.length === 0) {
+    const e = document.createElement('div'); e.className = 'sym-empty'; e.textContent = 'No symbols match';
+    symbolResults.appendChild(e); return;
+  }
+  items.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'sym-row' + (i === 0 ? ' active' : '');
+    row.innerHTML = '<span class="sym-glyph"></span><span class="sym-name"></span>';
+    row.querySelector('.sym-glyph').textContent = s.glyph;
+    row.querySelector('.sym-name').textContent = s.name + ' (' + s.glyph + ')';
+    row.addEventListener('mousedown', (ev) => { ev.preventDefault(); chooseSymbol(s); });
+    row.addEventListener('mouseenter', () => setSymbolActive(i));
+    symbolResults.appendChild(row);
+  });
+}
+function setSymbolActive(i) {
+  const rows = symbolResults.querySelectorAll('.sym-row');
+  rows.forEach((r,k) => r.classList.toggle('active', k===i));
+  symbolActiveIdx = i;
+  const el = rows[i]; if (el) el.scrollIntoView({ block:'nearest' });
+}
+function chooseSymbol(s) {
+  const mq = symbolTargetMQ || (symbolTargetLine && symbolTargetLine.mq);
+  if (mq) { mq.focus(); mq.cmd(s.latex); }
+  closeSymbolPicker();
+}
+
+symbolSearch.addEventListener('input', () => renderSymbolResults(symbolSearch.value));
+symbolSearch.addEventListener('keydown', (e) => {
+  const rows = symbolResults.querySelectorAll('.sym-row');
+  if (e.key === 'ArrowDown') { e.preventDefault(); setSymbolActive(Math.min(symbolActiveIdx+1, rows.length-1)); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); setSymbolActive(Math.max(symbolActiveIdx-1, 0)); }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    const items = filterSymbols(symbolSearch.value);
+    if (items[symbolActiveIdx]) chooseSymbol(items[symbolActiveIdx]); // chooseSymbol closes
+    else closeSymbolPicker();                                          // no match: still close
+  } else if (e.key === 'Escape') { e.preventDefault(); closeSymbolPicker(); }
+});
+document.addEventListener('mousedown', (e) => {
+  if (!symbolPicker.hidden && !symbolPicker.contains(e.target)) closeSymbolPicker();
+});
+// Robust close: while the picker is open, Enter/Escape from anywhere close it.
+// Registered on window in capture phase so it runs before MathQuill or any line
+// handler can consume the key. Uses keydown and keyup for safety.
+function pickerKeyGuard(e) {
+  if (symbolPicker.hidden) return;
+  if (e.key === 'Escape') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    closeSymbolPicker();
+  } else if (e.key === 'Enter') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    const items = filterSymbols(symbolSearch.value);
+    if (items[symbolActiveIdx]) chooseSymbol(items[symbolActiveIdx]);
+    else closeSymbolPicker();
+  }
+}
+window.addEventListener('keydown', pickerKeyGuard, true);
+
+foldersEl.addEventListener('keydown', (e) => {
+  const t = e.target;
+  const inField = t.closest && t.closest('.mq-field');
+  if (!inField) return;
+  const mq = activeMQ();
+  if (!mq) return;
+  if (e.key === '*') {
+    e.preventDefault(); mq.cmd('\\times');
+  } else if (e.key === 'E') {
+    // scientific-notation shortcut: typing E right after a number inserts ×10^
+    // with the caret in the exponent. Capital E only, so lowercase e (Euler's
+    // number) and exp() are unaffected.
+    if (/\d$/.test(mq.latex())) {
+      e.preventDefault();
+      mq.cmd('\\times'); mq.typedText('10'); mq.cmd('^');
+    }
+  }
+}, true);
+
+/* ---- header controls ---- */
+
+/* A + folder button that lives at the bottom of the folders list and only
+   reveals when the mouse is over the empty area below the last entry. A new
+   folder is created only when this button is clicked, never by clicking the
+   empty space itself. */
+const addFolderBtn = document.createElement('button');
+addFolderBtn.id = 'addFolderZone';
+addFolderBtn.innerHTML = '<span>+</span>';
+addFolderBtn.title = 'New folder';
+foldersEl.appendChild(addFolderBtn);
+addFolderBtn.addEventListener('click', () => {
+  const f = createFolder(''); createLine(f).mq.focus(); renumberFolders(); renumber(); recompute();
+  // keep the button last in the list
+  foldersEl.appendChild(addFolderBtn);
+});
+// reveal the button when the pointer is in the empty area below the last folder
+foldersEl.addEventListener('mousemove', (e) => {
+  const last = folders[folders.length - 1];
+  let inEmpty = true;
+  if (last) { const r = last.el.getBoundingClientRect(); if (e.clientY < r.bottom) inEmpty = false; }
+  foldersEl.classList.toggle('show-add-folder', inEmpty);
+});
+foldersEl.addEventListener('mouseleave', () => foldersEl.classList.remove('show-add-folder'));
+document.getElementById('clearAll').addEventListener('click', () => {
+  folders.slice().forEach(f => f.el.remove()); folders.length = 0;
+  const f = createFolder(''); createLine(f).mq.focus(); renumberFolders(); renumber(); recompute();
+});
+
+const angleSeg = document.getElementById('angleSeg');
+angleSeg.addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  angleMode = btn.dataset.mode;
+  angleSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b===btn));
+  recompute(); scheduleSave();
+});
+const exactSeg = document.getElementById('exactSeg');
+exactSeg.addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  exactMode = (btn.dataset.mode === 'exact');
+  exactSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b===btn));
+  recompute(); scheduleSave();
+});
+const themeSeg = document.getElementById('themeSeg');
+themeSeg.addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  document.documentElement.setAttribute('data-theme', btn.dataset.mode);
+  themeSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b===btn));
+  scheduleSave();
+});
+
+const gravSeg = document.getElementById('gravSeg');
+gravSeg.addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  gValue = parseFloat(btn.dataset.g);
+  PHYS_CONSTANTS.g = gValue;
+  gravSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b===btn));
+  recompute(); scheduleSave();
+});
+
+const sigfigSeg = document.getElementById('sigfigSeg');
+sigfigSeg.addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  sigFigs = btn.dataset.sf === 'auto' ? 'auto' : parseInt(btn.dataset.sf, 10);
+  sigfigSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b===btn));
+  recompute(); scheduleSave();
+});
+
+/* =====================================================================
+   Serialisation, tabs, and persistence
+   ===================================================================== */
+
+/* Snapshot the currently rendered calculator (folders + modes) to a plain JS
+   object. Everything derived (results, sliders, chips) is regenerated on load. */
+function snapshotActive() {
+  return {
+    theme: document.documentElement.getAttribute('data-theme') || 'light',
+    exact: exactMode,
+    angle: angleMode,
+    gravity: gValue,
+    sigfigs: sigFigs,
+    folders: folders.map(f => ({
+      name: f.name,
+      userNamed: f.userNamed,
+      collapsed: f.collapsed,
+      lines: f.lines.map(l => {
+        if (l.isSystem) {
+          return { system: true, equations: l.eqFields.map(ef => ef.mq.latex()) };
+        }
+        return {
+          latex: l.mq.latex(),
+          note: l.noteArea.value || '',
+          noteCollapsed: l.lineEl.classList.contains('note-collapsed'),
+          hasNote: l.lineEl.classList.contains('has-note'),
+          sliderMin: (l.sliderMin !== undefined && isFinite(l.sliderMin)) ? l.sliderMin : null,
+          sliderMax: (l.sliderMax !== undefined && isFinite(l.sliderMax)) ? l.sliderMax : null,
+          sliderStep: (l.sliderStep !== undefined && isFinite(l.sliderStep)) ? l.sliderStep : null
+        };
+      })
+    }))
+  };
+}
+
+/* Clear the rendered calculator and rebuild it from a snapshot object. */
+function loadSnapshot(data) {
+  // tear down current DOM + state
+  folders.slice().forEach(f => f.el.remove());
+  folders.length = 0;
+
+  // modes
+  exactMode = !!data.exact;
+  angleMode = (data.angle === 'rad') ? 'rad' : 'deg';
+  if (data.gravity === 9.8 || data.gravity === 9.81) { gValue = data.gravity; PHYS_CONSTANTS.g = gValue; }
+  if (data.sigfigs === 2 || data.sigfigs === 3 || data.sigfigs === 4 || data.sigfigs === 'auto') sigFigs = data.sigfigs;
+  const theme = (data.theme === 'dark') ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  syncModeButtons(theme);
+
+  const fdata = (data.folders && data.folders.length) ? data.folders : [{ name:'', userNamed:false, collapsed:false, lines:[{latex:''}] }];
+  for (const fd of fdata) {
+    const folder = createFolder(fd.name || '');
+    folder.userNamed = !!fd.userNamed;
+    if (fd.userNamed) folder.nameEl.value = fd.name || '';
+    const lines = (fd.lines && fd.lines.length) ? fd.lines : [{ latex:'' }];
+    for (const ld of lines) {
+      if (ld.system) {
+        createSystemLine(folder, folder.lines[folder.lines.length-1] || null, (ld.equations && ld.equations.length) ? ld.equations : ['','']);
+        continue;
+      }
+      const line = createLine(folder, folder.lines[folder.lines.length-1] || null, ld.latex || '');
+      if (ld.note) { line.noteArea.value = ld.note; line.lineEl.classList.add('has-note'); if (ld.noteCollapsed) line.lineEl.classList.add('note-collapsed'); }
+      else if (ld.hasNote) { line.lineEl.classList.add('has-note'); }
+      if (ld.sliderMin !== null && ld.sliderMin !== undefined) line.sliderMin = ld.sliderMin;
+      if (ld.sliderMax !== null && ld.sliderMax !== undefined) line.sliderMax = ld.sliderMax;
+      if (ld.sliderStep !== null && ld.sliderStep !== undefined) line.sliderStep = ld.sliderStep;
+    }
+    // remove the default blank line createFolder/createLine may have left if data had lines
+  }
+  // collapse states after build (so heights settle)
+  fdata.forEach((fd, i) => { if (fd.collapsed && folders[i]) { folders[i].collapsed = true; folders[i].el.classList.add('collapsed'); } });
+
+  renumberFolders(); renumber(); recompute();
+}
+
+function syncModeButtons(theme) {
+  themeSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.mode===theme));
+  exactSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.mode===(exactMode?'exact':'decimal')));
+  angleSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.mode===angleMode));
+  gravSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', parseFloat(b.dataset.g)===gValue));
+  sigfigSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.sf===String(sigFigs)));
+}
+
+/* ---- tabs ---- */
+const STORAGE_KEY = 'stemvault_calc_tabs_v1';
+let saveTimer = null;
+let storageOK = true;
+try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); } catch (e) { storageOK = false; }
+
+function persist() {
+  // write the active tab's live snapshot into its tab record, then save all tabs
+  const t = tabs.find(t => t.id === activeTabId);
+  if (t) t.data = snapshotActive();
+  if (!storageOK) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ tabs, activeTabId, tabSeq, idSeq }));
+  } catch (e) { /* quota or disabled; ignore */ }
+}
+
+/* debounced autosave, called on every meaningful change */
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persist, 300);
+}
+
+function renderTabList() {
+  tabList.innerHTML = '';
+  tabs.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'tab' + (t.id === activeTabId ? ' active' : '');
+    const nameEl = document.createElement('input');
+    nameEl.className = 'tname'; nameEl.value = t.name; nameEl.spellcheck = false;
+    nameEl.addEventListener('click', e => e.stopPropagation());
+    nameEl.addEventListener('input', () => { t.name = nameEl.value; scheduleSave(); });
+    nameEl.addEventListener('keydown', e => { if (e.key==='Enter') nameEl.blur(); });
+    const close = document.createElement('button');
+    close.className = 'tclose'; close.innerHTML = '&times;'; close.title = 'Close tab';
+    close.addEventListener('click', e => { e.stopPropagation(); closeTab(t.id); });
+    row.appendChild(nameEl); row.appendChild(close);
+    row.addEventListener('click', () => switchTab(t.id));
+    tabList.appendChild(row);
+  });
+}
+
+function switchTab(id) {
+  if (id === activeTabId) { closePanel(); return; }
+  // save current active tab's live state
+  const cur = tabs.find(t => t.id === activeTabId);
+  if (cur) cur.data = snapshotActive();
+  activeTabId = id;
+  const t = tabs.find(t => t.id === id);
+  if (t) loadSnapshot(t.data);
+  renderTabList(); persist(); closePanel();
+}
+
+function newTab(data, name) {
+  const cur = tabs.find(t => t.id === activeTabId);
+  if (cur) cur.data = snapshotActive();
+  const id = ++tabSeq;
+  const blank = { theme:'light', exact:true, angle:'deg', folders:[{ name:'', userNamed:false, collapsed:false, lines:[{latex:''}] }] };
+  const tab = { id, name: name || ('Tab ' + id), data: data || blank };
+  tabs.push(tab);
+  activeTabId = id;
+  loadSnapshot(tab.data);
+  renderTabList(); persist();
+  return tab;
+}
+
+function closeTab(id) {
+  const idx = tabs.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  if (tabs.length === 1) { // never zero tabs; reset this one to blank
+    tabs[0].data = { theme:'light', exact:true, angle:'deg', folders:[{ name:'', userNamed:false, collapsed:false, lines:[{latex:''}] }] };
+    if (activeTabId === id) loadSnapshot(tabs[0].data);
+    renderTabList(); persist(); return;
+  }
+  const wasActive = (id === activeTabId);
+  tabs.splice(idx, 1);
+  if (wasActive) { activeTabId = tabs[Math.max(0, idx-1)].id; loadSnapshot(tabs.find(t=>t.id===activeTabId).data); }
+  renderTabList(); persist();
+}
+
+/* ---- panel open/close ---- */
+const appEl = document.getElementById('app');
+function openPanel() { appEl.classList.add('panel-open'); renderTabList(); }
+function closePanel() { appEl.classList.remove('panel-open'); }
+const tabList = document.getElementById('tabList');
+document.getElementById('panelToggle').addEventListener('click', () => {
+  appEl.classList.contains('panel-open') ? closePanel() : openPanel();
+});
+document.getElementById('panelScrim').addEventListener('click', closePanel);
+document.getElementById('newTab').addEventListener('click', () => { newTab(); });
+
+/* ---- file export / import ---- */
+document.getElementById('exportFile').addEventListener('click', () => {
+  const t = tabs.find(t => t.id === activeTabId);
+  const payload = { format:'stemvault-calc', version:1, name: t ? t.name : 'calculator', data: snapshotActive() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const safe = (t ? t.name : 'calculator').replace(/[^\w.-]+/g,'_') || 'calculator';
+  a.href = url; a.download = safe + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+const fileInput = document.getElementById('fileInput');
+document.getElementById('importFile').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const payload = JSON.parse(reader.result);
+      const data = payload.data || payload;     // accept raw snapshot too
+      newTab(data, payload.name || file.name.replace(/\.json$/,''));
+      closePanel();
+    } catch (e) { alert('Could not read that file.'); }
+    fileInput.value = '';
+  };
+  reader.readAsText(file);
+});
+
+/* ---- shareable URL ---- */
+function encodeState(data) {
+  const json = JSON.stringify(data);
+  return encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+}
+function decodeState(s) {
+  try { return JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(s))))); }
+  catch (e) { return null; }
+}
+document.getElementById('shareLink').addEventListener('click', async () => {
+  const data = snapshotActive();
+  const link = location.origin + location.pathname + '#s=' + encodeState(data);
+  try { await navigator.clipboard.writeText(link); flashShare('Link copied'); }
+  catch (e) {
+    // fallback: put it in the location bar
+    location.hash = 's=' + encodeState(data);
+    flashShare('Link in address bar');
+  }
+});
+function flashShare(msg) {
+  const btn = document.getElementById('shareLink');
+  const old = btn.textContent; btn.textContent = msg;
+  setTimeout(() => { btn.textContent = old; }, 1400);
+}
+
+/* =====================================================================
+   Bootstrap: URL share > localStorage > fresh
+   ===================================================================== */
+(function init() {
+  // 1) shared link takes priority
+  const hash = location.hash;
+  const mShare = hash.match(/[#&]s=([^&]+)/);
+  if (mShare) {
+    const data = decodeState(mShare[1]);
+    if (data) {
+      // load saved tabs (if any) then add the shared one as a new tab
+      restoreTabsOrFresh(/*deferActiveLoad=*/true);
+      window.history.replaceState(null, '', location.pathname + location.search); // clean URL
+      newTab(data, 'Shared');
+      return;
+    }
+  }
+  // 2) restore from localStorage, else fresh
+  restoreTabsOrFresh(false);
+})();
+
+function restoreTabsOrFresh(deferActiveLoad) {
+  let saved = null;
+  if (storageOK) {
+    try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { saved = null; }
+  }
+  if (saved && saved.tabs && saved.tabs.length) {
+    tabs = saved.tabs;
+    tabSeq = saved.tabSeq || tabs.reduce((m,t)=>Math.max(m,t.id),0);
+    idSeq = saved.idSeq || 0;
+    activeTabId = saved.activeTabId && tabs.some(t=>t.id===saved.activeTabId) ? saved.activeTabId : tabs[0].id;
+    if (!deferActiveLoad) loadSnapshot(tabs.find(t=>t.id===activeTabId).data);
+    renderTabList();
+  } else {
+    // fresh: one blank tab
+    const f = createFolder(''); createLine(f).mq.focus(); renumber();
+    const id = ++tabSeq;
+    tabs = [{ id, name:'Tab 1', data: snapshotActive() }];
+    activeTabId = id;
+    renderTabList();
+  }
+}
+</script>
+</body>
+</html>

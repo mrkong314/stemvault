@@ -1,0 +1,47 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+---
+<BaseLayout title="Calculator · Tools · StemVault">
+  <section class="page">
+    <div class="container">
+      <nav class="crumbs">
+        <a href="/tools">Tools</a>
+      </nav>
+      <header class="page-head">
+        <span class="eyebrow">Tool</span>
+        <h1>Calculator</h1>
+        <p class="page-sub">Mathematical calculator with symbolic input and formula rendering. Type expressions naturally or use the equation editor for complex calculations.</p>
+      </header>
+
+      <iframe
+        src="/tools/calculator.html"
+        title="Mathematical Calculator"
+        class="calculator-frame">
+      </iframe>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page { padding: 2.5rem 0 4rem; }
+  .crumbs {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+    margin-bottom: 1rem;
+  }
+  .crumbs a { color: var(--ink-mute); }
+  .crumbs a:hover { color: var(--pine); }
+  .page-head h1 { margin: 0.4rem 0 0.6rem; }
+  .page-sub { color: var(--ink-soft); margin: 0 0 1.5rem; max-width: 60ch; }
+
+  .calculator-frame {
+    width: 100%;
+    height: 90vh;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+  }
+</style>
