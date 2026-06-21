@@ -4098,7 +4098,10 @@ function makeKey(k) {
         mq.typedText('int');
         break;
       case 'act':
-        if (k.v === 'newline') {
+        if (k.v === 'enter') {
+          // mirror pressing Return: same behaviour as the MathQuill enter handler
+          insertAdjacentLine(line, 'after');
+        } else if (k.v === 'newline') {
           const f = line.folder; const idx = f.lines.indexOf(line); const next = f.lines[idx+1];
           if (next) focusLineSafe(next); else createLine(f, line).mq.focus();
         } else if (k.v === 'note') {
@@ -4131,7 +4134,7 @@ const PAGE_CALC = [
   {l:'4', t:'write', v:'4'}, {l:'5', t:'write', v:'5'}, {l:'6', t:'write', v:'6'}, {l:'\u00D7', t:'cmd', v:'\\times', c:'op'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'},
   {l:'1', t:'write', v:'1'}, {l:'2', t:'write', v:'2'}, {l:'3', t:'write', v:'3'}, {l:'\u2212', t:'type', v:'-', c:'op'}, {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'},
   {l:'0', t:'write', v:'0'}, {l:'.', t:'write', v:'.'}, {l:'=', t:'write', v:'=', c:'op'}, {l:'+', t:'type', v:'+', c:'op'}, {l:'ans', t:'write', v:'ans', c:'act'},
-  {l:'?', t:'act', v:'symbol', c:'act'}, {l:'x', t:'var', v:'x', c:'varkey', letter:true}, {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}'}, {l:'@', t:'act', v:'formula', c:'act'}, {l:',', t:'write', v:',', c:'op'},
+  {l:'?', t:'act', v:'symbol', c:'act'}, {l:'x', t:'var', v:'x', c:'varkey', letter:true}, {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}'}, {l:'@', t:'act', v:'formula', c:'act'}, {l:'\u21B5', t:'act', v:'enter', c:'act op'},
 ];
 const PAGE_VARS = [
   // only non-predefined letters appear here (predefined constants c, e, h, k are
