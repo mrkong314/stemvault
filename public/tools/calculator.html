@@ -343,6 +343,30 @@
   .mq-field.mq-focused { box-shadow: none !important; }
   .mq-editable-field { border: none !important; }
   .mq-field .mq-fraction { font-size: 95%; }
+  /* Excel-style live function-signature hint shown while the caret is inside a
+     function's parentheses; the active argument is highlighted. */
+  #fnHint {
+    position: fixed; z-index: 60; display: none;
+    background: var(--glass-strong, rgba(255,255,255,0.96)); color: var(--ink);
+    border: 1px solid var(--glass-border); border-radius: 9px;
+    padding: 0.3rem 0.55rem; font-size: 0.8rem; font-family: 'KaTeX_Math','Cambria Math',serif;
+    box-shadow: 0 6px 20px rgba(31,45,80,0.18), inset 0 1px 0 var(--glass-edge);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    white-space: nowrap; pointer-events: none;
+  }
+  #fnHint .fn-name { font-weight: 600; font-style: normal; font-family: inherit; }
+  #fnHint .fn-arg { opacity: 0.55; }
+  #fnHint .fn-arg.active { opacity: 1; color: var(--accent); font-weight: 700; }
+  /* Let a long expression wrap onto the next line instead of overflowing the row
+     (similar to notes). MathQuill defaults its root block to nowrap; allow normal
+     wrapping at the top level so the field grows taller as needed. */
+  .mq-field .mq-root-block, .mq-field.mq-editable-field .mq-root-block {
+    white-space: normal; display: block;
+    overflow-wrap: anywhere; word-break: break-word;
+  }
+  /* let long unbroken digit/letter runs (e.g. a 30-digit number) wrap too */
+  .mq-field .mq-root-block .mq-digit, .mq-field .mq-root-block var,
+  .mq-field .mq-root-block .mq-nonSymbola { overflow-wrap: anywhere; }
 
   /* With a tall radicand (e.g. a fraction inside \sqrt) MathQuill's scaled radical
      glyph can leave a thin sliver above the top bar. Nudge the stem bar to sit
@@ -368,6 +392,14 @@
   }
   .line .result.assign { color: var(--assign); }
   .line .result .katex { font-size: 1.05rem; color: inherit; }
+  /* list/matrix results can be very wide; render as wrapping element spans so a
+     long list breaks across lines instead of overflowing the screen */
+  .line .result.list-result { white-space: normal; justify-content: flex-start; max-width: 100%; }
+  .main-row:not(.stacked) .result.list-result { white-space: normal; max-width: 100%; flex: 1 1 100%; }
+  .result .list-wrap { display: inline; white-space: normal; }
+  .result .list-wrap .list-item { display: inline-block; white-space: nowrap; }
+  .result .list-wrap .list-comma { margin-right: 0.35rem; }
+  .result .list-wrap .list-brk { opacity: 0.7; }
   .line .result[data-copy], .sys-result[data-copy] { cursor: pointer; position: relative; padding-right: 1.2rem; }
   .line .result[data-copy]:hover, .sys-result[data-copy]:hover { opacity: 0.82; }
   .line .result[data-copy]::after, .sys-result[data-copy]::after {
@@ -516,14 +548,19 @@
   }
   #keypad button:hover { background: var(--glass-strong); }
   #keypad button:active { transform: scale(0.95); box-shadow: 0 1px 2px rgba(31,45,80,0.12); }
-  #keypad button.fn  { color: var(--accent); font-size: 0.9rem; font-weight: 600; }
-  #keypad button.op  { color: var(--ink); font-weight: 600; }
+  #keypad button.fn  { color: var(--accent); font-size: 0.9rem; font-weight: 400; }
+  /* all f(x)-page buttons render in the normal ink colour (not accent blue) */
+  #portraitPad .page-fns button, #portraitPad .page-fns button.fn { color: var(--ink); }
+  #portraitPad .page-fns button .katex, #portraitPad .page-fns button .katex * { color: var(--ink) !important; }
+  #keypad button.op  { color: var(--ink); font-weight: 400; }
   #keypad button.act { color: var(--ink-dim); font-size: 0.85rem; }
   #keypad button.capskey.on {
     color: #fff; background: var(--accent); border-color: transparent;
     box-shadow: 0 2px 8px rgba(10,132,255,0.45), inset 0 1px 0 rgba(255,255,255,0.5);
   }
-  #keypad button.solvebtn { color: var(--ink); font-size: 0.9rem; font-weight: 600; }
+  #keypad button.solvebtn { color: var(--ink); font-size: 0.9rem; font-weight: 400; }
+  /* only the page tabs (123 / abc / f(x)) are bold; all keys are normal weight */
+  #keypad button:not(.pad-tab) { font-weight: 400; }
   #keypad button .katex,
   #keypad button .katex .mord, #keypad button .katex .mop, #keypad button .katex .mbin,
   #keypad button .katex .mrel, #keypad button .katex .mopen, #keypad button .katex .mclose,
@@ -553,12 +590,16 @@
   }
   .pad-tab.on:hover { opacity: 1; }
   #portraitPad .pad-tab .katex { color: inherit; font-size: 1.02em; }
-  #portraitPad .pad-tab .katex, #portraitPad .pad-tab .katex .mord, #portraitPad .pad-tab .katex .mopen,
+  #portraitPad .pad-tab .katex, #portraitPad .pad-tab .katex * { color: inherit !important; }
+  #portraitPad .pad-tab .katex .mord, #portraitPad .pad-tab .katex .mopen,
   #portraitPad .pad-tab .katex .mclose, #portraitPad .pad-tab .katex .mbin, #portraitPad .pad-tab .katex .mrel { font-weight: 700; color: inherit; }
   .pad-page { display: none; gap: 7px; }
   .pad-page.on { display: grid; }
   #keypad button.varkey { font-size: 1rem; font-style: italic; font-family: 'KaTeX_Math','Cambria Math',serif; }
   #keypad button.greekkey { color: var(--accent); font-style: normal; }
+  /* all abc-page buttons render in the normal ink colour (not accent blue) */
+  #portraitPad .page-vars button, #portraitPad .page-vars button.greekkey { color: var(--ink); }
+  #portraitPad .page-vars button .katex, #portraitPad .page-vars button .katex * { color: var(--ink) !important; }
 
   /* fraction glyph on the a/b key */
   .frac-glyph {
@@ -1036,6 +1077,8 @@
   <div id="formulaResults"></div>
 </div>
 
+<div id="fnHint"></div>
+
 <script>
 "use strict";
 const MQ = MathQuill.getInterface(2);
@@ -1153,7 +1196,9 @@ function angleScope() {
 const FUNCS = ['sin','cos','tan','sec','csc','cot','sinh','cosh','tanh',
   'arcsin','arccos','arctan','asin','acos','atan','ln','log','exp','sqrt',
   'nthRoot','abs','floor','ceil','round','sign','deg','ans','mod','min','max',
-  'gcd','lcm','factorial','solve','integrate'];
+  'gcd','lcm','factorial','solve','integrate','summation',
+  'nCr','nPr','normCDF','invNorm','binomPDF','binomCDF','sumlist','add','zscore',
+  'stdev','mean','median','mod','round'];
 const CONSTS = ['pi','e'];
 const RESERVED = [...FUNCS, ...CONSTS];
 
@@ -1179,6 +1224,99 @@ function physConstants() { return { ...PHYS_CONSTANTS_BASE, g: gValue }; }
 const PHYS_CONSTANTS = physConstants();   // snapshot for name lookups
 const PHYS_NAMES = new Set(Object.keys(PHYS_CONSTANTS));
 
+/* Custom calculator functions injected into every evaluation scope. These cover
+   combinatorics and the common VCE statistics functions (normal + binomial),
+   plus list-summation helpers. They are plain JS so they work regardless of the
+   math.js build's optional functions. */
+function _fact(n) { n = Math.round(n); if (n < 0) return NaN; let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
+function _nCr(n, r) { n = Math.round(n); r = Math.round(r); if (r < 0 || r > n) return 0; return _fact(n) / (_fact(r) * _fact(n - r)); }
+function _nPr(n, r) { n = Math.round(n); r = Math.round(r); if (r < 0 || r > n) return 0; return _fact(n) / _fact(n - r); }
+// numerically stable error function (Abramowitz & Stegun 7.1.26)
+function _erf(x) {
+  const s = x < 0 ? -1 : 1; x = Math.abs(x);
+  const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return s * y;
+}
+function _normProb(z) { return 0.5 * (1 + _erf(z / Math.SQRT2)); }   // standard-normal CDF
+// inverse standard-normal CDF (quantile) -- Acklam's rational approximation
+function _invNormStd(p) {
+  if (p <= 0) return -Infinity; if (p >= 1) return Infinity;
+  const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+  const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+  const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+  const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+  const plow = 0.02425, phigh = 1 - plow; let q, r;
+  if (p < plow) { q = Math.sqrt(-2 * Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if (p <= phigh) { q = p - 0.5; r = q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1); }
+  q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+}
+function _flat(args) {   // flatten math.js matrices/arrays + plain numbers into a number[]
+  const out = [];
+  const push = v => {
+    if (v == null) return;
+    if (typeof v === 'number') out.push(v);
+    else if (Array.isArray(v)) v.forEach(push);
+    else if (v && typeof v.toArray === 'function') v.toArray().forEach(push);   // math.js Matrix
+    else if (typeof v === 'object' && typeof v.valueOf === 'function') out.push(Number(v.valueOf()));
+  };
+  args.forEach(push);
+  return out;
+}
+const CALC_FUNCS = {
+  factorial: (n) => _fact(n),
+  nCr: (n, r) => _nCr(n, r),
+  nPr: (n, r) => _nPr(n, r),
+  // normCDF(mean, std, lower, upper): P(lower < X < upper)
+  normCDF: (mean, std, lower, upper) => _normProb((upper - mean) / std) - _normProb((lower - mean) / std),
+  // binomPDF(n, p, k): P(X = k)
+  binomPDF: (n, p, k) => { k = Math.round(k); return _nCr(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k); },
+  // invNorm(area, mean, std): x such that P(X < x) = area (mean/std default 0/1)
+  invNorm: (area, mean, std) => { mean = (mean === undefined) ? 0 : mean; std = (std === undefined) ? 1 : std; return mean + std * _invNormStd(area); },
+  // binomCDF(n, p, lower, upper): P(lower <= X <= upper) summed over the range
+  binomCDF: (n, p, lower, upper) => {
+    lower = Math.round(lower); upper = Math.round(upper);
+    let s = 0; for (let i = Math.max(0, lower); i <= Math.min(n, upper); i++) s += _nCr(n, i) * Math.pow(p, i) * Math.pow(1 - p, n - i);
+    return s;
+  },
+  // add(...) / sumlist(...): add up all the numbers / list entries passed in
+  sumlist: (...args) => _flat(args).reduce((a, b) => a + b, 0),
+  add: (...args) => _flat(args).reduce((a, b) => a + b, 0),
+  // zscore(x, mean, std): standardised score
+  zscore: (x, mean, std) => (x - mean) / std,
+  // descriptive stats over a list or argument list (sample std, matching VCE)
+  stdev: (...args) => math.std(_flat(args)),
+  mean: (...args) => { const a = _flat(args); return a.reduce((s, v) => s + v, 0) / a.length; },
+  median: (...args) => math.median(_flat(args)),
+};
+
+/* Parameter signatures for the Excel-style live hint shown while the caret is
+   inside a function's parentheses. The active argument (by comma position) is
+   highlighted. `rest:true` means the last parameter repeats (variadic). */
+const FUNC_SIGNATURES = {
+  nCr: ['n', 'r'],
+  nPr: ['n', 'r'],
+  factorial: ['n'],
+  normCDF: ['mean', 'std', 'lower', 'upper'],
+  invNorm: ['area', 'mean', 'std'],
+  binomPDF: ['n', 'p', 'k'],
+  binomCDF: ['n', 'p', 'lower', 'upper'],
+  sumlist: [{ name: 'value', rest: true }],
+  add: [{ name: 'value', rest: true }],
+  zscore: ['x', 'mean', 'std'],
+  mean: [{ name: 'value', rest: true }],
+  median: [{ name: 'value', rest: true }],
+  stdev: [{ name: 'value', rest: true }],
+  round: ['x', 'dp'],
+  log: ['value', 'base'],
+  nthRoot: ['value', 'n'],
+  gcd: [{ name: 'value', rest: true }],
+  lcm: [{ name: 'value', rest: true }],
+  min: [{ name: 'value', rest: true }],
+  max: [{ name: 'value', rest: true }],
+  mod: ['a', 'b'],
+};
+
 /* Greek letters: LaTeX command -> unicode glyph used as the variable identifier.
    math.js accepts single unicode letters as variable names. \pi is handled
    separately (it stays the constant pi). Capitalized and lowercase forms are
@@ -1197,7 +1335,14 @@ const GREEK_AUTOCOMMANDS = Object.keys(GREEK).join(' ');
 /* set of glyphs, for the tokenizer to recognise as single-letter variables */
 const GREEK_GLYPHS = new Set(Object.values(GREEK));
 /* searchable symbol list for the @ picker: {name, latex, glyph} */
-const SYMBOL_LIST = Object.entries(GREEK).map(([name, glyph]) => ({ name, latex: '\\' + name, glyph }));
+const SYMBOL_LIST = [
+  // Greek letters and math symbols (inserted as MathQuill commands)
+  ...Object.entries(GREEK).map(([name, glyph]) => ({ name, latex: '\\' + name, glyph, kind: 'cmd' })),
+  // every Latin letter (lower + upper), inserted as plain text, so the abc panel
+  // only needs to show the most common letters and the rest are searchable here
+  ...'abcdefghijklmnopqrstuvwxyz'.split('').map(ch => ({ name: 'letter ' + ch, latex: ch, glyph: ch, kind: 'text' })),
+  ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(ch => ({ name: 'letter ' + ch, latex: ch, glyph: ch, kind: 'text' })),
+];
 
 /* searchable formula list for the f(x) @ picker. Each entry:
    {name, cat, kw, latex}  where `latex` is inserted into the math field and
@@ -1356,6 +1501,38 @@ function matchBrace(str, openIdx) {
   return str.length - 1;
 }
 
+/* Desmos-style summation: \sum_{n=1}^{N}(body) -> summation(body, n, 1, N).
+   The lower script holds "var=lo"; the body is the parenthesised group that
+   follows (the sigma key inserts explicit brackets so the body is unambiguous). */
+function parseSums(s) {
+  let guard = 0;
+  while (guard++ < 10) {
+    const m = s.match(/\\sum/);
+    if (!m) break;
+    const i = m.index;
+    let p = i + 4;                       // after \sum
+    let lowerRaw = '', upper = '';
+    for (let pass = 0; pass < 2; pass++) {
+      if (s[p] === '_') { const c = matchBrace(s, p + 1); lowerRaw = s.slice(p + 2, c); p = c + 1; }
+      else if (s[p] === '^') { const c = matchBrace(s, p + 1); upper = s.slice(p + 2, c); p = c + 1; }
+    }
+    // lower is "var=lo" (Desmos style); fall back to n / 1 if missing
+    let varName = 'n', lo = '1';
+    const eq = lowerRaw.indexOf('=');
+    if (eq !== -1) { varName = lowerRaw.slice(0, eq).trim() || 'n'; lo = lowerRaw.slice(eq + 1).trim() || '1'; }
+    else if (lowerRaw.trim()) { lo = lowerRaw.trim(); }
+    if (upper === '') upper = '1';
+    // body: a parenthesised group immediately after the scripts, else to end
+    let body = '', after = '';
+    while (p < s.length && s[p] === ' ') p++;
+    if (s[p] === '(') { const c = matchParen(s, p); body = s.slice(p + 1, c); after = s.slice(c + 1); }
+    else { body = s.slice(p); after = ''; }
+    const call = 'summation((' + (body.trim() || '0') + '),' + varName + ',' + lo + ',' + upper + ')';
+    s = s.slice(0, i) + call + after;
+  }
+  return s;
+}
+
 function latexToMath(latex) {
   let s = latex;
   s = s.replace(/\\left/g, '').replace(/\\right/g, '');
@@ -1364,6 +1541,7 @@ function latexToMath(latex) {
   // nested bars resolve from the inside out.
   let pb;
   do { pb = s; s = s.replace(/\|([^|]+)\|/g, 'abs($1)'); } while (s !== pb);
+  s = parseSums(s);                 // \sum_{n=1}^{N}(body) -> summation(...)
   // Definite integral: \int_{a}^{b} integrand d<var>  ->  integrate(integrand, var, a, b)
   // MathQuill emits \int_{a}^{b}; the integrand and the trailing d<var> are plain.
   s = parseIntegrals(s);
@@ -1389,6 +1567,9 @@ function latexToMath(latex) {
   s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*').replace(/\\div/g, '/');
   s = s.replace(/\bln\b/g, 'log');
   s = s.replace(/\\degree|°/g, ' deg');
+  // percent postfix: a number (or close-paren) followed by % -> divide by 100
+  s = s.replace(/\\%/g, '%');
+  s = s.replace(/(\d+(?:\.\d+)?|\))\s*%/g, '($1/100)');
   s = s.replace(/_\{([^}]*)\}/g, '_\u2039$1\u203A');   // subscript braces -> guillemet sentinels so the boundary survives
   s = s.replace(/[{}]/g, '').replace(/\\,/g, '').replace(/\\/g, '');
   return s.trim();
@@ -1809,6 +1990,41 @@ function resolveIntegrals(expr, scope) {
 }
 function hasIntegral(expr) { return /\bintegrate\s*\(/.test(expr); }
 
+/* Evaluate summation(body, var, lo, hi): sum body over integer var = lo..hi. */
+function resolveSums(expr, scope) {
+  let out = expr; let guard = 0;
+  while (guard++ < 20) {
+    const idx = out.search(/\bsummation\s*\(/);
+    if (idx === -1) break;
+    const open = out.indexOf('(', idx);
+    const close = matchParen(out, open);
+    if (close === -1) throw new Error('sum: unbalanced parentheses');
+    const inner = out.slice(open + 1, close);
+    const parts = []; let depth = 0, last = 0;
+    for (let i = 0; i < inner.length; i++) {
+      if (inner[i] === '(') depth++;
+      else if (inner[i] === ')') depth--;
+      else if (inner[i] === ',' && depth === 0) { parts.push(inner.slice(last, i)); last = i + 1; }
+    }
+    parts.push(inner.slice(last));
+    if (parts.length < 4) throw new Error('sum needs body, variable, lower, upper');
+    const body = parts[0].trim();
+    const varName = parts[1].trim();
+    let lo = Math.round(math.evaluate(parts[2], scope));
+    let hi = Math.round(math.evaluate(parts[3], scope));
+    let total = 0;
+    const compiled = math.compile(body);
+    const limit = 1e6;                    // guard against runaway ranges
+    if (hi - lo > limit) throw new Error('sum range too large');
+    for (let k = lo; k <= hi; k++) {
+      total += compiled.evaluate({ ...scope, [varName]: k });
+    }
+    out = out.slice(0, idx) + '(' + total + ')' + out.slice(close + 1);
+  }
+  return out;
+}
+function hasSum(expr) { return /\bsummation\s*\(/.test(expr); }
+
 /* collect the free variable names referenced in an expression (non-function
    single-letter names, excluding constants, ans, predefined constants, and any
    solve() target var) */
@@ -1826,6 +2042,9 @@ function referencedVars(expr) {
   // the integration variable in integrate(integrand, var, a, b) is bound, not free
   const intVars = [...expr.matchAll(/integrate\s*\([^,]*,\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*,/g)].map(m => m[1]);
   intVars.forEach(v => out.delete(v));
+  // the summation index in summation(body, var, lo, hi) is bound, not free
+  const sumVars = [...expr.matchAll(/summation\s*\(\s*\((?:[^()]|\([^()]*\))*\)\s*,\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*,/g)].map(m => m[1]);
+  sumVars.forEach(v => out.delete(v));
   return [...out];
 }
 
@@ -1843,6 +2062,15 @@ let sigFigs = 'auto';   // 'auto' | 3  (set from the header; default Auto)
 let solveAllMode = false;   // when on, solve(eq,var) lists all real roots in a window
 
 function decimalLatex(value) {
+  // lists/matrices: format each element the same way, render as [a, b, c]
+  if (value && typeof value === 'object' && (Array.isArray(value) || typeof value.toArray === 'function')) {
+    const arr = Array.isArray(value) ? value : value.toArray();
+    const parts = arr.map(el => {
+      const inner = decimalLatex(el);
+      return inner === null ? String(el) : inner;
+    });
+    return '\\left[' + parts.join(',\\ ') + '\\right]';
+  }
   if (typeof value !== 'number' || !isFinite(value)) return null;
   if (value === 0) return '0';
   const prec = (sigFigs === 'auto') ? 12 : sigFigs;
@@ -1875,6 +2103,12 @@ function decimalLatex(value) {
 }
 
 function exactLatex(value) {
+  // lists/matrices: format each element exactly, render as [a, b, c]
+  if (value && typeof value === 'object' && (Array.isArray(value) || typeof value.toArray === 'function')) {
+    const arr = Array.isArray(value) ? value : value.toArray();
+    const parts = arr.map(el => { const inner = exactLatex(el); return inner === null ? (decimalLatex(el) || String(el)) : inner; });
+    return '\\left[' + parts.join(',\\ ') + '\\right]';
+  }
   if (typeof value !== 'number' || !isFinite(value)) return null;
   if (Number.isInteger(value)) {
     const s = String(value);
@@ -2150,6 +2384,10 @@ function renderResult(resEl, opts, value) {
   const prefixLatex = opts.prefixLatex || '';   // e.g. "e_{2} ="
   const plainPrefix = opts.plainPrefix || '';   // e.g. "= "
 
+  // lists/matrices can be wide; flag them so the result is allowed to wrap
+  const isList = value && typeof value === 'object' && (Array.isArray(value) || typeof value.toArray === 'function');
+  resEl.classList.toggle('list-result', !!isList);
+
   let valLatex = null;
   if (exactMode) {
     valLatex = exactLatex(value);
@@ -2169,6 +2407,25 @@ function renderResult(resEl, opts, value) {
   resEl.dataset.copyHtml = latexToMathML(valLatex || '');
 
   if (valLatex !== null && window.katex) {
+    // List results: render each element as its own KaTeX span inside a wrapping
+    // flex row so a long list breaks across lines instead of overflowing.
+    if (isList) {
+      const arr = Array.isArray(value) ? value : value.toArray();
+      const wrap = document.createElement('span'); wrap.className = 'list-wrap';
+      if (prefixLatex) { const p = document.createElement('span'); try { katex.render(prefixLatex, p, { throwOnError:false }); } catch (e) { p.textContent = prefixLatex; } wrap.appendChild(p); }
+      else if (plainPrefix) { const p = document.createElement('span'); p.textContent = plainPrefix; wrap.appendChild(p); }
+      const ob = document.createElement('span'); ob.className = 'list-brk'; ob.textContent = '['; wrap.appendChild(ob);
+      arr.forEach((el, i) => {
+        const item = document.createElement('span'); item.className = 'list-item';
+        const elLatex = (exactMode ? (exactLatex(el) ?? decimalLatex(el)) : decimalLatex(el)) || String(el);
+        try { katex.render(elLatex, item, { throwOnError:false }); } catch (e) { item.textContent = elLatex; }
+        wrap.appendChild(item);
+        if (i < arr.length - 1) { const c = document.createElement('span'); c.className = 'list-comma'; c.textContent = ','; wrap.appendChild(c); }
+      });
+      const cb = document.createElement('span'); cb.className = 'list-brk'; cb.textContent = ']'; wrap.appendChild(cb);
+      resEl.appendChild(wrap);
+      return;
+    }
     const span = document.createElement('span');
     const full = prefixLatex ? (prefixLatex + ' ' + valLatex) : valLatex;
     try {
@@ -2296,6 +2553,7 @@ function balanceParens(s) {
 
 function evalExpr(text, scope) {
   let t = text;
+  if (hasSum(t)) t = resolveSums(t, scope);
   if (hasIntegral(t)) t = resolveIntegrals(t, scope);
   if (hasSolve(t)) t = resolveSolveCalls(t, scope);
   t = balanceParens(t);
@@ -2318,7 +2576,7 @@ function recompute() {
 function recomputeImpl() {
   const angleFns = angleScope();
   for (const folder of folders) {
-    const scope = { ...angleFns, ...physConstants() };
+    const scope = { ...angleFns, ...physConstants(), ...CALC_FUNCS };
     const definedNames = new Set();
 
     const infos = folder.lines.map(line => {
@@ -2794,6 +3052,99 @@ function breakOutOfSupSub(mq, fieldEl) {
   return false;
 }
 
+/* ---- Excel-style live function-signature hint ----
+   While the caret is inside a known function's parentheses, show a small tooltip
+   listing the parameters with the current one (by comma position) highlighted. */
+const fnHintEl = document.getElementById('fnHint');
+
+// collect the visible text in the field up to (but not including) the caret
+function textBeforeCaret(fieldEl) {
+  const cursor = fieldEl && fieldEl.querySelector('.mq-cursor');
+  if (!cursor) return null;
+  let before = '', stop = false;
+  const walk = (el) => {
+    for (const ch of el.childNodes) {
+      if (stop) return;
+      if (ch === cursor) { stop = true; return; }
+      if (ch.nodeType === 3) before += ch.textContent;
+      else if (ch.nodeType === 1) {
+        if (ch.contains(cursor)) { walk(ch); return; }
+        before += ch.textContent;
+      }
+    }
+  };
+  walk(fieldEl);
+  return before;
+}
+
+// given the text before the caret, find the innermost unclosed "funcname(" and
+// the active argument index (commas at this paren depth before the caret)
+function activeFnContext(before) {
+  if (!before) return null;
+  let depth = 0;                 // paren depth relative to scan position
+  // walk from the end backwards to find the enclosing open paren
+  // track comma count once we know the open-paren position
+  // first, find index of the open paren that encloses the caret
+  let openIdx = -1, d = 0;
+  for (let i = before.length - 1; i >= 0; i--) {
+    const c = before[i];
+    if (c === ')') d++;
+    else if (c === '(') { if (d === 0) { openIdx = i; break; } d--; }
+  }
+  if (openIdx === -1) return null;
+  // function name immediately precedes the open paren (letters/digits, incl. CamelCase)
+  let j = openIdx - 1, name = '';
+  while (j >= 0 && /[A-Za-z0-9]/.test(before[j])) { name = before[j] + name; j--; }
+  if (!name || !FUNC_SIGNATURES[name]) return null;
+  // count top-level commas between openIdx and the caret -> active arg index
+  let argIdx = 0, dep = 0;
+  for (let i = openIdx + 1; i < before.length; i++) {
+    const c = before[i];
+    if (c === '(') dep++;
+    else if (c === ')') dep--;
+    else if (c === ',' && dep === 0) argIdx++;
+  }
+  return { name, argIdx };
+}
+
+function updateFnHint(line) {
+  if (!fnHintEl) return;
+  const fieldEl = line && line.fieldEl;
+  if (!fieldEl || !fieldEl.querySelector('.mq-cursor')) { fnHintEl.style.display = 'none'; return; }
+  const ctx = activeFnContext(textBeforeCaret(fieldEl));
+  if (!ctx) { fnHintEl.style.display = 'none'; return; }
+  const params = FUNC_SIGNATURES[ctx.name];
+  // build "name(a, b, c)" with the active argument highlighted
+  let html = '<span class="fn-name">' + ctx.name + '</span>(';
+  const variadic = params.length === 1 && typeof params[0] === 'object' && params[0].rest;
+  if (variadic) {
+    const base = params[0].name;
+    const labels = [base + '\u2081', base + '\u2082', '\u2026'];
+    html += labels.map((lab, i) => {
+      const active = (i === ctx.argIdx) || (ctx.argIdx >= labels.length - 1 && i === labels.length - 1);
+      return '<span class="fn-arg' + (active ? ' active' : '') + '">' + lab + '</span>';
+    }).join(', ');
+  } else {
+    html += params.map((p, i) => {
+      const nm = typeof p === 'string' ? p : p.name;
+      const active = i === ctx.argIdx;
+      return '<span class="fn-arg' + (active ? ' active' : '') + '">' + nm + '</span>';
+    }).join(', ');
+  }
+  html += ')';
+  fnHintEl.innerHTML = html;
+  fnHintEl.style.display = 'block';
+  // position just above the caret (fall back to below if no room at top)
+  const cur = fieldEl.querySelector('.mq-cursor');
+  const r = cur.getBoundingClientRect();
+  const hw = fnHintEl.offsetWidth, hh = fnHintEl.offsetHeight;
+  let left = Math.min(Math.max(8, r.left), window.innerWidth - hw - 8);
+  let top = r.top - hh - 6;
+  if (top < 8) top = r.bottom + 6;
+  fnHintEl.style.left = left + 'px';
+  fnHintEl.style.top = top + 'px';
+}
+
 /* Decide whether an operator typed while inside a superscript/subscript should
    STAY inside it rather than break out. Exceptions (operator stays in):
    (a) the exponent content is enclosed in brackets -> the operator belongs to
@@ -2956,9 +3307,9 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     charsThatBreakOutOfSupSub: '+-*/=',       // typing an operator exits a superscript/subscript (key on mobile, no arrow keys)
     autoCommands: 'pi sqrt sum nthroot int ' + GREEK_AUTOCOMMANDS,
     autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ' +
-                       'ln log exp abs floor ceil round sign deg ans solve',
+                       'ln log exp abs floor ceil sign deg ans solve',
     handlers: {
-      edit: () => recompute(),
+      edit: () => { recompute(); if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(lineObj)); },
       enter: () => { insertAdjacentLine(lineObj, 'after'); },
       // up/down at the top/bottom of a field (i.e. NOT navigating inside a
       // fraction/superscript/subscript) move between lines instead.
@@ -2967,6 +3318,14 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     }
   });
   lineObj.mq = mq;
+
+  // keep the Excel-style function hint in sync as the caret moves (key nav,
+  // taps) and hide it when the field loses focus
+  const hintRefresh = () => { if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(lineObj)); };
+  fieldEl.addEventListener('keyup', hintRefresh);
+  fieldEl.addEventListener('mouseup', hintRefresh);
+  fieldEl.addEventListener('focusin', hintRefresh);
+  fieldEl.addEventListener('focusout', () => { if (fnHintEl) fnHintEl.style.display = 'none'; });
 
   // Shift+Enter inserts a blank line ABOVE this one (plain Enter, handled by
   // MathQuill above, inserts below). Captured here because MathQuill's enter
@@ -3199,7 +3558,7 @@ function addSystemRow(lineObj, initialLatex = '', focusIt = true) {
     typingSlashWritesDivisionSymbol: false,
     charsThatBreakOutOfSupSub: '+-*/=',
     autoCommands: 'pi sqrt sum nthroot int ' + GREEK_AUTOCOMMANDS,
-    autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ln log exp abs floor ceil round sign deg',
+    autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ln log exp abs floor ceil sign deg',
     handlers: {
       edit: () => recompute(),
       enter: () => {
@@ -3642,6 +4001,7 @@ function makeKey(k) {
     b.textContent = k.l;
   }
   if (k.c) k.c.split(' ').forEach(c => b.classList.add(c));
+  if (k.span) b.style.gridColumn = 'span ' + k.span;
   if (k.letter) letterButtons.push({ btn: b, ch: k.v });
   if (k.t === 'caps') b.classList.add('capskey');
   b.addEventListener('click', () => {
@@ -3687,8 +4047,21 @@ function makeKey(k) {
         break;
       case 'greek': mq.cmd(k.v); break;
       case 'fn':
-        mq.typedText(k.v); mq.typedText('(');
+        if (k.opname) {
+          // multi-letter custom functions render upright (non-italic) via
+          // \operatorname; MathQuill auto-uprights only its built-in names.
+          mq.write('\\operatorname{' + k.v + '}\\left(\\right)');
+          mq.keystroke('Left');   // place caret inside the brackets
+        } else {
+          mq.typedText(k.v); mq.typedText('(');
+        }
         break;
+      case 'sumkey': {
+        // Desmos-style summation: Σ with index n=1, an editable upper limit and a
+        // bracketed body (empty MathQuill slots the user fills in).
+        mq.write('\\sum_{n=1}^{ }\\left(\\right)');
+        break;
+      }
       case 'logbase':
         // log with a chosen base AND an opened bracket: log_{ }( ), with the
         // caret left in the subscript (the base) so you type the base first,
@@ -3715,6 +4088,9 @@ function makeKey(k) {
       case 'exp10':     // ×10ⁿ scientific notation; caret lands in the exponent
         mq.cmd('\\times'); mq.typedText('10'); mq.cmd('^');
         break;
+      case 'exp':       // e^x : natural exponential, caret in the exponent
+        mq.typedText('e'); mq.cmd('^');
+        break;
       case 'abs':
         mq.cmd('|');
         break;
@@ -3735,6 +4111,7 @@ function makeKey(k) {
         }
         break;
     }
+    if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(line));
   });
   return b;
 }
@@ -3747,48 +4124,44 @@ KEYS.forEach(k => { const b = makeKey(k); b.classList.add('landscape-key'); keyp
    Fns (functions + structures + symbols). A tab bar switches pages. Shown only
    in portrait; the landscape math grid above is hidden in portrait. */
 const PAGE_CALC = [
-  {l:'7', t:'write', v:'7'}, {l:'8', t:'write', v:'8'}, {l:'9', t:'write', v:'9'},
-  {l:'(', t:'type', v:'('}, {l:')', t:'type', v:')'}, {l:'frac', t:'type', v:'/', c:'op', frac:true},
-  {l:'4', t:'write', v:'4'}, {l:'5', t:'write', v:'5'}, {l:'6', t:'write', v:'6'},
-  {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'}, {l:'\u00D7', t:'cmd', v:'\\times', c:'op'},
-  {l:'1', t:'write', v:'1'}, {l:'2', t:'write', v:'2'}, {l:'3', t:'write', v:'3'},
-  {l:'\u00D710\u207F', t:'exp10', v:'', c:'op', katex:'\\times 10^{n}'}, {l:'\u221A', t:'cmd', v:'\\sqrt', c:'op', katex:'\\sqrt{\\phantom{x}}'}, {l:'\u2212', t:'type', v:'-', c:'op'},
-  {l:'0', t:'write', v:'0'}, {l:'.', t:'write', v:'.'}, {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
-  {l:'ans', t:'write', v:'ans', c:'act'}, {l:'=', t:'write', v:'=', c:'op'}, {l:'+', t:'type', v:'+', c:'op'},
+  // numpad on the left three columns, operators in col 4, structures in col 5.
+  // bottom row carries the frequently-used extras (? search, x, subscript, @, comma).
+  {l:'(', t:'type', v:'('}, {l:')', t:'type', v:')'}, {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'}, {l:'\u221A', t:'cmd', v:'\\sqrt', c:'op', katex:'\\sqrt{\\phantom{x}}'}, {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
+  {l:'7', t:'write', v:'7'}, {l:'8', t:'write', v:'8'}, {l:'9', t:'write', v:'9'}, {l:'frac', t:'type', v:'/', c:'op', frac:true}, {l:'\u00D710\u207F', t:'exp10', v:'', c:'op', katex:'\\times 10^{n}'},
+  {l:'4', t:'write', v:'4'}, {l:'5', t:'write', v:'5'}, {l:'6', t:'write', v:'6'}, {l:'\u00D7', t:'cmd', v:'\\times', c:'op'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'},
+  {l:'1', t:'write', v:'1'}, {l:'2', t:'write', v:'2'}, {l:'3', t:'write', v:'3'}, {l:'\u2212', t:'type', v:'-', c:'op'}, {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'},
+  {l:'0', t:'write', v:'0'}, {l:'.', t:'write', v:'.'}, {l:'=', t:'write', v:'=', c:'op'}, {l:'+', t:'type', v:'+', c:'op'}, {l:'ans', t:'write', v:'ans', c:'act'},
+  {l:'?', t:'act', v:'symbol', c:'act'}, {l:'x', t:'var', v:'x', c:'varkey', letter:true}, {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}'}, {l:'@', t:'act', v:'formula', c:'act'}, {l:',', t:'write', v:',', c:'op'},
 ];
 const PAGE_VARS = [
-  ...'abcdefghijklmnopqrstuvwxyz'.split('')
-      .map(ch => ({ l:ch, t:'var', v:ch, c:'varkey', letter:true })),
-  {l:'\u21E7', t:'caps', v:'', c:'act'},                 // shift / caps toggle
-  {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}' },  // subscript
-  {l:'?', t:'act', v:'symbol', c:'act'},
-  {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
+  // only non-predefined letters appear here (predefined constants c, e, h, k are
+  // omitted so a tap never inserts a constant by accident; g is kept as the one
+  // useful exception). Every other letter and all Greek live in the ? search.
+  {l:'a', t:'var', v:'a', c:'varkey', letter:true}, {l:'b', t:'var', v:'b', c:'varkey', letter:true}, {l:'d', t:'var', v:'d', c:'varkey', letter:true}, {l:'f', t:'var', v:'f', c:'varkey', letter:true}, {l:'g', t:'var', v:'g', c:'varkey', letter:true},
+  {l:'i', t:'var', v:'i', c:'varkey', letter:true}, {l:'j', t:'var', v:'j', c:'varkey', letter:true}, {l:'m', t:'var', v:'m', c:'varkey', letter:true}, {l:'n', t:'var', v:'n', c:'varkey', letter:true}, {l:'p', t:'var', v:'p', c:'varkey', letter:true},
+  {l:'r', t:'var', v:'r', c:'varkey', letter:true}, {l:'s', t:'var', v:'s', c:'varkey', letter:true}, {l:'t', t:'var', v:'t', c:'varkey', letter:true}, {l:'v', t:'var', v:'v', c:'varkey', letter:true}, {l:'x', t:'var', v:'x', c:'varkey', letter:true},
+  {l:'y', t:'var', v:'y', c:'varkey', letter:true}, {l:'z', t:'var', v:'z', c:'varkey', letter:true}, {l:'\u03B8', t:'greek', v:'\\theta', c:'greekkey'}, {l:'\u03C0', t:'cmd', v:'\\pi', c:'greekkey', katex:'\\pi'}, {l:',', t:'write', v:',', c:'op'},
+  {l:'\u21E7', t:'caps', v:'', c:'act'}, {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}'}, {l:'?', t:'act', v:'symbol', c:'act'}, {l:'[', t:'write', v:'[', c:'op'}, {l:']', t:'write', v:']', c:'op'},
 ];
 const PAGE_FNS = [
-  // row 1 - trig
-  {l:'sin', t:'fn', v:'sin', c:'fn'}, {l:'cos', t:'fn', v:'cos', c:'fn'}, {l:'tan', t:'fn', v:'tan', c:'fn'},
-  {l:'sin\u207B\u00B9', t:'fn', v:'arcsin', c:'fn'}, {l:'cos\u207B\u00B9', t:'fn', v:'arccos', c:'fn'}, {l:'tan\u207B\u00B9', t:'fn', v:'arctan', c:'fn'},
-  // row 2 - logs & exponentials
-  {l:'ln', t:'fn', v:'ln', c:'fn'}, {l:'log', t:'fn', v:'log', c:'fn'}, {l:'log\u2099', t:'logbase', v:'', c:'fn', katex:'\\log_{\\square}(\\square)'},
-  {l:'e', t:'type', v:'e', c:'fn'}, {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'},
-  // row 3 - roots, structures, constants
-  {l:'\u221A', t:'cmd', v:'\\sqrt', c:'fn', katex:'\\sqrt{\\phantom{x}}'}, {l:'nrt', t:'nthroot', v:'', c:'fn', katex:'\\sqrt[n]{\\phantom{x}}'},
-  {l:'frac', t:'type', v:'/', c:'op', frac:true}, {l:'|x|', t:'abs', v:'', c:'fn', katex:'|x|'},
-  {l:'\u222B', t:'int', v:'', c:'fn', katex:'\\int'}, {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'},
-  // row 4 - grouping & actions
-  {l:'(', t:'type', v:'(', c:'op'}, {l:')', t:'type', v:')', c:'op'},
-  {l:'sys', t:'system', v:'', c:'fn', katex:'\\begin{cases}\\square\\\\\\square\\end{cases}'},
-  {l:'@', t:'act', v:'formula', c:'act'}, {l:'solve', t:'solve', v:'', c:'solvebtn'},
-  {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
+  // trig sits at the top (most-used); structures and grouping in the middle;
+  // combinatorics, distributions and tools toward the bottom.
+  {l:'sin', t:'fn', v:'sin', c:'fn'}, {l:'cos', t:'fn', v:'cos', c:'fn'}, {l:'tan', t:'fn', v:'tan', c:'fn'}, {l:'ln', t:'fn', v:'ln', c:'fn'}, {l:'log', t:'fn', v:'log', c:'fn'},
+  {l:'arcsin', t:'fn', v:'arcsin', c:'fn'}, {l:'arccos', t:'fn', v:'arccos', c:'fn'}, {l:'arctan', t:'fn', v:'arctan', c:'fn'}, {l:'e\u02E3', t:'exp', v:'', c:'fn', katex:'e^{x}'}, {l:'log\u2099', t:'logbase', v:'', c:'fn', katex:'\\log_{\\square}'},
+  {l:'\u221A', t:'cmd', v:'\\sqrt', c:'fn', katex:'\\sqrt{\\phantom{x}}'}, {l:'nrt', t:'nthroot', v:'', c:'fn', katex:'\\sqrt[n]{\\phantom{x}}'}, {l:'frac', t:'type', v:'/', c:'op', frac:true}, {l:'|x|', t:'abs', v:'', c:'fn', katex:'|x|'}, {l:'\u222B', t:'int', v:'', c:'fn', katex:'\\int'},
+  {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'}, {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'}, {l:'(', t:'type', v:'(', c:'op'}, {l:')', t:'type', v:')', c:'op'},
+  {l:'n!', t:'type', v:'!', c:'fn'}, {l:'nCr', t:'fn', v:'nCr', c:'fn', opname:true}, {l:'nPr', t:'fn', v:'nPr', c:'fn', opname:true}, {l:'\u03A3', t:'sumkey', v:'', c:'fn', katex:'\\sum'}, {l:'add', t:'fn', v:'add', c:'fn', opname:true},
+  {l:'normCDF', t:'fn', v:'normCDF', c:'fn', opname:true}, {l:'invNorm', t:'fn', v:'invNorm', c:'fn', opname:true}, {l:'binPDF', t:'fn', v:'binomPDF', c:'fn', opname:true}, {l:'binCDF', t:'fn', v:'binomCDF', c:'fn', opname:true}, {l:'solve', t:'solve', v:'', c:'solvebtn'},
+  {l:'sys', t:'system', v:'', c:'fn', katex:'\\begin{cases}\\square\\\\\\square\\end{cases}'}, {l:'round', t:'fn', v:'round', c:'fn', opname:true}, {l:'@', t:'act', v:'formula', c:'act'}, {l:'mean', t:'fn', v:'mean', c:'fn', opname:true}, {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
 ];
 
 const portraitPad = document.createElement('div'); portraitPad.id = 'portraitPad';
 const padTabs = document.createElement('div'); padTabs.className = 'pad-tabs';
 const pagesWrap = document.createElement('div'); pagesWrap.className = 'pad-pages';
 const PAGES = [
-  { name:'123',  math:'123',    cls:'page-calc', keys:PAGE_CALC, cols:6 },
-  { name:'abc',  math:'abc',    cls:'page-vars', keys:PAGE_VARS, cols:6 },
-  { name:'f(x)', math:'f(x)',   cls:'page-fns',  keys:PAGE_FNS,  cols:6 },
+  { name:'123',  math:'123',    cls:'page-calc', keys:PAGE_CALC, cols:5 },
+  { name:'abc',  math:'abc',    cls:'page-vars', keys:PAGE_VARS, cols:5 },
+  { name:'f(x)', math:'f(x)',   cls:'page-fns',  keys:PAGE_FNS,  cols:5 },
 ];
 const pageEls = [];
 PAGES.forEach((pg, i) => {
@@ -3836,13 +4209,16 @@ function openSymbolPicker(line, mq) {
 function closeSymbolPicker() { symbolPicker.hidden = true; symbolTargetLine = null; symbolTargetMQ = null; }
 
 function filterSymbols(q) {
-  q = q.trim().toLowerCase();
+  q = q.trim();
   if (!q) return SYMBOL_LIST;
-  const list = SYMBOL_LIST.filter(s => s.name.toLowerCase().includes(q));
-  return list.sort((a,b) => {
-    const as = a.name.toLowerCase().startsWith(q) ? 0 : 1;
-    const bs = b.name.toLowerCase().startsWith(q) ? 0 : 1;
-    return as - bs || a.name.localeCompare(b.name);
+  const ql = q.toLowerCase();
+  const list = SYMBOL_LIST.filter(s => s.name.toLowerCase().includes(ql) || s.glyph === q);
+  return list.sort((a, b) => {
+    // exact glyph match first (e.g. typing "a" -> the letter a), then name-startsWith
+    const ax = a.glyph === q ? 0 : 1, bx = b.glyph === q ? 0 : 1;
+    const as = a.name.toLowerCase().startsWith(ql) ? 0 : 1;
+    const bs = b.name.toLowerCase().startsWith(ql) ? 0 : 1;
+    return ax - bx || as - bs || a.name.localeCompare(b.name);
   });
 }
 
@@ -3873,7 +4249,7 @@ function setSymbolActive(i) {
 }
 function chooseSymbol(s) {
   const mq = symbolTargetMQ || (symbolTargetLine && symbolTargetLine.mq);
-  if (mq) { mq.focus(); mq.cmd(s.latex); }
+  if (mq) { mq.focus(); if (s.kind === 'text') mq.typedText(s.latex); else mq.cmd(s.latex); }
   closeSymbolPicker();
 }
 
@@ -4222,7 +4598,7 @@ function buildVarsList() {
   // user-defined values: evaluate each folder the same way recompute does
   const userVars = {};   // name -> value (last definition wins, like scope)
   for (const folder of folders) {
-    const scope = { ...angleFns, ...physConstants() };
+    const scope = { ...angleFns, ...physConstants(), ...CALC_FUNCS };
     const infos = folder.lines.map(line => {
       if (line.isSystem) return { isSystem: true };
       const expr = prepareExpr(line.mq.latex());
