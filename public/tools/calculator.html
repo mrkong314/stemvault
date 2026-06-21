@@ -604,6 +604,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   header {
     flex: 0 0 auto; display: flex; align-items: center; gap: 0.6rem;
     padding: 0.7rem 1rem;
+    position: relative; z-index: 50;   /* keep header + settings popover above the line content below */
     background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     border-bottom: 1px solid var(--glass-border);
     box-shadow: inset 0 1px 0 var(--glass-edge);
@@ -652,6 +653,48 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     box-shadow: 0 1px 3px rgba(0,0,0,0.14), inset 0 1px 0 var(--glass-edge);
     font-weight: 600;
   }
+
+  /* header settings: gear button + dropdown popover */
+  .settings-wrap { position: relative; flex: 0 0 auto; }
+  .hdr-gear {
+    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; padding: 0; border-radius: 9px;
+    border: 1px solid var(--glass-border); background: var(--glass); color: var(--ink-dim);
+    cursor: pointer; transition: color 0.15s, background 0.15s, transform 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    box-shadow: inset 0 1px 0 var(--glass-edge);
+  }
+  .hdr-gear:hover { color: var(--ink); background: var(--surface); }
+  .hdr-gear[aria-expanded="true"] { color: var(--accent); transform: rotate(40deg); }
+  /* undo/redo share the gear's look but never rotate; greyed + inert when empty */
+  .hdr-histbtn { margin-right: 0.35rem; }
+  .hdr-histbtn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+  .settings-popover {
+    position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
+    display: flex; flex-direction: column; gap: 0.7rem;
+    min-width: 230px; padding: 0.85rem; border-radius: 13px;
+    max-height: calc(100vh - 70px); overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--glass-border);
+    box-shadow: 0 12px 34px rgba(0,0,0,0.22), inset 0 1px 0 var(--glass-edge);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  }
+  .settings-popover[hidden] { display: none; }
+  .settings-row { display: flex; flex-direction: column; gap: 0.32rem; }
+  .settings-row .seg { align-self: stretch; display: flex; }
+  .settings-row .seg button { flex: 1 1 0; min-width: 0; }
+  .settings-label {
+    font-size: 0.72rem; font-weight: 600; color: var(--ink-dim);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .settings-sep { height: 1px; background: var(--glass-border); margin: 0.1rem 0; }
+  .settings-clear {
+    border: 1px solid var(--glass-border); background: var(--glass); color: var(--accent);
+    border-radius: 9px; padding: 0.4rem 0.7rem; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; transition: background 0.15s; -webkit-tap-highlight-color: transparent;
+    box-shadow: inset 0 1px 0 var(--glass-edge);
+  }
+  .settings-clear:hover { background: var(--surface); }
 
   header .pill {
     border: none; background: var(--accent); color: #fff;
@@ -880,6 +923,8 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .main-row.stacked .result.list-result { align-self: stretch; }
   .result .list-wrap { display: inline; white-space: normal; }
   .result .list-wrap .list-item { display: inline-block; white-space: nowrap; }
+  .result .list-wrap .list-entry { display: inline-block; white-space: nowrap; }
+  .result .list-wrap .list-prefix { cursor: default; margin-right: 0.1rem; }
   .result .list-wrap .list-comma { margin-right: 0.35rem; }
   .result .list-wrap .list-brk { opacity: 0.7; }
   .line .result[data-copy], .sys-result[data-copy] { cursor: pointer; position: relative; padding-right: 1.2rem; }
@@ -893,6 +938,18 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     content: 'Copied'; opacity: 1; right: 0; top: -1.1rem; transform: none;
     font-size: 0.62rem; font-weight: 600; color: #fff; background: var(--accent);
     padding: 0.08rem 0.4rem; border-radius: 999px;
+  }
+  /* per-solution copy: each list item is individually clickable. The whole-list
+     copy icon is suppressed on lists (Ctrl/Cmd-click copies the full [a,b,c]). */
+  .line .result.list-result[data-copy], .line .result.list-result[data-copy]:hover { padding-right: 0; }
+  .line .result.list-result[data-copy]::after { content: none; }
+  .result .list-wrap .list-item { cursor: pointer; border-radius: 5px; padding: 0 0.12rem; transition: background 0.12s, opacity 0.12s; position: relative; }
+  .result .list-wrap .list-item:hover { background: var(--glass-key); opacity: 0.95; }
+  .result .list-wrap .list-item.copied { background: var(--accent); color: #fff; }
+  .result .list-wrap .list-item.copied::after {
+    content: 'Copied'; position: absolute; left: 50%; top: -1.1rem; transform: translateX(-50%);
+    font-size: 0.6rem; font-weight: 600; color: #fff; background: var(--accent);
+    padding: 0.06rem 0.36rem; border-radius: 999px; white-space: nowrap; pointer-events: none;
   }
 
   /* simultaneous-equation system block */
@@ -1120,18 +1177,15 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   /* portrait / mobile: tighten the header, switch to the paged keypad, and cap
      the keypad height so the active math cell above stays visible */
   @media (orientation: portrait), (max-width: 719px) {
-    /* Row 1 is just the title bar (hamburger, name, star). All settings -- the
-       three mode segments and Clear -- sit together on a second row. */
+    /* single-row title bar: hamburger, name, star, settings gear. The mode
+       controls now live in the settings popover, so no second row is needed. */
     header {
-      gap: 0.35rem 0.4rem; padding: 0.5rem 0.7rem; flex-wrap: wrap;
+      gap: 0.4rem; padding: 0.5rem 0.7rem;
       align-items: center;
     }
-    header .title { max-width: 60vw; font-size: 1.05rem; }
-    header .hdr-star { order: 1; }
-    header .spacer { order: 2; flex: 1 1 100%; height: 0; }   /* full-width break -> forces a new row */
-    .seg { order: 3; flex: 1 1 auto; padding: 2px; gap: 2px; }
-    .seg button { flex: 1 1 0; min-width: 0; padding: 0.32rem 0.3rem; font-size: 0.74rem; white-space: nowrap; }
-    #clearAll { order: 4; flex: 0 0 auto; padding: 0.32rem 0.7rem; font-size: 0.74rem; }
+    header .title { max-width: 50vw; font-size: 1.05rem; }
+    /* keep the settings popover within the viewport on narrow screens */
+    .settings-popover { min-width: 0; width: min(78vw, 260px); }
 
     /* the math entries scroll; the keypad keeps its full height and is always
        completely visible (no internal scroll, no clipped bottom row) */
@@ -1478,27 +1532,6 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     <div id="favList"></div>
     <div id="tabList"></div>
     <div class="sp-foot">
-      <div class="sp-setting">
-        <span class="sp-setting-label">Appearance</span>
-        <div class="seg" id="themeSeg">
-          <button data-mode="light" class="on">Light</button>
-          <button data-mode="dark">Dark</button>
-        </div>
-      </div>
-      <div class="sp-setting">
-        <span class="sp-setting-label">Gravitational acceleration</span>
-        <div class="seg" id="gravSeg">
-          <button data-g="9.81" class="on">9.81</button>
-          <button data-g="9.8">9.8</button>
-        </div>
-      </div>
-      <div class="sp-setting">
-        <span class="sp-setting-label">Solve</span>
-        <div class="seg" id="solveModeSeg">
-          <button data-solve="first" class="on">First</button>
-          <button data-solve="all">All</button>
-        </div>
-      </div>
       <button id="varsToggle" class="sp-act" title="Show predefined constants">
         <svg class="sp-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
         <span class="sp-act-label">Constants</span>
@@ -1530,19 +1563,64 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
       <span class="title" id="pageTitle"><span class="pt-group" id="ptGroup"></span><span class="pt-name" id="ptName" title="Click to rename tab"></span></span>
       <button class="hdr-star" id="hdrStar" title="Favourite this tab">&#9734;</button>
       <span class="spacer"></span>
-      <div class="seg" id="exactSeg">
-        <button data-mode="exact">Exact</button>
-        <button data-mode="decimal" class="on">Decimal</button>
+      <button id="undoBtn" class="hdr-gear hdr-histbtn" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo" disabled>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-1"/></svg>
+      </button>
+      <button id="redoBtn" class="hdr-gear hdr-histbtn" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo" disabled>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h1"/></svg>
+      </button>
+      <div class="settings-wrap">
+        <button id="settingsToggle" class="hdr-gear" title="Settings" aria-label="Settings" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <div id="settingsPopover" class="settings-popover" hidden>
+          <div class="settings-row">
+            <span class="settings-label">Appearance</span>
+            <div class="seg" id="themeSeg">
+              <button data-mode="light" class="on">Light</button>
+              <button data-mode="dark">Dark</button>
+            </div>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Angle</span>
+            <div class="seg" id="angleSeg">
+              <button data-mode="deg" class="on">Degrees</button>
+              <button data-mode="rad">Radians</button>
+            </div>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Result</span>
+            <div class="seg" id="exactSeg">
+              <button data-mode="exact">Exact</button>
+              <button data-mode="decimal" class="on">Decimal</button>
+            </div>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Significant figures</span>
+            <div class="seg" id="sigfigSeg">
+              <button data-sf="auto" class="on">Auto</button>
+              <button data-sf="3">3 s.f.</button>
+            </div>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Solve</span>
+            <div class="seg" id="solveModeSeg">
+              <button data-solve="first" class="on">First</button>
+              <button data-solve="all">All</button>
+            </div>
+          </div>
+          <div class="settings-sep"></div>
+          <div class="settings-row">
+            <span class="settings-label">Gravitational acceleration</span>
+            <div class="seg" id="gravSeg">
+              <button data-g="9.81" class="on">9.81</button>
+              <button data-g="9.8">9.8</button>
+            </div>
+          </div>
+          <div class="settings-sep"></div>
+          <button id="clearAll" class="settings-clear" title="Clear everything">Clear this tab</button>
+        </div>
       </div>
-      <div class="seg" id="sigfigSeg">
-        <button data-sf="auto" class="on">Auto</button>
-        <button data-sf="3">3 s.f.</button>
-      </div>
-      <div class="seg" id="angleSeg">
-        <button data-mode="rad">Rad</button>
-        <button data-mode="deg" class="on">Deg</button>
-      </div>
-      <button id="clearAll" class="pill ghost" title="Clear everything">Clear</button>
     </header>
     <div id="folders"></div>
   </div>
@@ -1666,14 +1744,27 @@ function confirmIfNotEmpty(empty, message, okLabel) {
 }
 
 /* click a result to copy it as MathML (plain text). Word's body paste converts
-   the MathML text into a real, editable equation. */
+   the MathML text into a real, editable equation.
+   For list results (cSolve / solve-all / [a,b,c]): clicking a single solution
+   copies just that value; Ctrl/Cmd-click copies the whole list as [a, b, c]. */
 foldersEl.addEventListener('click', (e) => {
   const res = e.target.closest && e.target.closest('.result, .sys-result');
   if (!res || !res.dataset) return;
-  const mathml = res.dataset.copyHtml || res.dataset.copy;   // MathML, else plaintext
-  if (!mathml) return;
-  const flash = () => { res.classList.add('copied'); setTimeout(() => res.classList.remove('copied'), 900); };
-  copyMathML(mathml, flash);
+  const item = e.target.closest && e.target.closest('.list-item');
+  const wantList = e.ctrlKey || e.metaKey;
+  let payload, flashEl;
+  if (item && item.dataset && !wantList) {
+    // copy this one solution (value only)
+    payload = item.dataset.copyHtml || item.dataset.copy;
+    flashEl = item;
+  } else {
+    // whole result (plain Ctrl/Cmd-click on a list, or any click on a scalar)
+    payload = res.dataset.copyHtml || res.dataset.copy;
+    flashEl = res;
+  }
+  if (!payload) return;
+  const flash = () => { flashEl.classList.add('copied'); setTimeout(() => flashEl.classList.remove('copied'), 900); };
+  copyMathML(payload, flash);
 });
 function copyMathML(mathml, cb) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -2078,9 +2169,57 @@ function parseSums(s) {
   return s;
 }
 
+/* Expand integer ellipsis sequences inside [ ... ] lists, e.g. [1,2,...,5] ->
+   [1,2,3,4,5]. Only clear integer arithmetic patterns are expanded:
+     - terms before "..." must be integers, evenly spaced (>=1 term);
+     - with >=2 pre-terms the step is their common difference; with exactly 1
+       pre-term the step defaults to +1 (or -1 if the next term is smaller);
+     - the term after "..." must be an integer reachable on that step grid, in
+       the same direction.
+   Anything ambiguous/unreachable is LEFT UNCHANGED (still contains "..."), so
+   the recompute path can flag it as an invalid pattern. */
+function expandEllipsisLists(s) {
+  if (s.indexOf('...') === -1) return s;
+  // operate on each bracketed [...] group
+  return s.replace(/\[([^\[\]]*)\]/g, (whole, inner) => {
+    if (inner.indexOf('...') === -1) return whole;
+    const toks = inner.split(',').map(t => t.trim());
+    const isInt = (t) => /^-?\d+$/.test(t);
+    const out = [];
+    for (let i = 0; i < toks.length; i++) {
+      if (toks[i] !== '...') { out.push(toks[i]); continue; }
+      // gather the consecutive integer run immediately before this "..."
+      const pre = [];
+      for (let k = out.length - 1; k >= 0 && isInt(out[k]); k--) pre.unshift(parseInt(out[k], 10));
+      const next = toks[i + 1];
+      if (pre.length < 1 || next === undefined || !isInt(next)) return whole;   // can't expand -> leave as-is
+      const end = parseInt(next, 10);
+      // determine step
+      let step;
+      if (pre.length >= 2) {
+        step = pre[1] - pre[0];
+        for (let j = 2; j < pre.length; j++) if (pre[j] - pre[j-1] !== step) return whole;  // uneven -> invalid
+        if (step === 0) return whole;
+      } else {
+        step = (end >= pre[0]) ? 1 : -1;
+      }
+      const start = pre[pre.length - 1];
+      if (step > 0 && end < start) return whole;     // direction mismatch
+      if (step < 0 && end > start) return whole;
+      if ((end - start) % step !== 0) return whole;   // endpoint not on the grid
+      // fill from start+step up to and including end (start already in out)
+      for (let v = start + step; (step > 0 ? v <= end : v >= end); v += step) out.push(String(v));
+      // skip the original "next" token (it's now the last value we pushed)
+      i++;
+    }
+    return '[' + out.join(',') + ']';
+  });
+}
+
 function latexToMath(latex) {
   let s = latex;
   s = s.replace(/\\left/g, '').replace(/\\right/g, '');
+  s = expandEllipsisLists(s);        // [1,2,...,5] -> [1,2,3,4,5] (integer patterns)
   s = s.replace(/\\square/g, '');   // unfilled placeholder box -> empty (incomplete expr renders blank)
   // absolute value bars |...| -> abs(...). Replace innermost pairs repeatedly so
   // nested bars resolve from the inside out.
@@ -3102,6 +3241,10 @@ function renderResult(resEl, opts, value) {
         const item = document.createElement('span'); item.className = 'list-item';
         const elLatex = (exactMode ? (exactLatex(el) ?? decimalLatex(el)) : decimalLatex(el)) || String(el);
         try { katex.render(elLatex, item, { throwOnError:false }); } catch (e) { item.textContent = elLatex; }
+        // per-item copy: just this value, in the same formats as a scalar result
+        item.dataset.copy = latexToPlain(elLatex, el);
+        item.dataset.copyHtml = latexToMathML(elLatex);
+        if (typeof el === 'number' && isFinite(el)) item.dataset.copyNum = sciSafe(el);
         wrap.appendChild(item);
         if (i < arr.length - 1) { const c = document.createElement('span'); c.className = 'list-comma'; c.textContent = ','; wrap.appendChild(c); }
       });
@@ -3142,36 +3285,52 @@ function renderRootList(resEl, varName, roots, assignName, meta) {
   }
   const vTex = (() => { try { return varToLatex(varName); } catch (e) { return varName; } })();
   const degUnit = meta.trig && angleMode === 'deg';   // append ° to trig answers in deg mode
-  const parts = roots.map(r => {
+  // value-only LaTeX per root (what gets shown in the clickable item and copied)
+  const valParts = roots.map(r => {
     let t = (exactMode ? exactLatex(r) : null);
     if (t === null) t = decimalLatex(r);
     if (t === null) t = String(r);
-    return vTex + ' = ' + t + (degUnit ? '^{\\circ}' : '');
+    return t + (degUnit ? '^{\\circ}' : '');
   });
   if (window.katex) {
     try {
-      // wrapping container: one item per root, comma-separated, each item kept
-      // intact (nowrap) but the list wraps between items.
+      // wrapping container: one entry per root. The "x =" prefix is a separate,
+      // non-clickable label; only the VALUE is the clickable .list-item, so the
+      // hover/selection highlight makes clear that just the number is copied.
       const wrap = document.createElement('span'); wrap.className = 'list-wrap';
-      parts.forEach((p, i) => {
+      roots.forEach((r, i) => {
+        const entry = document.createElement('span'); entry.className = 'list-entry';
+        const pre = document.createElement('span'); pre.className = 'list-prefix';
+        try { katex.render(vTex + ' =', pre, { throwOnError:false }); } catch (e) { pre.textContent = varName + ' ='; }
         const item = document.createElement('span'); item.className = 'list-item';
-        try { katex.render(p, item, { throwOnError:false }); } catch (e) { item.textContent = p; }
-        wrap.appendChild(item);
-        if (i < parts.length - 1) { const c = document.createElement('span'); c.className = 'list-comma'; c.textContent = ','; wrap.appendChild(c); }
+        try { katex.render(valParts[i], item, { throwOnError:false }); } catch (e) { item.textContent = valParts[i]; }
+        // per-item copy: the value only (no "x = "), in the standard copy formats
+        let t = (exactMode ? exactLatex(r) : null); if (t === null) t = decimalLatex(r); if (t === null) t = String(r);
+        item.dataset.copy = latexToPlain(t, r) + (degUnit ? ' deg' : '');
+        item.dataset.copyHtml = latexToMathML(t + (degUnit ? '^{\\circ}' : ''));
+        if (typeof r === 'number' && isFinite(r)) item.dataset.copyNum = sciSafe(r);
+        entry.appendChild(pre); entry.appendChild(item);
+        wrap.appendChild(entry);
+        if (i < roots.length - 1) { const c = document.createElement('span'); c.className = 'list-comma'; c.textContent = ','; wrap.appendChild(c); }
       });
       resEl.appendChild(wrap);
-      // copy data
-      resEl.dataset.copyLatex = parts.join(', ');
-      resEl.dataset.copyHtml = latexToMathML(parts.join(',\\ '));
-      resEl.dataset.copy = roots.map(r => {
+      // whole-list copy (Ctrl/Cmd-click): values only as [a, b, c], no "x ="
+      const valLatexParts = roots.map(r => {
+        let t = (exactMode ? exactLatex(r) : null); if (t === null) t = decimalLatex(r); if (t === null) t = String(r);
+        return t + (degUnit ? '^{\\circ}' : '');
+      });
+      const valPlainParts = roots.map(r => {
         let t = (exactMode ? exactLatex(r) : null); if (t === null) t = decimalLatex(r); if (t === null) t = String(r);
         return latexToPlain(t, r) + (degUnit ? ' deg' : '');
-      }).join(', ');
+      });
+      resEl.dataset.copyLatex = '[' + valLatexParts.join(', ') + ']';
+      resEl.dataset.copyHtml = latexToMathML('\\left[' + valLatexParts.join(',\\ ') + '\\right]');
+      resEl.dataset.copy = '[' + valPlainParts.join(', ') + ']';
       appendDomainNote(resEl, meta);
       return;
     } catch (e) {}
   }
-  resEl.textContent = parts.join(',  ').replace(/\\/g,'');
+  resEl.textContent = roots.map((r, i) => (vTex + ' = ' + valParts[i])).join(',  ').replace(/\\/g,'');
   appendDomainNote(resEl, meta);
 }
 /* Faint note describing how the solutions were found, depending on mode:
@@ -3314,6 +3473,18 @@ function recomputeImpl() {
       line.undefPhys = [];
 
       if (info.expr === '') { updateChip(line); continue; }
+
+      // unexpanded "..." means expandEllipsisLists couldn't read a clear integer
+      // pattern (uneven step, unreachable endpoint, non-integer terms, etc.)
+      if (info.expr.indexOf('...') !== -1) {
+        resEl.className = 'result list-result';
+        const s = document.createElement('span');
+        s.textContent = 'invalid sequence pattern';
+        s.style.opacity = '0.7'; s.style.fontSize = '0.85em';
+        resEl.appendChild(s);
+        updateChip(line); updateLineLayout(line);
+        continue;
+      }
 
       // undefined variable detection (referenced but not defined anywhere in folder)
       const refExpr = info.isAssign ? info.rhs : info.expr;
@@ -3510,10 +3681,12 @@ function updateChip(line) {
   const chip = line.undefChip;
   chip.innerHTML = '';
   const undef = line.undefVars || [];
-  if (undef.length === 0) { line.lineEl.classList.remove('has-undef'); return; }
+  const phys = line.undefPhys || [];        // recognised constants used but not defined here
+  const total = undef.length + phys.length;
+  if (total === 0) { line.lineEl.classList.remove('has-undef'); return; }
   line.lineEl.classList.add('has-undef');
   const label = document.createElement('span');
-  label.textContent = (undef.length === 1 ? 'Add variable' : 'Add variables') + ':';
+  label.textContent = (total === 1 ? 'Add variable' : 'Add variables') + ':';
   chip.appendChild(label);
   undef.forEach(v => {
     const b = document.createElement('button');
@@ -3522,6 +3695,29 @@ function updateChip(line) {
     b.addEventListener('click', () => addVariable(line.folder, v));
     chip.appendChild(b);
   });
+  // recognised constants (c, k, g, ...): same look, but seeded with the real
+  // value from the constants log (numToLatex gives x10^n form where appropriate)
+  phys.forEach(v => {
+    const val = PHYS_CONSTANTS[v];
+    const b = document.createElement('button');
+    b.className = 'addvar';
+    b.textContent = prettyVarLabel(v) + ' = ' + numToPlainLabel(val);
+    b.addEventListener('click', () => addVariable(line.folder, v, true, val));
+    chip.appendChild(b);
+  });
+}
+
+/* compact human-readable value for a chip label (x10^n shown as ×10ⁿ-style text) */
+function numToPlainLabel(v) {
+  if (typeof v !== 'number' || !isFinite(v)) return '1';
+  const abs = Math.abs(v);
+  if (v !== 0 && (abs < 1e-4 || abs >= 1e7)) {
+    let exp = Math.floor(Math.log10(abs));
+    let mant = parseFloat((v / Math.pow(10, exp)).toPrecision(6));
+    if (Math.abs(mant) >= 10) { mant /= 10; exp++; }
+    return mant + '×10^' + exp;
+  }
+  return String(parseFloat(v.toPrecision(6)));
 }
 
 /* internal evaluation name -> user-facing display name */
@@ -4130,8 +4326,8 @@ function createLine(folder, afterLine = null, initialLatex = '') {
   // Desktop (fine pointer) keeps full physical-keyboard typing.
   if (IS_TOUCH) suppressOSKeyboard(fieldEl);
 
-  fieldEl.addEventListener('focusin', () => focusLine(lineObj));
-  fieldEl.addEventListener('focusout', () => { normalizeSciNotation(lineObj.mq); });
+  fieldEl.addEventListener('focusin', () => { focusLine(lineObj); beginEditCapture(lineObj); });
+  fieldEl.addEventListener('focusout', () => { normalizeSciNotation(lineObj.mq); commitEditCapture(lineObj); });
 
   // slider interaction: dragging rewrites the assignment RHS
   range.addEventListener('input', () => {
@@ -4143,10 +4339,20 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     if (nm) { mq.latex(nm + '=' + numToLatex(v)); recompute(); }
   });
   function applyBounds() {
-    lineObj.sliderMin = parseBound(minBox.value);
-    lineObj.sliderMax = parseBound(maxBox.value);
-    const st = parseBound(stepBox.value);
-    lineObj.sliderStep = (isFinite(st) && st > 0) ? st : 1;
+    // capture pre-change state so a bounds edit can be undone; only push if a
+    // value actually changes (avoids no-op 'change' events polluting history)
+    const before = { min: lineObj.sliderMin, max: lineObj.sliderMax, step: lineObj.sliderStep };
+    let snap = null;
+    try { snap = JSON.stringify(snapshotActive()); } catch (e) {}
+    const newMin = parseBound(minBox.value);
+    const newMax = parseBound(maxBox.value);
+    const stRaw = parseBound(stepBox.value);
+    const newStep = (isFinite(stRaw) && stRaw > 0) ? stRaw : 1;
+    const changed = newMin !== before.min || newMax !== before.max || newStep !== before.step;
+    if (changed && snap !== null) pushUndoSnapshot(snap);
+    lineObj.sliderMin = newMin;
+    lineObj.sliderMax = newMax;
+    lineObj.sliderStep = newStep;
     lineObj.sliderUserBounds = true;
     recompute();
   }
@@ -4241,7 +4447,7 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     try { mq.write(latex); recompute(); } catch (err) {}
   }, true);
 
-  delBtn.addEventListener('click', () => removeLine(lineObj));
+  delBtn.addEventListener('click', () => { pushUndo(); removeLine(lineObj); });
   sliderBtn.addEventListener('click', () => {
     lineObj.lineEl.classList.toggle('slider-shown');
     if (typeof alignIdx === 'function') alignIdx(lineObj);
@@ -4297,7 +4503,8 @@ function addSystemRow(lineObj, initialLatex = '', focusIt = true) {
   if (IS_TOUCH) suppressOSKeyboard(fEl);
   const entry = { mq, row };
   lineObj.eqFields.push(entry);
-  fEl.addEventListener('focusin', () => focusLine(lineObj));
+  fEl.addEventListener('focusin', () => { focusLine(lineObj); beginEditCapture(lineObj); });
+  fEl.addEventListener('focusout', () => { commitEditCapture(lineObj); });
 
   // "{" inside a system adds another equation row
   fEl.addEventListener('keydown', (e) => {
@@ -4379,7 +4586,7 @@ function createSystemLine(folder, afterLine = null, initialEqs = null) {
   };
 
   addRowBtn.addEventListener('click', () => addSystemRow(lineObj));
-  delBtn.addEventListener('click', () => removeLine(lineObj));
+  delBtn.addEventListener('click', () => { pushUndo(); removeLine(lineObj); });
   attachDrag(handle, lineObj, 'line');
 
   if (afterLine) { const idx = folder.lines.indexOf(afterLine); folder.lines.splice(idx + 1, 0, lineObj); }
@@ -4491,6 +4698,7 @@ function insertFolderBefore(target) {
 /* Duplicate a folder: create a copy directly after it, cloning the name and
    every line (latex, note text + visibility, slider bounds). */
 function duplicateFolder(src) {
+  pushUndo();
   const copyName = src.userNamed ? (src.name + ' copy') : '';
   const nf = createFolder(copyName, src);
   nf.userNamed = src.userNamed;
@@ -4533,6 +4741,7 @@ function renumberFolders() {
 }
 
 function removeFolder(folder) {
+  pushUndo();
   if (folders.length === 1) {
     folder.lines.slice().forEach(l => l.lineEl.remove()); folder.lines.length = 0;
     createLine(folder).mq.focus(); renumber(); recompute(); return;
@@ -4544,6 +4753,7 @@ function removeFolder(folder) {
 
 /* empty a folder's lines but keep the folder itself, leaving one blank line */
 function clearFolder(folder) {
+  pushUndo();
   folder.lines.slice().forEach(l => l.lineEl.remove());
   folder.lines.length = 0;
   createLine(folder).mq.focus();
@@ -4602,6 +4812,7 @@ function onDragEnd() {
   const el = drag.kind==='line' ? drag.obj.lineEl : drag.obj.el;
   el.classList.remove('drag-ghost'); clearDropMarks();
   if (t) {
+    pushUndo();
     if (drag.kind === 'line') {
       const line = drag.obj; const oldF = line.folder;
       oldF.lines.splice(oldF.lines.indexOf(line), 1);
@@ -4879,9 +5090,9 @@ const PAGE_FNS = [
   {l:'\u221A', t:'cmd', v:'\\sqrt', c:'fn', katex:'\\sqrt{\\phantom{x}}'}, {l:'nrt', t:'nthroot', v:'', c:'fn', katex:'\\sqrt[n]{\\phantom{x}}'}, {l:'frac', t:'type', v:'/', c:'op', frac:true}, {l:'|x|', t:'abs', v:'', c:'fn', katex:'|x|'}, {l:'\u222B', t:'int', v:'', c:'fn', katex:'\\int'},
   {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'}, {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'}, {l:'(', t:'type', v:'(', c:'op'}, {l:')', t:'type', v:')', c:'op'},
   {l:'n!', t:'type', v:'!', c:'fn'}, {l:'nCr', t:'fn', v:'nCr', c:'fn', opname:true}, {l:'nPr', t:'fn', v:'nPr', c:'fn', opname:true}, {l:'\u03A3', t:'sumkey', v:'', c:'fn', katex:'\\sum'}, {l:'add', t:'fn', v:'add', c:'fn', opname:true},
-  {l:'normCDF', t:'fn', v:'normCDF', c:'fn', opname:true}, {l:'invNorm', t:'fn', v:'invNorm', c:'fn', opname:true}, {l:'binPDF', t:'fn', v:'binomPDF', c:'fn', opname:true}, {l:'binCDF', t:'fn', v:'binomCDF', c:'fn', opname:true}, {l:'solve', t:'solve', v:'', c:'solvebtn'},
+  {l:'normCDF', t:'fn', v:'normCDF', c:'fn', opname:true}, {l:'invNorm', t:'fn', v:'invNorm', c:'fn', opname:true}, {l:'binPDF', t:'fn', v:'binomPDF', c:'fn', opname:true}, {l:'binCDF', t:'fn', v:'binomCDF', c:'fn', opname:true}, {l:'mean', t:'fn', v:'mean', c:'fn', opname:true},
   {l:'i', t:'write', v:'i', c:'fn'}, {l:'Re', t:'fn', v:'Re', c:'fn', opname:true}, {l:'Im', t:'fn', v:'Im', c:'fn', opname:true}, {l:'Arg', t:'fn', v:'Arg', c:'fn', opname:true}, {l:'cSolve', t:'fn', v:'cSolve', c:'fn', opname:true},
-  {l:'sys', t:'system', v:'', c:'fn', katex:'\\begin{cases}\\square\\\\\\square\\end{cases}'}, {l:'\u2192polar', t:'fn', v:'polar', c:'fn', opname:true}, {l:'@', t:'act', v:'formula', c:'act'}, {l:'mean', t:'fn', v:'mean', c:'fn', opname:true}, {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
+  {l:'\u2192polar', t:'fn', v:'polar', c:'fn', opname:true}, {l:'sys', t:'system', v:'', c:'fn', katex:'\\begin{cases}\\square\\\\\\square\\end{cases}'}, {l:'@', t:'act', v:'formula', c:'act'}, {l:'solve', t:'solve', v:'', c:'solvebtn'}, {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
 ];
 
 const portraitPad = document.createElement('div'); portraitPad.id = 'portraitPad';
@@ -5170,7 +5381,9 @@ foldersEl.addEventListener('mousemove', (e) => {
 foldersEl.addEventListener('mouseleave', () => foldersEl.classList.remove('show-add-folder'));
 document.getElementById('clearAll').addEventListener('click', () => {
   confirmIfNotEmpty(isActiveTabEmpty(), 'Clear everything in this tab? All sections and lines will be removed.', 'Clear all').then(ok => {
+    if (settingsPopover && !settingsPopover.hidden) closeSettings();
     if (!ok) return;
+    pushUndo();
     folders.slice().forEach(f => f.el.remove()); folders.length = 0;
     const f = createFolder(''); createLine(f).mq.focus(); renumberFolders(); renumber(); recompute();
   });
@@ -5213,6 +5426,43 @@ sigfigSeg.addEventListener('click', (e) => {
   sigFigs = btn.dataset.sf === 'auto' ? 'auto' : parseInt(btn.dataset.sf, 10);
   sigfigSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b===btn));
   recompute(); scheduleSave();
+});
+
+/* --- settings popover (gear) open/close --- */
+const settingsToggle = document.getElementById('settingsToggle');
+const settingsPopover = document.getElementById('settingsPopover');
+function openSettings() {
+  settingsPopover.hidden = false;
+  settingsToggle.setAttribute('aria-expanded', 'true');
+}
+function closeSettings() {
+  settingsPopover.hidden = true;
+  settingsToggle.setAttribute('aria-expanded', 'false');
+}
+settingsToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  settingsPopover.hidden ? openSettings() : closeSettings();
+});
+// clicking a mode segment inside the popover shouldn't close it (let you flip
+// several at once); clicking anywhere else does.
+settingsPopover.addEventListener('click', (e) => e.stopPropagation());
+document.addEventListener('click', () => { if (!settingsPopover.hidden) closeSettings(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !settingsPopover.hidden) closeSettings(); });
+
+/* --- undo / redo --- */
+document.getElementById('undoBtn').addEventListener('click', (e) => { e.stopPropagation(); doUndo(); });
+document.getElementById('redoBtn').addEventListener('click', (e) => { e.stopPropagation(); doRedo(); });
+/* Ctrl/Cmd+Z = undo, Ctrl/Cmd+Shift+Z (or Ctrl+Y) = redo. While a math field is
+   focused, defer to MathQuill's own in-field undo and do nothing global. */
+document.addEventListener('keydown', (e) => {
+  const z = e.key === 'z' || e.key === 'Z';
+  const y = e.key === 'y' || e.key === 'Y';
+  if (!((e.ctrlKey || e.metaKey) && (z || y))) return;
+  // a focused MathQuill field keeps its native undo/redo
+  const ae = document.activeElement;
+  if (ae && ae.closest && ae.closest('.mq-field, .mq-editable-field, textarea, input')) return;
+  e.preventDefault();
+  if (y || (z && e.shiftKey)) doRedo(); else doUndo();
 });
 
 /* --- mode toggles usable from the keyboard --- */
@@ -5387,8 +5637,10 @@ function snapshotActive() {
   };
 }
 
-/* Clear the rendered calculator and rebuild it from a snapshot object. */
-function loadSnapshot(data) {
+/* Clear the rendered calculator and rebuild it from a snapshot object.
+   Any load that isn't an undo/redo step (tab switch, open, restore) starts a
+   fresh history, so undo stays scoped to the visible tab. */
+function loadSnapshot(data, keepHistory = false) {
   // tear down current DOM + state
   folders.slice().forEach(f => f.el.remove());
   folders.length = 0;
@@ -5429,6 +5681,80 @@ function loadSnapshot(data) {
   fdata.forEach((fd, i) => { if (fd.collapsed && folders[i]) { folders[i].collapsed = true; folders[i].el.classList.add('collapsed'); } });
 
   renumberFolders(); renumber(); recompute();
+  if (!keepHistory && typeof resetHistory === 'function') resetHistory();
+}
+
+/* ---------------------------------------------------------------------------
+   Undo / redo for destructive structural actions only (delete/clear section,
+   delete line, clear tab, reorder). Each captures a full snapshot of the active
+   tab BEFORE the mutation; undo restores it and pushes the post-state to redo.
+   Text edits inside a line are handled by MathQuill's own in-field undo and are
+   deliberately NOT part of this stack.
+--------------------------------------------------------------------------- */
+const UNDO_LIMIT = 30;
+let undoStack = [];
+let redoStack = [];
+/* call immediately BEFORE a destructive structural change */
+function pushUndo() {
+  try { undoStack.push(JSON.stringify(snapshotActive())); } catch (e) { return; }
+  if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+  redoStack.length = 0;           // a fresh action invalidates the redo branch
+  refreshHistoryButtons();
+}
+/* push a snapshot string captured earlier (e.g. a line's state when editing
+   began), rather than the current state. Used for typing-commit undo. */
+function pushUndoSnapshot(snapStr) {
+  if (typeof snapStr !== 'string') return;
+  undoStack.push(snapStr);
+  if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+  redoStack.length = 0;
+  refreshHistoryButtons();
+}
+function doUndo() {
+  if (!undoStack.length) return;
+  let cur; try { cur = JSON.stringify(snapshotActive()); } catch (e) { cur = null; }
+  const prev = undoStack.pop();
+  if (cur !== null) redoStack.push(cur);
+  try { loadSnapshot(JSON.parse(prev), true); } catch (e) {}
+  refreshHistoryButtons();
+}
+function doRedo() {
+  if (!redoStack.length) return;
+  let cur; try { cur = JSON.stringify(snapshotActive()); } catch (e) { cur = null; }
+  const next = redoStack.pop();
+  if (cur !== null) undoStack.push(cur);
+  try { loadSnapshot(JSON.parse(next), true); } catch (e) {}
+  refreshHistoryButtons();
+}
+function refreshHistoryButtons() {
+  const u = document.getElementById('undoBtn'), r = document.getElementById('redoBtn');
+  if (u) u.disabled = undoStack.length === 0;
+  if (r) r.disabled = redoStack.length === 0;
+}
+/* clearing history on tab switch keeps undo scoped to the visible tab's edits */
+function resetHistory() { undoStack.length = 0; redoStack.length = 0; refreshHistoryButtons(); }
+
+/* --- typing-commit undo: snapshot a line's state when editing begins, and push
+   it to the undo stack when the field is left IF the content actually changed.
+   This complements MathQuill's own per-keystroke in-field undo (which still
+   handles character-level undo while the field is focused). --- */
+function lineSignature(lineObj) {
+  try {
+    if (lineObj.isSystem) return 'sys:' + lineObj.eqFields.map(ef => ef.mq.latex()).join('\u0001');
+    return 'line:' + lineObj.mq.latex();
+  } catch (e) { return ''; }
+}
+function beginEditCapture(lineObj) {
+  // record the content at focus time + a full pre-edit tab snapshot
+  lineObj._editSig = lineSignature(lineObj);
+  try { lineObj._editSnap = JSON.stringify(snapshotActive()); } catch (e) { lineObj._editSnap = null; }
+}
+function commitEditCapture(lineObj) {
+  if (lineObj._editSnap == null) return;
+  const changed = lineSignature(lineObj) !== lineObj._editSig;
+  const snap = lineObj._editSnap;
+  lineObj._editSnap = null; lineObj._editSig = undefined;
+  if (changed) pushUndoSnapshot(snap);   // undo restores the line's prior content
 }
 
 function syncModeButtons(theme) {
