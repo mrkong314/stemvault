@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Calculator</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CjxzdHlsZT4KICAudGlsZSAgIHsgZmlsbDogI2Y1ZjVmNzsgfQogIC5ib3JkZXIgeyBzdHJva2U6ICNlNWU1ZWE7IH0KICAubWFyayAgIHsgc3Ryb2tlOiAjMWQxZDFmOyB9CiAgQG1lZGlhIChwcmVmZXJzLWNvbG9yLXNjaGVtZTogZGFyaykgewogICAgLnRpbGUgICB7IGZpbGw6ICMxYzFjMWU7IH0KICAgIC5ib3JkZXIgeyBzdHJva2U6ICMzODM4M2E7IH0KICAgIC5tYXJrICAgeyBzdHJva2U6ICNmNWY1Zjc7IH0KICB9Cjwvc3R5bGU+CjxyZWN0IGNsYXNzPSJ0aWxlIiB4PSI1NiIgeT0iNTYiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiByeD0iMTEyIi8+CjxyZWN0IGNsYXNzPSJib3JkZXIiIHg9IjU2IiB5PSI1NiIgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIHJ4PSIxMTIiIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iMyIvPgo8cGF0aCBjbGFzcz0ibWFyayIgZD0iTTE1MCAyNjIgTDE5NiAyNjIgTDIzNiAzNTAgTDMwMCAxNTAgTDM3MiAxNTAiCiAgICAgIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iMjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=">
 
@@ -92,6 +92,7 @@
     }
   }
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   html, body {
     margin: 0; height: 100%;
     color: var(--ink);
@@ -99,6 +100,13 @@
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
     background: var(--bg);
+    touch-action: manipulation;          /* no double-tap-to-zoom; taps stay instant */
+  }
+  /* iOS zooms when focusing an input smaller than 16px; on touch devices keep all
+     focusable text inputs at 16px (any orientation) so the view never zooms. */
+  @media (pointer: coarse) {
+    .bound, .note textarea, #symbolSearch, #formulaSearch, .fname, .tabname-input,
+    input[type=text], textarea { font-size: 16px; }
   }
   /* ambient colour field behind the glass, so the blur has something to refract */
   body::before {
@@ -589,11 +597,18 @@
   /* portrait / mobile: tighten the header, switch to the paged keypad, and cap
      the keypad height so the active math cell above stays visible */
   @media (orientation: portrait), (max-width: 719px) {
-    header { gap: 0.3rem; padding: 0.5rem 0.6rem; flex-wrap: nowrap; overflow: hidden; }
-    header .title { max-width: 28vw; font-size: 0.95rem; }   /* shrink + truncate, keep visible */
-    .seg { padding: 2px; gap: 1px; }
-    .seg button { min-width: 0; padding: 0.26rem 0.4rem; font-size: 0.7rem; }
-    header .pill { padding: 0.3rem 0.5rem; font-size: 0.72rem; flex: 0 0 auto; }
+    /* Row 1 is just the title bar (hamburger, name, star). All settings -- the
+       three mode segments and Clear -- sit together on a second row. */
+    header {
+      gap: 0.35rem 0.4rem; padding: 0.5rem 0.7rem; flex-wrap: wrap;
+      align-items: center;
+    }
+    header .title { max-width: 60vw; font-size: 1.05rem; }
+    header .hdr-star { order: 1; }
+    header .spacer { order: 2; flex: 1 1 100%; height: 0; }   /* full-width break -> forces a new row */
+    .seg { order: 3; flex: 1 1 auto; padding: 2px; gap: 2px; }
+    .seg button { flex: 1 1 0; min-width: 0; padding: 0.32rem 0.3rem; font-size: 0.74rem; white-space: nowrap; }
+    #clearAll { order: 4; flex: 0 0 auto; padding: 0.32rem 0.7rem; font-size: 0.74rem; }
 
     /* the math entries scroll; the keypad keeps its full height and is always
        completely visible (no internal scroll, no clipped bottom row) */
