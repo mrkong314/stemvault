@@ -1143,6 +1143,46 @@ function confirmDialog(message, okLabel) {
   });
 }
 
+/* Emptiness checks: a delete/clear that would lose nothing skips the
+   confirmation dialog. A line is empty when its math field (and any system-block
+   equation fields) and its note are all blank; a folder is empty when it has no
+   non-empty line and no user-given name; a tab is empty when all its folders are
+   empty; a group is empty when all its tabs are empty. */
+function isLineEmpty(line) {
+  if (!line) return true;
+  if (line.isSystem) {
+    const eqsBlank = !line.eqFields || line.eqFields.every(f => !f.mq || (f.mq.latex() || '').trim() === '');
+    return eqsBlank;
+  }
+  const mathBlank = !line.mq || (line.mq.latex() || '').trim() === '';
+  const noteBlank = !line.noteArea || (line.noteArea.value || '').trim() === '';
+  return mathBlank && noteBlank;
+}
+function isFolderEmpty(folder) {
+  if (!folder) return true;
+  if (folder.userNamed || (folder.nameEl && folder.nameEl.value.trim() !== '')) return false;
+  return folder.lines.every(isLineEmpty);
+}
+function isTabDataEmpty(data) {
+  // a tab's saved data is { folders: [{ name, userNamed, lines:[{latex, note, ...}] }] }
+  if (!data || !Array.isArray(data.folders)) return true;
+  return data.folders.every(f => {
+    if (f.userNamed || (f.name && f.name.trim() !== '')) return false;
+    return !f.lines || f.lines.every(l => {
+      const math = (l.latex || (l.eqs ? l.eqs.join('') : '') || '').trim();
+      const note = (l.note || '').trim();
+      return math === '' && note === '';
+    });
+  });
+}
+function isActiveTabEmpty() { return folders.every(isFolderEmpty); }
+
+/* Run confirmDialog only when there is something to lose; otherwise resolve true
+   immediately so empty targets delete without a prompt. */
+function confirmIfNotEmpty(empty, message, okLabel) {
+  return empty ? Promise.resolve(true) : confirmDialog(message, okLabel);
+}
+
 /* click a result to copy it as MathML (plain text). Word's body paste converts
    the MathML text into a real, editable equation. */
 foldersEl.addEventListener('click', (e) => {
@@ -3725,10 +3765,10 @@ function createFolder(name, afterFolder = null) {
     createLine(folder).mq.focus(); recompute();
   });
   delBtn.addEventListener('click', () => {
-    confirmDialog('Delete this folder and all its lines?', 'Delete').then(ok => { if (ok) removeFolder(folder); });
+    confirmIfNotEmpty(isFolderEmpty(folder), 'Delete this folder and all its lines?', 'Delete').then(ok => { if (ok) removeFolder(folder); });
   });
   clrBtn.addEventListener('click', () => {
-    confirmDialog('Clear all lines in this folder?', 'Clear').then(ok => { if (ok) clearFolder(folder); });
+    confirmIfNotEmpty(folder.lines.every(isLineEmpty), 'Clear all lines in this folder?', 'Clear').then(ok => { if (ok) clearFolder(folder); });
   });
   dupBtn.addEventListener('click', () => duplicateFolder(folder));
   insStrip.addEventListener('click', () => { insertFolderBefore(folder); });
@@ -4443,7 +4483,7 @@ foldersEl.addEventListener('mousemove', (e) => {
 });
 foldersEl.addEventListener('mouseleave', () => foldersEl.classList.remove('show-add-folder'));
 document.getElementById('clearAll').addEventListener('click', () => {
-  confirmDialog('Clear everything in this tab? All folders and lines will be removed.', 'Clear all').then(ok => {
+  confirmIfNotEmpty(isActiveTabEmpty(), 'Clear everything in this tab? All folders and lines will be removed.', 'Clear all').then(ok => {
     if (!ok) return;
     folders.slice().forEach(f => f.el.remove()); folders.length = 0;
     const f = createFolder(''); createLine(f).mq.focus(); renumberFolders(); renumber(); recompute();
@@ -5263,7 +5303,9 @@ function openGroupMenu(gid, x, y) {
   });
   item('Ungroup all', () => { tabs.forEach(t => { if (t.group === gid) t.group = undefined; }); pruneEmptyGroups(); normalizeTabOrder(); renderTabList(); persist(); });
   item('Close all in group', () => {
-    confirmDialog('Close all tabs in this group?', 'Close all').then(ok => {
+    const groupTabs = tabs.filter(t => t.group === gid);
+    const allEmpty = groupTabs.every(tabIsEmpty);
+    confirmIfNotEmpty(allEmpty, 'Close all tabs in this group?', 'Close all').then(ok => {
       if (!ok) return;
       const ids = tabs.filter(t => t.group === gid).map(t => t.id);
       ids.forEach(id => { const i = tabs.findIndex(t => t.id === id); if (i !== -1 && tabs.length > 1) closeTab(id); });
