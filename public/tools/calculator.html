@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Calculator</title>
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CjxzdHlsZT4KICAudGlsZSAgIHsgZmlsbDogI2Y1ZjVmNzsgfQogIC5ib3JkZXIgeyBzdHJva2U6ICNlNWU1ZWE7IH0KICAubWFyayAgIHsgc3Ryb2tlOiAjMWQxZDFmOyB9CiAgQG1lZGlhIChwcmVmZXJzLWNvbG9yLXNjaGVtZTogZGFyaykgewogICAgLnRpbGUgICB7IGZpbGw6ICMxYzFjMWU7IH0KICAgIC5ib3JkZXIgeyBzdHJva2U6ICMzODM4M2E7IH0KICAgIC5tYXJrICAgeyBzdHJva2U6ICNmNWY1Zjc7IH0KICB9Cjwvc3R5bGU+CjxyZWN0IGNsYXNzPSJ0aWxlIiB4PSI1NiIgeT0iNTYiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiByeD0iMTEyIi8+CjxyZWN0IGNsYXNzPSJib3JkZXIiIHg9IjU2IiB5PSI1NiIgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIHJ4PSIxMTIiIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iMyIvPgo8cGF0aCBjbGFzcz0ibWFyayIgZD0iTTE1MCAyNjIgTDE5NiAyNjIgTDIzNiAzNTAgTDMwMCAxNTAgTDM3MiAxNTAiCiAgICAgIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iMjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
@@ -182,7 +182,7 @@
   }
 
   #folders {
-    flex: 1 1 auto; overflow-y: auto; padding: 0.6rem 0 7rem;
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0.6rem 0 0.8rem;
     -webkit-overflow-scrolling: touch; background: transparent;
     position: relative;
   }
@@ -524,8 +524,8 @@
   #keypad button.fn .katex { font-size: 1em; }
   #keypad button.op .katex { font-size: 1.05em; }
 
-  /* ---- paged portrait keypad ---- */
-  #portraitPad { display: none; }            /* shown only in portrait (below) */
+  /* ---- paged keypad (portrait only) ---- */
+  #portraitPad { display: none; }
   .pad-tabs {
     display: flex; gap: 6px; margin-bottom: 8px;
   }
@@ -562,6 +562,8 @@
     width: 1.4em; height: 2px; background: currentColor; border-radius: 1px; margin: 1px 0;
   }
 
+  /* Landscape / laptop: side-by-side layout with the flat math grid on the right
+     so many keys are visible at once -- optimised for a wider screen. */
   @media (min-width: 720px) and (orientation: landscape) {
     #app { max-width: 980px; flex-direction: row; }
     #folders { flex: 1 1 auto; padding-bottom: 1rem; }
@@ -570,7 +572,8 @@
       flex: 0 0 290px; border-top: none; border-left: 1px solid var(--glass-border);
       align-content: start; grid-auto-rows: min-content;
     }
-    #portraitPad { display: none; }   /* paged pad is portrait-only */
+    #keypad > .landscape-key { display: flex; }   /* flat math grid */
+    #portraitPad { display: none; }               /* paged pad is portrait-only */
   }
 
   /* portrait / mobile: tighten the header, switch to the paged keypad, and cap
