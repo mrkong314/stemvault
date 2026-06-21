@@ -562,18 +562,28 @@
     width: 1.4em; height: 2px; background: currentColor; border-radius: 1px; margin: 1px 0;
   }
 
-  /* Landscape / laptop: side-by-side layout with the flat math grid on the right
-     so many keys are visible at once -- optimised for a wider screen. */
+  /* Landscape / desktop: full-width app. The math entries fill the main area and
+     the paged keypad (123 / abc / f(x)) sits in a wider right-hand panel, scaled
+     up for the larger screen -- same key layout as portrait, desktop proportions. */
   @media (min-width: 720px) and (orientation: landscape) {
-    #app { max-width: 980px; flex-direction: row; }
-    #folders { flex: 1 1 auto; padding-bottom: 1rem; }
+    #app { max-width: none; flex-direction: row; }
     .header-wrap { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+    #folders { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 1rem; }
     #keypad {
-      flex: 0 0 290px; border-top: none; border-left: 1px solid var(--glass-border);
-      align-content: start; grid-auto-rows: min-content;
+      display: block; grid-template-columns: none;
+      flex: 0 0 clamp(340px, 30vw, 520px);
+      border-top: none; border-left: 1px solid var(--glass-border);
+      padding: 12px; overflow-y: auto;
     }
-    #keypad > .landscape-key { display: flex; }   /* flat math grid */
-    #portraitPad { display: none; }               /* paged pad is portrait-only */
+    #keypad > .landscape-key { display: none; }   /* flat grid retired in landscape */
+    #portraitPad { display: block; }              /* paged pad in landscape too */
+    .pad-page { grid-auto-rows: clamp(2.8rem, 4.2vw, 3.8rem); }
+    #keypad button { height: clamp(2.8rem, 4.2vw, 3.8rem); font-size: clamp(1rem, 1.1vw, 1.25rem); border-radius: 13px; }
+    .pad-tab { font-size: clamp(0.95rem, 1.1vw, 1.2rem); }
+    /* scale the entries up so they fill the larger canvas comfortably */
+    .mq-field { font-size: clamp(1.05rem, 1.3vw, 1.5rem); }
+    .line .result { font-size: clamp(1rem, 1.25vw, 1.45rem); }
+    .folder { margin: 0.7rem 1rem; }
   }
 
   /* portrait / mobile: tighten the header, switch to the paged keypad, and cap
