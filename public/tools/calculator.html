@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Calculator</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
@@ -123,6 +124,23 @@
   }
   header .title {
     font-size: 1.18rem; font-weight: 600; letter-spacing: -0.02em;
+    max-width: 38vw; min-width: 2rem; display: flex; align-items: baseline;
+    overflow: hidden; white-space: nowrap;
+  }
+  header .title .pt-group {
+    color: var(--ink-dim); font-weight: 600; flex: 0 0 auto;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 14vw;
+    margin-right: 0.1rem;
+  }
+  header .title .pt-name {
+    flex: 0 1 auto; min-width: 1rem; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; cursor: text; padding: 0.05rem 0.25rem;
+    border-radius: 7px; border: 1px solid transparent;
+  }
+  header .title .pt-name:hover { background: var(--surface); }
+  header .title .pt-name.editing {
+    overflow: visible; text-overflow: clip; background: var(--panel);
+    border-color: var(--rule-strong); cursor: text; outline: none;
   }
   header .brand {
     font-size: 0.68rem; color: var(--ink-dim); font-weight: 600;
@@ -200,17 +218,19 @@
     padding: 0.15rem 0.2rem; border-radius: 6px; letter-spacing: -0.01em;
   }
   .folder-head .fname:focus { background: var(--surface); }
-  .folder-head .count {
-    flex: 0 0 auto; font-size: 0.7rem; color: var(--ink-dim);
-    font-variant-numeric: tabular-nums;
-  }
   .folder-head .fbtn {
     flex: 0 0 auto; background: transparent; border: none; color: var(--ink-dim);
     cursor: pointer; font-size: 1rem; line-height: 1;
     padding: 0.2rem 0.35rem; border-radius: 6px;
+    opacity: 0; transition: opacity 0.12s, color 0.12s, background 0.12s;
+    display: inline-flex; align-items: center; justify-content: center;
   }
-  .folder-head .fbtn:hover { color: var(--ink); background: var(--surface); }
+  .folder-head .fbtn svg { display: block; }
+  .folder-head:hover .fbtn { opacity: 0.7; }
+  .folder-head .fbtn.del { opacity: 0.7; }            /* close: always visible */
+  .folder-head .fbtn:hover { color: var(--ink); background: var(--surface); opacity: 1; }
   .folder-head .fbtn.del:hover { color: #ff3b30; }
+  @media (hover: none) { .folder-head .fbtn { opacity: 0.6; } }
 
   .folder-lines { display: block; }
   .folder.collapsed .folder-lines { display: none; }
@@ -237,6 +257,24 @@
   @media (hover: none) {
     .add-line-strip { height: 1.7rem; opacity: 0.7; border-top: 1px solid var(--glass-border); }
   }
+
+  /* hover strip above a folder: inserts a new folder before it */
+  .folder-ins-strip {
+    display: block; width: 100%; border: none; background: transparent;
+    color: var(--accent); cursor: pointer; padding: 0; margin: 0;
+    height: 0; overflow: hidden; opacity: 0;
+    transition: height 0.15s ease, opacity 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .folder-ins-strip span {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; font-size: 1.05rem; line-height: 1; font-weight: 500;
+    border-radius: 8px; margin: 0 0.2rem;
+  }
+  .folder:hover .folder-ins-strip { height: 1.4rem; opacity: 0.7; }
+  .folder-ins-strip:hover { opacity: 1 !important; }
+  .folder-ins-strip:hover span { background: rgba(10,132,255,0.1); }
+  @media (hover: none) { .folder-ins-strip { display: none; } }
 
   /* + folder button: hidden until the mouse is over the empty area below the
      last entry; only this button creates a folder (not clicking empty space) */
@@ -282,21 +320,37 @@
   .line .idx {
     flex: 0 0 1.5rem; display: flex; align-items: flex-start; justify-content: center;
     font-size: 0.68rem; color: var(--ink-dim); font-variant-numeric: tabular-nums;
-    user-select: none; padding-top: 0.78rem;
+    user-select: none; line-height: 1; padding-top: 0.6rem;
   }
   .line .body {
     flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
-    padding: 0.5rem 0.6rem 0.55rem 0;
+    padding: 0.25rem 0.6rem 0.25rem 0;
   }
 
   /* MathQuill: smaller so the fraction bar reads clearly */
   .mq-field {
     font-size: 1.05rem; color: var(--ink);
-    border: none !important; box-shadow: none !important; min-height: 1.5rem;
+    border: none !important; box-shadow: none !important; min-height: 1.4rem;
   }
   .mq-field.mq-focused { box-shadow: none !important; }
   .mq-editable-field { border: none !important; }
   .mq-field .mq-fraction { font-size: 95%; }
+
+  /* With a tall radicand (e.g. a fraction inside \sqrt) MathQuill's scaled radical
+     glyph can leave a thin sliver above the top bar. Nudge the stem bar to sit
+     flush against the glyph so the top line reads as continuous. */
+  .mq-field .mq-sqrt-stem { border-top-width: 1px; }
+
+  /* field + result share one row by default to save vertical space; when the
+     input is long the row gets the .stacked class and the result drops below. */
+  .main-row { display: flex; align-items: center; gap: 0.6rem; min-width: 0; width: 100%; }
+  .main-row .mq-field { flex: 1 1 0%; min-width: 0; }
+  .main-row:not(.stacked) .result {
+    flex: 0 0 auto; margin-top: 0; max-width: 60%; white-space: nowrap;
+    justify-content: flex-end;
+  }
+  .main-row.stacked { flex-direction: column; align-items: stretch; gap: 0; }
+  .main-row.stacked .result { max-width: none; align-self: stretch; margin-top: 0.25rem; }
 
   .line .result {
     margin-top: 0.25rem; font-size: 1rem; color: var(--accent);
@@ -306,6 +360,18 @@
   }
   .line .result.assign { color: var(--assign); }
   .line .result .katex { font-size: 1.05rem; color: inherit; }
+  .line .result[data-copy], .sys-result[data-copy] { cursor: pointer; position: relative; padding-right: 1.2rem; }
+  .line .result[data-copy]:hover, .sys-result[data-copy]:hover { opacity: 0.82; }
+  .line .result[data-copy]::after, .sys-result[data-copy]::after {
+    content: '\29C9'; position: absolute; right: 0.1rem; top: 50%; transform: translateY(-50%);
+    font-size: 0.8rem; color: var(--ink-dim); opacity: 0; transition: opacity 0.12s; pointer-events: none;
+  }
+  .line .result[data-copy]:hover::after, .sys-result[data-copy]:hover::after { opacity: 0.7; }
+  .line .result.copied::after, .sys-result.copied::after {
+    content: 'Copied'; opacity: 1; right: 0; top: -1.1rem; transform: none;
+    font-size: 0.62rem; font-weight: 600; color: #fff; background: var(--accent);
+    padding: 0.08rem 0.4rem; border-radius: 999px;
+  }
 
   /* simultaneous-equation system block */
   .sys-wrap { display: flex; align-items: stretch; gap: 0.5rem; padding: 0.15rem 0; }
@@ -349,40 +415,59 @@
   .line .undef-chip .addvar:active { opacity: 0.7; }
 
   /* inline slider for numeric assignments */
+  /* slider sits on its own row below the input and is shown only when the user
+     reveals it via the hover slider button (.slider-shown). */
   .line .slider {
-    display: none; margin-top: 0.45rem; align-items: center; gap: 0.6rem;
+    display: none; align-items: center; gap: 0.5rem; margin-top: 0.25rem;
   }
-  .line.has-slider .slider { display: flex; }
+  .line.has-slider.slider-shown .slider { display: flex; }
   .line .slider input[type=range] {
     flex: 1 1 auto; -webkit-appearance: none; appearance: none; height: 4px;
     background: var(--rule-strong); border-radius: 2px; outline: none; cursor: pointer;
   }
   .line .slider input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none; width: 20px; height: 20px;
-    border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    -webkit-appearance: none; appearance: none; width: 14px; height: 14px;
+    border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
     border: 0.5px solid var(--rule-strong); cursor: pointer;
   }
   .line .slider input[type=range]::-moz-range-thumb {
-    width: 20px; height: 20px; border-radius: 50%; background: #fff;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.25); border: 0.5px solid var(--rule-strong); cursor: pointer;
+    width: 14px; height: 14px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25); border: 0.5px solid var(--rule-strong); cursor: pointer;
   }
-  .line .slider .bound {
-    font-size: 0.7rem; color: var(--ink-dim); width: 2.4rem; text-align: center;
+  /* collapsed slider: end labels + gear */
+  .line .slider .sl-end {
+    flex: 0 0 auto; font-size: 0.68rem; color: var(--ink-dim);
+    font-variant-numeric: tabular-nums; cursor: pointer; min-width: 1.3rem; text-align: center;
+    padding: 0.05rem 0.15rem; border-radius: 5px;
+  }
+  .line .slider .sl-end:hover { background: var(--surface); color: var(--ink); }
+
+  /* slider toggle button in the actions cluster, only for slider-eligible lines */
+  .line .actbtn.slider-btn { display: none; }
+  .line.has-slider .actbtn.slider-btn { display: inline-flex; align-items: center; }
+  .line.has-slider.slider-shown .actbtn.slider-btn { color: var(--accent); opacity: 1; }
+
+  /* expandable config row (Desmos-style): [min] <= var <= [max]   Step: [step] */
+  .line .slider-cfg { display: none; margin-top: 0.25rem; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .line.has-slider.slider-shown.slider-open .slider-cfg { display: flex; }
+  .line .slider-cfg .sl-le { color: var(--ink-dim); font-size: 0.95rem; }
+  .line .slider-cfg .sl-var { color: var(--ink); font-size: 0.95rem; min-width: 0.8rem; text-align: center; }
+  .line .slider-cfg .sl-step-label { color: var(--ink-dim); font-size: 0.75rem; margin-left: 0.4rem; }
+  .line .slider-cfg .bound {
+    font-size: 0.72rem; color: var(--ink); width: 3.6rem; text-align: center;
     background: var(--surface); border: 1px solid var(--rule); border-radius: 6px;
-    padding: 0.1rem 0; outline: none; font-variant-numeric: tabular-nums;
+    padding: 0.12rem 0.15rem; outline: none; font-variant-numeric: tabular-nums;
   }
-  .line .slider .bound.step {
-    border-style: dashed; margin-left: 0.1rem;
-  }
-  .line .slider .bound.step::placeholder { color: var(--ink-dim); opacity: 0.6; }
+  .line .slider-cfg .bound:focus { border-color: var(--accent); }
+  .line .slider-cfg .bound.step { width: 3.6rem; }
 
   .line .note { margin: 0 0 0.4rem 0; display: none; }
   .line.has-note .note { display: block; }
   .line .note textarea {
     width: 100%; background: var(--surface); color: var(--ink);
     border: 1px solid var(--rule); border-radius: 8px; font-size: 0.82rem;
-    font-family: inherit; padding: 0.45rem 0.55rem; resize: vertical;
-    min-height: 2rem; outline: none;
+    font-family: inherit; padding: 0.35rem 0.55rem; resize: none;
+    min-height: 1.6rem; outline: none; overflow: hidden; line-height: 1.35;
   }
   .line .note textarea:focus { border-color: var(--accent); }
   .line .note-marker {
@@ -393,8 +478,8 @@
   .line.note-collapsed.has-note .note-marker { display: inline-block; }
 
   .line .actions {
-    flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
-    gap: 0.1rem; margin: 0.4rem 0.4rem 0 0;
+    flex: 0 0 auto; display: flex; flex-direction: row; align-items: center;
+    gap: 0.05rem; margin: 0 0.3rem 0 0; align-self: center;
   }
   .line .actbtn {
     background: transparent; border: none; color: var(--ink-dim);
@@ -431,7 +516,11 @@
     box-shadow: 0 2px 8px rgba(10,132,255,0.45), inset 0 1px 0 rgba(255,255,255,0.5);
   }
   #keypad button.solvebtn { color: var(--ink); font-size: 0.9rem; font-weight: 600; }
-  #keypad button .katex { color: inherit; font-size: 1.05em; }
+  #keypad button .katex,
+  #keypad button .katex .mord, #keypad button .katex .mop, #keypad button .katex .mbin,
+  #keypad button .katex .mrel, #keypad button .katex .mopen, #keypad button .katex .mclose,
+  #keypad button .katex .mpunct, #keypad button .katex .minner { color: inherit; font-weight: 400; }
+  #keypad button .katex { font-size: 1.05em; }
   #keypad button.fn .katex { font-size: 1em; }
   #keypad button.op .katex { font-size: 1.05em; }
 
@@ -455,6 +544,9 @@
     transform: translateY(-1px);
   }
   .pad-tab.on:hover { opacity: 1; }
+  #portraitPad .pad-tab .katex { color: inherit; font-size: 1.02em; }
+  #portraitPad .pad-tab .katex, #portraitPad .pad-tab .katex .mord, #portraitPad .pad-tab .katex .mopen,
+  #portraitPad .pad-tab .katex .mclose, #portraitPad .pad-tab .katex .mbin, #portraitPad .pad-tab .katex .mrel { font-weight: 700; color: inherit; }
   .pad-page { display: none; gap: 7px; }
   .pad-page.on { display: grid; }
   #keypad button.varkey { font-size: 1rem; font-style: italic; font-family: 'KaTeX_Math','Cambria Math',serif; }
@@ -485,7 +577,7 @@
      the keypad height so the active math cell above stays visible */
   @media (orientation: portrait), (max-width: 719px) {
     header { gap: 0.3rem; padding: 0.5rem 0.6rem; flex-wrap: nowrap; overflow: hidden; }
-    header .title { display: none; }          /* reclaim space; hamburger anchors the header */
+    header .title { max-width: 28vw; font-size: 0.95rem; }   /* shrink + truncate, keep visible */
     .seg { padding: 2px; gap: 1px; }
     .seg button { min-width: 0; padding: 0.26rem 0.4rem; font-size: 0.7rem; }
     header .pill { padding: 0.3rem 0.5rem; font-size: 0.72rem; flex: 0 0 auto; }
@@ -549,39 +641,223 @@
   #tabList { flex: 1 1 auto; overflow-y: auto; padding: 0.5rem; }
   .tab {
     display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.55rem;
-    border-radius: 9px; cursor: pointer; margin-bottom: 0.3rem; background: transparent;
+    border-radius: 8px; cursor: pointer; margin-bottom: 0.15rem; background: transparent;
+    transition: background 0.12s;
   }
   .tab:hover { background: var(--surface); }
-  .tab.active { background: var(--focus-bg); }
+  .tab.active { background: var(--focus-bg); font-weight: 500; }
   .tab .tname {
     flex: 1 1 auto; min-width: 0; font-size: 0.85rem; color: var(--ink);
-    background: transparent; border: none; outline: none; padding: 0.1rem 0.15rem;
-    border-radius: 5px; text-overflow: ellipsis;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding: 0.1rem 0.15rem; cursor: grab; user-select: none;
   }
-  .tab .tname:focus { background: var(--panel); box-shadow: 0 0 0 1px var(--rule-strong); }
+  .tab.tab-dragging .tname { cursor: grabbing; }
+  input.tname.tname-edit {
+    background: var(--panel); border: none; outline: none; cursor: text;
+    border-radius: 5px; box-shadow: 0 0 0 1px var(--rule-strong); font-family: inherit;
+  }
   .tab .tclose {
     flex: 0 0 auto; border: none; background: transparent; color: var(--ink-dim);
     font-size: 1rem; line-height: 1; cursor: pointer; padding: 0.1rem 0.25rem; border-radius: 5px;
     opacity: 0; transition: opacity 0.12s;
   }
-  .tab:hover .tclose, .tab.active .tclose { opacity: 1; }
-  .tab .tclose:hover { color: #ff3b30; }
+  .tab:hover .tclose, .tab.active .tclose { opacity: 0.8; }
+  .tab .tclose:hover { color: #ff3b30; opacity: 1; background: var(--line-hover); }
+
+  /* favourite star on tab rows (revealed on hover; filled when starred) */
+  .tab .tstar {
+    flex: 0 0 auto; border: none; background: transparent; color: var(--ink-dim);
+    font-size: 0.9rem; line-height: 1; cursor: pointer; padding: 0.1rem 0.2rem; border-radius: 5px;
+    opacity: 0; transition: opacity 0.12s, color 0.12s;
+  }
+  .tab:hover .tstar { opacity: 0.7; }
+  .tab .tstar:hover { opacity: 1; color: #f5a623; background: var(--line-hover); }
+  .tab .tstar.on { opacity: 1; color: #f5a623; }
+  .tab .tdup {
+    flex: 0 0 auto; border: none; background: transparent; color: var(--ink-dim);
+    font-size: 0.85rem; line-height: 1; cursor: pointer; padding: 0.1rem 0.2rem; border-radius: 5px;
+    opacity: 0; transition: opacity 0.12s, color 0.12s;
+  }
+  .tab:hover .tdup { opacity: 0.7; }
+  .tab .tdup:hover { opacity: 1; color: var(--accent); background: var(--line-hover); }
+  .tab .tshare {
+    flex: 0 0 auto; border: none; background: transparent; color: var(--ink-dim);
+    font-size: 0.9rem; line-height: 1; cursor: pointer; padding: 0.1rem 0.2rem; border-radius: 5px;
+    opacity: 0; transition: opacity 0.12s, color 0.12s; display: inline-flex; align-items: center;
+  }
+  .tab .tshare svg { display: block; }
+  .tab:hover .tshare { opacity: 0.7; }
+  .tab .tshare:hover { opacity: 1; color: var(--accent); background: var(--line-hover); }
+
+  /* favourites section at the top of the sidebar */
+  #favList { display: none; margin-bottom: 0.5rem; }
+  #favList.has-favs { display: block; }
+  #favList .fav-head {
+    font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-dim); padding: 0.1rem 0.55rem 0.3rem;
+  }
+  .tab.fav-row { gap: 0.35rem; }
+  .tab.fav-row .fav-dot { flex: 0 0 auto; color: #f5a623; font-size: 0.8rem; }
+  .tab.fav-row .tstar { opacity: 0; }
+  .tab.fav-row:hover .tstar { opacity: 0.8; }
+
+  /* header favourite star */
+  header .hdr-star {
+    flex: 0 0 auto; border: none; background: transparent; color: var(--ink-dim);
+    font-size: 1.1rem; line-height: 1; cursor: pointer; padding: 0.1rem 0.3rem; border-radius: 6px;
+    opacity: 0; transition: opacity 0.12s, color 0.12s; margin-left: -0.2rem;
+  }
+  header:hover .hdr-star { opacity: 0.65; }
+  header .hdr-star:hover { opacity: 1; color: #f5a623; background: var(--surface); }
+  header .hdr-star.on { opacity: 1; color: #f5a623; }
+
+  /* group section: one subtle tinted container; the only colour accent is on the
+     header. Member tabs sit indented inside, styled like normal tabs. */
+  .tgroup-section {
+    border-radius: 10px; margin-bottom: 0.35rem; padding: 0.15rem;
+    background: color-mix(in srgb, var(--group-color, var(--accent)) 6%, transparent);
+  }
+  .tgroup-section.drop-into {
+    background: color-mix(in srgb, var(--group-color, var(--accent)) 14%, transparent);
+    box-shadow: inset 0 0 0 1.5px var(--group-color, var(--accent));
+  }
+  .tgroup-head {
+    display: flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.45rem;
+    border-radius: 7px; cursor: default;
+  }
+  .tgroup-head:hover { background: color-mix(in srgb, var(--group-color, var(--accent)) 8%, transparent); }
+  .tgroup-dot {
+    flex: 0 0 auto; width: 0.6rem; height: 0.6rem; border-radius: 50%;
+    background: var(--group-color, var(--accent));
+  }
+  .tgroup-twist {
+    flex: 0 0 auto; border: none; background: transparent; color: var(--ink-dim);
+    cursor: pointer; font-size: 0.62rem; line-height: 1; padding: 0.1rem; transition: transform 0.12s;
+  }
+  .tgroup-section.collapsed .tgroup-twist { transform: rotate(-90deg); }
+  .tgroup-name {
+    flex: 1 1 auto; min-width: 0; font-size: 0.85rem; font-weight: 600;
+    color: var(--ink); background: transparent; border: none; outline: none;
+    padding: 0.1rem 0.15rem; border-radius: 5px; text-overflow: ellipsis;
+  }
+  .tgroup-name:focus { background: var(--panel); box-shadow: 0 0 0 1px var(--rule-strong); }
+  /* indented member tabs, with a faint connector rail in the group colour */
+  .tgroup-body {
+    padding: 0 0.1rem 0.1rem 0.65rem; margin-left: 0.45rem;
+    border-left: 2px solid color-mix(in srgb, var(--group-color, var(--accent)) 35%, transparent);
+  }
+  .tgroup-section.collapsed .tgroup-body { display: none; }
+  .tgroup-body .tab { margin-bottom: 0.1rem; }
+
+  /* drag + drop feedback */
+  .tab.tab-dragging { opacity: 0.45; }
+  .tab.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+  .tab.drop-after  { box-shadow: inset 0 -2px 0 var(--accent); }
+
+  /* tab context menu */
+  #tabMenu, #shareMenu {
+    position: fixed; z-index: 80; min-width: 180px; padding: 0.3rem;
+    background: var(--glass-strong); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-border); border-radius: 12px;
+    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+    font-size: 0.85rem; color: var(--ink); user-select: none;
+  }
+  #tabMenu[hidden], #shareMenu[hidden] { display: none; }
+
+  .confirm-overlay {
+    position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.35); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  }
+  .confirm-box {
+    max-width: 320px; width: calc(100% - 3rem); padding: 1.1rem 1.2rem;
+    background: var(--glass-strong); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-border); border-radius: 16px;
+    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge); color: var(--ink);
+  }
+  .confirm-msg { font-size: 0.95rem; line-height: 1.4; margin-bottom: 1rem; }
+  .confirm-row { display: flex; gap: 0.6rem; justify-content: flex-end; }
+  .confirm-btn {
+    border: none; border-radius: 9px; padding: 0.5rem 1rem; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+  }
+  .confirm-btn.cancel { background: var(--glass-key); color: var(--ink); border: 1px solid var(--glass-border); }
+  .confirm-btn.ok { background: #ff3b30; color: #fff; }
+  .confirm-btn.cancel:hover { background: var(--surface); }
+  .confirm-btn.ok:hover { filter: brightness(1.08); }
+  .tmenu-item {
+    padding: 0.45rem 0.6rem; border-radius: 8px; cursor: pointer; white-space: nowrap;
+    display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+  }
+  .tmenu-item:hover { background: var(--line-hover); }
+  .tmenu-item.danger:hover { color: #ff3b30; }
+  .tmenu-item.disabled { opacity: 0.4; pointer-events: none; }
+  .tmenu-sep { height: 1px; background: var(--rule); margin: 0.25rem 0.3rem; }
+  .tmenu-sub { position: relative; }
+  .tmenu-sub > .tmenu-arrow { color: var(--ink-dim); font-size: 0.75rem; }
+  .tmenu-submenu {
+    position: absolute; left: 100%; top: -0.3rem; min-width: 150px; padding: 0.3rem;
+    background: var(--glass-strong); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-border); border-radius: 12px;
+    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge); display: none;
+  }
+  .tmenu-sub:hover .tmenu-submenu { display: block; }
+  .tmenu-swatch { width: 0.7rem; height: 0.7rem; border-radius: 3px; flex: 0 0 auto; }
+  .tmenu-color-row { display: flex; align-items: center; gap: 0.5rem; }
 
   .sp-foot {
     border-top: 1px solid var(--rule); padding: 0.6rem; display: flex; flex-direction: column; gap: 0.4rem;
   }
   .sp-setting {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    display: flex; flex-direction: column; align-items: stretch; gap: 0.3rem;
     padding: 0.15rem 0.1rem 0.4rem;
   }
-  .sp-setting-label { font-size: 0.8rem; color: var(--ink-dim); font-weight: 600; }
+  .sp-setting .seg { align-self: stretch; display: flex; }
+  .sp-setting .seg button { flex: 1 1 0; min-width: 0; }
+  .sp-setting-label { font-size: 0.78rem; color: var(--ink-dim); font-weight: 600; }
   .sp-act {
-    border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
-    border-radius: 8px; padding: 0.45rem 0.6rem; font-size: 0.8rem; cursor: pointer;
-    text-align: left; transition: background 0.12s;
+    display: flex; align-items: center; gap: 0.55rem;
+    border: 1px solid var(--glass-border); background: var(--glass-key);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    color: var(--ink); border-radius: 11px; padding: 0.55rem 0.7rem;
+    font-size: 0.82rem; font-weight: 500; cursor: pointer; text-align: left;
+    box-shadow: inset 0 1px 0 var(--glass-edge);
+    transition: background 0.12s, box-shadow 0.12s, transform 0.05s;
   }
-  .sp-act:hover { background: var(--line-hover); }
+  .sp-act .sp-ico { flex: 0 0 auto; color: var(--ink-dim); opacity: 0.9; }
+  .sp-act .sp-act-label { flex: 1 1 auto; }
+  .sp-act .sp-chev { flex: 0 0 auto; color: var(--ink-dim); transition: transform 0.15s; }
+  .sp-act.open .sp-chev { transform: rotate(180deg); }
+  .sp-act:hover { background: var(--glass-strong); box-shadow: 0 2px 8px rgba(31,45,80,0.1), inset 0 1px 0 var(--glass-edge); }
   .sp-act:active { transform: translateY(1px); }
+  .sp-act.open { color: var(--accent); border-color: rgba(10,132,255,0.4); }
+  .sp-act.open .sp-ico { color: var(--accent); opacity: 1; }
+
+  /* ---- stored variables list ---- */
+  .vars-list {
+    border: 1px solid var(--rule); border-radius: 8px; background: var(--surface);
+    padding: 0.35rem 0.1rem; max-height: 320px; overflow-y: auto; font-size: 0.8rem;
+  }
+  .vars-list[hidden] { display: none; }
+  .vars-row {
+    display: flex; justify-content: space-between; gap: 0.6rem;
+    padding: 0.28rem 0.55rem; align-items: baseline;
+  }
+  .vars-row + .vars-row { border-top: 1px solid var(--rule); }
+  .vars-row .vname { color: var(--ink); font-weight: 600; }
+  .vars-row .vname .katex { font-size: 0.95em; }
+  .vars-row .vval { color: var(--ink-dim); font-variant-numeric: tabular-nums; text-align: right; }
+  .vars-row.is-const .vname { color: var(--accent); }
+  .vars-section {
+    padding: 0.3rem 0.55rem 0.15rem; font-size: 0.68rem; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--ink-dim); font-weight: 700;
+  }
+  .vars-empty { padding: 0.5rem 0.55rem; color: var(--ink-dim); }
+  .fml-srow {
+    padding: 0.32rem 0.55rem; cursor: pointer; border-radius: 6px; color: var(--ink);
+    overflow-x: auto; white-space: nowrap;
+  }
+  .fml-srow:hover { background: var(--line-hover); }
+  .fml-srow + .fml-srow { border-top: 1px solid var(--rule); }
+  .fml-srow .katex { font-size: 0.92em; }
 
   /* ---- symbol picker (@) ---- */
   #symbolPicker {
@@ -610,6 +886,35 @@
   }
   .sym-name { flex: 1 1 auto; font-size: 0.85rem; color: var(--ink); }
   .sym-empty { padding: 0.8rem; text-align: center; color: var(--ink-dim); font-size: 0.85rem; }
+
+  /* formula picker (f(x) @ button) */
+  #formulaPicker {
+    position: fixed; z-index: 60; width: 340px; max-width: 92vw;
+    background: var(--glass-strong); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-border); border-radius: 16px;
+    box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  #formulaPicker[hidden] { display: none; }
+  #formulaSearch {
+    border: none; outline: none; background: transparent; color: var(--ink);
+    font-size: 0.9rem; font-family: inherit; padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  #formulaSearch::placeholder { color: var(--ink-dim); }
+  #formulaResults { max-height: 320px; overflow-y: auto; padding: 0.3rem; }
+  .fml-cat {
+    font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-dim); padding: 0.45rem 0.55rem 0.2rem;
+  }
+  .fml-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.7rem;
+    padding: 0.4rem 0.55rem; border-radius: 9px; cursor: pointer;
+  }
+  .fml-row.active { background: var(--focus-bg); }
+  .fml-eq { flex: 0 1 auto; color: var(--ink); font-size: 0.95rem; overflow: hidden; }
+  .fml-kw { flex: 0 0 auto; font-size: 0.68rem; color: var(--ink-dim); text-align: right; max-width: 9rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 </head>
 <body>
@@ -619,6 +924,7 @@
       <span class="sp-title">Tabs</span>
       <button id="newTab" class="sp-new" title="New tab">+ New</button>
     </div>
+    <div id="favList"></div>
     <div id="tabList"></div>
     <div class="sp-foot">
       <div class="sp-setting">
@@ -629,39 +935,57 @@
         </div>
       </div>
       <div class="sp-setting">
-        <span class="sp-setting-label">Gravity g</span>
+        <span class="sp-setting-label">Gravitational acceleration</span>
         <div class="seg" id="gravSeg">
           <button data-g="9.81" class="on">9.81</button>
           <button data-g="9.8">9.8</button>
         </div>
       </div>
       <div class="sp-setting">
-        <span class="sp-setting-label">Sig figs</span>
-        <div class="seg" id="sigfigSeg">
-          <button data-sf="auto" class="on">Auto</button>
-          <button data-sf="2">2</button>
-          <button data-sf="3">3</button>
-          <button data-sf="4">4</button>
+        <span class="sp-setting-label">Solve</span>
+        <div class="seg" id="solveModeSeg">
+          <button data-solve="first" class="on">First</button>
+          <button data-solve="all">All</button>
         </div>
       </div>
-      <button id="exportFile" class="sp-act" title="Save active tab to a file">Save to file</button>
-      <button id="importFile" class="sp-act" title="Open a saved file">Open file</button>
-      <button id="shareLink" class="sp-act" title="Copy a shareable link">Copy link</button>
+      <button id="varsToggle" class="sp-act" title="Show stored variables and constants">
+        <svg class="sp-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+        <span class="sp-act-label">Stored variables</span>
+        <svg class="sp-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div id="varsList" class="vars-list" hidden></div>
+      <button id="formulasToggle" class="sp-act" title="Show the formula sheet">
+        <svg class="sp-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span class="sp-act-label">Formulas</span>
+        <svg class="sp-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div id="formulasList" class="vars-list" hidden></div>
+      <button id="importFile" class="sp-act" title="Open a saved file as a new tab">
+        <svg class="sp-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <span class="sp-act-label">Open file</span>
+      </button>
       <input id="fileInput" type="file" accept=".json,application/json" hidden>
     </div>
   </aside>
   <div id="panelScrim"></div>
+  <div id="tabMenu" hidden></div>
+  <div id="shareMenu" hidden></div>
 
   <div class="header-wrap" style="display:flex;flex-direction:column;flex:1 1 auto;min-width:0;">
     <header>
       <button id="panelToggle" class="hamburger" title="Tabs" aria-label="Toggle tabs panel">
         <span></span><span></span><span></span>
       </button>
-      <span class="title">Calculator</span>
+      <span class="title" id="pageTitle"><span class="pt-group" id="ptGroup"></span><span class="pt-name" id="ptName" title="Click to rename tab"></span></span>
+      <button class="hdr-star" id="hdrStar" title="Favourite this tab">&#9734;</button>
       <span class="spacer"></span>
       <div class="seg" id="exactSeg">
         <button data-mode="exact">Exact</button>
         <button data-mode="decimal" class="on">Decimal</button>
+      </div>
+      <div class="seg" id="sigfigSeg">
+        <button data-sf="auto" class="on">Auto</button>
+        <button data-sf="3">3 s.f.</button>
       </div>
       <div class="seg" id="angleSeg">
         <button data-mode="rad">Rad</button>
@@ -677,6 +1001,11 @@
 <div id="symbolPicker" hidden>
   <input id="symbolSearch" type="text" placeholder="Search symbols, e.g. lambda, sigma, Delta" autocomplete="off" spellcheck="false">
   <div id="symbolResults"></div>
+</div>
+
+<div id="formulaPicker" hidden>
+  <input id="formulaSearch" type="text" placeholder="Search formulas, e.g. kinetic energy, suvat, snell" autocomplete="off" spellcheck="false">
+  <div id="formulaResults"></div>
 </div>
 
 <script>
@@ -713,13 +1042,71 @@ let idSeq = 0;
 let folders = [];           // points at the active tab's folder array
 const foldersEl = document.getElementById('folders');
 
+/* Custom confirm dialog. Native confirm() is blocked inside sandboxed iframes
+   (e.g. preview panes), silently returning false; this always works and matches
+   the app styling. Returns a Promise<boolean>. */
+function confirmDialog(message, okLabel) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    const box = document.createElement('div');
+    box.className = 'confirm-box';
+    const msg = document.createElement('div');
+    msg.className = 'confirm-msg'; msg.textContent = message;
+    const row = document.createElement('div'); row.className = 'confirm-row';
+    const cancel = document.createElement('button'); cancel.className = 'confirm-btn cancel'; cancel.textContent = 'Cancel';
+    const ok = document.createElement('button'); ok.className = 'confirm-btn ok'; ok.textContent = okLabel || 'Confirm';
+    row.appendChild(cancel); row.appendChild(ok);
+    box.appendChild(msg); box.appendChild(row);
+    overlay.appendChild(box); document.body.appendChild(overlay);
+    const close = (val) => { overlay.remove(); document.removeEventListener('keydown', onKey, true); resolve(val); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); close(false); }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); close(true); }
+    };
+    cancel.addEventListener('click', () => close(false));
+    ok.addEventListener('click', () => close(true));
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(false); });
+    document.addEventListener('keydown', onKey, true);
+    setTimeout(() => ok.focus(), 0);
+  });
+}
+
+/* click a result to copy it as MathML (plain text). Word's body paste converts
+   the MathML text into a real, editable equation. */
+foldersEl.addEventListener('click', (e) => {
+  const res = e.target.closest && e.target.closest('.result, .sys-result');
+  if (!res || !res.dataset) return;
+  const mathml = res.dataset.copyHtml || res.dataset.copy;   // MathML, else plaintext
+  if (!mathml) return;
+  const flash = () => { res.classList.add('copied'); setTimeout(() => res.classList.remove('copied'), 900); };
+  copyMathML(mathml, flash);
+});
+function copyMathML(mathml, cb) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(mathml).then(cb).catch(() => fallbackCopy(mathml, cb));
+  } else fallbackCopy(mathml, cb);
+}
+function fallbackCopy(text, cb) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); ta.remove(); if (cb) cb();
+  } catch (e) {}
+}
+
 /* ---- tabs ----
    Each tab is an independent calculator entry with its own folders and modes.
    Only the active tab is rendered in #folders; switching tabs serialises the
    current one, then rebuilds the DOM from the target. */
-let tabs = [];              // [{ id, name, data }]  data = serialised snapshot
+let tabs = [];              // [{ id, name, data, group }]  group = group id or undefined
 let activeTabId = null;
 let tabSeq = 0;
+let tabGroups = [];         // [{ id, name, color, collapsed }]
+let groupSeq = 0;
+let favourites = [];        // [tabId, ...] starred tabs shown as top shortcuts
+const GROUP_COLORS = ['#0a84ff','#34c759','#ff9f0a','#ff375f','#bf5af2','#5ac8fa','#ffd60a','#ff6482'];
 
 let angleMode = 'deg';      // 'rad' | 'deg'
 let exactMode = false;      // false = decimal (default), true = exact
@@ -755,7 +1142,9 @@ const PHYS_CONSTANTS_BASE = {
   c:   3.0e8,      // speed of light (m/s)
   k:   8.99e9,     // Coulomb constant (N m^2 C^-2)
   G:   6.67e-11,   // gravitational constant (N m^2 kg^-2)
-  h:   6.63e-34    // Planck constant (J s), 3 sf (VCE)
+  h:   6.63e-34,   // Planck constant (J s), 3 sf (VCE)
+  M_E: 5.98e24,    // mass of the Earth (kg), VCE formula sheet
+  r_E: 6.37e6      // radius of the Earth (m), VCE formula sheet
 };
 // g is added dynamically so the settings toggle can change its value
 function physConstants() { return { ...PHYS_CONSTANTS_BASE, g: gValue }; }
@@ -781,6 +1170,111 @@ const GREEK_AUTOCOMMANDS = Object.keys(GREEK).join(' ');
 const GREEK_GLYPHS = new Set(Object.values(GREEK));
 /* searchable symbol list for the @ picker: {name, latex, glyph} */
 const SYMBOL_LIST = Object.entries(GREEK).map(([name, glyph]) => ({ name, latex: '\\' + name, glyph }));
+
+/* searchable formula list for the f(x) @ picker. Each entry:
+   {name, cat, kw, latex}  where `latex` is inserted into the math field and
+   `name` is the displayed/rendered formula (also rendered via KaTeX). */
+const FORMULA_LIST = [
+  // Thermal
+  { name:'Q = mcT_{d}', cat:'Thermal', kw:'heat, specific heat capacity, temperature change, mass, calorimetry, thermal energy, delta', latex:'Q=mcT_{d}' },
+  { name:'Q = mL_F', cat:'Thermal', kw:'latent heat, latent heat of fusion, melting, freezing, phase change, mass, heat', latex:'Q=mL_{F}' },
+  { name:'Q = mL_V', cat:'Thermal', kw:'latent heat, latent heat of vaporisation, boiling, condensing, evaporation, phase change, mass, heat', latex:'Q=mL_{V}' },
+  { name:'T_K = T_C + 273', cat:'Thermal', kw:'temperature, kelvin, celsius, absolute zero, conversion', latex:'T_{K}=T_{C}+273' },
+  { name:'\\lambda_{max} = b/T', cat:'Thermal', kw:'wien, blackbody, peak wavelength, temperature, thermal radiation, emission', latex:'\\lambda_{max}=\\frac{b}{T}' },
+  { name:'P/A = \\sigma T^4', cat:'Thermal', kw:'stefan boltzmann, blackbody, radiated power, temperature, thermal radiation, intensity', latex:'\\frac{P}{A}=\\sigma T^{4}' },
+  // Nuclear
+  { name:'E = mc^2', cat:'Nuclear', kw:'mass energy, mass defect, binding energy, nuclear, einstein, speed of light', latex:'E=mc^{2}' },
+  { name:'n = t/t_{1/2}', cat:'Nuclear', kw:'half life, number of half lives, elapsed time, decay', latex:'n=\\frac{t}{t_{1/2}}' },
+  { name:'N = N_0 (1/2)^n', cat:'Nuclear', kw:'radioactive decay, half life, undecayed nuclei, number of half lives, decay, exponential', latex:'N=N_{0}\\left(\\frac{1}{2}\\right)^{n}' },
+  { name:'A = A_0 (1/2)^n', cat:'Nuclear', kw:'activity, half life, decay rate, becquerel, number of half lives, radioactive decay, exponential', latex:'A=A_{0}\\left(\\frac{1}{2}\\right)^{n}' },
+  { name:'D = E/m', cat:'Nuclear', kw:'absorbed dose, gray, radiation energy, mass, dose', latex:'D=\\frac{E}{m}' },
+  { name:'H = D W_R', cat:'Nuclear', kw:'equivalent dose, sievert, radiation weighting factor, absorbed dose, quality factor, dose', latex:'H=DW_{R}' },
+  { name:'D_{eff} = H W_T', cat:'Nuclear', kw:'effective dose, sievert, tissue weighting factor, equivalent dose, dose', latex:'D_{eff}=HW_{T}' },
+  // Motion
+  { name:'v = s/t', cat:'Motion', kw:'velocity, speed, average velocity, displacement, time', latex:'v=\\frac{s}{t}' },
+  { name:'a = v/t', cat:'Motion', kw:'acceleration, average acceleration, velocity change, time', latex:'a=\\frac{v}{t}' },
+  { name:'v_{avg} = (u+v)/2', cat:'Motion', kw:'average velocity, mean velocity, suvat, uniform acceleration', latex:'v_{avg}=\\frac{u+v}{2}' },
+  { name:'v = u + at', cat:'Motion', kw:'suvat, kinematics, final velocity, initial velocity, acceleration, time, constant acceleration', latex:'v=u+at' },
+  { name:'s = ut + \\frac12 at^2', cat:'Motion', kw:'suvat, kinematics, displacement, initial velocity, acceleration, time, constant acceleration', latex:'s=ut+\\frac{1}{2}at^{2}' },
+  { name:'s = vt - \\frac12 at^2', cat:'Motion', kw:'suvat, kinematics, displacement, final velocity, acceleration, time, constant acceleration', latex:'s=vt-\\frac{1}{2}at^{2}' },
+  { name:'v^2 = u^2 + 2as', cat:'Motion', kw:'suvat, kinematics, final velocity, initial velocity, acceleration, displacement, no time', latex:'v^{2}=u^{2}+2as' },
+  { name:'s = \\frac12 (v+u)t', cat:'Motion', kw:'suvat, kinematics, displacement, average velocity, time', latex:'s=\\frac{1}{2}\\left(v+u\\right)t' },
+  { name:'F_{net} = ma', cat:'Motion', kw:'newton, second law, net force, resultant force, mass, acceleration', latex:'F_{net}=ma' },
+  { name:'a = v^2/r', cat:'Motion', kw:'circular motion, centripetal acceleration, orbit, radius, period, pi', latex:'a=\\frac{v^{2}}{r}' },
+  { name:'a = 4\\pi^2 r/T^2', cat:'Motion', kw:'circular motion, centripetal acceleration, orbit, radius, period, pi', latex:'a=\\frac{4\\pi^{2}r}{T^{2}}' },
+  { name:'F = -kx', cat:'Motion', kw:'hooke, spring, restoring force, spring constant, extension, compression', latex:'F=-kx' },
+  { name:'mg = kx', cat:'Motion', kw:'oscillation, mass spring, equilibrium, hooke, weight, spring constant, extension', latex:'mg=kx' },
+  { name:'T = 2\\pi\\sqrt{m/k}', cat:'Motion', kw:'oscillation, shm, simple harmonic motion, period, mass spring, spring constant, pi', latex:'T=2\\pi\\sqrt{\\frac{m}{k}}' },
+  { name:'T = 2\\pi\\sqrt{L/g}', cat:'Motion', kw:'oscillation, shm, simple harmonic motion, period, pendulum, length, gravity, pi', latex:'T=2\\pi\\sqrt{\\frac{L}{g}}' },
+  { name:'E_s = \\frac12 kx^2', cat:'Motion', kw:'elastic potential energy, spring energy, strain energy, hooke, spring constant', latex:'E_{s}=\\frac{1}{2}kx^{2}' },
+  { name:'E_g = mgh', cat:'Motion', kw:'gravitational potential energy, gpe, height, mass, gravity', latex:'E_{g}=mgh' },
+  { name:'E_k = \\frac12 mv^2', cat:'Motion', kw:'kinetic energy, ke, mass, velocity, speed', latex:'E_{k}=\\frac{1}{2}mv^{2}' },
+  { name:'W = Fs', cat:'Motion', kw:'work, work done, force, displacement, energy transfer', latex:'W=Fs' },
+  { name:'P = W/t', cat:'Motion', kw:'power, work, time, watt', latex:'P=\\frac{W}{t}' },
+  { name:'P = Fv', cat:'Motion', kw:'power, force, velocity, watt', latex:'P=Fv' },
+  { name:'F = Gm_1 m_2/r^2', cat:'Motion', kw:'gravitation, universal gravitation, newton, gravitational force, mass, separation, inverse square', latex:'F=\\frac{Gm_{1}m_{2}}{r^{2}}' },
+  { name:'g = GM/r^2', cat:'Motion', kw:'gravitational field, field strength, central mass, radius, distance', latex:'g=\\frac{GM}{r^{2}}' },
+  { name:'r^3/T^2 = GM/4\\pi^2', cat:'Motion', kw:'kepler, third law, orbit, orbital radius, period, satellite, ratio, pi', latex:'\\frac{r^{3}}{T^{2}}=\\frac{GM}{4\\pi^{2}}' },
+  { name:'T = 2\\pi\\sqrt{r^3/GM}', cat:'Motion', kw:'kepler, third law, orbital period, orbit, radius, satellite, pi', latex:'T=2\\pi\\sqrt{\\frac{r^{3}}{GM}}' },
+  { name:'M = 4\\pi^2 r^3/GT^2', cat:'Motion', kw:'kepler, third law, central mass, planet mass, star mass, orbit, radius, period, pi', latex:'M=\\frac{4\\pi^{2}r^{3}}{GT^{2}}' },
+  { name:'GM = 4\\pi^2 r^3/T^2', cat:'Motion', kw:'kepler, third law, standard gravitational parameter, orbit, radius, period, pi', latex:'GM=\\frac{4\\pi^{2}r^{3}}{T^{2}}' },
+  { name:'I = Ft', cat:'Motion', kw:'impulse, force, time, momentum change', latex:'I=Ft' },
+  { name:'p = mv', cat:'Motion', kw:'momentum, linear momentum, mass, velocity', latex:'p=mv' },
+  { name:'m_1 u_1 + m_2 u_2 = m_1 v_1 + m_2 v_2', cat:'Motion', kw:'conservation of momentum, collision, two objects, before after, mass, velocity', latex:'m_{1}u_{1}+m_{2}u_{2}=m_{1}v_{1}+m_{2}v_{2}' },
+  { name:'\\frac12 m_1 u_1^2 + \\frac12 m_2 u_2^2 = \\frac12 m_1 v_1^2 + \\frac12 m_2 v_2^2', cat:'Motion', kw:'elastic collision, kinetic energy conserved, collision, momentum, two objects', latex:'\\frac{1}{2}m_{1}u_{1}^{2}+\\frac{1}{2}m_{2}u_{2}^{2}=\\frac{1}{2}m_{1}v_{1}^{2}+\\frac{1}{2}m_{2}v_{2}^{2}' },
+  { name:'m_1 u_1 + m_2 u_2 = (m_1 + m_2)v', cat:'Motion', kw:'inelastic collision, perfectly inelastic, stick together, collision, combined mass, momentum', latex:'m_{1}u_{1}+m_{2}u_{2}=\\left(m_{1}+m_{2}\\right)v' },
+  { name:'\\gamma = 1/\\sqrt{1 - v^2/c^2}', cat:'Motion', kw:'relativity, special relativity, lorentz factor, gamma, speed of light, velocity', latex:'\\gamma=\\frac{1}{\\sqrt{1-\\frac{v^{2}}{c^{2}}}}' },
+  { name:'t = t_0 \\gamma', cat:'Motion', kw:'relativity, time dilation, proper time, observed time, gamma, lorentz', latex:'t=t_{0}\\gamma' },
+  { name:'L = L_0/\\gamma', cat:'Motion', kw:'relativity, length contraction, proper length, observed length, gamma, lorentz', latex:'L=\\frac{L_{0}}{\\gamma}' },
+  { name:'E_{rest} = mc^2', cat:'Motion', kw:'relativity, rest energy, mass energy, mass, speed of light', latex:'E_{rest}=mc^{2}' },
+  { name:'E_{total} = \\gamma mc^2', cat:'Motion', kw:'relativity, total energy, relativistic energy, gamma, mass, speed of light', latex:'E_{total}=\\gamma mc^{2}' },
+  { name:'E_k = (\\gamma - 1)mc^2', cat:'Motion', kw:'relativity, relativistic kinetic energy, gamma, mass, speed of light', latex:'E_{k}=\\left(\\gamma-1\\right)mc^{2}' },
+  // Fields
+  { name:'E = V/d', cat:'Fields', kw:'electric field, parallel plates, voltage, plate separation, uniform field', latex:'E=\\frac{V}{d}' },
+  { name:'\\frac12 mv^2 = qV', cat:'Fields', kw:'work energy, charge acceleration, kinetic energy, voltage, charge, electron gun', latex:'\\frac{1}{2}mv^{2}=qV' },
+  { name:'E = kq/r^2', cat:'Fields', kw:'electric field, point charge, coulomb constant, charge, distance, inverse square', latex:'E=\\frac{kq}{r^{2}}' },
+  { name:'F = qE', cat:'Fields', kw:'electric force, charge, field strength', latex:'F=qE' },
+  { name:'F = kq_1 q_2/r^2', cat:'Fields', kw:'coulomb, coulombs law, electrostatic force, point charges, charge, separation, inverse square', latex:'F=\\frac{kq_{1}q_{2}}{r^{2}}' },
+  { name:'F = Bvq', cat:'Fields', kw:'magnetic force, lorentz, moving charge, charge, velocity, magnetic field', latex:'F=Bvq' },
+  { name:'F = nBIl', cat:'Fields', kw:'magnetic force, conductor, current carrying, wire, current, length, magnetic field, motor', latex:'F=nBIl' },
+  { name:'r = mv/Bq', cat:'Fields', kw:'radius, circular path, charged particle, mass, velocity, charge, magnetic field', latex:'r=\\frac{mv}{Bq}' },
+  // Electricity
+  { name:'V = RI', cat:'Electricity', kw:'ohms law, resistance, voltage, current', latex:'V=RI' },
+  { name:'P = VI', cat:'Electricity', kw:'power, electrical power, voltage, current', latex:'P=VI' },
+  { name:'P = I^2 R', cat:'Electricity', kw:'power, electrical power, current, resistance', latex:'P=I^{2}R' },
+  { name:'Q = It', cat:'Electricity', kw:'charge, current, time, coulombs', latex:'Q=It' },
+  { name:'E = VIt', cat:'Electricity', kw:'electrical energy, voltage, current, time, joules', latex:'E=VIt' },
+  { name:'E = Pt', cat:'Electricity', kw:'electrical energy, power, time, joules', latex:'E=Pt' },
+  { name:'R_T = R_1 + R_2', cat:'Electricity', kw:'resistance, series, resistors, total resistance', latex:'R_{T}=R_{1}+R_{2}' },
+  { name:'R_T = (1/R_1 + 1/R_2)^{-1}', cat:'Electricity', kw:'resistance, parallel, resistors, total resistance', latex:'R_{T}=\\left(\\frac{1}{R_{1}}+\\frac{1}{R_{2}}\\right)^{-1}' },
+  { name:'V_1/V_2 = N_1/N_2 = I_2/I_1', cat:'Electricity', kw:'transformer, ideal transformer, turns ratio, step up, step down, primary, secondary, voltage, current, generation', latex:'\\frac{V_{1}}{V_{2}}=\\frac{N_{1}}{N_{2}}=\\frac{I_{2}}{I_{1}}' },
+  { name:'V_{RMS} = V_p/\\sqrt2', cat:'Electricity', kw:'rms, root mean square, ac voltage, peak voltage, alternating current, generation', latex:'V_{RMS}=\\frac{V_{p}}{\\sqrt{2}}' },
+  { name:'I_{RMS} = I_p/\\sqrt2', cat:'Electricity', kw:'rms, root mean square, ac current, peak current, alternating current, generation', latex:'I_{RMS}=\\frac{I_{p}}{\\sqrt{2}}' },
+  { name:'\\varepsilon = -N \\Phi_{d}/t', cat:'Electricity', kw:'faraday, lenz, emf, induced voltage, magnetic flux, flux, turns, rate of change, generation, delta', latex:'\\varepsilon=-N\\frac{\\Phi_{d}}{t}' },
+  { name:'\\Phi_B = B_\\perp A', cat:'Electricity', kw:'magnetic flux, flux, area, faraday, generation', latex:'\\Phi_{B}=B_{\\perp}A' },
+  { name:'V_{drop} = I_{line} R_{line}', cat:'Electricity', kw:'transmission, voltage drop, power lines, line current, line resistance, generation', latex:'V_{drop}=I_{line}R_{line}' },
+  { name:'P_{loss} = I_{line}^2 R_{line}', cat:'Electricity', kw:'transmission, power loss, power lines, line current, line resistance, heat loss, generation', latex:'P_{loss}=I_{line}^{2}R_{line}' },
+  // Light and Matter
+  { name:'v = f\\lambda', cat:'Light and Matter', kw:'wave equation, wave speed, frequency, wavelength, lambda', latex:'v=f\\lambda' },
+  { name:'T = 1/f', cat:'Light and Matter', kw:'period, frequency, inverse', latex:'T=\\frac{1}{f}' },
+  { name:'P_D = n\\lambda', cat:'Light and Matter', kw:'interference, constructive, path difference, in phase, wavelength, lambda, double slit', latex:'P_{D}=n\\lambda' },
+  { name:'P_D = (n - \\frac12)\\lambda', cat:'Light and Matter', kw:'interference, destructive, path difference, out of phase, wavelength, lambda, double slit', latex:'P_{D}=\\left(n-\\frac{1}{2}\\right)\\lambda' },
+  { name:'x = \\lambda L/d', cat:'Light and Matter', kw:'fringe spacing, double slit, youngs, interference, wavelength, lambda, slit separation, screen distance', latex:'x=\\frac{\\lambda L}{d}' },
+  { name:'\\lambda_n = 2L/n', cat:'Light and Matter', kw:'standing wave, string, fixed both ends, harmonic, wavelength, lambda, overtone, resonance', latex:'\\lambda_{n}=\\frac{2L}{n}' },
+  { name:'f_n = nv/2L', cat:'Light and Matter', kw:'standing wave, string, fixed both ends, harmonic, frequency, fundamental, overtone, resonance', latex:'f_{n}=\\frac{nv}{2L}' },
+  { name:'f_n = n f_1', cat:'Light and Matter', kw:'standing wave, harmonic, frequency, fundamental, overtone, resonance', latex:'f_{n}=nf_{1}' },
+  { name:'n_1 \\sin\\theta_1 = n_2 \\sin\\theta_2', cat:'Light and Matter', kw:'snell, refraction, refractive index, angle of incidence, angle of refraction, bending', latex:'n_{1}\\sin\\theta_{1}=n_{2}\\sin\\theta_{2}' },
+  { name:'n_1 v_1 = n_2 v_2', cat:'Light and Matter', kw:'refractive index, wave speed, refraction, media', latex:'n_{1}v_{1}=n_{2}v_{2}' },
+  { name:'E_{k,max} = hf - \\phi', cat:'Light and Matter', kw:'photoelectric, photoelectric effect, max kinetic energy, planck, frequency, work function, phi, photon', latex:'E_{kmax}=hf-\\phi' },
+  { name:'\\phi = h f_0', cat:'Light and Matter', kw:'work function, phi, threshold frequency, cutoff frequency, planck, photoelectric', latex:'\\phi=hf_{0}' },
+  { name:'eV_0 = E_{k,max}', cat:'Light and Matter', kw:'stopping voltage, stopping potential, photoelectric, photocurrent, max kinetic energy', latex:'eV_{0}=E_{kmax}' },
+  { name:'E = hf', cat:'Light and Matter', kw:'photon energy, planck, frequency, quantum', latex:'E=hf' },
+  { name:'E = hc/\\lambda', cat:'Light and Matter', kw:'photon energy, planck, wavelength, lambda, speed of light, quantum', latex:'E=\\frac{hc}{\\lambda}' },
+  { name:'E_{d} = E_{high} - E_{low} = hf', cat:'Light and Matter', kw:'energy levels, atomic transition, emission, absorption, spectral line, photon, planck, delta', latex:'E_{d}=E_{high}-E_{low}=hf' },
+  { name:'p = h/\\lambda', cat:'Light and Matter', kw:'photon momentum, planck, wavelength, lambda', latex:'p=\\frac{h}{\\lambda}' },
+  { name:'\\lambda = h/p', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, momentum, planck', latex:'\\lambda=\\frac{h}{p}' },
+  { name:'\\lambda = h/\\sqrt{2mE_k}', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, kinetic energy, mass, planck', latex:'\\lambda=\\frac{h}{\\sqrt{2mE_{k}}}' },
+];
 
 /* Convert a LaTeX definite integral into an integrate(...) call.
    Handles \int_{a}^{b} <integrand> d<var>  and single-token limits \int_a^b.
@@ -838,12 +1332,6 @@ function latexToMath(latex) {
   let s = latex;
   s = s.replace(/\\left/g, '').replace(/\\right/g, '');
   s = s.replace(/\\square/g, '');   // unfilled placeholder box -> empty (incomplete expr renders blank)
-  // Scientific E-notation typed inline as a letter: <number>E<exponent> ->
-  // <number>*10^(<exponent>). e.g. 3E8, 1.5E-3, 6.022E23. The exponent is always
-  // flat text here, so we never touch braces (the live ×10^ shortcut produces a
-  // real superscript handled separately). A standalone E variable or \exp is
-  // unaffected because a digit must precede E and a digit must follow the sign.
-  s = s.replace(/(\d(?:\.\d+)?)[eE](-?\d+)/g, '$1*10^($2)');
   // absolute value bars |...| -> abs(...). Replace innermost pairs repeatedly so
   // nested bars resolve from the inside out.
   let pb;
@@ -864,7 +1352,7 @@ function latexToMath(latex) {
   const fns = ['sin','cos','tan','sec','csc','cot','sinh','cosh','tanh',
                'arcsin','arccos','arctan','ln','log','exp','abs','floor','ceil','round','sign'];
   fns.forEach(fn => { s = s.replace(new RegExp('\\\\' + fn + '(?![a-zA-Z])', 'g'), fn); });
-  s = s.replace(/\\pi/g, 'pi');
+  s = s.replace(/\\pi/g, 'pi ');
   // Greek letters -> unicode glyphs (used as variable identifiers). Longest
   // names first so \vartheta isn't partially matched by \theta etc.
   Object.keys(GREEK).sort((a,b) => b.length - a.length).forEach(name => {
@@ -873,7 +1361,7 @@ function latexToMath(latex) {
   s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*').replace(/\\div/g, '/');
   s = s.replace(/\bln\b/g, 'log');
   s = s.replace(/\\degree|°/g, ' deg');
-  s = s.replace(/_\{([^}]*)\}/g, '_$1');
+  s = s.replace(/_\{([^}]*)\}/g, '_\u2039$1\u203A');   // subscript braces -> guillemet sentinels so the boundary survives
   s = s.replace(/[{}]/g, '').replace(/\\,/g, '').replace(/\\/g, '');
   return s.trim();
 }
@@ -901,9 +1389,22 @@ function tokenize(s) {
       }
       if (matched === 'e' && c !== 'e') matched = null;
       if (matched) { toks.push({ t:'name', v:matched, fn:FUNCS.includes(matched) }); i += matched.length; continue; }
-      // single letter (Latin or Greek), optional _subscript
+      // single letter (Latin or Greek), optional _subscript. MathQuill emits a
+      // multi-character subscript braced (q_{12}) and a single-character one bare
+      // (q_1). Braced subscripts arrive as guillemet sentinels (set in
+      // latexToMath) which fix the boundary; a bare "_" therefore takes exactly
+      // ONE character, so "q_1q_2" -> q_1, q_2 (two variables) not "q_1q".
       let j = i+1; let name = c;
-      if (s[j] === '_') { j++; let sub=''; while (j<s.length && /[A-Za-z0-9]/.test(s[j])) { sub+=s[j]; j++; } name = c+'_'+sub; }
+      if (s[j] === '_') {
+        if (s[j+1] === '\u2039') {            // _‹...›  braced/multi-char subscript
+          let k = j+2, sub = '';
+          while (k < s.length && s[k] !== '\u203A') { sub += s[k]; k++; }
+          if (s[k] === '\u203A') k++;          // consume closing sentinel
+          name = c + '_' + sub; j = k;
+        } else if (j+1 < s.length && /[A-Za-z0-9]/.test(s[j+1])) {
+          name = c + '_' + s[j+1]; j += 2;     // bare single-character subscript
+        }
+      }
       let outName = name;
       if (name === 'E') outName = 'E_usr';
       toks.push({ t:'name', v:outName, display:name, fn:false }); i = j; continue;
@@ -938,25 +1439,179 @@ function solveEquation(eqText, varName, scope) {
   let L, R;
   if (eqText.includes('=')) { const i = eqText.indexOf('='); L = eqText.slice(0,i); R = eqText.slice(i+1); }
   else { L = eqText; R = '0'; }
-  const f = x => math.evaluate('(' + L + ')-(' + R + ')', { ...scope, [varName]: x });
+  let compiled = null;
+  try { compiled = math.compile('(' + L + ')-(' + R + ')'); } catch (e) {}
+  const fscope = { ...scope };
+  const f = compiled
+    ? (x => { fscope[varName] = x; try { return compiled.evaluate(fscope); } catch (e) { return NaN; } })
+    : (x => { try { return math.evaluate('(' + L + ')-(' + R + ')', { ...scope, [varName]: x }); } catch (e) { return NaN; } });
 
+  // exact linear shortcut
   const f0 = f(0), f1 = f(1), f2 = f(2);
   const m = f1 - f0, m2 = f2 - f1;
   if (isFinite(m) && Math.abs(m - m2) < 1e-9 && Math.abs(m) > 1e-12) return cleanRoot(-f0 / m);
 
-  const seeds = [0,1,-1,2,-2,0.5,-0.5,5,-5,10,-10,3.14159,1.5708];
+  // Newton from a spread of seeds; derivative step scales with |x| so it stays
+  // meaningful at large magnitudes.
+  const seeds = [0,1,-1,2,-2,0.5,-0.5,5,-5,10,-10,3.14159,1.5708,100,-100,1e4,-1e4];
   for (const s0 of seeds) {
     let x = s0;
     for (let it = 0; it < 80; it++) {
       const fx = f(x); if (!isFinite(fx)) break;
-      const h = 1e-6, d = (f(x+h) - f(x-h)) / (2*h);
-      if (!isFinite(d) || Math.abs(d) < 1e-12) break;
+      const h = Math.max(1e-9, Math.abs(x) * 1e-7), d = (f(x+h) - f(x-h)) / (2*h);
+      if (!isFinite(d) || d === 0) break;
       const nx = x - fx / d; if (!isFinite(nx)) break;
-      if (Math.abs(nx - x) < 1e-12) { if (Math.abs(f(nx)) < 1e-7) return cleanRoot(nx); break; }
+      if (Math.abs(nx - x) < 1e-12 * Math.max(1, Math.abs(x))) {
+        if (Math.abs(f(nx)) < 1e-6 * Math.max(1, Math.abs(nx))) return cleanRoot(nx);
+        break;
+      }
       x = nx;
     }
   }
+
+  // Fallback: the seeds missed it (e.g. a root far out at 1e20). Reuse the wide
+  // log-scale scanner (|x| <= 1e30) and return the root nearest zero.
+  try {
+    const all = solveEquationAll(eqText, varName, scope);
+    if (all.roots && all.roots.length) {
+      return all.roots.slice().sort((a, b) => Math.abs(a) - Math.abs(b))[0];
+    }
+  } catch (e) {}
   return undefined;
+}
+
+/* Find all distinct real roots of (LHS - RHS) in a bounded window by scanning
+   for sign changes and refining each with Newton's method. Numeric and bounded:
+   it returns the real roots within [lo, hi] only, so periodic equations report
+   the roots in that window rather than a general solution. Returns a sorted
+   array (possibly empty). */
+/* True if the expression contains a (non-inverse) circular trig function, which
+   makes the equation periodic -> we solve over one standard period. The \b
+   before the name means arcsin(/asin( etc. don't match (no word boundary before
+   "sin" in "arcsin"/"asin"). */
+function hasTrig(expr) {
+  return /\b(sin|cos|tan|sec|csc|cot)\s*\(/.test(expr);
+}
+
+/* If exprStr is a polynomial in the (single) variable, return its coefficients
+   ascending [a0, a1, ...]; otherwise null. Uses math.js rationalize. */
+function polyCoeffs(exprStr) {
+  try {
+    const n = math.rationalize(exprStr, {}, true);
+    if (n && n.coefficients && n.coefficients.length) return n.coefficients.map(Number);
+  } catch (e) {}
+  return null;
+}
+/* Cauchy bound: every real root of the polynomial lies in [-B, B]. */
+function cauchyBound(coeffs) {
+  const n = coeffs.length - 1, an = coeffs[n];
+  if (!an || !isFinite(an)) return null;
+  let m = 0;
+  for (let i = 0; i < n; i++) m = Math.max(m, Math.abs(coeffs[i] / an));
+  return 1 + m;
+}
+
+/* Build sample abscissae over [-hi, hi]: a dense linear band near zero plus
+   geometric (log-scale) spacing outward to hi, mirrored to negatives. This lets
+   a few thousand samples cover up to ~60 orders of magnitude so roots anywhere
+   in [-1e30, 1e30] get bracketed. Returns a sorted ascending array. */
+function buildScanGrid(hi, linBand, linStep, perDecade) {
+  const pts = new Set();
+  const lb = Math.min(linBand, hi);
+  for (let x = -lb; x <= lb; x += linStep) pts.add(+x.toFixed(6));
+  if (hi > lb) {
+    const s = Math.log10(lb || 1), e = Math.log10(hi);
+    const n = Math.ceil((e - s) * perDecade);
+    for (let i = 0; i <= n; i++) { const v = Math.pow(10, s + (e - s) * i / n); pts.add(v); pts.add(-v); }
+  }
+  return [...pts].sort((a, b) => a - b);
+}
+
+function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
+  let L, R;
+  if (eqText.includes('=')) { const i = eqText.indexOf('='); L = eqText.slice(0,i); R = eqText.slice(i+1); }
+  else { L = eqText; R = '0'; }
+
+  let trig = false, mode = 'wide';
+  try { trig = hasTrig(eqText); } catch (e) {}
+
+  let compiled = null;
+  try { compiled = math.compile('(' + L + ')-(' + R + ')'); } catch (e) {}
+  const fscope = { ...scope };
+  const f = compiled
+    ? (x => { fscope[varName] = x; try { return compiled.evaluate(fscope); } catch (e) { return NaN; } })
+    : (x => { try { return math.evaluate('(' + L + ')-(' + R + ')', { ...scope, [varName]: x }); } catch (e) { return NaN; } });
+
+  const roots = [];
+  const add = r => {
+    if (!isFinite(r)) return;
+    const c = cleanRoot(r) + 0;   // +0 normalises -0 to 0
+    if (!roots.some(e => Math.abs(e - c) < 1e-6 * Math.max(1, Math.abs(c)))) roots.push(c);
+  };
+  const newton = x0 => {
+    let x = x0;
+    for (let it = 0; it < 80; it++) {
+      const fx = f(x); if (!isFinite(fx)) break;
+      const h = Math.max(1e-9, Math.abs(x) * 1e-7), d = (f(x+h) - f(x-h)) / (2*h);
+      if (!isFinite(d) || d === 0) break;
+      const nx = x - fx / d; if (!isFinite(nx)) break;
+      if (Math.abs(nx - x) < 1e-12 * Math.max(1, Math.abs(x))) { if (Math.abs(f(nx)) < 1e-6 * Math.max(1, Math.abs(nx))) return nx; break; }
+      x = nx;
+    }
+    return undefined;
+  };
+  const bisect = (a, b) => {
+    let fa = f(a), fb = f(b);
+    if (!isFinite(fa) || !isFinite(fb) || (fa < 0) === (fb < 0)) return undefined;
+    for (let it = 0; it < 200; it++) {
+      const m = (a + b) / 2, fm = f(m);
+      if (!isFinite(fm)) return undefined;
+      if (Math.abs(b - a) <= 1e-13 * Math.max(1, Math.abs(m)) || fm === 0) return m;
+      if ((fa < 0) !== (fm < 0)) b = m; else { a = m; fa = fm; }
+    }
+    return (a + b) / 2;
+  };
+
+  // --- TRIG: solve over one standard period in the current angle unit ---
+  if (trig && (lo === undefined || hi === undefined)) {
+    mode = 'trig';
+    if (angleMode === 'deg') { lo = 0; hi = 360; steps = 5760; }
+    else { lo = 0; hi = 2 * Math.PI; steps = 4000; }
+    const dx = (hi - lo) / steps;
+    let prev = f(lo);
+    if (isFinite(prev) && Math.abs(prev) < 1e-9) add(lo);
+    for (let i = 1; i <= steps; i++) {
+      const x = lo + dx * i, cur = f(x);
+      if (isFinite(prev) && isFinite(cur) && (prev < 0) !== (cur < 0)) { const r = newton(x - dx/2); if (r !== undefined && r >= lo - 1e-6 && r <= hi + 1e-6) add(r); }
+      else if (isFinite(cur) && Math.abs(cur) < 1e-9) add(x);
+      prev = cur;
+    }
+    return { roots: roots.sort((a,b)=>a-b), trig, mode, lo, hi };
+  }
+
+  // --- POLYNOMIAL: Cauchy bound contains every real root; LOG/OTHER: scan to 1e30 ---
+  const MAXR = 1e30;
+  let limit = MAXR;
+  const coeffs = polyCoeffs('(' + L + ')-(' + R + ')');
+  const B = coeffs ? cauchyBound(coeffs) : null;
+  if (B && isFinite(B)) { mode = 'poly'; limit = Math.min(B, MAXR); }
+  else { mode = 'wide'; limit = MAXR; }
+
+  // grid: dense linear band near zero + geometric spacing out to `limit`
+  const grid = buildScanGrid(limit, 200, 0.5, 40);
+  let pa = grid[0], pf = f(pa);
+  if (isFinite(pf) && Math.abs(pf) < 1e-12) add(pa);
+  for (let i = 1; i < grid.length; i++) {
+    const a = grid[i], fa = f(a);
+    if (isFinite(pf) && isFinite(fa) && (pf < 0) !== (fa < 0)) {
+      let r = bisect(pa, a);
+      if (r !== undefined) { const nr = newton(r); if (nr !== undefined && Math.abs(f(nr)) <= Math.abs(f(r)) + 1e-12) r = nr; add(r); }
+    } else if (isFinite(fa) && Math.abs(fa) < 1e-12) {
+      add(a);
+    }
+    pa = a; pf = fa;
+  }
+  return { roots: roots.sort((a, b) => a - b), trig, mode, lo: -limit, hi: limit };
 }
 function cleanRoot(x) { const r = Math.round(x); return Math.abs(x - r) < 1e-9 ? r : x; }
 
@@ -1001,6 +1656,28 @@ function resolveSolveCalls(expr, scope) {
 }
 
 function hasSolve(expr) { return /\bsolve\s*\(/.test(expr); }
+
+/* If `expr` is exactly a single solve(equation, variable) call (nothing else
+   around it), return {eqText, varName}; otherwise null. Used by all-solutions
+   mode, which can only list roots when the whole result IS the solve (a list
+   can't be chained into further arithmetic). */
+function pureSolveCall(expr) {
+  const t = expr.trim();
+  const m = t.match(/^solve\s*\(/);
+  if (!m) return null;
+  const open = t.indexOf('(');
+  const close = matchParen(t, open);
+  if (close === -1 || close !== t.length - 1) return null;   // must end the expr
+  const inner = t.slice(open + 1, close);
+  let depth = 0, commaPos = -1;
+  for (let i = 0; i < inner.length; i++) {
+    if (inner[i] === '(') depth++;
+    else if (inner[i] === ')') depth--;
+    else if (inner[i] === ',' && depth === 0) commaPos = i;
+  }
+  if (commaPos === -1) return null;
+  return { eqText: inner.slice(0, commaPos).trim(), varName: inner.slice(commaPos + 1).trim() };
+}
 
 /* Solve a linear system. eqExprs are math.js expression strings (each "lhs=rhs",
    or just "expr" treated as = 0). `scope` holds known values/constants. Unknowns
@@ -1110,6 +1787,10 @@ function hasIntegral(expr) { return /\bintegrate\s*\(/.test(expr); }
 function referencedVars(expr) {
   const toks = tokenize(expr); const out = new Set();
   for (const t of toks) {
+    // `i` is reserved for the imaginary unit (math.js) and is never offered as an
+    // undefined variable. If the user explicitly assigns `i = ...` in a field it
+    // becomes a defined name and overrides the imaginary unit via scope as normal.
+    if (t.t === 'name' && t.v === 'i') continue;
     if (t.t === 'name' && !t.fn && !CONSTS.includes(t.v) && t.v !== 'ans' && !PHYS_NAMES.has(t.v)) out.add(t.v);
   }
   const solveTargets = [...expr.matchAll(/solve\s*\(.*?,\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*\)/g)].map(m => m[1]);
@@ -1130,23 +1811,34 @@ function referencedPhys(expr) {
 }
 
 /* ---- result formatting ---- */
-let sigFigs = 'auto';   // 'auto' | 2 | 3 | 4  (set from the sidebar)
+let sigFigs = 'auto';   // 'auto' | 3  (set from the header; default Auto)
+let solveAllMode = false;   // when on, solve(eq,var) lists all real roots in a window
 
 function decimalLatex(value) {
   if (typeof value !== 'number' || !isFinite(value)) return null;
   if (value === 0) return '0';
   const prec = (sigFigs === 'auto') ? 12 : sigFigs;
   const abs = Math.abs(value);
-  // plain (non-scientific) range
-  if (abs >= 1e-4 && abs < 1e7 && sigFigs === 'auto') {
-    return parseFloat(value.toPrecision(prec)).toString();
+
+  // Auto mode: ordinary notation in the everyday range, scientific outside it.
+  if (sigFigs === 'auto') {
+    if (abs >= 1e-4 && abs < 1e7) return parseFloat(value.toPrecision(prec)).toString();
+    let exp = Math.floor(Math.log10(abs));
+    let mant = value / Math.pow(10, exp);
+    mant = parseFloat(mant.toPrecision(prec));
+    if (Math.abs(mant) >= 10) { mant /= 10; exp++; }
+    return mant.toString() + ' \\times 10^{' + exp + '}';
   }
-  if (abs >= 1e-4 && abs < 1e7) {
-    // fixed sig figs but keep ordinary (non-exponential) notation where sensible
-    const s = value.toPrecision(prec);
-    return parseFloat(s).toString();
+
+  // Fixed sig figs (3 s.f.): if rounding to `prec` figures changes the value,
+  // the answer isn't exact at this precision -> show it in scientific notation.
+  // Values that are already exact at this precision stay in plain notation.
+  const rounded = parseFloat(value.toPrecision(prec));
+  const wasRounded = rounded !== value;
+  if (!wasRounded && abs >= 1e-4 && abs < 1e7) {
+    return rounded.toString();        // exact at this precision, ordinary range
   }
-  // scientific notation
+  // scientific notation with the mantissa at `prec` sig figs
   let exp = Math.floor(Math.log10(abs));
   let mant = value / Math.pow(10, exp);
   mant = parseFloat(mant.toPrecision(prec));
@@ -1156,7 +1848,12 @@ function decimalLatex(value) {
 
 function exactLatex(value) {
   if (typeof value !== 'number' || !isFinite(value)) return null;
-  if (Number.isInteger(value)) return String(value);
+  if (Number.isInteger(value)) {
+    const s = String(value);
+    // large/small integers stringify with exponential ("6.02e+23") -> use x10^n
+    if (/[eE]/.test(s)) return decimalLatex(value);
+    return s;
+  }
   // pi multiples
   const overPi = value / Math.PI;
   try {
@@ -1170,9 +1867,13 @@ function exactLatex(value) {
   // plain fraction
   try {
     const fr = math.fraction(value);
-    const approx = Number(fr.n)/Number(fr.d)*Number(fr.s);
-    if (Number(fr.d) <= 10000 && Math.abs(value - approx) < 1e-12) {
-      return '\\frac{' + (Number(fr.n)*Number(fr.s)) + '}{' + Number(fr.d) + '}';
+    const n = Number(fr.n) * Number(fr.s), d = Number(fr.d);
+    const approx = n / d;
+    // reject the degenerate 0/1 for a non-zero value (tiny numbers like 1.6e-19),
+    // and use a relative tolerance so we don't mis-snap small magnitudes
+    const tol = Math.max(1e-12, Math.abs(value) * 1e-12);
+    if (n !== 0 && d <= 10000 && Math.abs(value - approx) < tol) {
+      return '\\frac{' + n + '}{' + d + '}';
     }
   } catch (e) {}
   // surd: value = (p/q)*sqrt(r) for square-free r. Detect via value^2 being rational.
@@ -1201,9 +1902,10 @@ function surdLatex(value) {
   let fr;
   try { fr = math.fraction(sq); } catch (e) { return null; }
   const n = Number(fr.n), d = Number(fr.d);
-  if (!Number.isInteger(n) || !Number.isInteger(d) || d === 0) return null;
+  if (!Number.isInteger(n) || !Number.isInteger(d) || d === 0 || n === 0) return null;
   if (d > 10000 || n > 1e9) return null;
-  // reject if value^2 isn't really this fraction (guards against irrationals)
+  // reject if value^2 isn't really this fraction (guards against irrationals and
+  // tiny magnitudes that math.fraction rounds toward zero)
   if (Math.abs(sq - n / d) > 1e-12 * Math.max(1, sq)) return null;
   // value = sqrt(n/d) = sqrt(n*d)/d
   const [out, insideRaw] = simplifyRadical(n * d);
@@ -1297,6 +1999,124 @@ function cleanEchoLatex(latex) {
   return s;
 }
 
+/* Convert a result's LaTeX into copyable plaintext. Fractions -> a/b, surds ->
+   sqrt(x), scientific -> m x10^n. Falls back to a plain numeric string when the
+   LaTeX can't be cleanly linearised. */
+/* A numeric string safe to paste back into a calculator field: plain decimal
+   where JS wouldn't use exponential, otherwise mEexp form (no '+', which the
+   field's blur handler rewrites to x10^n; the bare 'e' alone would read as
+   Euler's number, so we always keep the exponent attached). */
+function sciSafe(value) {
+  const s = String(value);
+  if (!/[eE]/.test(s)) return s;          // already plain (e.g. 1500000, 0.0023)
+  return s.replace(/[eE]\+?/, 'E');       // 6.02e+23 -> 6.02E23
+}
+/* Render LaTeX to clean presentation MathML (for pasting into Word as a real,
+   editable equation). KaTeX wraps the math in <semantics> with a LaTeX
+   <annotation>; strip that so Word imports cleanly. Returns '' on failure. */
+function latexToMathML(latex) {
+  if (!window.katex || !katex.renderToString) return '';
+  try {
+    const full = katex.renderToString(latex, { output: 'mathml', throwOnError: false });
+    const m = full.match(/<math[\s\S]*?<\/math>/);
+    let mml = m ? m[0] : '';
+    if (!mml) return '';
+    if (!/<math[^>]*\sxmlns=/.test(mml)) mml = mml.replace('<math', '<math xmlns="http://www.w3.org/1998/Math/MathML"');
+    mml = mml.replace(/<annotation[\s\S]*?<\/annotation>/g, '').replace(/<\/?semantics>/g, '');
+    return mml;
+  } catch (e) { return ''; }
+}
+/* Convert presentation MathML (as a string) to LaTeX, for pasting MathML back
+   into the calculator. Returns null if it can't be parsed. Handles the common
+   presentation elements: mn, mi, mo, mrow, msup, msub, msubsup, mfrac, msqrt,
+   mroot, mfenced, mtext, mspace. Operator glyphs are mapped to LaTeX. */
+function mathmlToLatex(text) {
+  let doc;
+  try {
+    doc = new DOMParser().parseFromString(text, 'text/xml');
+    if (doc.getElementsByTagName('parsererror').length) {
+      // some sources omit the namespace or wrap loosely; retry as HTML
+      doc = new DOMParser().parseFromString(text, 'text/html');
+    }
+  } catch (e) { return null; }
+  const math = doc.getElementsByTagName('math')[0] || doc.querySelector('math');
+  if (!math) return null;
+
+  const OP = {
+    '\u00D7':'\\times', '\u22C5':'\\cdot', '\u00F7':'\\div', '\u2212':'-',
+    '\u2264':'\\le', '\u2265':'\\ge', '\u2260':'\\ne', '\u00B1':'\\pm',
+    '\u221A':'\\sqrt', '\u03C0':'\\pi', '\u2192':'\\to', '\u22C8':'',
+    '\u2061':'',  // function application (invisible)
+    '\u2062':'',  // invisible times
+    '\u2061':''
+  };
+  const tag = el => (el.tagName || '').toLowerCase().replace(/^.*:/, '');  // strip ns prefix
+  const kids = el => Array.from(el.childNodes).filter(n => n.nodeType === 1);
+  function wrap(s) { return (s.length === 1 || /^\\?[A-Za-z0-9]+$/.test(s)) ? s : '{' + s + '}'; }
+
+  function conv(el) {
+    if (!el) return '';
+    const t = tag(el);
+    switch (t) {
+      case 'math': case 'mrow': case 'mstyle': case 'semantics':
+        return kids(el).filter(k => tag(k) !== 'annotation' && tag(k) !== 'annotation-xml').map(conv).join('');
+      case 'mn': case 'mi': return (el.textContent || '').trim();
+      case 'mo': {
+        const s = (el.textContent || '').trim();
+        return OP[s] !== undefined ? OP[s] : s;
+      }
+      case 'mtext': { const s = (el.textContent||'').trim(); return s ? '\\text{' + s + '}' : ''; }
+      case 'mspace': return ' ';
+      case 'msup': { const c = kids(el); return wrap(conv(c[0])) + '^{' + conv(c[1]) + '}'; }
+      case 'msub': { const c = kids(el); return wrap(conv(c[0])) + '_{' + conv(c[1]) + '}'; }
+      case 'msubsup': { const c = kids(el); return wrap(conv(c[0])) + '_{' + conv(c[1]) + '}^{' + conv(c[2]) + '}'; }
+      case 'mfrac': { const c = kids(el); return '\\frac{' + conv(c[0]) + '}{' + conv(c[1]) + '}'; }
+      case 'msqrt': return '\\sqrt{' + kids(el).map(conv).join('') + '}';
+      case 'mroot': { const c = kids(el); return '\\sqrt[' + conv(c[1]) + ']{' + conv(c[0]) + '}'; }
+      case 'mfenced': {
+        const open = el.getAttribute('open') || '(', close = el.getAttribute('close') || ')';
+        return open + kids(el).map(conv).join(el.getAttribute('separators') || ',') + close;
+      }
+      case 'mover': case 'munder': case 'munderover': case 'mtable': case 'mtr': case 'mtd':
+        return kids(el).map(conv).join('');
+      default:
+        return kids(el).map(conv).join('') || (el.textContent || '').trim();
+    }
+  }
+  try {
+    const out = conv(math).trim();
+    return out || null;
+  } catch (e) { return null; }
+}
+
+function latexToPlain(valLatex, value) {
+  if (valLatex == null) {
+    if (typeof value === 'number' && isFinite(value)) return trimNum ? String(value) : String(value);
+    return String(value);
+  }
+  let s = valLatex;
+  // nested \frac -> (num)/(den), repeat until none remain
+  let prev;
+  do { prev = s;
+    s = s.replace(/\\frac\{((?:[^{}]|\{[^{}]*\})*)\}\{((?:[^{}]|\{[^{}]*\})*)\}/g, '($1)/($2)');
+  } while (s !== prev);
+  s = s.replace(/\\sqrt\[((?:[^{}]|\{[^{}]*\})*)\]\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'nthroot($2,$1)');
+  s = s.replace(/\\sqrt\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'sqrt($1)');
+  s = s.replace(/\\times\s*10\^\{(-?\d+)\}/g, ' x10^$1');   // scientific
+  s = s.replace(/\\times\s*10\^(-?\d+)/g, ' x10^$1');
+  s = s.replace(/\\cdot|\\times/g, '*');
+  s = s.replace(/\\pi/g, 'pi').replace(/\\,/g, '');
+  s = s.replace(/\^\{([^{}]*)\}/g, '^$1');                  // a^{b} -> a^b
+  s = s.replace(/_\{([^{}]*)\}/g, '_$1');
+  s = s.replace(/\\left|\\right/g, '');
+  s = s.replace(/\\[a-zA-Z]+/g, m => m.slice(1));           // any leftover \cmd -> cmd
+  s = s.replace(/[{}]/g, '').replace(/\s+/g, ' ').trim();
+  // clean up redundant parens around a bare number, but NOT function-call args
+  // like sqrt(5) -> keep. Only strip when not preceded by a letter.
+  s = s.replace(/(^|[^A-Za-z0-9_])\((\-?\d+(?:\.\d+)?)\)/g, '$1$2');
+  if (s === '' && typeof value === 'number') return String(value);
+  return s;
+}
 function renderResult(resEl, opts, value) {
   resEl.textContent = '';
   const prefixLatex = opts.prefixLatex || '';   // e.g. "e_{2} ="
@@ -1311,6 +2131,14 @@ function renderResult(resEl, opts, value) {
     if (valLatex === null && opts.srcLatex) valLatex = cleanEchoLatex(opts.srcLatex);
   }
   if (valLatex === null) valLatex = decimalLatex(value);
+
+  // copy data: text/plain = LaTeX (calculator paste-back + LaTeX editors),
+  // text/html = MathML (pastes into Word as a real, editable equation).
+  resEl.dataset.copy = latexToPlain(valLatex, value);
+  if (typeof value === 'number' && isFinite(value)) resEl.dataset.copyNum = sciSafe(value);
+  else delete resEl.dataset.copyNum;
+  resEl.dataset.copyLatex = valLatex || '';
+  resEl.dataset.copyHtml = latexToMathML(valLatex || '');
 
   if (valLatex !== null && window.katex) {
     const span = document.createElement('span');
@@ -1331,7 +2159,64 @@ function renderResult(resEl, opts, value) {
   resEl.appendChild(span);
 }
 
-/* Solve and render a system-block line against the folder scope. */
+/* Render a list of roots from all-solutions mode, e.g. "x = -2, x = 2". */
+function renderRootList(resEl, varName, roots, assignName, meta) {
+  resEl.className = 'result';
+  resEl.textContent = '';
+  meta = meta || {};
+  if (!roots || roots.length === 0) {
+    resEl.classList.add('assign');
+    const s = document.createElement('span'); s.textContent = 'no real solutions';
+    s.style.opacity = '0.7'; s.style.fontSize = '0.85em'; resEl.appendChild(s);
+    return;
+  }
+  const vTex = (() => { try { return varToLatex(varName); } catch (e) { return varName; } })();
+  const degUnit = meta.trig && angleMode === 'deg';   // append ° to trig answers in deg mode
+  const parts = roots.map(r => {
+    let t = (exactMode ? exactLatex(r) : null);
+    if (t === null) t = decimalLatex(r);
+    if (t === null) t = String(r);
+    return vTex + ' = ' + t + (degUnit ? '^{\\circ}' : '');
+  });
+  if (window.katex) {
+    try {
+      const span = document.createElement('span');
+      katex.render(parts.join(',\\quad '), span, { throwOnError:false });
+      resEl.appendChild(span);
+      // LaTeX copy: the comma-joined solution LaTeX (the same as rendered)
+      resEl.dataset.copyLatex = parts.join(', ');
+      resEl.dataset.copyHtml = latexToMathML(parts.join(',\\ '));
+      resEl.dataset.copy = roots.map(r => {
+        let t = (exactMode ? exactLatex(r) : null); if (t === null) t = decimalLatex(r); if (t === null) t = String(r);
+        return latexToPlain(t, r) + (degUnit ? ' deg' : '');
+      }).join(', ');
+      appendDomainNote(resEl, meta);
+      return;
+    } catch (e) {}
+  }
+  resEl.textContent = parts.join(',  ').replace(/\\/g,'');
+  appendDomainNote(resEl, meta);
+}
+/* Faint note describing how the solutions were found, depending on mode:
+   trig -> the period domain + general-solution reminder;
+   wide -> warns the search is bounded (non-polynomial, can't guarantee all);
+   poly -> nothing (Cauchy bound guarantees all real roots). */
+function appendDomainNote(resEl, meta) {
+  let txt = '';
+  if (meta.trig) {
+    const period = (angleMode === 'deg') ? '360n°' : '2nπ';
+    const dom = (angleMode === 'deg') ? 'over [0°, 360°]' : 'over [0, 2π]';
+    txt = dom + '  ·  general: add ' + period + ', n \u2208 \u2124';
+  } else if (meta.mode === 'wide') {
+    txt = 'searched |x| \u2264 10\u00B3\u2070; roots beyond may exist';
+  } else {
+    return;   // polynomial: all real roots guaranteed, no caveat
+  }
+  const note = document.createElement('div');
+  note.style.opacity = '0.6'; note.style.fontSize = '0.72em'; note.style.marginTop = '0.15rem';
+  note.textContent = txt;
+  resEl.appendChild(note);
+}
 function renderSystem(line, scope) {
   const resEl = line.resultEl;
   resEl.textContent = ''; resEl.className = 'sys-result';
@@ -1399,6 +2284,10 @@ function evalExpr(text, scope) {
    set of variables it references that are nowhere defined in the folder.
 --------------------------------------------------------------------------- */
 function recompute() {
+  try { recomputeImpl(); }
+  catch (e) { /* never let a single bad line break the whole calculator */ }
+}
+function recomputeImpl() {
   const angleFns = angleScope();
   for (const folder of folders) {
     const scope = { ...angleFns, ...physConstants() };
@@ -1406,7 +2295,8 @@ function recompute() {
 
     const infos = folder.lines.map(line => {
       if (line.isSystem) return { line, isSystem: true, expr: '', isAssign: false };
-      const expr = prepareExpr(line.mq.latex());
+      let expr = '';
+      try { expr = prepareExpr(line.mq.latex()); } catch (e) { expr = ''; }
       const m = expr.match(/^\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)\s*(.+)$/);
       if (m) definedNames.add(m[1]);
       return { line, expr, isAssign: !!m, name: m?m[1]:null, rhs: m?m[2]:null };
@@ -1465,6 +2355,18 @@ function recompute() {
       try {
         const fullLatex = line.mq.latex();
         let value;
+        // all-solutions mode: if the (RHS of the) line is exactly solve(eq,var),
+        // list every real root found instead of the single first root.
+        const solveSrc = info.isAssign ? info.rhs : info.expr;
+        const pure = solveAllMode ? pureSolveCall(solveSrc) : null;
+        if (pure) {
+          const res = solveEquationAll(pure.eqText, pure.varName, { ...scope });
+          const roots = res.roots;
+          line.lastValue = (roots.length === 1) ? roots[0] : undefined;
+          renderRootList(resEl, pure.varName, roots, info.isAssign ? info.name : null, res);
+          updateChip(line); updateSlider(line, info);
+          continue;
+        }
         if (info.isAssign) {
           value = evalExpr(info.rhs, { ...scope });
           line.lastValue = value;
@@ -1482,9 +2384,114 @@ function recompute() {
       }
       updateChip(line);
       updateSlider(line, info);
+      updateLineLayout(line);
     }
   }
   if (typeof scheduleSave === 'function') scheduleSave();
+  if (typeof varsListEl !== 'undefined' && varsListEl && !varsListEl.hidden) buildVarsList();
+}
+
+/* Decide whether a line's result sits inline (to the right of the input) or
+   stacked below it. Inline saves vertical space; we stack when the input is long
+   enough that input + result wouldn't comfortably share one row. */
+function updateLineLayout(line) {
+  const row = line.mainRow; if (!row) return;
+  const field = line.fieldEl, res = line.resultEl;
+  if (!field || !res) return;
+  const measure = () => {
+    const hasResult = res.textContent.trim() !== '' || res.children.length > 0;
+    if (hasResult) {
+      const rowW = row.clientWidth;
+      if (rowW) {
+        // Measure true content widths in the inline state. The field is normally
+        // flex-grown to fill the row, which would make its measured width useless,
+        // so temporarily shrink it to its content while measuring, then restore.
+        row.classList.remove('stacked');
+        const prevFlex = field.style.flex;
+        field.style.flex = '0 0 auto';        // shrink-to-content for an honest read
+        const fieldW = field.getBoundingClientRect().width;
+        const resW = res.getBoundingClientRect().width;
+        field.style.flex = prevFlex;          // restore flex-grow
+        const GAP = 28;
+        row.classList.toggle('stacked', fieldW + resW + GAP > rowW);
+      }
+    } else {
+      row.classList.remove('stacked');
+    }
+    alignIdx(line);
+  };
+  // measure after layout settles; rAF twice to be safe with MathQuill reflow
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(measure));
+  else measure();
+}
+
+/* Vertically centre the line-number against the first row of the line (the note
+   if shown, otherwise the input row), regardless of how tall that row is. */
+function alignIdx(line) {
+  const idx = line.idxEl; if (!idx) return;
+  // first visible row in the body: a shown note, else the main-row
+  let firstRow = line.mainRow;
+  if (line.lineEl.classList.contains('has-note') && !line.lineEl.classList.contains('note-collapsed') && line.noteWrap) {
+    firstRow = line.noteWrap;
+  }
+  if (!firstRow) return;
+  const lineTop = line.lineEl.getBoundingClientRect().top;
+  const rr = firstRow.getBoundingClientRect();
+  if (!rr.height) return;
+  const rowCenter = (rr.top - lineTop) + rr.height / 2;
+  const idxH = 11;                       // approx height of the 0.68rem number
+  const pad = Math.max(0, rowCenter - idxH / 2);
+  idx.style.paddingTop = pad + 'px';
+}
+
+/* Insert a blank line adjacent to lineObj and focus it. dir='after' (plain
+   Enter) also auto-adds any undefined variables/constants the current line
+   references, matching the long-standing Enter behaviour; dir='before'
+   (Shift+Enter) just opens a line above without that side effect. */
+function insertAdjacentLine(lineObj, dir) {
+  normalizeSciNotation(lineObj.mq);   // turn any literal 7E-9 into upright 7×10^{-9}
+  const f = lineObj.folder;
+  if (dir === 'after') {
+    let added = false;
+    let firstNew = null;
+    if (lineObj.undefVars && lineObj.undefVars.length) {
+      lineObj.undefVars.slice().forEach(v => {
+        const nl = addVariable(f, v, false);
+        if (nl) { added = true; if (!firstNew) firstNew = nl; }
+      });
+    }
+    if (lineObj.undefPhys && lineObj.undefPhys.length) {
+      lineObj.undefPhys.slice().forEach(v => {
+        const nl = addVariable(f, v, false, PHYS_CONSTANTS[v]);
+        if (nl) { added = true; if (!firstNew) firstNew = nl; }
+      });
+    }
+    if (added) {
+      recompute();
+      // land on the first newly-added variable so its value can be set straight
+      // away; caret goes to the right end (just after the default value)
+      if (firstNew) {
+        firstNew.mq.focus();
+        firstNew.mq.moveToRightEnd();
+      }
+      return;
+    }
+    createLine(f, lineObj).mq.focus();
+  } else {
+    // before: find the line preceding this one in the same folder (if any) and
+    // create after it; if this is the folder's first line, prepend.
+    const idx = f.lines.indexOf(lineObj);
+    const prev = idx > 0 ? f.lines[idx - 1] : null;
+    const nl = createLine(f, prev);
+    if (!prev) {
+      // move the new line to the very top of the folder (DOM + array)
+      f.linesEl.insertBefore(nl.lineEl, lineObj.lineEl);
+      const ni = f.lines.indexOf(nl);
+      if (ni !== -1) { f.lines.splice(ni, 1); f.lines.unshift(nl); }
+      renumber();
+    }
+    nl.mq.focus();
+  }
 }
 
 /* undefined-variable chip under a line */
@@ -1569,37 +2576,80 @@ function numToLatex(v) {
 /* inline slider for assignment lines whose RHS is a single number (plain or
    scientific, e.g. 5, -2.3, or 3*10^8 from a seeded constant) */
 function updateSlider(line, info) {
-  if (!info.isAssign) { line.lineEl.classList.remove('has-slider'); return; }
+  if (!info.isAssign) { line.lineEl.classList.remove('has-slider','slider-shown'); return; }
   const rhs = (info.rhs || '').trim();
   const isPlainNumber = /^-?\d*\.?\d+$/.test(rhs);
   const isSciNumber = /^-?\d*\.?\d+\*10\^\(?-?\d+\)?$/.test(rhs);
-  if (!isPlainNumber && !isSciNumber) { line.lineEl.classList.remove('has-slider'); return; }
+  if (!isPlainNumber && !isSciNumber) { line.lineEl.classList.remove('has-slider','slider-shown'); return; }
 
   let val;
-  try { val = math.evaluate(rhs); } catch (e) { line.lineEl.classList.remove('has-slider'); return; }
-  if (typeof val !== 'number' || !isFinite(val)) { line.lineEl.classList.remove('has-slider'); return; }
+  try { val = math.evaluate(rhs); } catch (e) { line.lineEl.classList.remove('has-slider','slider-shown'); return; }
+  if (typeof val !== 'number' || !isFinite(val)) { line.lineEl.classList.remove('has-slider','slider-shown'); return; }
   line.lineEl.classList.add('has-slider');
 
-  // initialise bounds once, then keep them unless user edits them
-  if (line.sliderMin === undefined || line.sliderMax === undefined || line.sliderUserValue !== val) {
-    const span = Math.max(Math.abs(val) * 2, 10);
-    line.sliderMin = line.minBox.value !== '' ? parseFloat(line.minBox.value) : -span;
-    line.sliderMax = line.maxBox.value !== '' ? parseFloat(line.maxBox.value) :  span;
-    line.sliderUserValue = val;
+  // Bounds: if the user has set them explicitly, keep them; otherwise derive a
+  // sensible span from the current value (recomputed whenever the value changes).
+  if (line.sliderUserBounds) {
+    if (!isFinite(line.sliderMin) || !isFinite(line.sliderMax)) line.sliderUserBounds = false;
   }
+  if (!line.sliderUserBounds && line.sliderUserValue !== val) {
+    const span = Math.max(Math.abs(val) * 2, 10);
+    line.sliderMin = -span;
+    line.sliderMax = span;
+  }
+  line.sliderUserValue = val;
   const min = isFinite(line.sliderMin) ? line.sliderMin : -10;
   const max = isFinite(line.sliderMax) ? line.sliderMax : 10;
   const step = (line.sliderStep !== undefined && isFinite(line.sliderStep) && line.sliderStep > 0)
                ? line.sliderStep : 1;
 
-  line.minBox.value = trimNum(min);
-  line.maxBox.value = trimNum(max);
-  line.stepBox.value = trimNum(step);
+  line.minBox.value = fmtBound(min);
+  line.maxBox.value = fmtBound(max);
+  line.stepBox.value = fmtBound(step);
+  if (line.minLabel) line.minLabel.textContent = fmtBound(min);
+  if (line.maxLabel) line.maxLabel.textContent = fmtBound(max);
+  if (line.cfgVar) { try { katex.render(varToLatex(info.name), line.cfgVar, { throwOnError:false }); } catch (e) { line.cfgVar.textContent = info.name || ''; } }
   line.range.min = min; line.range.max = max; line.range.step = step;
   line.range.value = Math.min(Math.max(val, min), max);
 }
 
 function trimNum(n) { return parseFloat(n.toPrecision(6)).toString(); }
+
+/* Format a number for the slider bound boxes. Large/small magnitudes show as
+   "m\u00d710\u207f" using unicode superscript digits (renders in a plain text input,
+   no HTML needed). Mid-range values stay plain. */
+const SUP = { '-':'\u207B','0':'\u2070','1':'\u00B9','2':'\u00B2','3':'\u00B3','4':'\u2074','5':'\u2075','6':'\u2076','7':'\u2077','8':'\u2078','9':'\u2079' };
+const SUP_INV = { '\u207B':'-','\u2070':'0','\u00B9':'1','\u00B2':'2','\u00B3':'3','\u2074':'4','\u2075':'5','\u2076':'6','\u2077':'7','\u2078':'8','\u2079':'9' };
+function toSuper(intStr) { return intStr.split('').map(c => SUP[c] || c).join(''); }
+function fmtBound(n) {
+  if (!isFinite(n)) return '0';
+  if (n === 0) return '0';
+  const a = Math.abs(n);
+  if (a >= 1e5 || a < 1e-4) {
+    let exp = Math.floor(Math.log10(a));
+    let mant = n / Math.pow(10, exp);
+    mant = parseFloat(mant.toPrecision(4));
+    if (Math.abs(mant) >= 10) { mant /= 10; exp++; }
+    const mStr = (mant === 1) ? '' : (mant === -1 ? '-' : trimNum(mant) + '\u00d7');
+    return mStr + '10' + toSuper(String(exp));
+  }
+  return trimNum(n);
+}
+/* Parse a bound box value: accepts plain, e-notation, "m\u00d710\u207f"/"m x10^n"/"m*10^n". */
+function parseBound(str) {
+  if (str == null) return NaN;
+  let s = String(str).trim();
+  if (s === '') return NaN;
+  // convert unicode superscripts back to normal digits after a 10^
+  s = s.replace(/\u00d710([\u207B\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079]+)/g,
+        (m, sup) => 'e' + sup.split('').map(c => SUP_INV[c] || c).join(''));
+  s = s.replace(/^10([\u207B\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079]+)/,
+        (m, sup) => '1e' + sup.split('').map(c => SUP_INV[c] || c).join(''));
+  // also accept x10^ / *10^ / \u00d710^
+  s = s.replace(/\s*[x\u00d7*]\s*10\s*\^?\s*/i, 'e').replace(/\s*10\s*\^\s*/i, '1e');
+  const v = parseFloat(s);
+  return isFinite(v) ? v : NaN;
+}
 
 function renumber() {
   for (const folder of folders) {
@@ -1607,7 +2657,9 @@ function renumber() {
     folder.countEl.textContent = folder.lines.length;
   }
 }
+let focusedLineObj = null;
 function focusLine(lineObj) {
+  focusedLineObj = lineObj;
   document.querySelectorAll('.line.focused').forEach(el => el.classList.remove('focused'));
   lineObj.lineEl.classList.add('focused');
 }
@@ -1618,6 +2670,181 @@ function focusLineSafe(lineObj) {
   else if (lineObj.mq) lineObj.mq.focus();
 }
 function totalLines() { return folders.reduce((n,f) => n + f.lines.length, 0); }
+
+/* After a fraction is formed, remove parentheses that wrap an ENTIRE numerator
+   or denominator -- the fraction bar already groups them, so "(25x10^3)/3"
+   should display as the bare fraction. Operates on the field latex, rewrites
+   only if something changed, and restores the caret to the right end. */
+function stripFracParens(mq) {
+  if (!mq) return;
+  let latex;
+  try { latex = mq.latex(); } catch (e) { return; }
+  if (latex.indexOf('\\frac') === -1) return;
+
+  // returns the index just past a balanced {...} group starting at `open` (which
+  // must point at "{"); -1 if unbalanced
+  const matchBrace = (s, open) => {
+    let d = 0;
+    for (let i = open; i < s.length; i++) {
+      if (s[i] === '{') d++;
+      else if (s[i] === '}') { d--; if (d === 0) return i; }
+    }
+    return -1;
+  };
+  // strip one layer of wrapping parens from a group body if they enclose all of
+  // it. MathQuill auto-grows brackets to \left(...\right); handle both forms.
+  const unwrap = (body) => {
+    let b = body.trim();
+    // \left( ... \right)
+    if (b.startsWith('\\left(') && b.endsWith('\\right)')) {
+      const inner = b.slice(6, b.length - 7);
+      // verify the \left( matches the final \right) (balanced, wraps everything)
+      let d = 0, ok = true;
+      for (let k = 0; k < inner.length; k++) {
+        if (inner.startsWith('\\left(', k)) { d++; k += 5; }
+        else if (inner.startsWith('\\right)', k)) { d--; k += 6; if (d < 0) { ok = false; break; } }
+      }
+      if (ok && d === 0) return inner;
+      return body;
+    }
+    // plain ( ... )
+    if (b.startsWith('(') && b.endsWith(')')) {
+      let d = 0;
+      for (let i = 0; i < b.length; i++) {
+        if (b[i] === '(') d++;
+        else if (b[i] === ')') { d--; if (d === 0) return (i === b.length - 1) ? b.slice(1, -1) : body; }
+      }
+    }
+    return body;
+  };
+
+  let out = '', i = 0, changed = false;
+  while (i < latex.length) {
+    if (latex.startsWith('\\frac{', i)) {
+      const nOpen = i + 5;                  // index of first "{"
+      const nClose = matchBrace(latex, nOpen);
+      if (nClose === -1) { out += latex[i++]; continue; }
+      const dOpen = nClose + 1;
+      if (latex[dOpen] !== '{') { out += latex.slice(i, nClose + 1); i = nClose + 1; continue; }
+      const dClose = matchBrace(latex, dOpen);
+      if (dClose === -1) { out += latex[i++]; continue; }
+      const num = latex.slice(nOpen + 1, nClose);
+      const den = latex.slice(dOpen + 1, dClose);
+      const num2 = unwrap(num), den2 = unwrap(den);
+      if (num2 !== num || den2 !== den) changed = true;
+      out += '\\frac{' + num2 + '}{' + den2 + '}';
+      i = dClose + 1;
+    } else {
+      out += latex[i++];
+    }
+  }
+  if (changed) {
+    try {
+      mq.latex(out);
+      // place the caret in the denominator so the user can keep typing it: the
+      // strip runs right after "/" creates the fraction (empty denominator), so
+      // from the right end one Left step enters that empty denominator.
+      mq.moveToRightEnd();
+      mq.keystroke('Left');
+      recompute();
+    } catch (e) {}
+  }
+}
+
+/* If the caret sits inside a superscript or subscript, step it out to the right
+   so the next operator/character is inserted at the base level rather than inside
+   the exponent. Checks the rendered cursor's ancestors for MathQuill's sup/sub
+   containers. Returns true if it stepped out. */
+function breakOutOfSupSub(mq, fieldEl) {
+  let root = fieldEl;
+  if (!root) root = document.querySelector('.mq-field.mq-focused') || document.querySelector('.mq-field:focus-within');
+  if (!root) return false;
+  const cursor = root.querySelector('.mq-cursor');
+  if (!cursor) return false;
+  const inSupSub = cursor.closest('.mq-supsub, .mq-sup, .mq-sup-only, .mq-exponent');
+  if (inSupSub) { mq.keystroke('Right'); return true; }
+  return false;
+}
+
+/* Decide whether an operator typed while inside a superscript/subscript should
+   STAY inside it rather than break out. Exceptions (operator stays in):
+   (a) the exponent content is enclosed in brackets -> the operator belongs to
+       that grouped expression, e.g. 10^{(2+3)};
+   (b) "-" with nothing before the caret in the exponent -> allows x^{-1};
+   (c) "/" with no preceding numeric value before the caret -> allows the
+       exponent to begin with a fraction. */
+function shouldStayInSupSub(mq, fieldEl, key) {
+  let root = fieldEl;
+  if (!root) root = document.querySelector('.mq-field.mq-focused') || document.querySelector('.mq-field:focus-within');
+  if (!root) return false;
+  const cursor = root.querySelector('.mq-cursor');
+  if (!cursor) return false;
+  const sup = cursor.closest('.mq-supsub, .mq-sup, .mq-sup-only, .mq-exponent');
+  if (!sup) return false;               // not in an exponent: normal handling
+
+  // collect the exponent's text content up to (but not including) the caret
+  let before = '';
+  let stop = false;
+  const collect = (el) => {
+    for (const child of el.childNodes) {
+      if (stop) return;
+      if (child === cursor) { stop = true; return; }
+      if (child.nodeType === 3) before += child.textContent;
+      else if (child.nodeType === 1) {
+        if (child.contains(cursor)) { collect(child); return; }
+        before += child.textContent;
+      }
+    }
+  };
+  collect(sup);
+  const trimmed = before.replace(/[\u200b\s]/g, '');   // strip zero-width/space
+
+  // (a) bracketed: caret is inside an unclosed bracket group within the exponent
+  const opens = (trimmed.match(/[([{]/g) || []).length;
+  const closes = (trimmed.match(/[)\]}]/g) || []).length;
+  if (opens > closes) return true;
+
+  // (b) leading minus: nothing before the caret in the exponent -> x^{-1}
+  if (key === '-' && trimmed === '') return true;
+  // (c) leading slash: no number/value before the caret -> exponent can start a fraction
+  if (key === '/' && !/[0-9.)\]A-Za-z]$/.test(trimmed)) return true;
+
+  return false;
+}
+
+/* Build the full vertical navigation sequence for the active tab:
+   tab name -> (folder name -> its lines) for each folder. */
+function navSequence() {
+  const seq = [{ kind: 'tabname' }];
+  folders.forEach(f => {
+    seq.push({ kind: 'foldername', folder: f });
+    f.lines.forEach(l => seq.push({ kind: 'line', line: l }));
+  });
+  return seq;
+}
+function focusNavTarget(t) {
+  if (!t) return;
+  if (t.kind === 'tabname') { activateTabNameEdit(); return; }
+  if (t.kind === 'foldername') { t.folder.nameEl.focus(); t.folder.nameEl.select(); return; }
+  const l = t.line;
+  if (l.isSystem) focusLineSafe(l);
+  else if (l.mq) { l.mq.focus(); l.mq.moveToRightEnd(); }
+}
+/* Move up (dir=-1) or down (dir=+1) through the sequence from a line. Called
+   from a field's up/downOutOf handler (caret at the field edge). */
+function navigateLine(lineObj, dir) {
+  const seq = navSequence();
+  const i = seq.findIndex(s => s.kind === 'line' && s.line === lineObj);
+  if (i === -1) return;
+  focusNavTarget(seq[i + dir]);
+}
+/* Move from a folder-name input up/down through the same sequence. */
+function navigateFromFolderName(folder, dir) {
+  const seq = navSequence();
+  const i = seq.findIndex(s => s.kind === 'foldername' && s.folder === folder);
+  if (i === -1) return;
+  focusNavTarget(seq[i + dir]);
+}
 
 function createLine(folder, afterLine = null, initialLatex = '') {
   const id = ++idSeq;
@@ -1635,34 +2862,53 @@ function createLine(folder, afterLine = null, initialLatex = '') {
   // undefined-var chip
   const undefChip = document.createElement('div'); undefChip.className = 'undef-chip';
 
-  // slider row
+  // slider: collapsed shows the track with min/max end labels; clicking the
+  // gear/labels expands a Desmos-style config row ([min] <= var <= [max]  Step: [step]).
   const sliderRow = document.createElement('div'); sliderRow.className = 'slider';
-  const minBox = document.createElement('input'); minBox.className = 'bound'; minBox.type = 'text'; minBox.title = 'min';
+  const minLabel = document.createElement('span'); minLabel.className = 'sl-end sl-min'; minLabel.title = 'Slider settings';
   const range = document.createElement('input'); range.type = 'range';
-  const maxBox = document.createElement('input'); maxBox.className = 'bound'; maxBox.type = 'text'; maxBox.title = 'max';
-  const stepBox = document.createElement('input'); stepBox.className = 'bound step'; stepBox.type = 'text'; stepBox.title = 'step'; stepBox.placeholder = 'step';
-  sliderRow.appendChild(minBox); sliderRow.appendChild(range); sliderRow.appendChild(maxBox); sliderRow.appendChild(stepBox);
+  const maxLabel = document.createElement('span'); maxLabel.className = 'sl-end sl-max'; maxLabel.title = 'Slider settings';
+  sliderRow.appendChild(minLabel); sliderRow.appendChild(range); sliderRow.appendChild(maxLabel);
+
+  // expandable config row (hidden until gear/labels clicked)
+  const sliderCfg = document.createElement('div'); sliderCfg.className = 'slider-cfg';
+  const minBox = document.createElement('input'); minBox.className = 'bound'; minBox.type = 'text'; minBox.title = 'minimum';
+  const leLeft = document.createElement('span'); leLeft.className = 'sl-le'; leLeft.innerHTML = '&#8804;';
+  const cfgVar = document.createElement('span'); cfgVar.className = 'sl-var';
+  const leRight = document.createElement('span'); leRight.className = 'sl-le'; leRight.innerHTML = '&#8804;';
+  const maxBox = document.createElement('input'); maxBox.className = 'bound'; maxBox.type = 'text'; maxBox.title = 'maximum';
+  const stepLabel = document.createElement('span'); stepLabel.className = 'sl-step-label'; stepLabel.textContent = 'Step:';
+  const stepBox = document.createElement('input'); stepBox.className = 'bound step'; stepBox.type = 'text'; stepBox.title = 'step';
+  sliderCfg.appendChild(minBox); sliderCfg.appendChild(leLeft); sliderCfg.appendChild(cfgVar);
+  sliderCfg.appendChild(leRight); sliderCfg.appendChild(maxBox);
+  sliderCfg.appendChild(stepLabel); sliderCfg.appendChild(stepBox);
 
   // note
   const noteWrap = document.createElement('div'); noteWrap.className = 'note';
-  const noteArea = document.createElement('textarea'); noteArea.placeholder = 'Note\u2026'; noteArea.rows = 2;
+  const noteArea = document.createElement('textarea'); noteArea.placeholder = 'Note\u2026'; noteArea.rows = 1;
   noteWrap.appendChild(noteArea);
   const noteMarker = document.createElement('div'); noteMarker.className = 'note-marker';
   noteMarker.textContent = '\u201C note (click to show)';
 
   bodyEl.appendChild(noteMarker);
   bodyEl.appendChild(noteWrap);
-  bodyEl.appendChild(fieldEl);
-  bodyEl.appendChild(resultEl);
+  const mainRow = document.createElement('div'); mainRow.className = 'main-row';
+  mainRow.appendChild(fieldEl);
+  mainRow.appendChild(resultEl);
+  bodyEl.appendChild(mainRow);
   bodyEl.appendChild(undefChip);
-  bodyEl.appendChild(sliderRow);
+  bodyEl.appendChild(sliderRow);      // slider on its own row, shown on demand
+  bodyEl.appendChild(sliderCfg);      // expanded config row below the slider
 
   const actions = document.createElement('div'); actions.className = 'actions';
+  const sliderBtn = document.createElement('button'); sliderBtn.className = 'actbtn slider-btn';
+  sliderBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="9" x2="21" y2="9"/><circle cx="9" cy="9" r="3" fill="var(--surface)"/><line x1="3" y1="16" x2="21" y2="16"/><circle cx="15" cy="16" r="3" fill="var(--surface)"/></svg>';
+  sliderBtn.title = 'Toggle slider';
   const noteBtn = document.createElement('button'); noteBtn.className = 'actbtn note-btn';
   noteBtn.innerHTML = '&#8220;'; noteBtn.title = 'Toggle note (or type ")';
   const delBtn = document.createElement('button'); delBtn.className = 'actbtn del';
   delBtn.innerHTML = '&times;'; delBtn.title = 'Delete line';
-  actions.appendChild(noteBtn); actions.appendChild(delBtn);
+  actions.appendChild(sliderBtn); actions.appendChild(noteBtn); actions.appendChild(delBtn);
 
   lineEl.appendChild(handle); lineEl.appendChild(idxEl);
   lineEl.appendChild(bodyEl); lineEl.appendChild(actions);
@@ -1671,7 +2917,8 @@ function createLine(folder, afterLine = null, initialLatex = '') {
   else folder.linesEl.appendChild(lineEl);
 
   const lineObj = { id, folder, lineEl, resultEl, idxEl, noteWrap, noteArea, noteMarker,
-                    undefChip, sliderRow, minBox, range, maxBox, stepBox,
+                    undefChip, sliderRow, sliderCfg, minLabel, maxLabel, cfgVar,
+                    minBox, range, maxBox, stepBox, mainRow, fieldEl,
                     mq: null, lastValue: undefined, undefVars: [],
                     sliderMin: undefined, sliderMax: undefined, sliderStep: 1, sliderUserValue: undefined };
 
@@ -1684,28 +2931,86 @@ function createLine(folder, afterLine = null, initialLatex = '') {
                        'ln log exp abs floor ceil round sign deg ans solve',
     handlers: {
       edit: () => recompute(),
-      enter: () => {
-        normalizeSciNotation(lineObj.mq);   // turn any literal 7E-9 into upright 7×10^{-9}
-        // auto-add any undefined variables this line references (default = 1),
-        // and any predefined physics constants used (seeded with their value),
-        // then advance to / create the next line as usual
-        let added = false;
-        if (lineObj.undefVars && lineObj.undefVars.length) {
-          lineObj.undefVars.slice().forEach(v => { addVariable(lineObj.folder, v, false); added = true; });
-        }
-        if (lineObj.undefPhys && lineObj.undefPhys.length) {
-          lineObj.undefPhys.slice().forEach(v => { addVariable(lineObj.folder, v, false, PHYS_CONSTANTS[v]); added = true; });
-        }
-        if (added) recompute();
-        const f = lineObj.folder;
-        const idx = f.lines.indexOf(lineObj);
-        const next = f.lines[idx+1];
-        if (next) focusLineSafe(next);
-        else createLine(f, lineObj).mq.focus();
-      }
+      enter: () => { insertAdjacentLine(lineObj, 'after'); },
+      // up/down at the top/bottom of a field (i.e. NOT navigating inside a
+      // fraction/superscript/subscript) move between lines instead.
+      upOutOf: () => { navigateLine(lineObj, -1); },
+      downOutOf: () => { navigateLine(lineObj, +1); }
     }
   });
   lineObj.mq = mq;
+
+  // Shift+Enter inserts a blank line ABOVE this one (plain Enter, handled by
+  // MathQuill above, inserts below). Captured here because MathQuill's enter
+  // handler doesn't expose the modifier keys.
+  // Also: typing "^^" (caret twice) expands to "x10^{}" with the caret in the
+  // exponent -- a fast way to enter scientific notation.
+  fieldEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      // Ctrl/Cmd+Enter: new folder below the active folder; +Shift: above
+      e.preventDefault(); e.stopPropagation();
+      if (e.shiftKey) insertFolderBefore(lineObj.folder);
+      else createFolderAfter(lineObj.folder);
+      lineObj._lastCaret = false;
+      return;
+    }
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault(); e.stopPropagation();
+      insertAdjacentLine(lineObj, 'before');
+      lineObj._lastCaret = false;
+      return;
+    }
+    if (e.key === '^' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (lineObj._lastCaret) {
+        // second caret: undo the empty superscript from the first, then expand
+        e.preventDefault(); e.stopPropagation();
+        mq.keystroke('Backspace');          // removes the empty ^{} just created
+        mq.cmd('\\times');                   // x (times) symbol
+        mq.typedText('10');
+        mq.cmd('^');                        // exponent, caret lands inside
+        lineObj._lastCaret = false;
+        recompute();
+        return;
+      }
+      lineObj._lastCaret = true;            // first caret; arm for a possible second
+      return;                               // let MathQuill create the superscript
+    }
+    // Cmd/Ctrl + Left/Right -> jump to start / end of this line's field
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === 'ArrowLeft') mq.moveToLeftEnd(); else mq.moveToRightEnd();
+      lineObj._lastCaret = false;
+      return;
+    }
+    // "*" always renders as a times sign. Operators typed inside an exponent
+    // normally land OUTSIDE it (e.g. "10^2" + "*" -> "10^2 x"); exceptions keep
+    // them in (bracketed exponent, leading "-" for x^{-1}, or leading "/").
+    if ('+-*/='.indexOf(e.key) !== -1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const cur = fieldEl.querySelector('.mq-cursor');
+      const inSup = !!(cur && cur.closest('.mq-supsub, .mq-sup, .mq-sup-only, .mq-exponent'));
+      const breakOut = inSup && !shouldStayInSupSub(mq, fieldEl, e.key);
+      if (e.key === '*') {
+        // take over so the times sign is placed correctly (outside the exponent
+        // when breaking out, in place otherwise)
+        e.preventDefault(); e.stopPropagation();
+        if (breakOut) mq.keystroke('Right');
+        mq.cmd('\\times');
+        recompute(); lineObj._lastCaret = false; return;
+      }
+      if (breakOut) {
+        e.preventDefault(); e.stopPropagation();
+        mq.keystroke('Right');                 // exit the exponent first
+        if (e.key === '/') { mq.typedText('/'); stripFracParens(mq); }
+        else mq.typedText(e.key);               // + - =
+        recompute(); lineObj._lastCaret = false; return;
+      }
+    }
+    // keyboard "/" (not breaking out) builds a fraction; strip wrapping parens
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      setTimeout(() => stripFracParens(mq), 0);
+    }
+    lineObj._lastCaret = false;             // any other key cancels the sequence
+  }, true);
 
   // On touch devices, suppress the OS onscreen keyboard for math fields: the
   // app's own keypad is the input method. The field still focuses (caret, our
@@ -1726,30 +3031,54 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     if (nm) { mq.latex(nm + '=' + numToLatex(v)); recompute(); }
   });
   function applyBounds() {
-    lineObj.sliderMin = parseFloat(minBox.value);
-    lineObj.sliderMax = parseFloat(maxBox.value);
-    const st = parseFloat(stepBox.value);
+    lineObj.sliderMin = parseBound(minBox.value);
+    lineObj.sliderMax = parseBound(maxBox.value);
+    const st = parseBound(stepBox.value);
     lineObj.sliderStep = (isFinite(st) && st > 0) ? st : 1;
+    lineObj.sliderUserBounds = true;
     recompute();
   }
   minBox.addEventListener('change', applyBounds);
   maxBox.addEventListener('change', applyBounds);
   stepBox.addEventListener('change', applyBounds);
+  // clicking either end label expands/collapses the Desmos-style config row
+  function toggleSliderCfg() {
+    lineObj.lineEl.classList.toggle('slider-open');
+    if (lineObj.lineEl.classList.contains('slider-open')) minBox.focus();
+  }
+  minLabel.addEventListener('click', toggleSliderCfg);
+  maxLabel.addEventListener('click', toggleSliderCfg);
 
   // note toggling
-  function openNote() { lineObj.lineEl.classList.add('has-note'); lineObj.lineEl.classList.remove('note-collapsed'); noteArea.focus(); }
+  function openNote() { lineObj.lineEl.classList.add('has-note'); lineObj.lineEl.classList.remove('note-collapsed'); autoGrowNote(); noteArea.focus(); if (typeof alignIdx==='function') alignIdx(lineObj); }
   function toggleNote() {
     if (!lineObj.lineEl.classList.contains('has-note')) { openNote(); return; }
     lineObj.lineEl.classList.toggle('note-collapsed');
     if (!lineObj.lineEl.classList.contains('note-collapsed')) noteArea.focus();
+    if (typeof alignIdx==='function') alignIdx(lineObj);
   }
   noteBtn.addEventListener('click', toggleNote);
   noteMarker.addEventListener('click', () => { lineObj.lineEl.classList.remove('note-collapsed'); noteArea.focus(); });
-  noteArea.addEventListener('input', () => { if (typeof scheduleSave==='function') scheduleSave(); });
+  const autoGrowNote = () => { noteArea.style.height = 'auto'; noteArea.style.height = noteArea.scrollHeight + 'px'; };
+  noteArea.addEventListener('input', () => { autoGrowNote(); if (typeof scheduleSave==='function') scheduleSave(); });
+  noteArea.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault(); e.stopPropagation();
+      noteArea.blur();                 // keep whatever's typed (blur saves)
+      if (lineObj.mq) lineObj.mq.focus();
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      // Enter saves and exits the note; Shift+Enter inserts a newline
+      e.preventDefault(); e.stopPropagation();
+      noteArea.blur();
+      if (lineObj.mq) lineObj.mq.focus();
+    }
+    // Shift+Enter falls through to the textarea's default newline insertion
+  });
   noteArea.addEventListener('blur', () => { if (noteArea.value.trim()==='') lineObj.lineEl.classList.remove('has-note','note-collapsed'); if (typeof scheduleSave==='function') scheduleSave(); });
 
   fieldEl.addEventListener('keydown', (e) => {
-    if (e.key === '@') { e.preventDefault(); openSymbolPicker(lineObj); return; }
+    if (e.key === '?') { e.preventDefault(); openSymbolPicker(lineObj); return; }
+    if (e.key === '@') { e.preventDefault(); openFormulaPicker(lineObj); return; }
     if (e.key === '"') { e.preventDefault(); openNote(); return; }
     if (e.key === '{' && mq.latex().trim() === '') {
       // empty line + "{" -> convert to a simultaneous-equation system block
@@ -1762,10 +3091,49 @@ function createLine(folder, afterLine = null, initialLatex = '') {
       const f = lineObj.folder; const idx = f.lines.indexOf(lineObj); const prev = f.lines[idx-1];
       removeLine(lineObj);
       if (prev) { if (prev.isSystem) focusLineSafe(prev); else { prev.mq.focus(); prev.mq.moveToRightEnd(); } }
+      return;
+    }
+    // Forward delete: if the line AHEAD is blank, remove it (pulling up the
+    // content below), mirroring how Backspace removes a blank line behind.
+    if (e.key === 'Delete' && totalLines() > 1) {
+      // flat ordered list across folders to find the next line
+      const flat = []; folders.forEach(f => f.lines.forEach(l => flat.push(l)));
+      const i = flat.indexOf(lineObj);
+      const next = flat[i + 1];
+      if (next && !next.isSystem && next.mq.latex() === '') {
+        e.preventDefault();
+        removeLine(next);
+        mq.focus(); mq.moveToRightEnd();
+        return;
+      }
+      // pressing Delete on a blank line with content ahead removes this line
+      if (mq.latex() === '' && next) {
+        e.preventDefault();
+        removeLine(lineObj);
+        if (next.isSystem) focusLineSafe(next); else { next.mq.focus(); }
+        return;
+      }
     }
   }, true);
 
+  // Paste support: if the clipboard text is MathML (e.g. copied from this calc
+  // into Word and back, or from another MathML source), convert it to LaTeX and
+  // insert that. Otherwise let MathQuill handle the paste normally.
+  fieldEl.addEventListener('paste', (e) => {
+    const cd = e.clipboardData || window.clipboardData; if (!cd) return;
+    const txt = cd.getData('text/plain') || '';
+    if (!/<math[\s>]/i.test(txt)) return;            // not MathML: normal paste
+    const latex = mathmlToLatex(txt);
+    if (latex == null) return;                       // couldn't parse: normal paste
+    e.preventDefault();
+    try { mq.write(latex); recompute(); } catch (err) {}
+  }, true);
+
   delBtn.addEventListener('click', () => removeLine(lineObj));
+  sliderBtn.addEventListener('click', () => {
+    lineObj.lineEl.classList.toggle('slider-shown');
+    if (typeof alignIdx === 'function') alignIdx(lineObj);
+  });
   attachDrag(handle, lineObj, 'line');
 
   if (afterLine) { const idx = folder.lines.indexOf(afterLine); folder.lines.splice(idx+1, 0, lineObj); }
@@ -1922,15 +3290,21 @@ function createFolder(name, afterFolder = null) {
   const nameEl = document.createElement('input'); nameEl.className = 'fname'; nameEl.value = name; nameEl.spellcheck = false;
   const countEl = document.createElement('span'); countEl.className = 'count';
   const dupBtn = document.createElement('button'); dupBtn.className = 'fbtn'; dupBtn.innerHTML = '&#10697;'; dupBtn.title = 'Duplicate folder';
+  const clrBtn = document.createElement('button'); clrBtn.className = 'fbtn'; clrBtn.title = 'Clear folder';
+  clrBtn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
   const delBtn = document.createElement('button'); delBtn.className = 'fbtn del'; delBtn.innerHTML = '&times;'; delBtn.title = 'Delete folder';
   head.appendChild(twist); head.appendChild(fhandle); head.appendChild(nameEl);
-  head.appendChild(countEl); head.appendChild(dupBtn); head.appendChild(delBtn);
+  head.appendChild(dupBtn); head.appendChild(clrBtn); head.appendChild(delBtn);
+  // hover-revealed strip above the folder: inserts a new folder before this one
+  const insStrip = document.createElement('button');
+  insStrip.className = 'folder-ins-strip'; insStrip.title = 'Insert folder here';
+  insStrip.innerHTML = '<span>+</span>';
   const linesEl = document.createElement('div'); linesEl.className = 'folder-lines';
   // hover-revealed strip to add a line below the last entry
   const addLineStrip = document.createElement('button');
   addLineStrip.className = 'add-line-strip'; addLineStrip.title = 'Add line';
   addLineStrip.innerHTML = '<span>+</span>';
-  el.appendChild(head); el.appendChild(linesEl); el.appendChild(addLineStrip);
+  el.appendChild(insStrip); el.appendChild(head); el.appendChild(linesEl); el.appendChild(addLineStrip);
 
   if (afterFolder) afterFolder.el.after(el);
   else {
@@ -1945,19 +3319,61 @@ function createFolder(name, afterFolder = null) {
     folder.userNamed = nameEl.value.trim() !== '';
     folder.name = nameEl.value;
   });
-  nameEl.addEventListener('keydown', (e) => { if (e.key==='Enter') nameEl.blur(); });
+  nameEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      nameEl.blur();
+      const first = folder.lines[0];
+      if (first) focusLineSafe(first); else createLine(folder).mq.focus();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      navigateFromFolderName(folder, +1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      navigateFromFolderName(folder, -1);
+    }
+  });
   addLineStrip.addEventListener('click', () => {
     if (folder.collapsed) { folder.collapsed=false; el.classList.remove('collapsed'); }
     createLine(folder).mq.focus(); recompute();
   });
-  delBtn.addEventListener('click', () => removeFolder(folder));
+  delBtn.addEventListener('click', () => {
+    confirmDialog('Delete this folder and all its lines?', 'Delete').then(ok => { if (ok) removeFolder(folder); });
+  });
+  clrBtn.addEventListener('click', () => {
+    confirmDialog('Clear all lines in this folder?', 'Clear').then(ok => { if (ok) clearFolder(folder); });
+  });
   dupBtn.addEventListener('click', () => duplicateFolder(folder));
+  insStrip.addEventListener('click', () => { insertFolderBefore(folder); });
   attachDrag(fhandle, folder, 'folder');
 
   if (afterFolder) { const idx = folders.indexOf(afterFolder); folders.splice(idx+1, 0, folder); }
   else folders.push(folder);
   renumberFolders();
   return folder;
+}
+
+/* Insert a new empty folder immediately before `target` (used by the
+   hover strip above each folder, to add folders between/before existing ones). */
+/* Create a new empty folder immediately after `target` (Ctrl/Cmd+Enter). */
+function createFolderAfter(target) {
+  const nf = createFolder('', target);   // createFolder places it after target
+  createLine(nf).mq.focus();
+  renumberFolders(); renumber(); recompute();
+}
+
+function insertFolderBefore(target) {
+  const idx = folders.indexOf(target);
+  const prev = idx > 0 ? folders[idx - 1] : null;
+  const nf = createFolder('', prev);   // places after prev, i.e. before target
+  if (!prev) {
+    // target was first: move the new folder to the very front (DOM + array)
+    target.el.parentNode.insertBefore(nf.el, target.el);
+    const ni = folders.indexOf(nf);
+    if (ni !== -1) { folders.splice(ni, 1); folders.unshift(nf); }
+  }
+  createLine(nf).mq.focus();
+  renumberFolders(); renumber(); recompute();
 }
 
 /* Duplicate a folder: create a copy directly after it, cloning the name and
@@ -2012,6 +3428,14 @@ function removeFolder(folder) {
   const idx = folders.indexOf(folder); folder.el.remove();
   folders.splice(idx, 1);
   renumberFolders(); renumber(); recompute();
+}
+
+/* empty a folder's lines but keep the folder itself, leaving one blank line */
+function clearFolder(folder) {
+  folder.lines.slice().forEach(l => l.lineEl.remove());
+  folder.lines.length = 0;
+  createLine(folder).mq.focus();
+  renumber(); recompute();
 }
 
 /* ---- drag & drop ---- */
@@ -2126,7 +3550,7 @@ const KEYS = [
   {l:'|x|', t:'abs', v:'', c:'fn', katex:'|x|'},
   // symbols + grouping
   {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'},
-  {l:'@', t:'act', v:'symbol', c:'act'},
+  {l:'?', t:'act', v:'symbol', c:'act'},
   {l:'\u222B', t:'int', v:'', c:'fn', katex:'\\int'},
   {l:'(', t:'type', v:'('},
   {l:')', t:'type', v:')'},
@@ -2163,14 +3587,9 @@ function powerKey(mq, expVal) { scriptKey(mq, '^', expVal); }
    field as an upright ×10^{...} so it never displays as an italic variable E.
    Runs on blur/enter (not mid-keystroke), so replacing the latex is safe. */
 function normalizeSciNotation(mq) {
-  if (!mq) return;
-  const cur = mq.latex();
-  // <digit or .>  E/e  <optional sign> <digits>  ->  ...\times10^{<exp>}
-  const next = cur.replace(/(\d(?:\.\d+)?)[eE](-?\d+)/g, '$1\\times10^{$2}');
-  if (next !== cur) {
-    mq.latex(next);
-    mq.moveToRightEnd();
-  }
+  // E-notation has been removed in favour of the ^^ shortcut, which already
+  // produces a proper ×10^{} superscript, so there's nothing to normalise here.
+  // Kept as a no-op so existing call sites need no changes.
 }
 
 // caps/shift state for the letters page; letter buttons register here so their
@@ -2209,17 +3628,26 @@ function makeKey(k) {
     mq.focus();
     switch (k.t) {
       case 'write': mq.write(k.v); break;
-      case 'cmd': mq.cmd(k.v); break;
+      case 'cmd': {
+        // operators (times/div/plus/minus) exit a sup/sub before insertion,
+        // unless an exponent exception applies (bracketed, leading -, leading /)
+        const opKey = k.v === '\\div' ? '/' : (k.v === '\\times' || k.v === '\\cdot') ? '*' : k.v;
+        if (/\\times|\\cdot|\\div|^[+\-]$/.test(k.v) && !shouldStayInSupSub(mq, line && line.fieldEl, opKey)) {
+          breakOutOfSupSub(mq, line && line.fieldEl);
+        }
+        mq.cmd(k.v); break;
+      }
       case 'keystroke': mq.keystroke(k.v); break;
-      case 'type': mq.typedText(k.v); break;
+      case 'type':
+        if (/^[+\-*/=]$/.test(k.v) && !shouldStayInSupSub(mq, line && line.fieldEl, k.v)) {
+          breakOutOfSupSub(mq, line && line.fieldEl);
+        }
+        mq.typedText(k.v);
+        if (k.v === '/') stripFracParens(mq);
+        break;
       case 'var': {
         const ch = capsOn && k.letter ? k.v.toUpperCase() : k.v;
-        // E (capital) right after a number = scientific notation -> ×10^, not a variable
-        if (ch === 'E' && /\d$/.test(mq.latex())) {
-          mq.cmd('\\times'); mq.typedText('10'); mq.cmd('^');
-        } else {
-          mq.typedText(ch);
-        }
+        mq.typedText(ch);
         if (capsOn && k.letter) { capsOn = false; applyCaps(); }   // shift: one capital, then back to lowercase
         break;
       }
@@ -2232,6 +3660,17 @@ function makeKey(k) {
       case 'greek': mq.cmd(k.v); break;
       case 'fn':
         mq.typedText(k.v); mq.typedText('(');
+        break;
+      case 'logbase':
+        // log with a chosen base AND an opened bracket: log_{ }( ), with the
+        // caret left in the subscript (the base) so you type the base first,
+        // then arrow right into the bracket for the argument.
+        mq.typedText('log');
+        mq.cmd('_');                 // caret now inside the subscript
+        mq.keystroke('Right');       // exit the subscript
+        mq.typedText('(');           // auto-closes -> log_{}(|)
+        mq.keystroke('Left');        // move before '('
+        mq.keystroke('Left');        // enter the subscript from the right
         break;
       case 'solve':
         mq.typedText('solve'); mq.typedText('(');
@@ -2263,6 +3702,8 @@ function makeKey(k) {
           line.lineEl.classList.add('has-note'); line.lineEl.classList.remove('note-collapsed'); line.noteArea.focus();
         } else if (k.v === 'symbol') {
           openSymbolPicker(line, mq);
+        } else if (k.v === 'formula') {
+          openFormulaPicker(line, mq);
         }
         break;
     }
@@ -2292,19 +3733,24 @@ const PAGE_VARS = [
       .map(ch => ({ l:ch, t:'var', v:ch, c:'varkey', letter:true })),
   {l:'\u21E7', t:'caps', v:'', c:'act'},                 // shift / caps toggle
   {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}' },  // subscript
-  {l:'@', t:'act', v:'symbol', c:'act'},
+  {l:'?', t:'act', v:'symbol', c:'act'},
   {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
 ];
 const PAGE_FNS = [
+  // row 1 - trig
   {l:'sin', t:'fn', v:'sin', c:'fn'}, {l:'cos', t:'fn', v:'cos', c:'fn'}, {l:'tan', t:'fn', v:'tan', c:'fn'},
-  {l:'log', t:'fn', v:'log', c:'fn'}, {l:'ln', t:'fn', v:'ln', c:'fn'}, {l:'exp', t:'fn', v:'exp', c:'fn'},
+  {l:'sin\u207B\u00B9', t:'fn', v:'arcsin', c:'fn'}, {l:'cos\u207B\u00B9', t:'fn', v:'arccos', c:'fn'}, {l:'tan\u207B\u00B9', t:'fn', v:'arctan', c:'fn'},
+  // row 2 - logs & exponentials
+  {l:'ln', t:'fn', v:'ln', c:'fn'}, {l:'log', t:'fn', v:'log', c:'fn'}, {l:'log\u2099', t:'logbase', v:'', c:'fn', katex:'\\log_{\\square}(\\square)'},
+  {l:'e', t:'type', v:'e', c:'fn'}, {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'},
+  // row 3 - roots, structures, constants
   {l:'\u221A', t:'cmd', v:'\\sqrt', c:'fn', katex:'\\sqrt{\\phantom{x}}'}, {l:'nrt', t:'nthroot', v:'', c:'fn', katex:'\\sqrt[n]{\\phantom{x}}'},
-  {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'},
-  {l:'frac', t:'type', v:'/', c:'op', frac:true}, {l:'\u222B', t:'int', v:'', c:'fn', katex:'\\int'},
-  {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'},
+  {l:'frac', t:'type', v:'/', c:'op', frac:true}, {l:'|x|', t:'abs', v:'', c:'fn', katex:'|x|'},
+  {l:'\u222B', t:'int', v:'', c:'fn', katex:'\\int'}, {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'},
+  // row 4 - grouping & actions
+  {l:'(', t:'type', v:'(', c:'op'}, {l:')', t:'type', v:')', c:'op'},
   {l:'sys', t:'system', v:'', c:'fn', katex:'\\begin{cases}\\square\\\\\\square\\end{cases}'},
-  {l:'@', t:'act', v:'symbol', c:'act'}, {l:'solve', t:'solve', v:'', c:'solvebtn'}, {l:'=', t:'write', v:'=', c:'op'},
-  {l:',', t:'type', v:',', c:'op'},
+  {l:'@', t:'act', v:'formula', c:'act'}, {l:'solve', t:'solve', v:'', c:'solvebtn'},
   {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
 ];
 
@@ -2312,13 +3758,16 @@ const portraitPad = document.createElement('div'); portraitPad.id = 'portraitPad
 const padTabs = document.createElement('div'); padTabs.className = 'pad-tabs';
 const pagesWrap = document.createElement('div'); pagesWrap.className = 'pad-pages';
 const PAGES = [
-  { name:'123',  cls:'page-calc', keys:PAGE_CALC, cols:6 },
-  { name:'abc',  cls:'page-vars', keys:PAGE_VARS, cols:6 },
-  { name:'f(x)', cls:'page-fns',  keys:PAGE_FNS,  cols:6 },
+  { name:'123',  math:'123',    cls:'page-calc', keys:PAGE_CALC, cols:6 },
+  { name:'abc',  math:'abc',    cls:'page-vars', keys:PAGE_VARS, cols:6 },
+  { name:'f(x)', math:'f(x)',   cls:'page-fns',  keys:PAGE_FNS,  cols:6 },
 ];
 const pageEls = [];
 PAGES.forEach((pg, i) => {
-  const tab = document.createElement('button'); tab.className = 'pad-tab' + (i===0?' on':''); tab.textContent = pg.name;
+  const tab = document.createElement('button'); tab.className = 'pad-tab' + (i===0?' on':'');
+  if (window.katex) { try { katex.render(pg.math, tab, { throwOnError:false }); } catch (e) { tab.textContent = pg.name; } }
+  else tab.textContent = pg.name;
+  tab.setAttribute('aria-label', pg.name);
   tab.addEventListener('click', () => setPadPage(i));
   padTabs.appendChild(tab);
   const page = document.createElement('div'); page.className = 'pad-page ' + pg.cls + (i===0?' on':'');
@@ -2432,24 +3881,135 @@ function pickerKeyGuard(e) {
 }
 window.addEventListener('keydown', pickerKeyGuard, true);
 
-foldersEl.addEventListener('keydown', (e) => {
-  const t = e.target;
-  const inField = t.closest && t.closest('.mq-field');
-  if (!inField) return;
-  const mq = activeMQ();
-  if (!mq) return;
-  if (e.key === '*') {
-    e.preventDefault(); mq.cmd('\\times');
-  } else if (e.key === 'E') {
-    // scientific-notation shortcut: typing E right after a number inserts ×10^
-    // with the caret in the exponent. Capital E only, so lowercase e (Euler's
-    // number) and exp() are unaffected.
-    if (/\d$/.test(mq.latex())) {
-      e.preventDefault();
-      mq.cmd('\\times'); mq.typedText('10'); mq.cmd('^');
+/* ---- formula picker (f(x) @ button) ---- */
+const formulaPicker = document.getElementById('formulaPicker');
+const formulaSearch = document.getElementById('formulaSearch');
+const formulaResults = document.getElementById('formulaResults');
+let formulaTargetLine = null;
+let formulaTargetMQ = null;
+let formulaActiveIdx = 0;
+
+function openFormulaPicker(line, mq) {
+  formulaTargetLine = line;
+  formulaTargetMQ = mq || (line && !line.isSystem ? line.mq : null) || activeMQ();
+  formulaSearch.value = '';
+  renderFormulaResults('');
+  formulaPicker.hidden = false;
+  const r = line.lineEl.getBoundingClientRect();
+  const pw = 340, ph = 360;
+  let left = Math.min(r.left + 40, window.innerWidth - pw - 12);
+  let top = Math.min(r.bottom + 6, window.innerHeight - ph - 12);
+  left = Math.max(12, left); top = Math.max(12, top);
+  formulaPicker.style.left = left + 'px';
+  formulaPicker.style.top = top + 'px';
+  setTimeout(() => { formulaSearch.focus(); formulaSearch.select(); }, 0);
+}
+function closeFormulaPicker() { formulaPicker.hidden = true; formulaTargetLine = null; formulaTargetMQ = null; }
+
+/* plain-text form of a formula's LaTeX name for matching (strips \commands,
+   braces, spaces) e.g. 'M = 4\\pi^2 r^3/GT^2' -> 'm=4pi^2r^3/gt^2' */
+function plainFormula(name) {
+  return name
+    .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, '$1/$2')   // \frac{a}{b} -> a/b
+    .replace(/\\[a-zA-Z]+/g, m => ({'\\times':'*','\\cdot':'*','\\sqrt':'sqrt','\\pi':'pi','\\lambda':'lambda','\\Delta':'delta','\\phi':'phi','\\theta':'theta','\\gamma':'gamma','\\sigma':'sigma','\\varepsilon':'epsilon','\\Phi':'phi','\\perp':'perp','\\sin':'sin','\\cos':'cos','\\tan':'tan','\\text':'','\\left':'','\\right':''}[m] ?? m.slice(1)))
+    .replace(/[{}\\\s]/g, '')
+    .toLowerCase();
+}
+function filterFormulas(q) {
+  q = q.trim().toLowerCase();
+  if (!q) return FORMULA_LIST;
+
+  // equation-prefix mode: if the query contains '=', the user is typing an
+  // equation -> match only formulas whose (plain) name STARTS WITH that prefix.
+  if (q.includes('=')) {
+    const pfx = q.replace(/\s+/g, '');
+    return FORMULA_LIST.filter(f => plainFormula(f.name).startsWith(pfx));
+  }
+
+  // otherwise: every term must appear in the name OR the keywords/category
+  const terms = q.split(/\s+/);
+  const scored = [];
+  for (const f of FORMULA_LIST) {
+    const plain = plainFormula(f.name);
+    const hay = (plain + ' ' + f.cat + ' ' + f.kw).toLowerCase();
+    if (terms.every(t => hay.includes(t))) {
+      const kw = f.kw.toLowerCase();
+      let score = 3;
+      if (plain.startsWith(q)) score = 0;                              // name prefix
+      else if (kw.split(/,\s*/).some(k => k.startsWith(q))) score = 1; // keyword prefix
+      else if (kw.includes(q)) score = 2;                             // keyword anywhere
+      scored.push({ f, score });
     }
   }
-}, true);
+  scored.sort((a, b) => a.score - b.score);
+  return scored.map(s => s.f);
+}
+
+function renderFormulaResults(q) {
+  const items = filterFormulas(q);
+  formulaActiveIdx = 0;
+  formulaResults.innerHTML = '';
+  if (items.length === 0) {
+    const e = document.createElement('div'); e.className = 'sym-empty'; e.textContent = 'No formulas match';
+    formulaResults.appendChild(e); return;
+  }
+  let lastCat = null;
+  items.forEach((f, i) => {
+    if (f.cat !== lastCat) {
+      const h = document.createElement('div'); h.className = 'fml-cat'; h.textContent = f.cat;
+      formulaResults.appendChild(h); lastCat = f.cat;
+    }
+    const row = document.createElement('div');
+    row.className = 'fml-row' + (i === 0 ? ' active' : '');
+    row.dataset.idx = i;
+    const eq = document.createElement('span'); eq.className = 'fml-eq';
+    try { katex.render(f.name, eq, { throwOnError:false }); } catch (e) { eq.textContent = f.name; }
+    const kw = document.createElement('span'); kw.className = 'fml-kw';
+    kw.textContent = f.kw.split(',')[0];
+    row.appendChild(eq); row.appendChild(kw);
+    row.addEventListener('mousedown', (ev) => { ev.preventDefault(); chooseFormula(f); });
+    row.addEventListener('mouseenter', () => setFormulaActive(i));
+    formulaResults.appendChild(row);
+  });
+}
+function setFormulaActive(i) {
+  const rows = formulaResults.querySelectorAll('.fml-row');
+  rows.forEach(r => r.classList.toggle('active', +r.dataset.idx === i));
+  formulaActiveIdx = i;
+  const el = [...rows].find(r => +r.dataset.idx === i); if (el) el.scrollIntoView({ block:'nearest' });
+}
+function chooseFormula(f) {
+  const mq = formulaTargetMQ || (formulaTargetLine && formulaTargetLine.mq);
+  if (mq) { mq.focus(); mq.write(f.latex); }
+  closeFormulaPicker();
+  recompute();
+}
+
+formulaSearch.addEventListener('input', () => renderFormulaResults(formulaSearch.value));
+formulaSearch.addEventListener('keydown', (e) => {
+  const items = filterFormulas(formulaSearch.value);
+  if (e.key === 'ArrowDown') { e.preventDefault(); setFormulaActive(Math.min(formulaActiveIdx+1, items.length-1)); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); setFormulaActive(Math.max(formulaActiveIdx-1, 0)); }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (items[formulaActiveIdx]) chooseFormula(items[formulaActiveIdx]);
+    else closeFormulaPicker();
+  } else if (e.key === 'Escape') { e.preventDefault(); closeFormulaPicker(); }
+});
+document.addEventListener('mousedown', (e) => {
+  if (!formulaPicker.hidden && !formulaPicker.contains(e.target)) closeFormulaPicker();
+});
+function formulaKeyGuard(e) {
+  if (formulaPicker.hidden) return;
+  if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeFormulaPicker(); }
+  else if (e.key === 'Enter') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    const items = filterFormulas(formulaSearch.value);
+    if (items[formulaActiveIdx]) chooseFormula(items[formulaActiveIdx]);
+    else closeFormulaPicker();
+  }
+}
+window.addEventListener('keydown', formulaKeyGuard, true);
 
 /* ---- header controls ---- */
 
@@ -2476,8 +4036,11 @@ foldersEl.addEventListener('mousemove', (e) => {
 });
 foldersEl.addEventListener('mouseleave', () => foldersEl.classList.remove('show-add-folder'));
 document.getElementById('clearAll').addEventListener('click', () => {
-  folders.slice().forEach(f => f.el.remove()); folders.length = 0;
-  const f = createFolder(''); createLine(f).mq.focus(); renumberFolders(); renumber(); recompute();
+  confirmDialog('Clear everything in this tab? All folders and lines will be removed.', 'Clear all').then(ok => {
+    if (!ok) return;
+    folders.slice().forEach(f => f.el.remove()); folders.length = 0;
+    const f = createFolder(''); createLine(f).mq.focus(); renumberFolders(); renumber(); recompute();
+  });
 });
 
 const angleSeg = document.getElementById('angleSeg');
@@ -2519,6 +4082,165 @@ sigfigSeg.addEventListener('click', (e) => {
   recompute(); scheduleSave();
 });
 
+/* --- mode toggles usable from the keyboard --- */
+function setSeg(seg, attr, value) {
+  const btn = seg.querySelector('button[data-' + attr + '="' + value + '"]');
+  if (btn) seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b===btn));
+}
+function toggleExact() {
+  exactMode = !exactMode;
+  setSeg(exactSeg, 'mode', exactMode ? 'exact' : 'decimal');
+  recompute(); scheduleSave();
+}
+function toggleAngle() {
+  angleMode = (angleMode === 'deg') ? 'rad' : 'deg';
+  setSeg(angleSeg, 'mode', angleMode);
+  recompute(); scheduleSave();
+}
+function toggleSigFigs() {
+  sigFigs = (sigFigs === 'auto') ? 3 : 'auto';
+  setSeg(sigfigSeg, 'sf', sigFigs === 'auto' ? 'auto' : '3');
+  recompute(); scheduleSave();
+}
+
+/* --- line navigation helpers --- */
+function flatLines() { const a = []; folders.forEach(f => f.lines.forEach(l => a.push(l))); return a; }
+function gotoFirstLine() { const a = flatLines(); if (a[0]) focusLineSafe(a[0]); }
+function gotoLastLine()  { const a = flatLines(); if (a.length) focusLineSafe(a[a.length-1]); }
+function gotoFolderFirst(line) { const f = line && line.folder; if (f && f.lines[0]) focusLineSafe(f.lines[0]); }
+function gotoFolderLast(line)  { const f = line && line.folder; if (f && f.lines.length) focusLineSafe(f.lines[f.lines.length-1]); }
+
+/* global keyboard shortcuts: mode toggles, line navigation, Tab cycling */
+document.addEventListener('keydown', (e) => {
+  const mod = e.ctrlKey || e.metaKey;
+  // mode toggles: Ctrl/Cmd+Shift+E (exact), +D (deg/rad), +S (sig figs)
+  if (mod && e.shiftKey && !e.altKey) {
+    const k = e.key.toLowerCase();
+    if (k === 'e') { e.preventDefault(); toggleExact(); return; }
+    if (k === 'd') { e.preventDefault(); toggleAngle(); return; }
+    if (k === 's') { e.preventDefault(); toggleSigFigs(); return; }
+  }
+  // line navigation with the arrow keys
+  if (mod && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+    e.preventDefault();
+    const cur = focusedLineObj;
+    if (e.shiftKey) {                               // current folder ends
+      if (e.key === 'ArrowUp') gotoFolderFirst(cur); else gotoFolderLast(cur);
+    } else {                                        // whole document ends
+      if (e.key === 'ArrowUp') gotoFirstLine(); else gotoLastLine();
+    }
+    return;
+  }
+  // Tab / Shift+Tab cycle between lines (only when a math field is focused, so
+  // it doesn't hijack tabbing through the sidebar controls)
+  if (e.key === 'Tab' && focusedLineObj && document.activeElement &&
+      document.activeElement.closest && document.activeElement.closest('.mq-field')) {
+    e.preventDefault();
+    navigateLine(focusedLineObj, e.shiftKey ? -1 : +1);
+    return;
+  }
+}, true);
+
+const solveModeSeg = document.getElementById('solveModeSeg');
+solveModeSeg.addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  solveAllMode = btn.dataset.solve === 'all';
+  solveModeSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b===btn));
+  recompute(); scheduleSave();
+});
+
+/* ---- stored variables menu ---- */
+const varsToggle = document.getElementById('varsToggle');
+const varsListEl = document.getElementById('varsList');
+varsToggle.addEventListener('click', () => {
+  const show = varsListEl.hidden;
+  varsListEl.hidden = !show;
+  varsToggle.classList.toggle('open', show);
+  if (show) buildVarsList();
+});
+
+/* Formula sheet in the sidebar (same style as stored variables). Each row
+   renders the formula and, when clicked, inserts it into the active line. */
+const formulasToggle = document.getElementById('formulasToggle');
+const formulasListEl = document.getElementById('formulasList');
+formulasToggle.addEventListener('click', () => {
+  const show = formulasListEl.hidden;
+  formulasListEl.hidden = !show;
+  formulasToggle.classList.toggle('open', show);
+  if (show) buildFormulasList();
+});
+function buildFormulasList() {
+  formulasListEl.innerHTML = '';
+  let lastCat = null;
+  FORMULA_LIST.forEach(f => {
+    if (f.cat !== lastCat) { formulasListEl.appendChild(sectionLabel(f.cat)); lastCat = f.cat; }
+    const row = document.createElement('div'); row.className = 'fml-srow';
+    row.title = f.kw.split(',')[0];
+    try { katex.render(f.name, row, { throwOnError:false }); } catch (e) { row.textContent = f.name; }
+    row.addEventListener('click', () => {
+      const mq = activeMQ();
+      if (mq) { mq.focus(); mq.write(f.latex); recompute(); }
+    });
+    formulasListEl.appendChild(row);
+  });
+}
+
+/* Collect user-defined variables across the active tab's folders, plus the
+   predefined physics constants, and render them alphabetically. */
+function buildVarsList() {
+  varsListEl.innerHTML = '';
+  const angleFns = angleScope();
+
+  // user-defined values: evaluate each folder the same way recompute does
+  const userVars = {};   // name -> value (last definition wins, like scope)
+  for (const folder of folders) {
+    const scope = { ...angleFns, ...physConstants() };
+    const infos = folder.lines.map(line => {
+      if (line.isSystem) return { isSystem: true };
+      const expr = prepareExpr(line.mq.latex());
+      const m = expr.match(/^\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)\s*(.+)$/);
+      return { isAssign: !!m, name: m?m[1]:null, rhs: m?m[2]:null };
+    });
+    // resolve assignments (a couple of passes for order independence)
+    for (let pass = 0; pass < 4; pass++) {
+      for (const info of infos) {
+        if (!info.isAssign) continue;
+        try { const v = evalExpr(info.rhs, scope); if (typeof v === 'number' && isFinite(v)) { scope[info.name] = v; userVars[info.name] = v; } }
+        catch (e) {}
+      }
+    }
+  }
+
+  const consts = physConstants();
+  const constNames = Object.keys(consts).filter(n => !(n in userVars)).sort(cmpVarNames);
+  const userNames = Object.keys(userVars).sort(cmpVarNames);
+
+  if (userNames.length === 0 && constNames.length === 0) {
+    const e = document.createElement('div'); e.className = 'vars-empty'; e.textContent = 'No variables defined yet.';
+    varsListEl.appendChild(e); return;
+  }
+  if (userNames.length) {
+    varsListEl.appendChild(sectionLabel('Defined'));
+    userNames.forEach(n => varsListEl.appendChild(varRow(n, userVars[n], false)));
+  }
+  varsListEl.appendChild(sectionLabel('Constants'));
+  constNames.forEach(n => varsListEl.appendChild(varRow(n, consts[n], true)));
+}
+function sectionLabel(t) { const d = document.createElement('div'); d.className = 'vars-section'; d.textContent = t; return d; }
+function cmpVarNames(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()) || a.localeCompare(b); }
+function varRow(name, value, isConst) {
+  const row = document.createElement('div'); row.className = 'vars-row' + (isConst ? ' is-const' : '');
+  const nm = document.createElement('span'); nm.className = 'vname';
+  try { katex.render(varToLatex(name), nm, { throwOnError:false }); } catch (e) { nm.textContent = name; }
+  const vl = document.createElement('span'); vl.className = 'vval';
+  let t = decimalLatex(value);
+  if (t === null) t = String(value);
+  try { const s = document.createElement('span'); katex.render(t, s, { throwOnError:false }); vl.appendChild(s); }
+  catch (e) { vl.textContent = String(value); }
+  row.appendChild(nm); row.appendChild(vl);
+  return row;
+}
+
 /* =====================================================================
    Serialisation, tabs, and persistence
    ===================================================================== */
@@ -2532,6 +4254,7 @@ function snapshotActive() {
     angle: angleMode,
     gravity: gValue,
     sigfigs: sigFigs,
+    solveAll: solveAllMode,
     folders: folders.map(f => ({
       name: f.name,
       userNamed: f.userNamed,
@@ -2564,7 +4287,10 @@ function loadSnapshot(data) {
   exactMode = !!data.exact;
   angleMode = (data.angle === 'rad') ? 'rad' : 'deg';
   if (data.gravity === 9.8 || data.gravity === 9.81) { gValue = data.gravity; PHYS_CONSTANTS.g = gValue; }
-  if (data.sigfigs === 2 || data.sigfigs === 3 || data.sigfigs === 4 || data.sigfigs === 'auto') sigFigs = data.sigfigs;
+  // only Auto and 3 s.f. exist now; map any older saved value (2/4) to 3
+  if (data.sigfigs === 'auto') sigFigs = 'auto';
+  else if (data.sigfigs === 2 || data.sigfigs === 3 || data.sigfigs === 4) sigFigs = 3;
+  solveAllMode = !!data.solveAll;
   const theme = (data.theme === 'dark') ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', theme);
   syncModeButtons(theme);
@@ -2583,8 +4309,8 @@ function loadSnapshot(data) {
       const line = createLine(folder, folder.lines[folder.lines.length-1] || null, ld.latex || '');
       if (ld.note) { line.noteArea.value = ld.note; line.lineEl.classList.add('has-note'); if (ld.noteCollapsed) line.lineEl.classList.add('note-collapsed'); }
       else if (ld.hasNote) { line.lineEl.classList.add('has-note'); }
-      if (ld.sliderMin !== null && ld.sliderMin !== undefined) line.sliderMin = ld.sliderMin;
-      if (ld.sliderMax !== null && ld.sliderMax !== undefined) line.sliderMax = ld.sliderMax;
+      if (ld.sliderMin !== null && ld.sliderMin !== undefined) { line.sliderMin = ld.sliderMin; line.sliderUserBounds = true; }
+      if (ld.sliderMax !== null && ld.sliderMax !== undefined) { line.sliderMax = ld.sliderMax; line.sliderUserBounds = true; }
       if (ld.sliderStep !== null && ld.sliderStep !== undefined) line.sliderStep = ld.sliderStep;
     }
     // remove the default blank line createFolder/createLine may have left if data had lines
@@ -2601,6 +4327,7 @@ function syncModeButtons(theme) {
   angleSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.mode===angleMode));
   gravSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', parseFloat(b.dataset.g)===gValue));
   sigfigSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.sf===String(sigFigs)));
+  solveModeSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.solve===(solveAllMode?'all':'first')));
 }
 
 /* ---- tabs ---- */
@@ -2615,7 +4342,8 @@ function persist() {
   if (t) t.data = snapshotActive();
   if (!storageOK) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ tabs, activeTabId, tabSeq, idSeq }));
+    favourites = favourites.filter(id => tabs.some(t => t.id === id));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ tabs, activeTabId, tabSeq, idSeq, tabGroups, groupSeq, favourites }));
   } catch (e) { /* quota or disabled; ignore */ }
 }
 
@@ -2627,21 +4355,170 @@ function scheduleSave() {
 
 function renderTabList() {
   tabList.innerHTML = '';
-  tabs.forEach(t => {
+  normalizeTabOrder();
+  let i = 0;
+  while (i < tabs.length) {
+    const t = tabs[i];
+    const grp = t.group ? tabGroups.find(g => g.id === t.group) : null;
+    if (grp) {
+      // gather the contiguous run of this group's members
+      const members = [];
+      let j = i;
+      while (j < tabs.length && tabs[j].group === grp.id) { members.push(tabs[j]); j++; }
+      tabList.appendChild(buildGroupSection(grp, members));
+      i = j;
+    } else {
+      tabList.appendChild(buildTabRow(t, null));
+      i++;
+    }
+  }
+  renderFavList();
+  if (typeof syncPageTitle === 'function') syncPageTitle();
+}
+
+/* favourites: shortcut rows at the top of the sidebar that point to starred
+   tabs (the tabs also stay in their normal place in the list). */
+function toggleFavourite(id) {
+  const i = favourites.indexOf(id);
+  if (i === -1) favourites.push(id); else favourites.splice(i, 1);
+  renderTabList(); persist();
+}
+function renderFavList() {
+  const favListEl = document.getElementById('favList');
+  if (!favListEl) return;
+  favListEl.innerHTML = '';
+  const valid = favourites.filter(id => tabs.some(t => t.id === id));
+  if (!valid.length) { favListEl.classList.remove('has-favs'); return; }
+  favListEl.classList.add('has-favs');
+  const head = document.createElement('div');
+  head.className = 'fav-head'; head.textContent = 'Favourites';
+  favListEl.appendChild(head);
+  valid.forEach(id => {
+    const t = tabs.find(t => t.id === id); if (!t) return;
+    const grp = t.group ? tabGroups.find(g => g.id === t.group) : null;
     const row = document.createElement('div');
-    row.className = 'tab' + (t.id === activeTabId ? ' active' : '');
-    const nameEl = document.createElement('input');
-    nameEl.className = 'tname'; nameEl.value = t.name; nameEl.spellcheck = false;
-    nameEl.addEventListener('click', e => e.stopPropagation());
-    nameEl.addEventListener('input', () => { t.name = nameEl.value; scheduleSave(); });
-    nameEl.addEventListener('keydown', e => { if (e.key==='Enter') nameEl.blur(); });
-    const close = document.createElement('button');
-    close.className = 'tclose'; close.innerHTML = '&times;'; close.title = 'Close tab';
-    close.addEventListener('click', e => { e.stopPropagation(); closeTab(t.id); });
-    row.appendChild(nameEl); row.appendChild(close);
-    row.addEventListener('click', () => switchTab(t.id));
-    tabList.appendChild(row);
+    row.className = 'tab fav-row' + (t.id === activeTabId ? ' active' : '');
+    if (grp) row.style.setProperty('--group-color', grp.color);
+    const star = document.createElement('span');
+    star.className = 'fav-dot'; star.innerHTML = '\u2605';
+    if (grp) star.style.color = grp.color;
+    row.appendChild(star);
+    const nameEl = document.createElement('span');
+    nameEl.className = 'tname';
+    nameEl.textContent = grp ? (grp.name + ' ' + t.name) : t.name;
+    nameEl.title = nameEl.textContent;
+    row.appendChild(nameEl);
+    const unfav = document.createElement('button');
+    unfav.className = 'tstar on'; unfav.innerHTML = '\u2605'; unfav.title = 'Remove from favourites';
+    unfav.addEventListener('click', e => { e.stopPropagation(); toggleFavourite(id); });
+    row.appendChild(unfav);
+    row.addEventListener('click', () => switchTab(id));
+    favListEl.appendChild(row);
   });
+}
+
+/* a single tab row (used both ungrouped and inside group sections) */
+function buildTabRow(t, grp) {
+  const row = document.createElement('div');
+  row.className = 'tab' + (t.id === activeTabId ? ' active' : '') + (grp ? ' grouped' : '');
+  row.dataset.tabId = t.id;
+  if (grp) row.style.setProperty('--group-color', grp.color);
+
+  // name is plain text (draggable); double-click to rename inline (Chrome-like)
+  const nameEl = document.createElement('span');
+  nameEl.className = 'tname'; nameEl.textContent = t.name; nameEl.title = t.name;
+  nameEl.addEventListener('dblclick', e => { e.stopPropagation(); startTabRename(row, t, nameEl); });
+  row.appendChild(nameEl);
+
+  // favourite star (revealed on hover; filled when starred)
+  const star = document.createElement('button');
+  const isFav = favourites.includes(t.id);
+  star.className = 'tstar' + (isFav ? ' on' : '');
+  star.innerHTML = isFav ? '\u2605' : '\u2606';
+  star.title = isFav ? 'Remove from favourites' : 'Add to favourites';
+  star.addEventListener('click', e => { e.stopPropagation(); toggleFavourite(t.id); });
+  star.addEventListener('pointerdown', e => e.stopPropagation());
+  row.appendChild(star);
+
+  // duplicate tab (revealed on hover)
+  const dup = document.createElement('button');
+  dup.className = 'tdup'; dup.innerHTML = '&#10697;'; dup.title = 'Duplicate tab';
+  dup.addEventListener('click', e => { e.stopPropagation(); duplicateTab(t.id); });
+  dup.addEventListener('pointerdown', e => e.stopPropagation());
+  row.appendChild(dup);
+
+  // share tab: copy link / save to file (revealed on hover) - Apple share glyph
+  const share = document.createElement('button');
+  share.className = 'tshare'; share.title = 'Share tab (copy link / save)';
+  share.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>';
+  share.addEventListener('click', e => {
+    e.stopPropagation();
+    const r = share.getBoundingClientRect();
+    openShareMenu(t.id, r.left, r.bottom + 4);
+  });
+  share.addEventListener('pointerdown', e => e.stopPropagation());
+  row.appendChild(share);
+
+  const close = document.createElement('button');
+  close.className = 'tclose'; close.innerHTML = '&times;'; close.title = 'Close tab';
+  close.addEventListener('click', e => { e.stopPropagation(); confirmCloseTab(t.id); });
+  close.addEventListener('pointerdown', e => e.stopPropagation());
+  row.appendChild(close);
+
+  row.addEventListener('click', () => { if (!row._dragged) switchTab(t.id); });
+  row.addEventListener('contextmenu', e => { e.preventDefault(); openTabMenu(t.id, e.clientX, e.clientY); });
+  attachLongPress(row, (x, y) => openTabMenu(t.id, x, y));
+  attachTabDrag(row, t);
+  return row;
+}
+/* inline rename: swap the name span for a text input until commit/blur */
+function startTabRename(row, t, nameEl) {
+  const inp = document.createElement('input');
+  inp.className = 'tname tname-edit'; inp.value = t.name; inp.spellcheck = false;
+  inp.addEventListener('pointerdown', e => e.stopPropagation());
+  inp.addEventListener('click', e => e.stopPropagation());
+  const commit = () => {
+    const v = inp.value.trim();
+    if (v && v !== t.name) { t.name = v; t.userNamed = true; }
+    renderTabList(); persist();
+  };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); else if (e.key === 'Escape') { inp.value = t.name; inp.blur(); } });
+  inp.addEventListener('blur', commit);
+  row.replaceChild(inp, nameEl);
+  inp.focus(); inp.select();
+}
+
+/* a collapsible group section: coloured header (toggle + name + count) and its
+   member tab rows (hidden when collapsed) */
+function buildGroupSection(grp, members) {
+  const sec = document.createElement('div');
+  sec.className = 'tgroup-section' + (grp.collapsed ? ' collapsed' : '');
+  sec.dataset.groupId = grp.id;
+  sec.style.setProperty('--group-color', grp.color);
+
+  const head = document.createElement('div');
+  head.className = 'tgroup-head';
+  const tw = document.createElement('button');
+  tw.className = 'tgroup-twist'; tw.innerHTML = '\u25BE'; tw.title = grp.collapsed ? 'Expand' : 'Collapse';
+  tw.addEventListener('click', e => { e.stopPropagation(); grp.collapsed = !grp.collapsed; renderTabList(); persist(); });
+  const dot = document.createElement('span');
+  dot.className = 'tgroup-dot'; dot.title = 'Group options';
+  dot.addEventListener('click', e => { e.stopPropagation(); const r = dot.getBoundingClientRect(); openGroupMenu(grp.id, r.left, r.bottom + 4); });
+  const nm = document.createElement('input');
+  nm.className = 'tgroup-name'; nm.value = grp.name; nm.spellcheck = false;
+  nm.addEventListener('click', e => e.stopPropagation());
+  nm.addEventListener('pointerdown', e => e.stopPropagation());
+  nm.addEventListener('input', () => { grp.name = nm.value; scheduleSave(); });
+  nm.addEventListener('keydown', e => { if (e.key==='Enter') nm.blur(); });
+  head.appendChild(tw); head.appendChild(dot); head.appendChild(nm);
+  head.addEventListener('contextmenu', e => { e.preventDefault(); openGroupMenu(grp.id, e.clientX, e.clientY); });
+  sec.appendChild(head);
+
+  const body = document.createElement('div');
+  body.className = 'tgroup-body';
+  members.forEach(t => body.appendChild(buildTabRow(t, grp)));
+  sec.appendChild(body);
+  return sec;
 }
 
 function switchTab(id) {
@@ -2655,30 +4532,461 @@ function switchTab(id) {
   renderTabList(); persist(); closePanel();
 }
 
+/* keep the header title in sync: static "Group: " prefix + editable tab name */
+const pageTitle = document.getElementById('pageTitle');
+const ptGroup = document.getElementById('ptGroup');
+const ptName = document.getElementById('ptName');
+function syncPageTitle() {
+  const t = tabs.find(t => t.id === activeTabId);
+  const tabName = t ? t.name : 'Calculator';
+  let prefix = '';
+  if (t && t.group) { const g = tabGroups.find(g => g.id === t.group); if (g && g.name) prefix = g.name + ' '; }
+  if (ptGroup) ptGroup.textContent = prefix;
+  if (ptName && !ptName.classList.contains('editing')) { ptName.textContent = tabName; ptName.title = tabName + ' \u2014 click to rename tab'; }
+  const hdrStar = document.getElementById('hdrStar');
+  if (hdrStar && t) {
+    const fav = favourites.includes(t.id);
+    hdrStar.innerHTML = fav ? '\u2605' : '\u2606';
+    hdrStar.classList.toggle('on', fav);
+    hdrStar.title = fav ? 'Remove from favourites' : 'Favourite this tab';
+  }
+}
+/* click the tab-name part of the header to rename the active tab inline */
+function activateTabNameEdit() {
+  if (!ptName) return;
+  const t = tabs.find(t => t.id === activeTabId); if (!t) return;
+  ptName.classList.add('editing');
+  ptName.contentEditable = 'true';
+  ptName.textContent = t.name;
+  const r = document.createRange(); r.selectNodeContents(ptName);
+  const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  ptName.focus();
+}
+if (ptName) {
+  ptName.addEventListener('click', () => { activateTabNameEdit(); });
+  const commitTitle = () => {
+    if (!ptName.classList.contains('editing')) return;
+    const t = tabs.find(t => t.id === activeTabId);
+    const v = ptName.textContent.trim();
+    ptName.contentEditable = 'false';
+    ptName.classList.remove('editing');
+    if (t && v && v !== t.name) { t.name = v; t.userNamed = true; renderTabList(); persist(); }
+    else syncPageTitle();
+  };
+  ptName.addEventListener('blur', commitTitle);
+  ptName.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); ptName.blur(); }
+    else if (e.key === 'Escape') { ptName.classList.remove('editing'); ptName.contentEditable = 'false'; syncPageTitle(); ptName.blur(); }
+    else if (e.key === 'ArrowDown') {
+      e.preventDefault(); ptName.blur();
+      const seq = navSequence();           // tabname is index 0; go to next target
+      focusNavTarget(seq[1]);
+    }
+  });
+}
+const hdrStarEl = document.getElementById('hdrStar');
+if (hdrStarEl) hdrStarEl.addEventListener('click', () => { if (activeTabId != null) toggleFavourite(activeTabId); });
+
+/* lowest positive integer N such that "Tab N" isn't already an auto-named tab */
+function nextTabNumber() {
+  const used = new Set();
+  for (const t of tabs) {
+    if (t.userNamed) continue;
+    const m = /^Tab (\d+)$/.exec(t.name || '');
+    if (m) used.add(+m[1]);
+  }
+  let n = 1; while (used.has(n)) n++;
+  return n;
+}
+
 function newTab(data, name) {
   const cur = tabs.find(t => t.id === activeTabId);
   if (cur) cur.data = snapshotActive();
-  const id = ++tabSeq;
-  const blank = { theme:'light', exact:true, angle:'deg', folders:[{ name:'', userNamed:false, collapsed:false, lines:[{latex:''}] }] };
-  const tab = { id, name: name || ('Tab ' + id), data: data || blank };
-  tabs.push(tab);
+  const id = ++tabSeq;   // internal unique id (never reused; used for grouping/save)
+  const blank = { theme:'light', exact:false, angle:'deg', folders:[{ name:'', userNamed:false, collapsed:false, lines:[{latex:''}] }] };
+  const tab = { id, name: name || ('Tab ' + nextTabNumber()), userNamed: !!name, data: data || blank };
+  // a new tab joins the active tab's group and is placed right after it
+  if (cur) {
+    if (cur.group) tab.group = cur.group;
+    const idx = tabs.indexOf(cur);
+    tabs.splice(idx + 1, 0, tab);
+  } else {
+    tabs.push(tab);
+  }
   activeTabId = id;
   loadSnapshot(tab.data);
+  normalizeTabOrder();
   renderTabList(); persist();
   return tab;
+}
+
+/* duplicate a tab: deep-copy its snapshot into a new tab placed right after it,
+   inheriting its group, named "<name> copy". */
+function duplicateTab(id) {
+  const src = tabs.find(t => t.id === id); if (!src) return;
+  // ensure the active tab's live state is captured before copying
+  const cur = tabs.find(t => t.id === activeTabId);
+  if (cur) cur.data = snapshotActive();
+  const data = JSON.parse(JSON.stringify(src.id === activeTabId ? snapshotActive() : src.data));
+  const nid = ++tabSeq;
+  let name = src.name + ' copy';
+  let n = 2; const base = name;
+  while (tabs.some(t => t.name === name)) { name = base + ' ' + n; n++; }
+  const tab = { id: nid, name, userNamed: true, data };
+  if (src.group) tab.group = src.group;
+  const idx = tabs.indexOf(src);
+  tabs.splice(idx + 1, 0, tab);
+  activeTabId = nid;
+  loadSnapshot(tab.data);
+  normalizeTabOrder();
+  renderTabList(); persist();
+  return tab;
+}
+
+/* true if a tab has no meaningful content (single blank line, no name/group) */
+function tabIsEmpty(t) {
+  if (!t) return true;
+  if (t.userNamed) return false;
+  const data = (t.id === activeTabId) ? snapshotActive() : t.data;
+  if (!data || !data.folders) return true;
+  const lines = data.folders.reduce((a, f) => a + (f.lines ? f.lines.length : 0), 0);
+  const anyText = data.folders.some(f => (f.lines || []).some(l => (l.latex || '').trim() !== ''))
+               || data.folders.some(f => (f.name || '').trim() !== '');
+  return !anyText && lines <= 1;
+}
+
+/* confirm (unless the tab is empty) then close */
+function confirmCloseTab(id) {
+  const t = tabs.find(t => t.id === id);
+  if (tabIsEmpty(t)) { closeTab(id); return; }
+  confirmDialog('Close this tab? Its contents will be lost.', 'Close tab').then(ok => { if (ok) closeTab(id); });
 }
 
 function closeTab(id) {
   const idx = tabs.findIndex(t => t.id === id);
   if (idx === -1) return;
   if (tabs.length === 1) { // never zero tabs; reset this one to blank
-    tabs[0].data = { theme:'light', exact:true, angle:'deg', folders:[{ name:'', userNamed:false, collapsed:false, lines:[{latex:''}] }] };
+    tabs[0].data = { theme:'light', exact:false, angle:'deg', folders:[{ name:'', userNamed:false, collapsed:false, lines:[{latex:''}] }] };
     if (activeTabId === id) loadSnapshot(tabs[0].data);
     renderTabList(); persist(); return;
   }
   const wasActive = (id === activeTabId);
   tabs.splice(idx, 1);
+  favourites = favourites.filter(f => tabs.some(t => t.id === f));
   if (wasActive) { activeTabId = tabs[Math.max(0, idx-1)].id; loadSnapshot(tabs.find(t=>t.id===activeTabId).data); }
+  pruneEmptyGroups();
+  renderTabList(); persist();
+}
+
+/* close every tab positioned after the given one */
+function closeTabsBelow(id) {
+  const idx = tabs.findIndex(t => t.id === id);
+  if (idx === -1 || idx === tabs.length - 1) return;
+  // capture current active state so it isn't lost if active is among removed
+  const cur = tabs.find(t => t.id === activeTabId);
+  if (cur) cur.data = snapshotActive();
+  tabs = tabs.slice(0, idx + 1);
+  if (!tabs.some(t => t.id === activeTabId)) {
+    activeTabId = id; loadSnapshot(tabs.find(t => t.id === id).data);
+  }
+  pruneEmptyGroups(); renderTabList(); persist();
+}
+
+/* close every tab positioned after the last member of the given group */
+function closeTabsBelowGroup(gid) {
+  normalizeTabOrder();
+  let lastIdx = -1;
+  tabs.forEach((t, i) => { if (t.group === gid) lastIdx = i; });
+  if (lastIdx === -1 || lastIdx === tabs.length - 1) return;
+  const cur = tabs.find(t => t.id === activeTabId);
+  if (cur) cur.data = snapshotActive();
+  const lastId = tabs[lastIdx].id;
+  tabs = tabs.slice(0, lastIdx + 1);
+  if (!tabs.some(t => t.id === activeTabId)) {
+    activeTabId = lastId; loadSnapshot(tabs.find(t => t.id === lastId).data);
+  }
+  pruneEmptyGroups(); renderTabList(); persist();
+}
+
+/* close every tab except the given one */
+function closeOtherTabs(id) {
+  const keep = tabs.find(t => t.id === id);
+  if (!keep) return;
+  if (activeTabId === id) keep.data = snapshotActive();
+  tabs = [keep];
+  if (activeTabId !== id) { activeTabId = id; loadSnapshot(keep.data); }
+  pruneEmptyGroups(); renderTabList(); persist();
+}
+
+/* group operations */
+function createGroupFromTab(id) {
+  const t = tabs.find(t => t.id === id); if (!t) return;
+  const gid = ++groupSeq;
+  const color = GROUP_COLORS[(tabGroups.length) % GROUP_COLORS.length];
+  tabGroups.push({ id: gid, name: 'Group ' + gid, color });
+  t.group = gid;
+  pruneEmptyGroups(); renderTabList(); persist();
+}
+function moveTabToGroup(id, gid) {
+  const t = tabs.find(t => t.id === id); if (!t) return;
+  t.group = gid || undefined;
+  pruneEmptyGroups(); renderTabList(); persist();
+}
+function ungroupTab(id) {
+  const t = tabs.find(t => t.id === id); if (!t) return;
+  t.group = undefined;
+  pruneEmptyGroups(); renderTabList(); persist();
+}
+function renameGroup(gid) {
+  const g = tabGroups.find(g => g.id === gid); if (!g) return;
+  const name = prompt('Group name:', g.name);
+  if (name !== null && name.trim() !== '') { g.name = name.trim(); renderTabList(); persist(); }
+}
+/* drop groups that no longer contain any tab */
+function pruneEmptyGroups() {
+  tabGroups = tabGroups.filter(g => tabs.some(t => t.group === g.id));
+}
+/* Keep grouped tabs contiguous: reorder `tabs` so every group's members sit in
+   one run, in first-appearance order of groups, ungrouped tabs keeping their
+   relative position. Returns nothing; mutates tabs. */
+function normalizeTabOrder() {
+  const groupOrder = [];          // group ids in order of first appearance
+  for (const t of tabs) if (t.group && !groupOrder.includes(t.group)) groupOrder.push(t.group);
+  // Build a new order: walk original tabs; when we hit the first member of a
+  // group, emit ALL members of that group together; ungrouped emit in place.
+  const emitted = new Set();
+  const out = [];
+  for (const t of tabs) {
+    if (!t.group) { out.push(t); continue; }
+    if (emitted.has(t.group)) continue;
+    emitted.add(t.group);
+    for (const m of tabs) if (m.group === t.group) out.push(m);
+  }
+  tabs = out;
+}
+
+/* ---- tab context menu ---- */
+const tabMenu = document.getElementById('tabMenu');
+function closeTabMenu() { tabMenu.hidden = true; tabMenu.innerHTML = ''; }
+function openTabMenu(id, x, y) {
+  const t = tabs.find(t => t.id === id); if (!t) return;
+  const idx = tabs.findIndex(tt => tt.id === id);
+  tabMenu.innerHTML = '';
+  const item = (label, fn, opts = {}) => {
+    const el = document.createElement('div');
+    el.className = 'tmenu-item' + (opts.danger ? ' danger' : '') + (opts.disabled ? ' disabled' : '');
+    el.textContent = label;
+    if (opts.arrow) { const a = document.createElement('span'); a.className = 'tmenu-arrow'; a.textContent = '\u25B8'; el.appendChild(a); el.classList.add('tmenu-sub'); }
+    if (!opts.disabled && fn) el.addEventListener('click', () => { fn(); closeTabMenu(); });
+    tabMenu.appendChild(el);
+    return el;
+  };
+  const sep = () => { const s = document.createElement('div'); s.className = 'tmenu-sep'; tabMenu.appendChild(s); };
+
+  item('Close tab', () => confirmCloseTab(id), { danger: true });
+  item('Close tabs below', () => {
+    confirmDialog('Close all tabs below this one?', 'Close').then(ok => { if (ok) closeTabsBelow(id); });
+  }, { danger: true, disabled: idx === tabs.length - 1 });
+  item('Close other tabs', () => {
+    confirmDialog('Close all other tabs?', 'Close').then(ok => { if (ok) closeOtherTabs(id); });
+  }, { danger: true, disabled: tabs.length <= 1 });
+  sep();
+  if (t.group) {
+    const g = tabGroups.find(g => g.id === t.group);
+    item('Rename group' + (g ? ' (' + g.name + ')' : ''), () => renameGroup(t.group));
+    item('Remove from group', () => ungroupTab(id));
+  } else {
+    item('Group tab', () => createGroupFromTab(id));
+  }
+  // Move to group submenu (only if other groups exist)
+  const otherGroups = tabGroups.filter(g => g.id !== t.group);
+  if (otherGroups.length) {
+    const sub = item('Move to group', null, { arrow: true });
+    const menu = document.createElement('div'); menu.className = 'tmenu-submenu';
+    otherGroups.forEach(g => {
+      const row = document.createElement('div'); row.className = 'tmenu-item tmenu-color-row';
+      const sw = document.createElement('span'); sw.className = 'tmenu-swatch'; sw.style.background = g.color;
+      const lbl = document.createElement('span'); lbl.textContent = g.name;
+      row.appendChild(sw); row.appendChild(lbl);
+      row.addEventListener('click', () => { moveTabToGroup(id, g.id); closeTabMenu(); });
+      menu.appendChild(row);
+    });
+    sub.appendChild(menu);
+  }
+
+  // position, clamped to viewport
+  tabMenu.hidden = false;
+  const r = tabMenu.getBoundingClientRect();
+  const px = Math.min(x, window.innerWidth - r.width - 8);
+  const py = Math.min(y, window.innerHeight - r.height - 8);
+  tabMenu.style.left = Math.max(8, px) + 'px';
+  tabMenu.style.top = Math.max(8, py) + 'px';
+}
+
+/* context menu for a group header: rename, recolour, collapse, ungroup all */
+function openGroupMenu(gid, x, y) {
+  const g = tabGroups.find(g => g.id === gid); if (!g) return;
+  tabMenu.innerHTML = '';
+  const item = (label, fn) => {
+    const el = document.createElement('div'); el.className = 'tmenu-item'; el.textContent = label;
+    el.addEventListener('click', () => { fn(); closeTabMenu(); });
+    tabMenu.appendChild(el); return el;
+  };
+  const sep = () => { const s = document.createElement('div'); s.className = 'tmenu-sep'; tabMenu.appendChild(s); };
+  item('Rename group', () => renameGroup(gid));
+  item(g.collapsed ? 'Expand group' : 'Collapse group', () => { g.collapsed = !g.collapsed; renderTabList(); persist(); });
+  // colour picker row
+  const crow = document.createElement('div'); crow.className = 'tmenu-item';
+  crow.style.flexDirection = 'column'; crow.style.alignItems = 'stretch'; crow.style.gap = '0.4rem';
+  const clbl = document.createElement('span'); clbl.textContent = 'Colour'; clbl.style.fontSize = '0.8rem'; clbl.style.color = 'var(--ink-dim)';
+  const sw = document.createElement('div'); sw.style.display = 'flex'; sw.style.flexWrap = 'wrap'; sw.style.gap = '0.3rem';
+  GROUP_COLORS.forEach(c => {
+    const dot = document.createElement('span'); dot.className = 'tmenu-swatch';
+    dot.style.background = c; dot.style.width = dot.style.height = '1.1rem'; dot.style.cursor = 'pointer';
+    if (c === g.color) dot.style.outline = '2px solid var(--ink)';
+    dot.addEventListener('click', e => { e.stopPropagation(); g.color = c; renderTabList(); persist(); closeTabMenu(); });
+    sw.appendChild(dot);
+  });
+  crow.appendChild(clbl); crow.appendChild(sw);
+  crow.addEventListener('click', e => e.stopPropagation());
+  tabMenu.appendChild(crow);
+  sep();
+  item('Close tabs below group', () => {
+    confirmDialog('Close all tabs below this group?', 'Close').then(ok => { if (ok) closeTabsBelowGroup(gid); });
+  });
+  item('Ungroup all', () => { tabs.forEach(t => { if (t.group === gid) t.group = undefined; }); pruneEmptyGroups(); normalizeTabOrder(); renderTabList(); persist(); });
+  item('Close all in group', () => {
+    confirmDialog('Close all tabs in this group?', 'Close all').then(ok => {
+      if (!ok) return;
+      const ids = tabs.filter(t => t.group === gid).map(t => t.id);
+      ids.forEach(id => { const i = tabs.findIndex(t => t.id === id); if (i !== -1 && tabs.length > 1) closeTab(id); });
+    });
+  });
+  tabMenu.hidden = false;
+  const r = tabMenu.getBoundingClientRect();
+  tabMenu.style.left = Math.max(8, Math.min(x, window.innerWidth - r.width - 8)) + 'px';
+  tabMenu.style.top = Math.max(8, Math.min(y, window.innerHeight - r.height - 8)) + 'px';
+}
+document.addEventListener('click', e => { if (!tabMenu.hidden && !tabMenu.contains(e.target)) closeTabMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTabMenu(); });
+window.addEventListener('blur', closeTabMenu);
+
+/* re-evaluate each line's inline/stacked result layout on window resize */
+let _resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    folders.forEach(f => f.lines.forEach(l => { if (!l.isSystem) updateLineLayout(l); }));
+  }, 120);
+});
+
+/* long-press to open the context menu on touch devices */
+function attachLongPress(el, fn) {
+  let timer = null, sx = 0, sy = 0;
+  el.addEventListener('touchstart', e => {
+    const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
+    timer = setTimeout(() => { timer = null; fn(sx, sy); }, 500);
+  }, { passive: true });
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  el.addEventListener('touchend', cancel);
+  el.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) cancel();
+  }, { passive: true });
+  el.addEventListener('touchcancel', cancel);
+}
+
+/* ---- Chrome-style tab drag: reorder, and drag in/out of groups ----
+   Drop position is computed from the pointer's Y over the rendered rows; the
+   target group is whichever group section the pointer is inside (or none). On
+   release we reorder `tabs` and set the dragged tab's group, then re-render. */
+let tabDrag = null;
+function attachTabDrag(row, t) {
+  row.addEventListener('pointerdown', (e) => {
+    if (e.button !== undefined && e.button !== 0) return;  // left button only
+    const startX = e.clientX, startY = e.clientY;
+    let active = false;
+    row._dragged = false;
+    const onMove = (ev) => {
+      if (!active) {
+        if (Math.abs(ev.clientX - startX) < 5 && Math.abs(ev.clientY - startY) < 5) return;
+        active = true; row._dragged = true;
+        try { row.setPointerCapture(e.pointerId); } catch (err) {}
+        row.classList.add('tab-dragging');
+        tabDrag = { id: t.id };
+        closeTabMenu();
+      }
+      tabDragMove(ev);
+    };
+    const onUp = () => {
+      row.removeEventListener('pointermove', onMove);
+      row.removeEventListener('pointerup', onUp);
+      row.removeEventListener('pointercancel', onUp);
+      try { row.releasePointerCapture(e.pointerId); } catch (err) {}
+      if (active) { tabDragEnd(); row.classList.remove('tab-dragging'); }
+      // clear the dragged flag after the click event has a chance to read it
+      setTimeout(() => { row._dragged = false; }, 0);
+    };
+    row.addEventListener('pointermove', onMove);
+    row.addEventListener('pointerup', onUp);
+    row.addEventListener('pointercancel', onUp);
+  });
+}
+function clearTabDropMarks() {
+  tabList.querySelectorAll('.drop-before,.drop-after').forEach(el => el.classList.remove('drop-before','drop-after'));
+  tabList.querySelectorAll('.tgroup-section.drop-into').forEach(el => el.classList.remove('drop-into'));
+}
+function tabDragMove(ev) {
+  if (!tabDrag) return;
+  clearTabDropMarks();
+  const y = ev.clientY, x = ev.clientX;
+  const rows = [...tabList.querySelectorAll('.tab')].filter(r => +r.dataset.tabId !== tabDrag.id);
+
+  // which group section is the pointer inside (for snap-in)?
+  let intoGroup = null;
+  for (const sec of tabList.querySelectorAll('.tgroup-section')) {
+    const r = sec.getBoundingClientRect();
+    if (y >= r.top && y <= r.bottom && x >= r.left && x <= r.right) { intoGroup = +sec.dataset.groupId; break; }
+  }
+  tabDrag.intoGroup = intoGroup;
+
+  // find the row we should drop before (first whose midpoint is below the pointer)
+  let beforeId = null, marked = null;
+  for (const r of rows) {
+    const rect = r.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    if (y < mid) { beforeId = +r.dataset.tabId; marked = r; break; }
+  }
+  tabDrag.beforeId = beforeId;
+  if (marked) marked.classList.add('drop-before');
+  else if (rows.length) rows[rows.length - 1].classList.add('drop-after');
+
+  // highlight the group we'd snap into
+  if (intoGroup != null) {
+    const sec = tabList.querySelector('.tgroup-section[data-group-id="' + intoGroup + '"]');
+    if (sec) sec.classList.add('drop-into');
+  }
+}
+function tabDragEnd() {
+  if (!tabDrag) { clearTabDropMarks(); return; }
+  const { id, beforeId, intoGroup } = tabDrag;
+  tabDrag = null; clearTabDropMarks();
+  const moving = tabs.find(t => t.id === id);
+  if (!moving) { renderTabList(); return; }
+
+  // remove from current position
+  tabs = tabs.filter(t => t.id !== id);
+  // assign group: the section the pointer was over (or ungroup if over none)
+  moving.group = (intoGroup != null) ? intoGroup : undefined;
+  // insert before the target row (or at end)
+  if (beforeId != null) {
+    const idx = tabs.findIndex(t => t.id === beforeId);
+    if (idx === -1) tabs.push(moving); else tabs.splice(idx, 0, moving);
+  } else {
+    tabs.push(moving);
+  }
+  pruneEmptyGroups();
+  normalizeTabOrder();
   renderTabList(); persist();
 }
 
@@ -2694,17 +5002,23 @@ document.getElementById('panelScrim').addEventListener('click', closePanel);
 document.getElementById('newTab').addEventListener('click', () => { newTab(); });
 
 /* ---- file export / import ---- */
-document.getElementById('exportFile').addEventListener('click', () => {
-  const t = tabs.find(t => t.id === activeTabId);
-  const payload = { format:'stemvault-calc', version:1, name: t ? t.name : 'calculator', data: snapshotActive() };
+/* snapshot for a given tab: live snapshot if it's active, else its stored data */
+function tabData(id) {
+  if (id === activeTabId) return snapshotActive();
+  const t = tabs.find(t => t.id === id);
+  return t ? t.data : null;
+}
+function exportTab(id) {
+  const t = tabs.find(t => t.id === id); if (!t) return;
+  const payload = { format:'stemvault-calc', version:1, name: t.name, data: tabData(id) };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const safe = (t ? t.name : 'calculator').replace(/[^\w.-]+/g,'_') || 'calculator';
+  const safe = (t.name || 'calculator').replace(/[^\w.-]+/g,'_') || 'calculator';
   a.href = url; a.download = safe + '.json';
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-});
+}
 const fileInput = document.getElementById('fileInput');
 document.getElementById('importFile').addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', () => {
@@ -2713,8 +5027,24 @@ fileInput.addEventListener('change', () => {
   reader.onload = () => {
     try {
       const payload = JSON.parse(reader.result);
+      if (payload && payload.format && payload.format !== 'stemvault-calc' && !payload.data && !payload.folders) {
+        alert('That file does not look like a saved calculator tab.');
+        fileInput.value = ''; return;
+      }
       const data = payload.data || payload;     // accept raw snapshot too
-      newTab(data, payload.name || file.name.replace(/\.json$/,''));
+      let name = payload.name || file.name.replace(/\.json$/,'') || 'Opened';
+      // name-collision handling: if a tab with this name already exists, ask, then
+      // open under a disambiguated name ("name (2)") to avoid confusion.
+      if (tabs.some(t => t.name === name)) {
+        const ok = confirm('A tab named "' + name + '" is already open.\n\nOpen this file as a new tab anyway?');
+        if (!ok) { fileInput.value = ''; return; }
+        let n = 2, base = name;
+        while (tabs.some(t => t.name === base + ' (' + n + ')')) n++;
+        name = base + ' (' + n + ')';
+      }
+      const t = newTab(data, name);
+      if (t) t.userNamed = true;   // opened files keep their given name (not auto-renumbered)
+      persist();
       closePanel();
     } catch (e) { alert('Could not read that file.'); }
     fileInput.value = '';
@@ -2731,21 +5061,37 @@ function decodeState(s) {
   try { return JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(s))))); }
   catch (e) { return null; }
 }
-document.getElementById('shareLink').addEventListener('click', async () => {
-  const data = snapshotActive();
+function shareTabLink(id) {
+  const data = tabData(id); if (!data) return Promise.resolve(false);
   const link = location.origin + location.pathname + '#s=' + encodeState(data);
-  try { await navigator.clipboard.writeText(link); flashShare('Link copied'); }
-  catch (e) {
-    // fallback: put it in the location bar
-    location.hash = 's=' + encodeState(data);
-    flashShare('Link in address bar');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(link).then(() => true).catch(() => { location.hash = 's=' + encodeState(data); return false; });
   }
-});
-function flashShare(msg) {
-  const btn = document.getElementById('shareLink');
-  const old = btn.textContent; btn.textContent = msg;
-  setTimeout(() => { btn.textContent = old; }, 1400);
+  location.hash = 's=' + encodeState(data);
+  return Promise.resolve(false);
 }
+
+/* ---- per-tab share popup ---- */
+const shareMenu = document.getElementById('shareMenu');
+function openShareMenu(id, x, y) {
+  closeTabMenu();
+  shareMenu.innerHTML = '';
+  const mk = (label, fn) => {
+    const b = document.createElement('div'); b.className = 'tmenu-item'; b.textContent = label;
+    b.addEventListener('click', (e) => { e.stopPropagation(); fn(); closeShareMenu(); });
+    return b;
+  };
+  shareMenu.appendChild(mk('Copy share link', () => shareTabLink(id)));
+  shareMenu.appendChild(mk('Save to file', () => exportTab(id)));
+  shareMenu.hidden = false;
+  const mw = 180, mh = 90;
+  let left = Math.min(x, window.innerWidth - mw - 8);
+  let top = Math.min(y, window.innerHeight - mh - 8);
+  shareMenu.style.left = Math.max(8, left) + 'px';
+  shareMenu.style.top = Math.max(8, top) + 'px';
+}
+function closeShareMenu() { shareMenu.hidden = true; }
+document.addEventListener('mousedown', (e) => { if (!shareMenu.hidden && !shareMenu.contains(e.target)) closeShareMenu(); });
 
 /* =====================================================================
    Bootstrap: URL share > localStorage > fresh
@@ -2766,6 +5112,7 @@ function flashShare(msg) {
   }
   // 2) restore from localStorage, else fresh
   restoreTabsOrFresh(false);
+  if (typeof syncPageTitle === 'function') syncPageTitle();
 })();
 
 function restoreTabsOrFresh(deferActiveLoad) {
@@ -2777,6 +5124,10 @@ function restoreTabsOrFresh(deferActiveLoad) {
     tabs = saved.tabs;
     tabSeq = saved.tabSeq || tabs.reduce((m,t)=>Math.max(m,t.id),0);
     idSeq = saved.idSeq || 0;
+    tabGroups = Array.isArray(saved.tabGroups) ? saved.tabGroups : [];
+    groupSeq = saved.groupSeq || tabGroups.reduce((m,g)=>Math.max(m,g.id),0);
+    favourites = Array.isArray(saved.favourites) ? saved.favourites.filter(id => tabs.some(t => t.id === id)) : [];
+    pruneEmptyGroups();
     activeTabId = saved.activeTabId && tabs.some(t=>t.id===saved.activeTabId) ? saved.activeTabId : tabs[0].id;
     if (!deferActiveLoad) loadSnapshot(tabs.find(t=>t.id===activeTabId).data);
     renderTabList();
