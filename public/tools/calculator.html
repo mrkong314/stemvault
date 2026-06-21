@@ -4656,12 +4656,8 @@ function createFolder(name, afterFolder = null) {
     if (folder.collapsed) { folder.collapsed=false; el.classList.remove('collapsed'); }
     createLine(folder).mq.focus(); recompute();
   });
-  delBtn.addEventListener('click', () => {
-    confirmIfNotEmpty(isFolderEmpty(folder), 'Delete this section and all its lines?', 'Delete').then(ok => { if (ok) removeFolder(folder); });
-  });
-  clrBtn.addEventListener('click', () => {
-    confirmIfNotEmpty(folder.lines.every(isLineEmpty), 'Clear all lines in this section?', 'Clear').then(ok => { if (ok) clearFolder(folder); });
-  });
+  delBtn.addEventListener('click', () => { removeFolder(folder); });
+  clrBtn.addEventListener('click', () => { clearFolder(folder); });
   dupBtn.addEventListener('click', () => duplicateFolder(folder));
   insStrip.addEventListener('click', () => { insertFolderBefore(folder); });
   attachDrag(fhandle, folder, 'folder');
@@ -5380,13 +5376,11 @@ foldersEl.addEventListener('mousemove', (e) => {
 });
 foldersEl.addEventListener('mouseleave', () => foldersEl.classList.remove('show-add-folder'));
 document.getElementById('clearAll').addEventListener('click', () => {
-  confirmIfNotEmpty(isActiveTabEmpty(), 'Clear everything in this tab? All sections and lines will be removed.', 'Clear all').then(ok => {
-    if (settingsPopover && !settingsPopover.hidden) closeSettings();
-    if (!ok) return;
-    pushUndo();
-    folders.slice().forEach(f => f.el.remove()); folders.length = 0;
-    const f = createFolder(''); createLine(f).mq.focus(); renumberFolders(); renumber(); recompute();
-  });
+  if (settingsPopover && !settingsPopover.hidden) closeSettings();
+  if (isActiveTabEmpty()) return;
+  pushUndo();
+  folders.slice().forEach(f => f.el.remove()); folders.length = 0;
+  const f = createFolder(''); createLine(f).mq.focus(); renumberFolders(); renumber(); recompute();
 });
 
 const angleSeg = document.getElementById('angleSeg');
