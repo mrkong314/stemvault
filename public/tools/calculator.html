@@ -3983,6 +3983,62 @@ function stripFracParens(mq) {
   }
 }
 
+/* "^^" scientific-notation shortcut, recognised from MathQuill's output rather
+   than from keystrokes (engine-agnostic; works in Chrome, Safari, Firefox and
+   for any input method that produces the shape).
+
+   Typing a caret twice from the baseline yields a superscript whose first and
+   only content is itself an (empty) caret: latex "BASE^{^{ }}" with the cursor
+   inside the inner empty sup. That "^{^" shape cannot occur through any normal
+   typing path, so it is an unambiguous signal to expand to "BASE x 10^{}" with
+   the caret left inside the new exponent, ready for the digits.
+
+   Driven from the edit handler: it fires the instant the second caret creates
+   the nested empty sup, before any exponent digits are entered. A re-entrancy
+   guard stops the programmatic rewrite below from recursing through edit. */
+function expandSciShortcut(mq, lineObj) {
+  if (!mq || lineObj._sciExpanding) return;
+  let latex;
+  try { latex = mq.latex(); } catch (e) { return; }
+  // signature: a superscript that opens with a nested caret, i.e. "^{^". This
+  // cannot occur through normal typing; it only results from typing "^" twice.
+  if (latex.indexOf('^{^') === -1) return;
+
+  lineObj._sciExpanding = true;
+  setTimeout(() => {
+    try {
+      // re-read: fast typing may have placed a digit into the nested sup before
+      // this fired, so recompute the transform from the current latex
+      let cur;
+      try { cur = mq.latex(); } catch (e) { return; }
+      const s = cur.indexOf('^{^');
+      if (s === -1) return;
+      const o = s + 1;
+      let d = 0, c = -1;
+      for (let i = o; i < cur.length; i++) {
+        if (cur[i] === '{') d++;
+        else if (cur[i] === '}') { d--; if (d === 0) { c = i; break; } }
+      }
+      if (c === -1) return;
+      const inner = cur.slice(o + 1, c);          // "^{ }" or "^3" or "^{23}"
+      let rest = '';
+      if (inner[0] === '^') {
+        let r = inner.slice(1);
+        if (r[0] === '{' && r[r.length - 1] === '}') r = r.slice(1, -1);
+        rest = r.trim();
+      }
+      const out2 = cur.slice(0, s) + '\\times10^{' + rest + '}' + cur.slice(c + 1);
+      mq.latex(out2);
+      mq.moveToRightEnd();
+      if (cur.slice(c + 1).length === 0) mq.keystroke('Left');   // enter the exponent
+      recompute();
+    } catch (e) {
+    } finally {
+      lineObj._sciExpanding = false;
+    }
+  }, 0);
+}
+
 /* If the caret sits inside a superscript or subscript, step it out to the right
    so the next operator/character is inserted at the base level rather than inside
    the exponent. Checks the rendered cursor's ancestors for MathQuill's sup/sub
@@ -4255,7 +4311,7 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ' +
                        'ln log exp abs floor ceil sign deg ans solve Re Im Arg cSolve conj polar',
     handlers: {
-      edit: () => { recompute(); if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(lineObj)); },
+      edit: () => { expandSciShortcut(mq, lineObj); recompute(); if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(lineObj)); },
       enter: () => { insertAdjacentLine(lineObj, 'after'); },
       // up/down at the top/bottom of a field (i.e. NOT navigating inside a
       // fraction/superscript/subscript) move between lines instead.
@@ -4284,35 +4340,17 @@ function createLine(folder, afterLine = null, initialLatex = '') {
       e.preventDefault(); e.stopPropagation();
       if (e.shiftKey) insertFolderBefore(lineObj.folder);
       else createFolderAfter(lineObj.folder);
-      lineObj._lastCaret = false;
       return;
     }
     if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault(); e.stopPropagation();
       insertAdjacentLine(lineObj, 'before');
-      lineObj._lastCaret = false;
       return;
-    }
-    if (e.key === '^' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      if (lineObj._lastCaret) {
-        // second caret: undo the empty superscript from the first, then expand
-        e.preventDefault(); e.stopPropagation();
-        mq.keystroke('Backspace');          // removes the empty ^{} just created
-        mq.cmd('\\times');                   // x (times) symbol
-        mq.typedText('10');
-        mq.cmd('^');                        // exponent, caret lands inside
-        lineObj._lastCaret = false;
-        recompute();
-        return;
-      }
-      lineObj._lastCaret = true;            // first caret; arm for a possible second
-      return;                               // let MathQuill create the superscript
     }
     // Cmd/Ctrl + Left/Right -> jump to start / end of this line's field
     if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
       e.preventDefault(); e.stopPropagation();
       if (e.key === 'ArrowLeft') mq.moveToLeftEnd(); else mq.moveToRightEnd();
-      lineObj._lastCaret = false;
       return;
     }
     // "*" always renders as a times sign. Operators typed inside an exponent
@@ -4328,26 +4366,19 @@ function createLine(folder, afterLine = null, initialLatex = '') {
         e.preventDefault(); e.stopPropagation();
         if (breakOut) mq.keystroke('Right');
         mq.cmd('\\times');
-        recompute(); lineObj._lastCaret = false; return;
+        recompute(); return;
       }
       if (breakOut) {
         e.preventDefault(); e.stopPropagation();
         mq.keystroke('Right');                 // exit the exponent first
         if (e.key === '/') { mq.typedText('/'); stripFracParens(mq); }
         else mq.typedText(e.key);               // + - =
-        recompute(); lineObj._lastCaret = false; return;
+        recompute(); return;
       }
     }
     // keyboard "/" (not breaking out) builds a fraction; strip wrapping parens
     if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       setTimeout(() => stripFracParens(mq), 0);
-    }
-    // any other key cancels the sequence -- but ignore modifier-only keydowns
-    // (Shift/Ctrl/Alt/Meta/CapsLock), since "^" is Shift+6 and a stray Shift
-    // keydown can fire between the two carets (notably in Chrome).
-    if (e.key !== 'Shift' && e.key !== 'Control' && e.key !== 'Alt' &&
-        e.key !== 'Meta' && e.key !== 'CapsLock') {
-      lineObj._lastCaret = false;
     }
   }, true);
 
