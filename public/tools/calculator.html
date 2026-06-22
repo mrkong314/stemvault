@@ -4039,10 +4039,88 @@ function expandSciShortcut(mq, lineObj) {
   }, 0);
 }
 
+/* After typing ")" MathQuill auto-grows a matching \left( back to the start of
+   the surrounding group, which can reach across an "=" (e.g. "x= 3)" wraps the
+   "x=" too). If an auto-grown bracket's contents include a top-level "=", move
+   the \left( forward to just after that "=" so the bracket holds only the
+   expression on the right of the equals: "x= 3)" -> "x=\left(3\right)". Acts on
+   the field latex and restores the caret to the right end. */
+function fixWrapBoundary(mq) {
+  if (!mq) return;
+  let latex;
+  try { latex = mq.latex(); } catch (e) { return; }
+  const openTag = '\\left(', closeTag = '\\right)';
+  let changed = false;
+  // process repeatedly until stable (handles nested / multiple cases)
+  for (let pass = 0; pass < 8; pass++) {
+    let acted = false;
+    let from = 0;
+    while (true) {
+      const lp = latex.indexOf(openTag, from);
+      if (lp === -1) break;
+      // find this bracket's matching \right)
+      let d = 0, rp = -1, j = lp;
+      while (j < latex.length) {
+        if (latex.startsWith(openTag, j)) { d++; j += openTag.length; }
+        else if (latex.startsWith(closeTag, j)) { d--; j += closeTag.length; if (d === 0) { rp = j - closeTag.length; break; } }
+        else j++;
+      }
+      if (rp === -1) break;
+      const innerStart = lp + openTag.length;
+      const inner = latex.slice(innerStart, rp);
+      // index of the last top-level "=" within the inner content
+      const eqRel = lastTopLevelEquals(inner);
+      if (eqRel !== -1) {
+        // keep "...=", with the bracket starting just after it
+        const keep = inner.slice(0, eqRel + 1);
+        const wrapped = inner.slice(eqRel + 1);
+        latex = latex.slice(0, lp) + keep + openTag + wrapped + closeTag + latex.slice(rp + closeTag.length);
+        changed = true; acted = true;
+        break;            // string changed; restart scan
+      }
+      from = innerStart;
+    }
+    if (!acted) break;
+  }
+  if (changed) { try { mq.latex(latex); mq.moveToRightEnd(); recompute(); } catch (e) {} }
+}
+
+/* Index of the last "=" in `s` that is at the top level: not inside any {...}
+   group, not inside any (...) or \left(...\right) pair. Returns -1 if none. */
+function lastTopLevelEquals(s) {
+  let depthBrace = 0, depthParen = 0, last = -1;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '\\') {
+      if (s.startsWith('\\left(', i)) { depthParen++; i += 5; continue; }
+      if (s.startsWith('\\right)', i)) { if (depthParen > 0) depthParen--; i += 6; continue; }
+      i++;                                  // skip escaped char
+      while (i + 1 < s.length && /[a-zA-Z]/.test(s[i + 1])) i++;
+      continue;
+    }
+    if (ch === '{') { depthBrace++; continue; }
+    if (ch === '}') { if (depthBrace > 0) depthBrace--; continue; }
+    if (depthBrace !== 0) continue;
+    if (ch === '(') { depthParen++; continue; }
+    if (ch === ')') { if (depthParen > 0) depthParen--; continue; }
+    if (ch === '=' && depthParen === 0) last = i;
+  }
+  return last;
+}
+
+/* Insert "x10^{}" (scientific notation) at the caret with the caret left inside
+   the empty exponent. Shared by the "^^" and "**" shortcuts. */
+function insertSciExp(mq) {
+  if (!mq) return;
+  try {
+    mq.cmd('\\times');
+    mq.typedText('10');
+    mq.cmd('^');                  // caret lands inside the new exponent
+    recompute();
+  } catch (e) {}
+}
+
 /* If the caret sits inside a superscript or subscript, step it out to the right
-   so the next operator/character is inserted at the base level rather than inside
-   the exponent. Checks the rendered cursor's ancestors for MathQuill's sup/sub
-   containers. Returns true if it stepped out. */
 function breakOutOfSupSub(mq, fieldEl) {
   let root = fieldEl;
   if (!root) root = document.querySelector('.mq-field.mq-focused') || document.querySelector('.mq-field:focus-within');
@@ -4353,6 +4431,49 @@ function createLine(folder, afterLine = null, initialLatex = '') {
       if (e.key === 'ArrowLeft') mq.moveToLeftEnd(); else mq.moveToRightEnd();
       return;
     }
+    // Doubled-key shortcuts (typed twice in quick succession):
+    //   **  -> x10^{}   (scientific notation, same as ^^)
+    //   ++  -> new folder below
+    //   \\  -> nth root
+    // The first press performs its normal action; the second, within the window,
+    // is recognised here, the first press's effect is undone, and the shortcut
+    // runs instead.
+    if (!e.ctrlKey && !e.metaKey && !e.altKey &&
+        (e.key === '*' || e.key === '+' || e.key === '\\')) {
+      const now = Date.now();
+      const prev = lineObj._dblKey;
+      const recent = prev && prev.key === e.key && (now - prev.t) < 600;
+      if (recent) {
+        lineObj._dblKey = null;
+        if (e.key === '*') {
+          // first "*" already inserted a \times; remove it, then sci-notation
+          e.preventDefault(); e.stopPropagation();
+          mq.keystroke('Backspace');
+          insertSciExp(mq);
+          return;
+        }
+        if (e.key === '+') {
+          // first "+" already typed; remove it, then create a folder below
+          e.preventDefault(); e.stopPropagation();
+          mq.keystroke('Backspace');
+          recompute();
+          createFolderAfter(lineObj.folder);
+          return;
+        }
+        if (e.key === '\\') {
+          // first "\" opened MathQuill's command input; remove it, insert nthroot
+          e.preventDefault(); e.stopPropagation();
+          mq.keystroke('Backspace');
+          mq.typedText('nthroot');     // autocommand -> nth-root with caret in index
+          recompute();
+          return;
+        }
+      } else {
+        lineObj._dblKey = { key: e.key, t: now };
+      }
+    } else {
+      lineObj._dblKey = null;
+    }
     // "*" always renders as a times sign. Operators typed inside an exponent
     // normally land OUTSIDE it (e.g. "10^2" + "*" -> "10^2 x"); exceptions keep
     // them in (bracketed exponent, leading "-" for x^{-1}, or leading "/").
@@ -4379,6 +4500,11 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     // keyboard "/" (not breaking out) builds a fraction; strip wrapping parens
     if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       setTimeout(() => stripFracParens(mq), 0);
+    }
+    // keyboard ")" can auto-grow a \left( back across an "="; pull it forward so
+    // the bracket holds only the expression to the right of the equals.
+    if (e.key === ')' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      setTimeout(() => fixWrapBoundary(mq), 0);
     }
   }, true);
 
