@@ -619,6 +619,16 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 14vw;
     margin-right: 0.1rem;
   }
+  header .title .pt-group.clickable {
+    cursor: text; padding: 0.05rem 0.2rem; border-radius: 7px;
+    border: 1px solid transparent;
+  }
+  header .title .pt-group.clickable:hover { background: var(--surface); }
+  header .title .pt-group.editing {
+    overflow: visible; text-overflow: clip; background: var(--panel);
+    border: 1px solid var(--rule-strong); border-radius: 7px;
+    padding: 0.05rem 0.25rem; cursor: text; outline: none; color: var(--ink);
+  }
   header .title .pt-name {
     flex: 0 1 auto; min-width: 1rem; white-space: nowrap; overflow: hidden;
     text-overflow: ellipsis; cursor: text; padding: 0.05rem 0.25rem;
@@ -1183,7 +1193,18 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
       gap: 0.4rem; padding: 0.5rem 0.7rem;
       align-items: center;
     }
-    header .title { max-width: 50vw; font-size: 1.05rem; }
+    header { flex-wrap: wrap; row-gap: 0.4rem; }
+    header .title { max-width: none; flex: 1 1 auto; min-width: 0; font-size: 1.05rem; }
+    /* tab name is the priority; the group prefix is a compact hint that
+       truncates first so short/medium tab names show in full */
+    header .title .pt-group { max-width: 30vw; }
+    header .title .pt-name { flex: 0 1 auto; min-width: 0; }
+    /* full-width zero-height break: forces the action buttons onto a second row */
+    header .spacer { flex: 0 0 100%; height: 0; order: 1; }
+    /* second row holds undo / redo / settings, right-aligned */
+    header #undoBtn, header #redoBtn, header .settings-wrap { order: 2; }
+    header #undoBtn { margin-left: auto; }
+    #sidepanel { padding-top: 96px !important; }
     /* keep the settings popover within the viewport on narrow screens */
     .settings-popover { min-width: 0; width: min(78vw, 260px); }
 
@@ -1213,7 +1234,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     justify-content: space-between; margin-right: 0.2rem; border-radius: 6px;
     -webkit-tap-highlight-color: transparent;
   }
-  .hamburger:hover { background: var(--surface); }
+  @media (hover: hover) { .hamburger:hover { background: var(--surface); } }
   .hamburger span { display: block; height: 2px; width: 100%; background: var(--ink); border-radius: 2px; }
 
   /* ---- side panel ---- */
@@ -1222,7 +1243,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     background: var(--glass-strong); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     border-right: 1px solid var(--glass-border);
     transform: translateX(-100%); transition: transform 0.26s cubic-bezier(0.22,1,0.36,1);
-    z-index: 40; display: flex; flex-direction: column;
+    z-index: 40; display: flex; flex-direction: column; padding-top: 60px;
     box-shadow: 2px 0 24px rgba(31,45,80,0.18);
   }
   #app.panel-open #sidepanel { transform: translateX(0); }
@@ -1232,18 +1253,18 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   }
   #app.panel-open #panelScrim { opacity: 1; visibility: visible; }
 
-  .sp-head {
-    display: flex; align-items: center; gap: 0.5rem; padding: 0.85rem 0.9rem 0.6rem;
-    border-bottom: 1px solid var(--rule);
+  #tabTopBar { flex: none; padding: 0.5rem 0.5rem 0.6rem; }
+  #tabScroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #tabList { flex: 0 0 auto; padding: 0 0.5rem 0.5rem; }
+  .tablist-new {
+    display: flex; align-items: center; justify-content: center; gap: 0.3rem;
+    width: 100%; padding: 0.55rem 0.55rem;
+    border: none; border-radius: 9px; background: var(--accent); color: #fff;
+    font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: opacity 0.12s;
   }
-  .sp-title { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; flex: 1; }
-  .sp-new {
-    border: none; background: var(--accent); color: #fff; border-radius: 7px;
-    padding: 0.3rem 0.6rem; font-size: 0.78rem; font-weight: 600; cursor: pointer;
-  }
-  .sp-new:active { opacity: 0.7; }
-
-  #tabList { flex: 1 1 auto; overflow-y: auto; padding: 0.5rem; }
+  .tablist-new:hover { opacity: 0.92; }
+  .tablist-new:active { opacity: 0.78; }
+  .tablist-new-plus { font-size: 1.05rem; line-height: 1; font-weight: 700; }
   .tab {
     display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.55rem;
     border-radius: 8px; cursor: pointer; margin-bottom: 0.15rem; background: transparent;
@@ -1295,7 +1316,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .tab .tshare:hover { opacity: 1; color: var(--accent); background: var(--line-hover); }
 
   /* favourites section at the top of the sidebar */
-  #favList { display: none; margin-bottom: 0.5rem; }
+  #favList { display: none; padding: 0 0.5rem; margin-bottom: 0.15rem; }
   #favList.has-favs { display: block; }
   #favList .fav-head {
     font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
@@ -1358,6 +1379,11 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .tab.tab-dragging { opacity: 0.45; }
   .tab.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
   .tab.drop-after  { box-shadow: inset 0 -2px 0 var(--accent); }
+  .tgroup-section.tgroup-dragging { opacity: 0.5; }
+  .tgroup-head { cursor: grab; }
+  .tgroup-section.tgroup-dragging .tgroup-head { cursor: grabbing; }
+  .gdrop-before { box-shadow: 0 -3px 0 var(--accent); }
+  .gdrop-after  { box-shadow: 0 3px 0 var(--accent); }
 
   /* tab context menu */
   #tabMenu, #shareMenu {
@@ -1525,12 +1551,11 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
 <body>
 <div id="app">
   <aside id="sidepanel" aria-label="Saved tabs">
-    <div class="sp-head">
-      <span class="sp-title">Tabs</span>
-      <button id="newTab" class="sp-new" title="New tab">+ New</button>
+    <div id="tabTopBar"></div>
+    <div id="tabScroll">
+      <div id="favList"></div>
+      <div id="tabList"></div>
     </div>
-    <div id="favList"></div>
-    <div id="tabList"></div>
     <div class="sp-foot">
       <button id="varsToggle" class="sp-act" title="Show predefined constants">
         <svg class="sp-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
@@ -5854,9 +5879,14 @@ function buildTabRow(t, grp) {
   row.dataset.tabId = t.id;
   if (grp) row.style.setProperty('--group-color', grp.color);
 
-  // name is plain text (draggable); double-click to rename inline (Chrome-like)
+  // name is plain text (draggable). Click the active tab's name to rename it
+  // inline; clicking a non-active tab switches to it (handled by the row click).
+  // Double-click renames any tab (kept as a fallback).
   const nameEl = document.createElement('span');
   nameEl.className = 'tname'; nameEl.textContent = t.name; nameEl.title = t.name;
+  nameEl.addEventListener('click', e => {
+    if (t.id === activeTabId && !row._dragged) { e.stopPropagation(); startTabRename(row, t, nameEl); }
+  });
   nameEl.addEventListener('dblclick', e => { e.stopPropagation(); startTabRename(row, t, nameEl); });
   row.appendChild(nameEl);
 
@@ -5917,6 +5947,13 @@ function startTabRename(row, t, nameEl) {
   row.replaceChild(inp, nameEl);
   inp.focus(); inp.select();
 }
+/* start inline rename for a tab from the context menu (locates its sidebar row) */
+function renameTabById(id) {
+  const t = tabs.find(t => t.id === id); if (!t) return;
+  const row = tabList.querySelector('.tab[data-tab-id="' + id + '"]');
+  const nameEl = row ? row.querySelector('.tname') : null;
+  if (row && nameEl) startTabRename(row, t, nameEl);
+}
 
 /* a collapsible group section: coloured header (toggle + name + count) and its
    member tab rows (hidden when collapsed) */
@@ -5937,11 +5974,12 @@ function buildGroupSection(grp, members) {
   const nm = document.createElement('input');
   nm.className = 'tgroup-name'; nm.value = grp.name; nm.spellcheck = false;
   nm.addEventListener('click', e => e.stopPropagation());
-  nm.addEventListener('pointerdown', e => e.stopPropagation());
+  nm.addEventListener('pointerdown', e => { if (document.activeElement === nm) e.stopPropagation(); });
   nm.addEventListener('input', () => { grp.name = nm.value; scheduleSave(); });
   nm.addEventListener('keydown', e => { if (e.key==='Enter') nm.blur(); });
   head.appendChild(tw); head.appendChild(dot); head.appendChild(nm);
   head.addEventListener('contextmenu', e => { e.preventDefault(); openGroupMenu(grp.id, e.clientX, e.clientY); });
+  attachGroupDrag(sec, grp, head, nm);
   sec.appendChild(head);
 
   const body = document.createElement('div');
@@ -5971,7 +6009,12 @@ function syncPageTitle() {
   const tabName = t ? t.name : 'Calculator';
   let prefix = '';
   if (t && t.group) { const g = tabGroups.find(g => g.id === t.group); if (g && g.name) prefix = g.name + ' '; }
-  if (ptGroup) ptGroup.textContent = prefix;
+  if (ptGroup && !ptGroup.classList.contains('editing')) {
+    ptGroup.textContent = prefix;
+    const hasGroup = !!(t && t.group);
+    ptGroup.classList.toggle('clickable', hasGroup);
+    ptGroup.title = hasGroup ? 'Click to rename group' : '';
+  }
   if (ptName && !ptName.classList.contains('editing')) { ptName.textContent = tabName; ptName.title = tabName + ' \u2014 click to rename tab'; }
   const hdrStar = document.getElementById('hdrStar');
   if (hdrStar && t) {
@@ -6016,6 +6059,36 @@ if (ptName) {
 }
 const hdrStarEl = document.getElementById('hdrStar');
 if (hdrStarEl) hdrStarEl.addEventListener('click', () => { if (activeTabId != null) toggleFavourite(activeTabId); });
+/* click the grey group prefix in the header to rename the active tab's group inline */
+function activateGroupNameEdit() {
+  if (!ptGroup) return;
+  const t = tabs.find(t => t.id === activeTabId); if (!t || !t.group) return;
+  const g = tabGroups.find(g => g.id === t.group); if (!g) return;
+  ptGroup.classList.add('editing');
+  ptGroup.contentEditable = 'true';
+  ptGroup.textContent = g.name;
+  const r = document.createRange(); r.selectNodeContents(ptGroup);
+  const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  ptGroup.focus();
+}
+if (ptGroup) {
+  ptGroup.addEventListener('click', () => { activateGroupNameEdit(); });
+  const commitGroup = () => {
+    if (!ptGroup.classList.contains('editing')) return;
+    const t = tabs.find(t => t.id === activeTabId);
+    const g = t && t.group ? tabGroups.find(g => g.id === t.group) : null;
+    const v = ptGroup.textContent.trim();
+    ptGroup.contentEditable = 'false';
+    ptGroup.classList.remove('editing');
+    if (g && v && v !== g.name) { g.name = v; renderTabList(); persist(); }
+    else syncPageTitle();
+  };
+  ptGroup.addEventListener('blur', commitGroup);
+  ptGroup.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); ptGroup.blur(); }
+    else if (e.key === 'Escape') { ptGroup.classList.remove('editing'); ptGroup.contentEditable = 'false'; syncPageTitle(); ptGroup.blur(); }
+  });
+}
 
 /* lowest positive integer N such that "Tab N" isn't already an auto-named tab */
 function nextTabNumber() {
@@ -6213,6 +6286,7 @@ function openTabMenu(id, x, y) {
   };
   const sep = () => { const s = document.createElement('div'); s.className = 'tmenu-sep'; tabMenu.appendChild(s); };
 
+  item('Rename tab', () => renameTabById(id));
   item('Close tab', () => confirmCloseTab(id), { danger: true });
   item('Close tabs below', () => {
     confirmDialog('Close all tabs below this one?', 'Close').then(ok => { if (ok) closeTabsBelow(id); });
@@ -6228,11 +6302,16 @@ function openTabMenu(id, x, y) {
   } else {
     item('Group tab', () => createGroupFromTab(id));
   }
-  // Move to group submenu (only if other groups exist)
+  // Move to group submenu: always offer "New group", plus any other existing groups
   const otherGroups = tabGroups.filter(g => g.id !== t.group);
+  const sub = item('Move to group', null, { arrow: true });
+  const menu = document.createElement('div'); menu.className = 'tmenu-submenu';
+  const newRow = document.createElement('div'); newRow.className = 'tmenu-item';
+  newRow.textContent = 'New group\u2026';
+  newRow.addEventListener('click', () => { createGroupFromTab(id); closeTabMenu(); });
+  menu.appendChild(newRow);
   if (otherGroups.length) {
-    const sub = item('Move to group', null, { arrow: true });
-    const menu = document.createElement('div'); menu.className = 'tmenu-submenu';
+    const sepEl = document.createElement('div'); sepEl.className = 'tmenu-sep'; menu.appendChild(sepEl);
     otherGroups.forEach(g => {
       const row = document.createElement('div'); row.className = 'tmenu-item tmenu-color-row';
       const sw = document.createElement('span'); sw.className = 'tmenu-swatch'; sw.style.background = g.color;
@@ -6241,8 +6320,24 @@ function openTabMenu(id, x, y) {
       row.addEventListener('click', () => { moveTabToGroup(id, g.id); closeTabMenu(); });
       menu.appendChild(row);
     });
-    sub.appendChild(menu);
   }
+  sub.appendChild(menu);
+  // keep the submenu on-screen: flip to the left of the parent if it would
+  // overflow the right edge, and clamp it vertically within the viewport
+  sub.addEventListener('mouseenter', () => {
+    menu.style.left = ''; menu.style.right = ''; menu.style.top = ''; menu.style.bottom = '';
+    const pr = sub.getBoundingClientRect();
+    const mw = menu.offsetWidth, mh = menu.offsetHeight;
+    if (pr.right + mw + 8 > window.innerWidth && pr.left - mw - 8 >= 0) {
+      menu.style.right = '100%'; menu.style.left = 'auto';
+    } else {
+      menu.style.left = '100%'; menu.style.right = 'auto';
+    }
+    // vertical clamp: submenu top defaults near the parent row; nudge up if it
+    // would run past the bottom of the viewport
+    const overshoot = (pr.top - 4) + mh - (window.innerHeight - 8);
+    menu.style.top = (overshoot > 0 ? (-overshoot - 4) : -4) + 'px';
+  });
 
   // position, clamped to viewport
   tabMenu.hidden = false;
@@ -6422,6 +6517,94 @@ function tabDragEnd() {
   renderTabList(); persist();
 }
 
+/* ---- group drag-to-reorder ----
+   Dragging a group header repositions the whole group among the top-level
+   blocks (other groups and ungrouped tabs), keeping its members together. */
+let groupDrag = null;
+function attachGroupDrag(sec, grp, head, nameInput) {
+  head.addEventListener('pointerdown', (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    // the twist and options dot are interactive; never start a drag from them
+    if (e.target.closest('.tgroup-twist, .tgroup-dot')) return;
+    // if the rename input is focused, let it behave as a text field (no drag)
+    if (e.target.closest('.tgroup-name') && document.activeElement === nameInput) return;
+    const startX = e.clientX, startY = e.clientY;
+    let active = false;
+    const onMove = (ev) => {
+      if (!active) {
+        if (Math.abs(ev.clientX - startX) < 5 && Math.abs(ev.clientY - startY) < 5) return;
+        active = true;
+        if (nameInput) nameInput.blur();
+        try { head.setPointerCapture(e.pointerId); } catch (err) {}
+        sec.classList.add('tgroup-dragging');
+        groupDrag = { id: grp.id };
+        closeTabMenu();
+      }
+      groupDragMove(ev);
+    };
+    const onUp = () => {
+      head.removeEventListener('pointermove', onMove);
+      head.removeEventListener('pointerup', onUp);
+      head.removeEventListener('pointercancel', onUp);
+      try { head.releasePointerCapture(e.pointerId); } catch (err) {}
+      if (active) { groupDragEnd(); sec.classList.remove('tgroup-dragging'); }
+    };
+    head.addEventListener('pointermove', onMove);
+    head.addEventListener('pointerup', onUp);
+    head.addEventListener('pointercancel', onUp);
+  });
+}
+/* the top-level blocks in render order: each is a group section or an ungrouped row */
+function topLevelBlocks() {
+  return [...tabList.children].filter(el =>
+    el.classList && (el.classList.contains('tgroup-section') ||
+      (el.classList.contains('tab') && !el.classList.contains('grouped'))));
+}
+function clearGroupDropMarks() {
+  tabList.querySelectorAll('.gdrop-before,.gdrop-after').forEach(el => el.classList.remove('gdrop-before','gdrop-after'));
+}
+function groupDragMove(ev) {
+  if (!groupDrag) return;
+  clearGroupDropMarks();
+  const y = ev.clientY;
+  const blocks = topLevelBlocks().filter(el => +el.dataset.groupId !== groupDrag.id);
+  let beforeEl = null;
+  for (const el of blocks) {
+    const r = el.getBoundingClientRect();
+    if (y < r.top + r.height / 2) { beforeEl = el; break; }
+  }
+  groupDrag.beforeEl = beforeEl;
+  if (beforeEl) beforeEl.classList.add('gdrop-before');
+  else if (blocks.length) blocks[blocks.length - 1].classList.add('gdrop-after');
+}
+function groupDragEnd() {
+  if (!groupDrag) { clearGroupDropMarks(); return; }
+  const { id, beforeEl } = groupDrag;
+  groupDrag = null; clearGroupDropMarks();
+
+  // members of the dragged group, in current order
+  const members = tabs.filter(t => t.group === id);
+  if (!members.length) { renderTabList(); return; }
+  const rest = tabs.filter(t => t.group !== id);
+
+  // resolve the insertion point in `rest` from the target block element
+  let insertAt = rest.length;
+  if (beforeEl) {
+    if (beforeEl.classList.contains('tgroup-section')) {
+      const gid = +beforeEl.dataset.groupId;
+      insertAt = rest.findIndex(t => t.group === gid);
+    } else {
+      const tid = +beforeEl.dataset.tabId;
+      insertAt = rest.findIndex(t => t.id === tid);
+    }
+    if (insertAt === -1) insertAt = rest.length;
+  }
+  rest.splice(insertAt, 0, ...members);
+  tabs = rest;
+  normalizeTabOrder();
+  renderTabList(); persist();
+}
+
 /* ---- panel open/close ---- */
 const appEl = document.getElementById('app');
 function openPanel() { appEl.classList.add('panel-open'); renderTabList(); }
@@ -6431,7 +6614,18 @@ document.getElementById('panelToggle').addEventListener('click', () => {
   appEl.classList.contains('panel-open') ? closePanel() : openPanel();
 });
 document.getElementById('panelScrim').addEventListener('click', closePanel);
-document.getElementById('newTab').addEventListener('click', () => { newTab(); });
+/* New tab button: pinned at the top of the sidebar, above favourites */
+(function () {
+  const bar = document.getElementById('tabTopBar');
+  if (!bar) return;
+  const btn = document.createElement('button');
+  btn.id = 'newTab';
+  btn.className = 'tablist-new';
+  btn.innerHTML = '<span class="tablist-new-plus">+</span> New tab';
+  btn.title = 'New tab';
+  btn.addEventListener('click', () => newTab());
+  bar.appendChild(btn);
+})();
 
 /* ---- file export / import ---- */
 /* snapshot for a given tab: live snapshot if it's active, else its stored data */
