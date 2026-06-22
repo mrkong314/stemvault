@@ -4342,7 +4342,13 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       setTimeout(() => stripFracParens(mq), 0);
     }
-    lineObj._lastCaret = false;             // any other key cancels the sequence
+    // any other key cancels the sequence -- but ignore modifier-only keydowns
+    // (Shift/Ctrl/Alt/Meta/CapsLock), since "^" is Shift+6 and a stray Shift
+    // keydown can fire between the two carets (notably in Chrome).
+    if (e.key !== 'Shift' && e.key !== 'Control' && e.key !== 'Alt' &&
+        e.key !== 'Meta' && e.key !== 'CapsLock') {
+      lineObj._lastCaret = false;
+    }
   }, true);
 
   // On touch devices, suppress the OS onscreen keyboard for math fields: the
