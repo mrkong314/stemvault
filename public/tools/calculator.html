@@ -898,6 +898,16 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   /* let long unbroken digit/letter runs (e.g. a 30-digit number) wrap too */
   .mq-field .mq-root-block .mq-digit, .mq-field .mq-root-block var,
   .mq-field .mq-root-block .mq-nonSymbola { overflow-wrap: anywhere; }
+  /* ...but NEVER inside a superscript/subscript. The root's overflow-wrap:anywhere
+     is inherited into the (inline-block) supsub and collapses its min-content width
+     to ~1 char; under the flex row (min-width:0) plus sub-pixel rounding at certain
+     zoom levels the exponent then gets squeezed and wraps onto two stacked lines
+     (e.g. 2^{232} renders as "23" over "2"). Keeping scripts non-wrapping stops the
+     collapse so multi-character exponents/subscripts always render on one line. */
+  .mq-field .mq-root-block .mq-supsub,
+  .mq-field .mq-root-block .mq-supsub * {
+    overflow-wrap: normal; word-break: normal; white-space: nowrap;
+  }
 
   /* With a tall radicand (e.g. a fraction inside \sqrt) MathQuill's scaled radical
      glyph can leave a thin sliver above the top bar. Nudge the stem bar to sit
@@ -916,7 +926,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .main-row.stacked .result { max-width: none; align-self: stretch; margin-top: 0.25rem; }
 
   .line .result {
-    margin-top: 0.25rem; font-size: 1rem; color: var(--accent);
+    margin-top: 0.25rem; font-size: 1.05rem; color: var(--accent);
     min-height: 0.9rem; font-variant-numeric: tabular-nums; word-break: break-word;
     display: flex; justify-content: flex-end; align-items: baseline; gap: 0.15rem;
     font-weight: 500;
