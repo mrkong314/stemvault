@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Charged Particle in a Magnetic Field</title>
+<style>
+  :root {
+    --bg: #0e1320;
+    --panel: #161d2e;
+    --panel-border: #2a3550;
+    --text: #e6ebf5;
+    --muted: #8a96b0;
+    --accent: #4da3ff;
+    --pos: #ff5a5a;
+    --neg: #4da3ff;
+    --field: #6fc28a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+  }
+  #app { position: relative; width: 100vw; height: 100vh; }
+  #canvas-wrap { position: absolute; inset: 0; }
+  canvas { display: block; }
+
+  #controls {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    width: 280px;
+    background: rgba(22, 29, 46, 0.92);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    backdrop-filter: blur(6px);
+  }
+  #controls h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    margin-bottom: 4px;
+  }
+  #controls .sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+  .row { margin-bottom: 16px; }
+  .row label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .row .val { color: var(--text); font-variant-numeric: tabular-nums; }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+  }
+  .charge-toggle { display: flex; gap: 8px; }
+  .charge-toggle button {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .charge-toggle button.active.pos { background: var(--pos); border-color: var(--pos); color: #fff; }
+  .charge-toggle button.active.neg { background: var(--neg); border-color: var(--neg); color: #fff; }
+
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row button {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 12px;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .btn-row button:hover { border-color: var(--accent); }
+
+  #readout {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    font-size: 12px;
+    color: var(--muted);
+    background: rgba(22, 29, 46, 0.85);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    line-height: 1.6;
+  }
+  #readout .k { color: var(--text); font-variant-numeric: tabular-nums; }
+  #hint {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  @media (max-width: 620px) {
+    #controls { width: calc(100vw - 32px); }
+    #readout { font-size: 11px; }
+    #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="canvas-wrap"></div>
+
+  <div id="controls">
+    <h1>Charged Particle in a Magnetic Field</h1>
+    <div class="sub">A charge moving through a uniform field <b>B</b> feels the force <b>F</b> = q<b>v</b>&times;<b>B</b>, curving it into a circle.</div>
+
+    <div class="row">
+      <label>Charge sign</label>
+      <div class="charge-toggle">
+        <button id="btn-pos" class="pos active">Positive (+q)</button>
+        <button id="btn-neg" class="neg">Negative (&minus;q)</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <label>Time <span class="val" id="time-val">0.00 s</span></label>
+      <input type="range" id="time" min="0" max="1000" value="0">
+    </div>
+
+    <div class="row">
+      <label>Field strength B <span class="val" id="b-val">1.00 T</span></label>
+      <input type="range" id="bfield" min="20" max="200" value="100">
+    </div>
+
+    <div class="row">
+      <label>Speed v <span class="val" id="v-val">1.00</span></label>
+      <input type="range" id="speed" min="20" max="200" value="100">
+    </div>
+
+    <div class="btn-row">
+      <button id="play">Play</button>
+      <button id="reset">Reset</button>
+    </div>
+  </div>
+
+  <div id="readout">
+    <div>Field <b>B</b>: <span class="k">N &rarr; S</span> (horizontal, along +x)</div>
+    <div>Radius r = mv / |q|B: <span class="k" id="r-val">1.00</span> units</div>
+    <div>Sense of rotation: <span class="k" id="sense-val">clockwise (looking along B, N&rarr;S)</span></div>
+  </div>
+
+  <div id="hint">drag to orbit &middot; scroll to zoom</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from "three";
+
+// ---------- Scene setup ----------
+const wrap = document.getElementById("canvas-wrap");
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0e1320);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(6, 5, 9);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+wrap.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+dir.position.set(5, 10, 7);
+scene.add(dir);
+
+// ---------- Simple orbit controls (no external dep) ----------
+const orbit = { theta: Math.atan2(camera.position.x, camera.position.z), phi: Math.acos(camera.position.y / camera.position.length()), radius: camera.position.length() };
+let dragging = false, lastX = 0, lastY = 0;
+function applyOrbit() {
+  const r = orbit.radius;
+  camera.position.set(
+    r * Math.sin(orbit.phi) * Math.sin(orbit.theta),
+    r * Math.cos(orbit.phi),
+    r * Math.sin(orbit.phi) * Math.cos(orbit.theta)
+  );
+  camera.lookAt(0, 0, 0);
+}
+renderer.domElement.addEventListener("pointerdown", e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+window.addEventListener("pointerup", () => dragging = false);
+window.addEventListener("pointermove", e => {
+  if (!dragging) return;
+  orbit.theta -= (e.clientX - lastX) * 0.005;
+  orbit.phi -= (e.clientY - lastY) * 0.005;
+  orbit.phi = Math.max(0.15, Math.min(Math.PI - 0.15, orbit.phi));
+  lastX = e.clientX; lastY = e.clientY;
+  applyOrbit();
+});
+renderer.domElement.addEventListener("wheel", e => {
+  e.preventDefault();
+  orbit.radius = Math.max(4, Math.min(30, orbit.radius + e.deltaY * 0.01));
+  applyOrbit();
+}, { passive: false });
+
+// ---------- Magnet poles (N at +y, S at -y) ----------
+// Poles horizontal: N on left (-x), S on right (+x).
+// Field B runs N -> S, i.e. along +x. Motion is in the yz-plane.
+// Poles are translucent so the path can be seen going into/out of the page.
+function makePole(color, label, xPos) {
+  const g = new THREE.Group();
+  const block = new THREE.Mesh(
+    new THREE.BoxGeometry(1.2, 5, 5),
+    new THREE.MeshStandardMaterial({
+      color, metalness: 0.2, roughness: 0.5,
+      transparent: true, opacity: 0.15, depthWrite: false
+    })
+  );
+  g.add(block);
+  // label texture
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = 128;
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, 128, 128);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 96px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, 64, 70);
+  const tex = new THREE.CanvasTexture(cv);
+  const lbl = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+  );
+  // face outward along x (N's face looks -x, S's face looks +x)
+  lbl.position.x = xPos > 0 ? 0.62 : -0.62;
+  lbl.rotation.y = xPos > 0 ? Math.PI / 2 : -Math.PI / 2;
+  g.add(lbl);
+  g.position.x = xPos;
+  return g;
+}
+scene.add(makePole(0xff5a5a, "N", -4));  // North, left
+scene.add(makePole(0x4d74ff, "S", 4));   // South, right
+
+// ---------- Field arrows (N -> S, along +x) ----------
+// Each field line is a real 3D arrow so it reads correctly end-on with no
+// symbol swap: a large cone head at the +x tip looks like a filled disc (O,
+// out of the page) when viewed head-on, and crossed-fin fletching at the -x
+// tail looks like an X (into the page) when viewed from behind. From the side
+// they read as ordinary arrows.
+const FIELD_HEX = 0x6fc28a;
+const fieldGroup = new THREE.Group();
+const fieldMat = new THREE.LineBasicMaterial({ color: FIELD_HEX, transparent: true, opacity: 0.5 });
+const X_MIN = -3.0, X_MAX = 3.0;      // arrow extent along x
+const HEAD_LEN = 0.55, HEAD_RAD = 0.20; // large head so it reads as O end-on
+const FIN_LEN = 0.5, FIN_SPAN = 0.34;   // fletching size
+
+// Solid parts (heads + fins) whose opacity fades with distance from the camera.
+// Each entry: { mesh, mat } -- world position read from mesh each frame.
+const fieldSolidParts = [];
+
+function makeFieldArrow(y, z) {
+  const g = new THREE.Group();
+  // shaft (thin line) up to the base of the head
+  const shaft = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(X_MIN, 0, 0),
+      new THREE.Vector3(X_MAX - HEAD_LEN, 0, 0),
+    ]),
+    fieldMat
+  );
+  g.add(shaft);
+  // large cone head at the +x tip -> filled disc (O) when seen head-on.
+  // Own material instance so its opacity can be set per-arrow by distance.
+  const headMat = new THREE.MeshBasicMaterial({ color: FIELD_HEX, side: THREE.DoubleSide, transparent: true, opacity: 0.5, depthWrite: false });
+  const head = new THREE.Mesh(new THREE.ConeGeometry(HEAD_RAD, HEAD_LEN, 16), headMat);
+  head.rotation.z = -Math.PI / 2;        // point +x
+  head.position.set(X_MAX - HEAD_LEN / 2, 0, 0);
+  g.add(head);
+  fieldSolidParts.push({ mesh: head, mat: headMat });
+  // crossed-fin fletching at the -x tail -> X when seen from behind.
+  // Two planes that each contain the x-axis; one rotated 90 deg about x from
+  // the other, and the pair tilted 45 deg so end-on they cross as an X.
+  // Shared per-arrow material so both fins fade together.
+  const finMat = new THREE.MeshBasicMaterial({ color: FIELD_HEX, side: THREE.DoubleSide, transparent: true, opacity: 0.5, depthWrite: false });
+  const finGeo = new THREE.PlaneGeometry(FIN_LEN, FIN_SPAN);
+  const fin1 = new THREE.Mesh(finGeo, finMat);  // lies in xy-plane
+  const fin2 = new THREE.Mesh(finGeo, finMat);
+  fin2.rotation.x = Math.PI / 2;                        // lies in xz-plane
+  const fins = new THREE.Group();
+  fins.add(fin1);
+  fins.add(fin2);
+  fins.rotation.x = Math.PI / 4;                        // tilt + -> x
+  fins.position.set(X_MIN + FIN_LEN / 2, 0, 0);
+  g.add(fins);
+  fieldSolidParts.push({ mesh: fins, mat: finMat });
+
+  g.position.set(0, y, z);
+  return g;
+}
+
+const fieldLines = [];
+for (let gy = -2; gy <= 2; gy++) {
+  for (let gz = -2; gz <= 2; gz++) {
+    const arrow = makeFieldArrow(gy, gz);
+    fieldGroup.add(arrow);
+    fieldLines.push({ group: arrow, y: gy, z: gz });
+  }
+}
+scene.add(fieldGroup);
+
+// ---------- Particle + trail ----------
+const POS_COLOR = 0xff5a5a, NEG_COLOR = 0x4da3ff;
+const particleMat = new THREE.MeshStandardMaterial({ color: POS_COLOR, emissive: POS_COLOR, emissiveIntensity: 0.4 });
+const particle = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), particleMat);
+scene.add(particle);
+
+// velocity arrow (colour matches the charge, set in setCharge)
+const velArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 1.2, POS_COLOR, 0.3, 0.18);
+scene.add(velArrow);
+// force arrow (white)
+const forceArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 1.0, 0xffffff, 0.28, 0.16);
+scene.add(forceArrow);
+
+// ---------- Into/out-of-page symbols (circle with X = into, circle with dot = out) ----------
+// A billboarded plane whose texture is redrawn for the two states and colour.
+function makeSymbolTexture(kind, hexColor) {
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = 128;
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, 128, 128);
+  const col = "#" + hexColor.toString(16).padStart(6, "0");
+  ctx.strokeStyle = col;
+  ctx.fillStyle = col;
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.arc(64, 64, 44, 0, Math.PI * 2);
+  ctx.stroke();
+  if (kind === "in") {
+    // X for "into the page"
+    const d = 30;
+    ctx.beginPath();
+    ctx.moveTo(64 - d, 64 - d); ctx.lineTo(64 + d, 64 + d);
+    ctx.moveTo(64 + d, 64 - d); ctx.lineTo(64 - d, 64 + d);
+    ctx.stroke();
+  } else {
+    // dot for "out of the page"
+    ctx.beginPath();
+    ctx.arc(64, 64, 12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  return new THREE.CanvasTexture(cv);
+}
+// Cache textures by kind+colour so we don't rebuild every frame.
+const symbolTexCache = new Map();
+function getSymbolTexture(kind, hexColor) {
+  const key = kind + ":" + hexColor;
+  if (!symbolTexCache.has(key)) symbolTexCache.set(key, makeSymbolTexture(kind, hexColor));
+  return symbolTexCache.get(key);
+}
+function makeSymbolSprite() {
+  const mat = new THREE.SpriteMaterial({ transparent: true, depthTest: true });
+  const s = new THREE.Sprite(mat);
+  s.scale.set(0.7, 0.7, 1);
+  s.visible = false;
+  scene.add(s);
+  return s;
+}
+const velSymbol = makeSymbolSprite();
+const forceSymbol = makeSymbolSprite();
+
+// ---------- Text labels (camera-facing sprites) ----------
+function makeLabelSprite(text, hexColor) {
+  const cv = document.createElement("canvas");
+  cv.width = 128; cv.height = 64;
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, 128, 64);
+  ctx.fillStyle = "#" + hexColor.toString(16).padStart(6, "0");
+  ctx.font = "bold italic 44px serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, 64, 34);
+  const tex = new THREE.CanvasTexture(cv);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+  const s = new THREE.Sprite(mat);
+  s.scale.set(0.7, 0.35, 1);
+  scene.add(s);
+  return s;
+}
+const velLabel = makeLabelSprite("v", POS_COLOR);
+const forceLabel = makeLabelSprite("F", 0xffffff);
+
+// Helper: update one vector display (arrow vs symbol) based on camera alignment.
+// dir must be normalised. Returns nothing; mutates the passed objects.
+const _camFwd = new THREE.Vector3();
+function updateVectorDisplay(arrow, symbol, label, origin, dir, length, hexColor, headLen, headW) {
+  camera.getWorldDirection(_camFwd); // unit vector camera looks along (into screen)
+  const align = dir.dot(_camFwd);    // +1: vector points into screen, -1: out of screen
+  const labelOffset = 0.45;
+  if (Math.abs(align) > 0.94) {
+    // Nearly along the page normal -> show symbol instead of an edge-on arrow.
+    arrow.visible = false;
+    symbol.visible = true;
+    const kind = align > 0 ? "in" : "out"; // into page = X, out of page = dot
+    symbol.material.map = getSymbolTexture(kind, hexColor);
+    symbol.material.needsUpdate = true;
+    symbol.position.copy(origin);
+    label.position.copy(origin).add(new THREE.Vector3(0, 0.55, 0));
+  } else {
+    arrow.visible = true;
+    symbol.visible = false;
+    arrow.position.copy(origin);
+    arrow.setDirection(dir);
+    arrow.setLength(length, headLen, headW);
+    // place label near the arrow tip
+    label.position.copy(origin).addScaledVector(dir, length + labelOffset);
+  }
+}
+
+const trailMat = new THREE.LineBasicMaterial({ color: POS_COLOR });
+let trailGeom = new THREE.BufferGeometry();
+let trail = new THREE.Line(trailGeom, trailMat);
+scene.add(trail);
+
+// reference grid in the plane of motion (yz-plane, at x=0)
+const grid = new THREE.GridHelper(12, 12, 0x2a3550, 0x1c2438);
+grid.rotation.z = Math.PI / 2; // lay it in the yz-plane
+scene.add(grid);
+
+// ---------- Physics state ----------
+// Motion is in the xz-plane (perpendicular to B along y).
+// Position on circle: angle phase = omega * t.
+// omega = qB/m. Sign of q flips rotation sense.
+// We keep m = 1. Radius r = mv/(|q|B). Period independent of v.
+const state = {
+  charge: +1,      // +1 or -1
+  B: 1.0,          // tesla (scaled)
+  v: 1.0,          // speed (scaled)
+  t: 0,            // time
+  playing: false,
+  velColor: POS_COLOR, // current velocity-arrow colour (tracks the charge)
+};
+
+const MAX_T = 10;          // seconds full slider range
+const SLIDER_MAX = 1000;
+
+function radius() {
+  // r = mv / (|q| B), m = 1, |q| = 1
+  return state.v / state.B;
+}
+
+// Motion is in the yz-plane (perpendicular to B along +x).
+// Derived as the exact integral of m dv/dt = q v x B, so the path is
+// guaranteed consistent with the live force arrow.
+// Start: particle at origin, v0 = (0, 0, v) (moving +z), same for both charges.
+// w = qB/m is signed; r = v/|w| = v/(|q|B). Both signs share v0, so a charge
+// flip reverses the sense of circulation (not the starting direction).
+//   vy(t) = v sin(w t),  vz(t) = v cos(w t)
+//   y(t)  = (v/w)(1 - cos(w t)),  z(t) = (v/w) sin(w t)
+function omegaSigned() {
+  return state.charge * state.B; // qB/m, m=1, |q|=1
+}
+function positionAt(t) {
+  const w = omegaSigned();
+  const a = state.v / w;       // v/w, carries the sign of the charge
+  const ang = w * t;
+  const y = a * (1 - Math.cos(ang));
+  const z = a * Math.sin(ang);
+  return new THREE.Vector3(0, y, z);
+}
+function velocityAt(t) {
+  const w = omegaSigned();
+  const ang = w * t;
+  const vy = state.v * Math.sin(ang);
+  const vz = state.v * Math.cos(ang);
+  return new THREE.Vector3(0, vy, vz);
+}
+
+// ---------- Trail builder ----------
+function rebuildTrail() {
+  const pts = [];
+  const steps = 240;
+  for (let i = 0; i <= steps; i++) {
+    const tt = (state.t) * i / steps;
+    pts.push(positionAt(tt));
+  }
+  trailGeom.setFromPoints(pts);
+}
+
+// ---------- UI ----------
+const timeSlider = document.getElementById("time");
+const bSlider = document.getElementById("bfield");
+const vSlider = document.getElementById("speed");
+const timeVal = document.getElementById("time-val");
+const bVal = document.getElementById("b-val");
+const vVal = document.getElementById("v-val");
+const rVal = document.getElementById("r-val");
+const senseVal = document.getElementById("sense-val");
+const btnPos = document.getElementById("btn-pos");
+const btnNeg = document.getElementById("btn-neg");
+const playBtn = document.getElementById("play");
+const resetBtn = document.getElementById("reset");
+
+// Redraw a label sprite's texture in a new colour (used when charge flips).
+function setLabelColor(sprite, text, hexColor) {
+  const cv = document.createElement("canvas");
+  cv.width = 128; cv.height = 64;
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, 128, 64);
+  ctx.fillStyle = "#" + hexColor.toString(16).padStart(6, "0");
+  ctx.font = "bold italic 44px serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, 64, 34);
+  if (sprite.material.map) sprite.material.map.dispose();
+  sprite.material.map = new THREE.CanvasTexture(cv);
+  sprite.material.needsUpdate = true;
+}
+
+function setCharge(sign) {
+  state.charge = sign;
+  const c = sign > 0 ? POS_COLOR : NEG_COLOR;
+  particleMat.color.setHex(c);
+  particleMat.emissive.setHex(c);
+  trailMat.color.setHex(c);
+  velArrow.setColor(new THREE.Color(c));   // v arrow follows the charge colour
+  setLabelColor(velLabel, "v", c);         // v label follows the charge colour
+  state.velColor = c;                       // used by the symbol renderer each frame
+  btnPos.classList.toggle("active", sign > 0);
+  btnNeg.classList.toggle("active", sign < 0);
+  updateReadout();
+  refresh();
+}
+btnPos.addEventListener("click", () => setCharge(+1));
+btnNeg.addEventListener("click", () => setCharge(-1));
+
+timeSlider.addEventListener("input", () => {
+  state.t = (timeSlider.value / SLIDER_MAX) * MAX_T;
+  refresh();
+});
+bSlider.addEventListener("input", () => {
+  state.B = bSlider.value / 100;
+  updateReadout();
+  refresh();
+});
+vSlider.addEventListener("input", () => {
+  state.v = vSlider.value / 100;
+  updateReadout();
+  refresh();
+});
+playBtn.addEventListener("click", () => {
+  state.playing = !state.playing;
+  playBtn.textContent = state.playing ? "Pause" : "Play";
+});
+resetBtn.addEventListener("click", () => {
+  state.t = 0;
+  state.playing = false;
+  playBtn.textContent = "Play";
+  timeSlider.value = 0;
+  refresh();
+});
+
+function updateReadout() {
+  bVal.textContent = state.B.toFixed(2) + " T";
+  vVal.textContent = state.v.toFixed(2);
+  rVal.textContent = radius().toFixed(2);
+  // Looking ALONG the field (from N toward S, i.e. from -x toward +x):
+  // y is up, z is to the left. Positive charge goes +z (left) then +y (up)
+  // => clockwise. Negative charge reverses it.
+  const sense = state.charge > 0
+    ? "clockwise (looking along B, N\u2192S)"
+    : "counter-clockwise (looking along B, N\u2192S)";
+  senseVal.textContent = sense;
+}
+
+// Latest computed kinematics, consumed by updateVectors() each frame.
+const vecState = {
+  p: new THREE.Vector3(),
+  vDir: new THREE.Vector3(1, 0, 0), vLen: 1,
+  fDir: new THREE.Vector3(1, 0, 0), fLen: 1,
+};
+
+function refresh() {
+  timeVal.textContent = state.t.toFixed(2) + " s";
+  const p = positionAt(state.t);
+  particle.position.copy(p);
+  vecState.p.copy(p);
+
+  const v = velocityAt(state.t);
+  const vlen = v.length() || 1e-6;
+  vecState.vDir.copy(v).normalize();
+  vecState.vLen = Math.min(1.6, 0.6 + vlen * 0.3);
+
+  // F = q v x B, B = (state.B, 0, 0)
+  const B = new THREE.Vector3(state.B, 0, 0);
+  const F = new THREE.Vector3().crossVectors(v, B).multiplyScalar(state.charge);
+  const flen = F.length() || 1e-6;
+  vecState.fDir.copy(F).normalize();
+  vecState.fLen = Math.min(1.4, 0.5 + flen * 0.25);
+
+  rebuildTrail();
+  updateVectors();
+}
+
+// Draw the three vectors (arrow or symbol) for the current camera orientation.
+// Called from refresh() and every animation frame (camera may rotate without refresh).
+function updateVectors() {
+  // velocity: anchored at the particle, colour tracks the charge
+  updateVectorDisplay(velArrow, velSymbol, velLabel, vecState.p, vecState.vDir,
+    vecState.vLen, state.velColor, 0.3, 0.18);
+  // force: anchored at the particle, white
+  updateVectorDisplay(forceArrow, forceSymbol, forceLabel, vecState.p, vecState.fDir,
+    vecState.fLen, 0xffffff, 0.28, 0.16);
+}
+
+// ---------- Depth-based fade for field heads/tails ----------
+// Parts farther from the camera get more transparent. The near/far distance
+// range is measured live each frame so it adapts to the current zoom.
+const NEAR_OPACITY = 0.6, FAR_OPACITY = 0.06;
+const _partPos = new THREE.Vector3();
+function updateFieldDepthFade() {
+  let dMin = Infinity, dMax = -Infinity;
+  const dists = new Array(fieldSolidParts.length);
+  for (let i = 0; i < fieldSolidParts.length; i++) {
+    fieldSolidParts[i].mesh.getWorldPosition(_partPos);
+    const d = _partPos.distanceTo(camera.position);
+    dists[i] = d;
+    if (d < dMin) dMin = d;
+    if (d > dMax) dMax = d;
+  }
+  const span = Math.max(1e-6, dMax - dMin);
+  for (let i = 0; i < fieldSolidParts.length; i++) {
+    const t = (dists[i] - dMin) / span;            // 0 = nearest, 1 = farthest
+    fieldSolidParts[i].mat.opacity = NEAR_OPACITY + t * (FAR_OPACITY - NEAR_OPACITY);
+  }
+}
+
+// ---------- Animate ----------
+let lastFrame = performance.now();
+function animate(now) {
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+
+  if (state.playing) {
+    state.t += dt;
+    if (state.t >= MAX_T) { state.t = MAX_T; state.playing = false; playBtn.textContent = "Play"; }
+    timeSlider.value = (state.t / MAX_T) * SLIDER_MAX;
+    refresh();
+  } else {
+    // Camera may be rotating while paused; keep arrow/symbol choice current.
+    updateVectors();
+  }
+  updateFieldDepthFade();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// init
+applyOrbit();
+setCharge(+1);
+refresh();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
