@@ -4131,6 +4131,7 @@ function insertSciExp(mq) {
 }
 
 /* If the caret sits inside a superscript or subscript, step it out to the right
+   so a following operator lands after it. Returns true if it moved the caret. */
 function breakOutOfSupSub(mq, fieldEl) {
   let root = fieldEl;
   if (!root) root = document.querySelector('.mq-field.mq-focused') || document.querySelector('.mq-field:focus-within');
