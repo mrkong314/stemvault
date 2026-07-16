@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Photoelectric Effect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vac:#0d0f14;
+  --vac-2:#151922;
+  --vac-3:#1d222d;
+  --paper:#e8e3d3;
+  --paper-dim:#9a978c;
+  --paper-faint:#5c5a54;
+  --phos:#4a9d7f;
+  --phos-glow:#6fd4aa;
+  --brass:#c9a961;
+  --brass-dim:#8a7442;
+  --oxide:#8b3a3a;
+  --oxide-lit:#c05a5a;
+  --rule:#2a3040;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--vac);
+  color:var(--paper);
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+  font-weight:300;
+  line-height:1.5;
+  padding:clamp(16px,3vw,40px);
+  min-height:100vh;
+}
+.wrap{max-width:1240px;margin:0 auto}
+
+/* ---- masthead ---- */
+header{
+  border-bottom:1px solid var(--rule);
+  padding-bottom:18px;
+  margin-bottom:24px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:24px;
+  flex-wrap:wrap;
+}
+h1{
+  font-family:'Instrument Serif',Georgia,serif;
+  font-weight:400;
+  font-size:clamp(30px,5vw,52px);
+  line-height:1;
+  letter-spacing:-0.01em;
+}
+h1 em{font-style:italic;color:var(--brass)}
+.sub{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:var(--paper-faint);
+  text-align:right;
+  line-height:1.7;
+}
+
+/* ---- layout ---- */
+.grid{display:grid;grid-template-columns:1.15fr 1fr;gap:22px}
+@media(max-width:980px){.grid{grid-template-columns:1fr}}
+
+.panel{
+  background:var(--vac-2);
+  border:1px solid var(--rule);
+  border-radius:2px;
+  padding:18px;
+}
+.panel-hd{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.16em;
+  text-transform:uppercase;
+  color:var(--paper-faint);
+  margin-bottom:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:12px;
+}
+.panel-hd .rt{color:var(--brass-dim)}
+
+/* ---- apparatus ---- */
+#tube{width:100%;height:auto;display:block;border-radius:2px;background:#080a0e}
+
+/* ---- controls ---- */
+.ctrl{margin-bottom:20px}
+.ctrl:last-child{margin-bottom:0}
+.ctrl-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom:7px;
+  gap:10px;
+}
+.ctrl-lab{
+  font-size:13px;
+  font-weight:400;
+  letter-spacing:0.01em;
+}
+.ctrl-lab span{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  color:var(--paper-faint);
+  letter-spacing:0.08em;
+  margin-left:6px;
+}
+.ctrl-val{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:14px;
+  font-weight:500;
+  color:var(--brass);
+  font-variant-numeric:tabular-nums;
+}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:22px;background:transparent;cursor:pointer;
+}
+input[type=range]:focus{outline:none}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--phos)}
+input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--phos)}
+input[type=range]::-webkit-slider-runnable-track{
+  height:4px;background:var(--vac-3);border-radius:2px;border:1px solid #262c3a;
+}
+input[type=range]::-moz-range-track{
+  height:4px;background:var(--vac-3);border-radius:2px;border:1px solid #262c3a;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:20px;margin-top:-9px;
+  background:var(--brass);border:1px solid #6d5a32;border-radius:1px;
+}
+input[type=range]::-moz-range-thumb{
+  width:12px;height:18px;
+  background:var(--brass);border:1px solid #6d5a32;border-radius:1px;
+}
+#freq::-webkit-slider-runnable-track{background:var(--spec-grad);border-color:#333a4a}
+#freq::-moz-range-track{background:var(--spec-grad);border-color:#333a4a}
+
+.metal-row{display:flex;gap:6px;flex-wrap:wrap}
+.metal{
+  flex:1 1 0;
+  min-width:64px;
+  background:var(--vac-3);
+  border:1px solid var(--rule);
+  color:var(--paper-dim);
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:12px;
+  font-weight:400;
+  padding:8px 4px;
+  border-radius:2px;
+  cursor:pointer;
+  transition:all .12s;
+  line-height:1.3;
+}
+.metal b{
+  display:block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  font-weight:400;
+  color:var(--paper-faint);
+  margin-top:2px;
+}
+.metal:hover{border-color:var(--brass-dim);color:var(--paper)}
+.metal[aria-pressed=true]{
+  background:var(--brass);border-color:var(--brass);color:#1a1408;
+}
+.metal[aria-pressed=true] b{color:#4a3c18}
+.metal:focus-visible{outline:2px solid var(--phos);outline-offset:1px}
+
+/* ---- readouts ---- */
+.reads{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1px;
+  background:var(--rule);
+  border:1px solid var(--rule);
+  border-radius:2px;
+  overflow:hidden;
+}
+.read{background:var(--vac-2);padding:11px 12px}
+.read-lab{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--paper-faint);
+  margin-bottom:3px;
+}
+.read-val{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:17px;
+  font-weight:500;
+  font-variant-numeric:tabular-nums;
+  line-height:1.25;
+}
+.read-val small{font-size:10px;color:var(--paper-faint);font-weight:400;margin-left:3px}
+.v-phos{color:var(--phos-glow)}
+.v-brass{color:var(--brass)}
+.v-dead{color:var(--oxide-lit)}
+.v-paper{color:var(--paper)}
+
+/* ---- verdict ---- */
+#verdict{
+  margin-top:14px;
+  padding:11px 13px;
+  border-radius:2px;
+  border-left:3px solid;
+  font-size:13px;
+  line-height:1.45;
+}
+#verdict.on{background:rgba(74,157,127,.08);border-color:var(--phos);color:#a8dcc4}
+#verdict.off{background:rgba(139,58,58,.1);border-color:var(--oxide);color:#e0a0a0}
+#verdict b{font-weight:600}
+
+/* ---- graphs ---- */
+.gwrap{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:22px}
+@media(max-width:980px){.gwrap{grid-template-columns:1fr}}
+.gcanvas{width:100%;height:auto;display:block}
+
+/* ---- time transport ---- */
+.transport{
+  display:flex;align-items:center;gap:14px;
+  margin-top:22px;padding:14px 16px;
+  background:var(--vac-2);border:1px solid var(--rule);border-radius:2px;
+}
+#play{
+  background:var(--vac-3);border:1px solid var(--brass-dim);
+  color:var(--brass);
+  width:38px;height:38px;flex:0 0 38px;
+  border-radius:1px;cursor:pointer;
+  font-size:13px;display:grid;place-items:center;
+  transition:all .12s;
+}
+#play:hover{background:var(--brass);color:#1a1408}
+#play:focus-visible{outline:2px solid var(--phos);outline-offset:2px}
+.t-body{flex:1;min-width:0}
+.t-top{
+  display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:5px;gap:10px;
+}
+.t-lab{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--paper-faint);
+}
+.t-val{
+  font-family:'IBM Plex Mono',monospace;font-size:13px;
+  color:var(--brass);font-variant-numeric:tabular-nums;
+}
+.t-note{
+  font-size:12px;color:var(--paper-faint);margin-top:6px;line-height:1.4;
+}
+
+/* ---- footer ---- */
+footer{
+  margin-top:26px;padding-top:16px;
+  border-top:1px solid var(--rule);
+  font-size:12px;color:var(--paper-faint);
+  line-height:1.65;
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;
+}
+@media(max-width:700px){footer{grid-template-columns:1fr}}
+footer b{color:var(--paper-dim);font-weight:500}
+footer code{
+  font-family:'IBM Plex Mono',monospace;
+  color:var(--brass-dim);font-size:11px;
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>The <em>Photoelectric</em> Effect</h1>
+  <div class="sub">
+    Lenard 1902 · Einstein 1905 · Millikan 1916<br>
+    E = hf &nbsp;·&nbsp; K<sub>max</sub> = hf − φ
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- APPARATUS -->
+  <div class="panel">
+    <div class="panel-hd">
+      <span>Metal surface under illumination</span>
+      <span class="rt" id="rateRead">—</span>
+    </div>
+    <canvas id="tube" width="1000" height="460"></canvas>
+    <div id="verdict" class="off"></div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="panel">
+    <div class="panel-hd"><span>Controls</span><span class="rt">Source &amp; target</span></div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label class="ctrl-lab" for="freq">Frequency <span>f</span></label>
+        <span class="ctrl-val" id="freqVal">—</span>
+      </div>
+      <input type="range" id="freq" min="3.0" max="16.0" step="0.05" value="7.5">
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label class="ctrl-lab" for="inten">Intensity <span>photons / s</span></label>
+        <span class="ctrl-val" id="intenVal">—</span>
+      </div>
+      <input type="range" id="inten" min="1" max="100" step="1" value="45">
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <span class="ctrl-lab">Cathode metal <span>φ</span></span>
+      </div>
+      <div class="metal-row" id="metals"></div>
+    </div>
+
+    <div class="reads">
+      <div class="read">
+        <div class="read-lab">Photon energy</div>
+        <div class="read-val v-brass" id="rE">—</div>
+      </div>
+      <div class="read">
+        <div class="read-lab">Work function φ</div>
+        <div class="read-val v-paper" id="rPhi">—</div>
+      </div>
+      <div class="read">
+        <div class="read-lab">Max kinetic energy</div>
+        <div class="read-val" id="rKE">—</div>
+      </div>
+      <div class="read">
+        <div class="read-lab">Threshold f₀</div>
+        <div class="read-val v-paper" id="rF0">—</div>
+      </div>
+      <div class="read">
+        <div class="read-lab">Stopping voltage</div>
+        <div class="read-val v-paper" id="rVs">—</div>
+      </div>
+      <div class="read">
+        <div class="read-lab">Photocurrent</div>
+        <div class="read-val" id="rI">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GRAPHS -->
+<div class="gwrap">
+  <div class="panel">
+    <div class="panel-hd">
+      <span>K<sub>max</sub> vs frequency</span>
+      <span class="rt">slope = h</span>
+    </div>
+    <canvas id="g1" class="gcanvas" width="640" height="420"></canvas>
+  </div>
+  <div class="panel">
+    <div class="panel-hd">
+      <span>Photocurrent vs intensity</span>
+      <span class="rt">at fixed f</span>
+    </div>
+    <canvas id="g2" class="gcanvas" width="640" height="420"></canvas>
+  </div>
+</div>
+
+<!-- TRANSPORT -->
+<div class="transport">
+  <button id="play" aria-label="Pause">❚❚</button>
+  <div class="t-body">
+    <div class="t-top">
+      <span class="t-lab">Time</span>
+      <span class="t-val" id="tVal">0.00 fs</span>
+    </div>
+    <input type="range" id="time" min="0" max="1000" step="1" value="0" aria-label="Scrub time">
+    <div class="t-note" id="tNote"></div>
+  </div>
+</div>
+
+<footer>
+  <div>
+    <b>What breaks the wave theory.</b> Classical physics says a brighter light delivers more energy,
+    so electrons should always escape eventually — just sooner when the lamp is brighter. Drag
+    <b>intensity</b> to maximum below the threshold. Nothing happens, at any brightness, for any
+    waiting time. Then nudge <b>frequency</b> past f₀ and emission starts instantly, even at
+    intensity 1.
+  </div>
+  <div>
+    <b>Reading the graphs.</b> The left plot's slope is Planck's constant — the same
+    <code>6.626×10⁻³⁴ J·s</code> for every metal. Changing the cathode slides the line
+    sideways, never tilts it. Its x-intercept is f₀; its y-intercept is <code>−φ</code>.
+    The right plot is a straight line through the origin: intensity sets <b>how many</b>
+    electrons, never <b>how fast</b>.
+  </div>
+</footer>
+
+</div>
+
+<script>
+'use strict';
+
+// ---- constants ----
+const H_EV = 4.135667696e-15;   // eV·s
+const H_SI = 6.62607015e-34;    // J·s
+
+const METALS = [
+  {n:'Cesium',   s:'Cs', phi:2.10, c:'#d8c48a'},
+  {n:'Potassium',s:'K',  phi:2.30, c:'#c8b8d0'},
+  {n:'Sodium',   s:'Na', phi:2.36, c:'#e0d8b0'},
+  {n:'Calcium',  s:'Ca', phi:2.87, c:'#c0c8c0'},
+  {n:'Zinc',     s:'Zn', phi:4.30, c:'#b8c0c8'},
+  {n:'Copper',   s:'Cu', phi:4.70, c:'#c88858'},
+  {n:'Silver',   s:'Ag', phi:4.73, c:'#d0d4d8'},
+  {n:'Platinum', s:'Pt', phi:5.65, c:'#d8d8d0'}
+];
+
+let metal = METALS[2];   // sodium
+let freq  = 7.5;         // ×10^14 Hz
+let inten = 45;
+let simT  = 0;           // femtoseconds
+let playing = true;
+let photons = [];
+let electrons = [];
+let emitted = 0;
+let lastFrame = performance.now();
+let spawnAcc = 0;
+
+const $ = id => document.getElementById(id);
+
+// ---- physics ----
+const photonE  = f => H_EV * f * 1e14;              // eV
+const f0       = phi => phi / H_EV / 1e14;          // ×10^14 Hz
+const kmax     = (f,phi) => Math.max(0, photonE(f) - phi);
+const emitting = () => photonE(freq) > metal.phi;
+
+// wavelength (nm) from f in 10^14 Hz
+const lambda = f => 2.998e8 / (f*1e14) * 1e9;
+
+// visible-spectrum colour; UV rendered as desaturated violet-white
+function specColor(f){
+  const wl = lambda(f);
+  let r,g,b;
+  if(wl >= 380 && wl < 440){ r=-(wl-440)/60; g=0; b=1; }
+  else if(wl < 490){ r=0; g=(wl-440)/50; b=1; }
+  else if(wl < 510){ r=0; g=1; b=-(wl-510)/20; }
+  else if(wl < 580){ r=(wl-510)/70; g=1; b=0; }
+  else if(wl < 645){ r=1; g=-(wl-645)/65; b=0; }
+  else if(wl <= 780){ r=1; g=0; b=0; }
+  else { r=0.55; g=0.10; b=0.10; }            // IR — represented, not seen
+  if(wl < 380){ r=0.72; g=0.60; b=1.0; }      // UV — represented, not seen
+  let f_ = 1;
+  if(wl >= 700 && wl <= 780) f_ = 0.3 + 0.7*(780-wl)/80;
+  else if(wl >= 380 && wl <= 420) f_ = 0.3 + 0.7*(wl-380)/40;
+  else if(wl < 380 || wl > 780) f_ = 0.85;
+  const g_ = v => Math.round(255*Math.pow(Math.max(0,v*f_), 0.8));
+  return `rgb(${g_(r)},${g_(g)},${g_(b)})`;
+}
+const isUV = f => lambda(f) < 380;
+
+// ---- spectrum gradient on the frequency track ----
+(function(){
+  const stops = [];
+  for(let i=0;i<=24;i++){
+    const f = 3.0 + (16.0-3.0)*i/24;
+    stops.push(`${specColor(f)} ${(i/24*100).toFixed(1)}%`);
+  }
+  document.documentElement.style.setProperty('--spec-grad',
+    `linear-gradient(90deg, ${stops.join(',')})`);
+})();
+
+// ---- metal buttons ----
+(function(){
+  const box = $('metals');
+  METALS.forEach((m,i)=>{
+    const b = document.createElement('button');
+    b.className = 'metal';
+    b.type = 'button';
+    b.setAttribute('aria-pressed', m===metal ? 'true':'false');
+    b.innerHTML = `${m.s}<b>${m.phi.toFixed(2)} eV</b>`;
+    b.title = `${m.n} — φ = ${m.phi.toFixed(2)} eV`;
+    b.onclick = () => {
+      metal = m;
+      [...box.children].forEach((c,j)=>c.setAttribute('aria-pressed', j===i?'true':'false'));
+      resetSim(); sync();
+    };
+    box.appendChild(b);
+  });
+})();
+
+function resetSim(){ photons=[]; electrons=[]; emitted=0; simT=0; spawnAcc=0; }
+
+// ---- photon beam direction: down-right, ~52° below horizontal ----
+const PH_ANG = 0.91;      // radians
+const PH_LEN = 76;        // wavy tail length
+
+// ---- bound electrons: fixed lattice, drawn every frame ----
+// top surface: u = fraction along the front edge, d = depth fraction (0 front, 1 back)
+const BOUND_TOP = [
+  {u:0.10,d:0.18},{u:0.22,d:0.62},{u:0.19,d:0.05},{u:0.33,d:0.34},
+  {u:0.30,d:0.78},{u:0.45,d:0.14},{u:0.44,d:0.58},{u:0.56,d:0.36},
+  {u:0.54,d:0.84},{u:0.67,d:0.10},{u:0.66,d:0.55},{u:0.78,d:0.30},
+  {u:0.77,d:0.74},{u:0.89,d:0.16},{u:0.90,d:0.60},{u:0.97,d:0.40}
+];
+// front face: u along width, v down the face
+const BOUND_FRONT = [
+  {u:0.06,v:0.62},{u:0.15,v:0.24},{u:0.13,v:0.92},{u:0.25,v:0.58},
+  {u:0.24,v:0.14},{u:0.35,v:0.88},{u:0.37,v:0.42},{u:0.46,v:0.70},
+  {u:0.47,v:0.18},{u:0.57,v:0.94},{u:0.58,v:0.48},{u:0.68,v:0.24},
+  {u:0.69,v:0.76},{u:0.79,v:0.52},{u:0.81,v:0.12},{u:0.90,v:0.82},
+  {u:0.92,v:0.36}
+];
+
+// ---- geometry: 3D metal slab, isometric ----
+const SLAB = {
+  fx0: 60,    // front face, left
+  fx1: 830,   // front face, right
+  ty:  268,   // top surface, front edge y
+  by:  392,   // bottom of front face
+  dx:  108,   // depth offset x (back is right of front)
+  dy:  -74    // depth offset y (back is above front)
+};
+// top surface is the parallelogram: (fx0,ty) (fx1,ty) (fx1+dx,ty+dy) (fx0+dx,ty+dy)
+// map a depth fraction d (0=front edge, 1=back edge) to a screen offset
+const depthPt = (x, d) => ({ x: x + SLAB.dx*d, y: SLAB.ty + SLAB.dy*d });
+
+// ---- apparatus render ----
+const tc = $('tube').getContext('2d');
+
+// shade a hex colour by a factor
+function shade(hex, f){
+  const n = parseInt(hex.slice(1),16);
+  const r = Math.min(255, Math.round(((n>>16)&255)*f));
+  const g = Math.min(255, Math.round(((n>>8)&255)*f));
+  const b = Math.min(255, Math.round((n&255)*f));
+  return `rgb(${r},${g},${b})`;
+}
+
+// draw a single electron disc, image-style: filled circle, dark rim, minus sign
+function electronDisc(x, y, r, fill, rim, ink, alpha){
+  tc.save();
+  tc.globalAlpha = alpha;
+  tc.beginPath(); tc.arc(x, y, r, 0, 7);
+  tc.fillStyle = fill; tc.fill();
+  tc.lineWidth = 1.2; tc.strokeStyle = rim; tc.stroke();
+  tc.strokeStyle = ink; tc.lineWidth = Math.max(1.2, r*0.22);
+  tc.lineCap='round';
+  tc.beginPath();
+  tc.moveTo(x - r*0.42, y); tc.lineTo(x + r*0.42, y);
+  tc.stroke();
+  tc.restore();
+}
+
+function drawTube(){
+  const W=1000, H=460;
+  tc.clearRect(0,0,W,H);
+  tc.fillStyle='#080a0e'; tc.fillRect(0,0,W,H);
+
+  const col = specColor(freq);
+  const uv  = isUV(freq);
+  const on  = emitting();
+  const S   = SLAB;
+
+  // ============ SLAB ============
+  const topFill  = shade(metal.c, 0.42);
+  const topFill2 = shade(metal.c, 0.30);
+  const frontFill= shade(metal.c, 0.20);
+  const sideFill = shade(metal.c, 0.13);
+  const edge     = shade(metal.c, 0.62);
+
+  // --- top surface (parallelogram) ---
+  tc.save();
+  const tg = tc.createLinearGradient(S.fx0, S.ty, S.fx0+S.dx, S.ty+S.dy);
+  tg.addColorStop(0, topFill);
+  tg.addColorStop(1, topFill2);
+  tc.fillStyle = tg;
+  tc.beginPath();
+  tc.moveTo(S.fx0, S.ty);
+  tc.lineTo(S.fx1, S.ty);
+  tc.lineTo(S.fx1+S.dx, S.ty+S.dy);
+  tc.lineTo(S.fx0+S.dx, S.ty+S.dy);
+  tc.closePath();
+  tc.fill();
+  tc.restore();
+
+  // --- front face ---
+  tc.fillStyle = frontFill;
+  tc.beginPath();
+  tc.moveTo(S.fx0, S.ty);
+  tc.lineTo(S.fx1, S.ty);
+  tc.lineTo(S.fx1, S.by);
+  tc.lineTo(S.fx0, S.by);
+  tc.closePath();
+  tc.fill();
+
+  // --- right side face ---
+  tc.fillStyle = sideFill;
+  tc.beginPath();
+  tc.moveTo(S.fx1, S.ty);
+  tc.lineTo(S.fx1+S.dx, S.ty+S.dy);
+  tc.lineTo(S.fx1+S.dx, S.by+S.dy);
+  tc.lineTo(S.fx1, S.by);
+  tc.closePath();
+  tc.fill();
+
+  // --- edges ---
+  tc.strokeStyle = edge; tc.lineWidth=1.2;
+  tc.beginPath();
+  tc.moveTo(S.fx0, S.ty); tc.lineTo(S.fx1, S.ty);
+  tc.lineTo(S.fx1+S.dx, S.ty+S.dy); tc.lineTo(S.fx0+S.dx, S.ty+S.dy);
+  tc.closePath(); tc.stroke();
+  tc.beginPath();
+  tc.moveTo(S.fx0, S.ty); tc.lineTo(S.fx0, S.by); tc.lineTo(S.fx1, S.by);
+  tc.lineTo(S.fx1, S.ty); tc.stroke();
+  tc.beginPath();
+  tc.moveTo(S.fx1, S.by); tc.lineTo(S.fx1+S.dx, S.by+S.dy);
+  tc.lineTo(S.fx1+S.dx, S.ty+S.dy); tc.stroke();
+
+  // ============ BOUND ELECTRONS (in the metal) ============
+  const eFill = '#c9a882', eRim = '#8a7454', eInk = '#3a2f1e';
+  // on the top surface, scattered across depth
+  BOUND_TOP.forEach(b=>{
+    const p = depthPt(S.fx0 + b.u*(S.fx1-S.fx0), b.d);
+    electronDisc(p.x, p.y, 8.5, eFill, eRim, eInk, 0.95);
+  });
+  // in the front face — the bulk
+  BOUND_FRONT.forEach(b=>{
+    const x = S.fx0 + b.u*(S.fx1-S.fx0);
+    const y = S.ty + 18 + b.v*(S.by - S.ty - 30);
+    electronDisc(x, y, 8.5, shade('#c9a882',0.82), eRim, eInk, 0.9);
+  });
+
+  // ============ INCOMING PHOTONS ============
+  // wavy arrows, top-left, angled down-right onto the surface
+  photons.forEach(p=>{
+    tc.save();
+    tc.globalAlpha = p.a;
+    tc.strokeStyle = col;
+    tc.lineWidth = 2.4;
+    tc.lineCap='round';
+    tc.shadowColor = col;
+    tc.shadowBlur = uv ? 3 : 7;
+
+    // travel direction (down-right at ~52°)
+    const ang = PH_ANG;
+    const ux = Math.cos(ang), uy = Math.sin(ang);
+    const px = -uy, py = ux;               // perpendicular, for the wave
+
+    // wavy tail behind the head
+    tc.beginPath();
+    for(let i=0;i<=30;i++){
+      const t = i/30;
+      const d = t*PH_LEN;                  // distance back from the head
+      const w = Math.sin(t*Math.PI*3.6 + p.ph) * 6.5 * (1 - t*0.25);
+      const x = p.x - ux*d + px*w;
+      const y = p.y - uy*d + py*w;
+      i ? tc.lineTo(x,y) : tc.moveTo(x,y);
+    }
+    tc.stroke();
+
+    // arrowhead at the leading end
+    tc.shadowBlur = 0;
+    tc.fillStyle = col;
+    tc.beginPath();
+    tc.moveTo(p.x, p.y);
+    tc.lineTo(p.x - ux*13 - px*5.5, p.y - uy*13 - py*5.5);
+    tc.lineTo(p.x - ux*13 + px*5.5, p.y - uy*13 + py*5.5);
+    tc.closePath();
+    tc.fill();
+    tc.restore();
+  });
+
+  // UV note — the eye stops, the physics doesn't
+  if(uv){
+    tc.save();
+    tc.strokeStyle='rgba(190,170,255,.18)'; tc.lineWidth=1;
+    for(let i=0;i<26;i++){
+      const x0 = 20 + i*13;
+      tc.beginPath(); tc.moveTo(x0, 40); tc.lineTo(x0-58, 40+74); tc.stroke();
+    }
+    tc.restore();
+    tc.fillStyle='rgba(190,170,255,.62)';
+    tc.font='400 9px "IBM Plex Mono", monospace';
+    tc.letterSpacing='1.5px';
+    tc.fillText('ULTRAVIOLET — NOT VISIBLE', 24, 32);
+    tc.letterSpacing='0px';
+  }
+
+  // ============ EJECTED PHOTOELECTRONS ============
+  electrons.forEach(e=>{
+    // straight blue arrow from the launch point to the electron
+    const dx = e.x - e.ox, dy = e.y - e.oy;
+    const L = Math.hypot(dx,dy);
+    if(L > 14){
+      const ux = dx/L, uy = dy/L;
+      const tipX = e.x - ux*11, tipY = e.y - uy*11;
+      tc.save();
+      tc.globalAlpha = e.a*0.85;
+      tc.strokeStyle = '#5b86c4'; tc.lineWidth = 2.4; tc.lineCap='round';
+      tc.beginPath();
+      tc.moveTo(e.ox, e.oy); tc.lineTo(tipX, tipY);
+      tc.stroke();
+      // arrowhead
+      tc.fillStyle = '#5b86c4';
+      const px=-uy, py=ux;
+      tc.beginPath();
+      tc.moveTo(tipX + ux*9, tipY + uy*9);
+      tc.lineTo(tipX - px*5, tipY - py*5);
+      tc.lineTo(tipX + px*5, tipY + py*5);
+      tc.closePath(); tc.fill();
+      tc.restore();
+    }
+    // the electron itself — same disc, faintly lit by its KE
+    tc.save();
+    tc.shadowColor='rgba(111,212,170,.9)';
+    tc.shadowBlur = 2 + e.ke*3.2;
+    electronDisc(e.x, e.y, 8.5, eFill, eRim, eInk, e.a);
+    tc.restore();
+  });
+
+  // ============ LABELS ============
+  tc.fillStyle='#9a978c';
+  tc.font='300 15px "IBM Plex Sans", sans-serif';
+  tc.textAlign='left';
+  tc.fillText('Electromagnetic', 24, 62);
+  tc.fillText('radiation (photons)', 24, 81);
+
+  tc.textAlign='right';
+  tc.fillText('Photoelectrons', W-24, 62);
+
+  // metal surface label, sitting on the slab
+  tc.textAlign='left';
+  tc.fillStyle='#e8e3d3';
+  tc.font='300 15px "IBM Plex Sans", sans-serif';
+  tc.fillText('Metal surface', S.fx0+18, S.ty+34);
+  tc.fillStyle='#8a7454';
+  tc.font='500 12px "IBM Plex Mono", monospace';
+  tc.fillText(`${metal.n} — φ ${metal.phi.toFixed(2)} eV`, S.fx0+18, S.ty+53);
+
+  // "Electrons" leader lines into the bulk
+  tc.strokeStyle='#5c5a54'; tc.lineWidth=1;
+  const lx = 300, ly = S.by+30;
+  tc.beginPath();
+  tc.moveTo(lx, ly); tc.lineTo(lx-42, S.by-22);
+  tc.moveTo(lx, ly); tc.lineTo(lx+42, S.by-22);
+  tc.stroke();
+  tc.fillStyle='#9a978c';
+  tc.font='300 14px "IBM Plex Sans", sans-serif';
+  tc.textAlign='center';
+  tc.fillText('Electrons', lx, ly+16);
+  tc.textAlign='left';
+
+  // ============ BELOW-THRESHOLD NOTICE ============
+  if(!on){
+    tc.save();
+    tc.textAlign='center';
+    tc.fillStyle='rgba(192,90,90,.9)';
+    tc.font='400 12px "IBM Plex Mono", monospace';
+    tc.fillText('NO EMISSION — hf < φ', 640, 150);
+    tc.font='300 12px "IBM Plex Sans", sans-serif';
+    tc.fillStyle='rgba(154,151,140,.65)';
+    tc.fillText('photons are absorbed; no single electron gains enough to escape', 640, 172);
+    tc.restore();
+  }
+}
+
+// ---- simulation step ----
+function step(dtMs){
+  const dt = Math.min(dtMs, 50);
+  simT += dt * 0.12;                     // fs
+  const on = emitting();
+  const ke = kmax(freq, metal.phi);
+
+  const ux = Math.cos(PH_ANG), uy = Math.sin(PH_ANG);
+
+  // spawn photons along a line up and left of the strike zone
+  spawnAcc += (inten/100) * dt * 0.055;
+  while(spawnAcc >= 1){
+    spawnAcc -= 1;
+    // choose a landing point on the front-left half of the top surface
+    const landU = 0.04 + Math.random()*0.34;
+    const landX = SLAB.fx0 + landU*(SLAB.fx1-SLAB.fx0);
+    const landD = Math.random()*0.55;
+    const land  = depthPt(landX, landD);
+    // back the photon up along its travel direction so it starts off-canvas
+    // (min 440 keeps y negative even for the nearest landing point)
+    const back = 440 + Math.random()*200;
+    photons.push({
+      x: land.x - ux*back,
+      y: land.y - uy*back,
+      tx: land.x, ty: land.y,
+      ph: Math.random()*6.28,
+      a: 1
+    });
+  }
+
+  // advance photons along the beam direction
+  for(let i=photons.length-1;i>=0;i--){
+    const p = photons[i];
+    p.x += ux * dt * 0.58;
+    p.y += uy * dt * 0.58;
+    if(p.y >= p.ty){
+      if(on){
+        emitted++;
+        // eject upward, fanning right — speed set by Kmax
+        const sp = 0.55 + Math.sqrt(ke)*0.92;
+        const a  = -Math.PI/2 + (Math.random()*0.62 - 0.10);
+        electrons.push({
+          x: p.tx, y: p.ty,
+          ox: p.tx, oy: p.ty,
+          vx: sp*Math.cos(a), vy: sp*Math.sin(a),
+          ke, a:1
+        });
+      }
+      photons.splice(i,1);
+    }
+  }
+
+  // advance electrons — straight lines up and away
+  for(let i=electrons.length-1;i>=0;i--){
+    const e = electrons[i];
+    e.x += e.vx * dt * 0.40;
+    e.y += e.vy * dt * 0.40;
+    // fade as they leave the frame
+    if(e.y < 96) e.a = Math.max(0, (e.y-40)/56);
+    if(e.y < 40 || e.x > 1000 || e.x < 0){ electrons.splice(i,1); continue; }
+  }
+
+  if(photons.length > 400) photons.splice(0, photons.length-400);
+  if(electrons.length > 400) electrons.splice(0, electrons.length-400);
+}
+
+// ---- graph 1: Kmax vs f ----
+const c1 = $('g1').getContext('2d');
+function drawG1(){
+  const W=640,H=420, L=62,R=18,T=22,B=48;
+  const pw=W-L-R, ph=H-T-B;
+  c1.clearRect(0,0,W,H);
+
+  const fMax=16, keMax=5.0;
+  const X = f => L + (f/fMax)*pw;
+  const Y = k => T + ph - (k/keMax)*ph;
+
+  // grid
+  c1.strokeStyle='#222836'; c1.lineWidth=1;
+  c1.font='400 9px "IBM Plex Mono", monospace';
+  for(let f=0; f<=fMax; f+=2){
+    c1.beginPath(); c1.moveTo(X(f),T); c1.lineTo(X(f),T+ph); c1.stroke();
+    c1.fillStyle='#5c5a54'; c1.textAlign='center';
+    c1.fillText(f, X(f), T+ph+15);
+  }
+  for(let k=0;k<=keMax;k+=1){
+    c1.beginPath(); c1.moveTo(L,Y(k)); c1.lineTo(L+pw,Y(k)); c1.stroke();
+    c1.textAlign='right'; c1.fillStyle='#5c5a54';
+    c1.fillText(k.toFixed(0), L-8, Y(k)+3);
+  }
+
+  // axes
+  c1.strokeStyle='#4a5263'; c1.lineWidth=1.5;
+  c1.beginPath(); c1.moveTo(L,T); c1.lineTo(L,T+ph); c1.lineTo(L+pw,T+ph); c1.stroke();
+
+  c1.fillStyle='#9a978c'; c1.font='400 10px "IBM Plex Mono", monospace';
+  c1.textAlign='center';
+  c1.fillText('f   ( ×10¹⁴ Hz )', L+pw/2, H-12);
+  c1.save();
+  c1.translate(15, T+ph/2); c1.rotate(-Math.PI/2);
+  c1.fillText('K max   ( eV )', 0, 0);
+  c1.restore();
+
+  // ghost lines — every other metal, same slope
+  METALS.forEach(m=>{
+    if(m===metal) return;
+    const t0=f0(m.phi);
+    if(t0>fMax) return;
+    c1.strokeStyle='rgba(90,100,120,.22)'; c1.lineWidth=1;
+    c1.beginPath();
+    c1.moveTo(X(t0), Y(0));
+    c1.lineTo(X(fMax), Y(kmax(fMax, m.phi)));
+    c1.stroke();
+  });
+
+  const t0 = f0(metal.phi);
+
+  // sub-threshold flat segment
+  c1.strokeStyle='#8b3a3a'; c1.lineWidth=2.5;
+  c1.setLineDash([4,4]);
+  c1.beginPath(); c1.moveTo(X(0), Y(0)); c1.lineTo(X(t0), Y(0)); c1.stroke();
+  c1.setLineDash([]);
+
+  // active line
+  c1.strokeStyle=metal.c; c1.lineWidth=2.5;
+  c1.beginPath();
+  c1.moveTo(X(t0), Y(0));
+  c1.lineTo(X(fMax), Y(kmax(fMax, metal.phi)));
+  c1.stroke();
+
+  // extrapolation to −φ
+  c1.strokeStyle='rgba(201,169,97,.4)'; c1.lineWidth=1;
+  c1.setLineDash([3,3]);
+  c1.beginPath();
+  c1.moveTo(X(t0), Y(0));
+  c1.lineTo(X(0), Y(-metal.phi));
+  c1.stroke();
+  c1.setLineDash([]);
+
+  // −φ marker
+  c1.fillStyle='#c9a961';
+  c1.font='400 10px "IBM Plex Mono", monospace';
+  c1.textAlign='left';
+  if(Y(-metal.phi) < T+ph+34){
+    c1.fillText(`−φ = −${metal.phi.toFixed(2)}`, L+5, Math.min(Y(-metal.phi), T+ph+30));
+  }
+
+  // f0 marker
+  c1.strokeStyle='rgba(201,169,97,.5)'; c1.lineWidth=1;
+  c1.setLineDash([2,3]);
+  c1.beginPath(); c1.moveTo(X(t0), T); c1.lineTo(X(t0), T+ph); c1.stroke();
+  c1.setLineDash([]);
+  c1.fillStyle='#c9a961'; c1.textAlign='center';
+  c1.fillText('f₀', X(t0), T-6);
+
+  // operating point
+  const k = kmax(freq, metal.phi);
+  const on = emitting();
+  const px = X(freq), py = Y(k);
+  c1.save();
+  c1.shadowColor = on ? '#4a9d7f' : '#8b3a3a';
+  c1.shadowBlur = 10;
+  c1.fillStyle = on ? '#6fd4aa' : '#c05a5a';
+  c1.beginPath(); c1.arc(px, py, 5, 0, 7); c1.fill();
+  c1.restore();
+
+  // slope annotation
+  c1.fillStyle='#5c5a54';
+  c1.font='400 9px "IBM Plex Mono", monospace';
+  c1.textAlign='right';
+  c1.fillText('slope = h = 4.136×10⁻¹⁵ eV·s', L+pw, T+12);
+}
+
+// ---- graph 2: current vs intensity ----
+const c2 = $('g2').getContext('2d');
+function drawG2(){
+  const W=640,H=420, L=62,R=18,T=22,B=48;
+  const pw=W-L-R, ph=H-T-B;
+  c2.clearRect(0,0,W,H);
+
+  const X = i => L + (i/100)*pw;
+  const Y = c => T + ph - (c/100)*ph;
+
+  c2.strokeStyle='#222836'; c2.lineWidth=1;
+  c2.font='400 9px "IBM Plex Mono", monospace';
+  for(let i=0;i<=100;i+=20){
+    c2.beginPath(); c2.moveTo(X(i),T); c2.lineTo(X(i),T+ph); c2.stroke();
+    c2.fillStyle='#5c5a54'; c2.textAlign='center';
+    c2.fillText(i, X(i), T+ph+15);
+  }
+  for(let c=0;c<=100;c+=20){
+    c2.beginPath(); c2.moveTo(L,Y(c)); c2.lineTo(L+pw,Y(c)); c2.stroke();
+    c2.textAlign='right'; c2.fillStyle='#5c5a54';
+    c2.fillText(c, L-8, Y(c)+3);
+  }
+
+  c2.strokeStyle='#4a5263'; c2.lineWidth=1.5;
+  c2.beginPath(); c2.moveTo(L,T); c2.lineTo(L,T+ph); c2.lineTo(L+pw,T+ph); c2.stroke();
+
+  c2.fillStyle='#9a978c'; c2.font='400 10px "IBM Plex Mono", monospace';
+  c2.textAlign='center';
+  c2.fillText('Intensity   ( % )', L+pw/2, H-12);
+  c2.save();
+  c2.translate(15, T+ph/2); c2.rotate(-Math.PI/2);
+  c2.fillText('Photocurrent   ( arb. )', 0, 0);
+  c2.restore();
+
+  const on = emitting();
+
+  if(on){
+    c2.strokeStyle='#4a9d7f'; c2.lineWidth=2.5;
+    c2.beginPath(); c2.moveTo(X(0),Y(0)); c2.lineTo(X(100),Y(100)); c2.stroke();
+    c2.fillStyle='#5c5a54';
+    c2.font='400 9px "IBM Plex Mono", monospace';
+    c2.textAlign='right';
+    c2.fillText('proportional — more photons, more electrons', L+pw, T+12);
+  }else{
+    c2.strokeStyle='#8b3a3a'; c2.lineWidth=2.5;
+    c2.setLineDash([5,4]);
+    c2.beginPath(); c2.moveTo(X(0),Y(0)); c2.lineTo(X(100),Y(0)); c2.stroke();
+    c2.setLineDash([]);
+    c2.fillStyle='#c05a5a';
+    c2.font='400 10px "IBM Plex Mono", monospace';
+    c2.textAlign='center';
+    c2.fillText('zero at every intensity', L+pw/2, Y(0)-14);
+    c2.font='300 10px "IBM Plex Sans", sans-serif';
+    c2.fillStyle='rgba(154,151,140,.65)';
+    c2.fillText('this flat line is what the wave theory could not explain',
+                L+pw/2, Y(0)-30);
+  }
+
+  // KE reference — flat, independent of intensity
+  const k = kmax(freq, metal.phi);
+  if(on){
+    const kn = Math.min(100, (k/5.0)*100);
+    c2.strokeStyle='rgba(201,169,97,.55)'; c2.lineWidth=1.5;
+    c2.setLineDash([4,3]);
+    c2.beginPath(); c2.moveTo(X(0),Y(kn)); c2.lineTo(X(100),Y(kn)); c2.stroke();
+    c2.setLineDash([]);
+    c2.fillStyle='#c9a961';
+    c2.font='400 9px "IBM Plex Mono", monospace';
+    c2.textAlign='left';
+    c2.fillText(`K max = ${k.toFixed(2)} eV — flat`, L+6, Y(kn)-6);
+  }
+
+  // operating point
+  if(on){
+    c2.save();
+    c2.shadowColor='#4a9d7f'; c2.shadowBlur=10;
+    c2.fillStyle='#6fd4aa';
+    c2.beginPath(); c2.arc(X(inten), Y(inten), 5, 0, 7); c2.fill();
+    c2.restore();
+  }else{
+    c2.save();
+    c2.shadowColor='#8b3a3a'; c2.shadowBlur=8;
+    c2.fillStyle='#c05a5a';
+    c2.beginPath(); c2.arc(X(inten), Y(0), 5, 0, 7); c2.fill();
+    c2.restore();
+  }
+}
+
+// ---- readouts ----
+function sync(){
+  const E   = photonE(freq);
+  const k   = kmax(freq, metal.phi);
+  const on  = emitting();
+  const t0  = f0(metal.phi);
+  const wl  = lambda(freq);
+
+  $('freqVal').textContent = `${freq.toFixed(2)} ×10¹⁴ Hz`;
+  $('intenVal').textContent = `${inten}%`;
+
+  $('rE').textContent  = `${E.toFixed(2)}`;
+  $('rE').innerHTML    = `${E.toFixed(2)}<small>eV</small>`;
+  $('rPhi').innerHTML  = `${metal.phi.toFixed(2)}<small>eV</small>`;
+
+  const keEl = $('rKE');
+  keEl.className = 'read-val ' + (on ? 'v-phos' : 'v-dead');
+  keEl.innerHTML = on ? `${k.toFixed(2)}<small>eV</small>` : `—<small>no emission</small>`;
+
+  $('rF0').innerHTML = `${t0.toFixed(2)}<small>×10¹⁴Hz</small>`;
+
+  const vsEl = $('rVs');
+  vsEl.className = 'read-val ' + (on ? 'v-brass' : 'v-dead');
+  vsEl.innerHTML = on ? `${k.toFixed(2)}<small>V</small>` : `0.00<small>V</small>`;
+
+  const iEl = $('rI');
+  iEl.className = 'read-val ' + (on ? 'v-phos' : 'v-dead');
+  iEl.innerHTML = on ? `${inten}<small>arb.</small>` : `0<small>arb.</small>`;
+
+  $('rateRead').textContent = on
+    ? `${emitted.toLocaleString()} e⁻ emitted`
+    : `0 e⁻ — below threshold`;
+
+  const v = $('verdict');
+  v.className = on ? 'on' : 'off';
+  if(on){
+    v.innerHTML = `<b>Emission.</b> Each photon carries ${E.toFixed(2)} eV; ${metal.phi.toFixed(2)} eV
+      pays the escape cost, leaving <b>${k.toFixed(2)} eV</b> as kinetic energy.
+      Raising intensity adds more electrons at the same speed — it will never make them faster.`;
+  }else{
+    const need = (metal.phi/H_EV/1e14);
+    v.innerHTML = `<b>No emission.</b> A photon brings ${E.toFixed(2)} eV, short of the
+      ${metal.phi.toFixed(2)} eV ${metal.n} demands. Turn intensity to 100% and wait —
+      still nothing. You need <b>f ≥ ${need.toFixed(2)}×10¹⁴ Hz</b>, not more of the same light.`;
+  }
+
+  const nm = wl.toFixed(0);
+  $('tNote').innerHTML = isUV(freq)
+    ? `λ ≈ ${nm} nm — ultraviolet, beyond the eye. The tube shows it hatched because there is no colour to show.`
+    : `λ ≈ ${nm} nm — ${wlName(wl)}.`;
+
+  drawG1(); drawG2();
+}
+
+function wlName(wl){
+  if(wl>780) return 'infrared, beyond the eye';
+  if(wl>645) return 'red';
+  if(wl>580) return 'orange–yellow';
+  if(wl>510) return 'green';
+  if(wl>490) return 'cyan';
+  if(wl>440) return 'blue';
+  return 'violet';
+}
+
+// ---- transport ----
+const tSlider = $('time');
+$('play').onclick = () => {
+  playing = !playing;
+  $('play').textContent = playing ? '❚❚' : '▶';
+  $('play').setAttribute('aria-label', playing ? 'Pause' : 'Play');
+};
+tSlider.oninput = () => {
+  playing = false;
+  $('play').textContent = '▶';
+  $('play').setAttribute('aria-label','Play');
+  const target = +tSlider.value * 2;      // fs
+  // rebuild deterministically to the scrubbed time
+  resetSim();
+  const stepMs = 16;
+  const n = Math.min(1400, Math.round(target/0.12/stepMs));
+  for(let i=0;i<n;i++) step(stepMs);
+  simT = target;
+  $('tVal').textContent = `${simT.toFixed(2)} fs`;
+  drawTube(); sync();
+};
+
+// ---- inputs ----
+$('freq').oninput = e => { freq = +e.target.value; sync(); };
+$('inten').oninput = e => { inten = +e.target.value; sync(); };
+
+// ---- loop ----
+function frame(now){
+  const dt = now - lastFrame;
+  lastFrame = now;
+  if(playing){
+    step(dt);
+    tSlider.value = Math.min(1000, Math.round(simT/2));
+    $('tVal').textContent = `${simT.toFixed(2)} fs`;
+    if(simT > 2000){ simT = 0; emitted = 0; }
+  }
+  drawTube();
+  requestAnimationFrame(frame);
+}
+
+sync();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
