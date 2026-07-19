@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Year 8 Statistics Quiz</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --card:#ffffff; --ink:#1f2933; --muted:#647089;
+    --line:#d7dee7; --accent:#2b6cb0; --accent-d:#22528a;
+    --good:#2f855a; --bad:#c0392b; --good-bg:#e8f5ee; --bad-bg:#fceceb;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:24px 18px 60px;}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:26px 28px; box-shadow:0 1px 3px rgba(20,30,50,.06);
+  }
+  h1{font-size:1.5rem; margin:0 0 4px;}
+  h2{font-size:1.15rem; margin:0 0 14px;}
+  .sub{color:var(--muted); margin:0 0 18px; font-size:.95rem;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:12px;}
+  .qmeta{font-size:.82rem; color:var(--muted); letter-spacing:.02em;}
+  .pill{
+    display:inline-block; font-size:.72rem; font-weight:600; padding:3px 9px;
+    border-radius:999px; background:#eef3f8; color:var(--accent-d); border:1px solid #dbe6f0;
+  }
+  .progress{height:7px; background:#e6ebf1; border-radius:4px; overflow:hidden; margin-bottom:22px;}
+  .progress > i{display:block; height:100%; background:var(--accent); width:0; transition:width .25s ease;}
+  .qtext{font-size:1.08rem; margin:0 0 6px; font-weight:600;}
+  .data{
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; font-size:1rem;
+    background:#f0f4f8; border:1px solid var(--line); border-radius:8px;
+    padding:11px 14px; margin:12px 0 18px; letter-spacing:.03em; overflow-x:auto;
+  }
+  .opts{display:flex; flex-direction:column; gap:10px; margin:6px 0 4px;}
+  .opt{
+    display:flex; align-items:center; gap:11px; padding:12px 14px; cursor:pointer;
+    border:1.5px solid var(--line); border-radius:9px; background:#fff; transition:.12s;
+  }
+  .opt:hover{border-color:#b9c6d6; background:#fafcff;}
+  .opt.sel{border-color:var(--accent); background:#eef4fb;}
+  .opt input{accent-color:var(--accent); width:17px; height:17px;}
+  .numrow{display:flex; flex-wrap:wrap; gap:16px; margin:8px 0 4px;}
+  .numfield{display:flex; flex-direction:column; gap:5px;}
+  .numfield label{font-size:.85rem; color:var(--muted); font-weight:600;}
+  input[type=number]{
+    width:120px; font-size:1.05rem; padding:9px 11px; border:1.5px solid var(--line);
+    border-radius:8px; background:#fff;
+  }
+  input[type=number]:focus{outline:none; border-color:var(--accent);}
+  .btn{
+    appearance:none; border:none; cursor:pointer; font-size:.98rem; font-weight:600;
+    padding:11px 22px; border-radius:9px; background:var(--accent); color:#fff; transition:.12s;
+  }
+  .btn:hover{background:var(--accent-d);}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+  .btn.ghost{background:#eef2f6; color:var(--ink);}
+  .btn.ghost:hover{background:#e2e8ef;}
+  .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:24px;}
+  .hint{font-size:.82rem; color:var(--muted); margin-top:14px;}
+  /* bar builder */
+  .bbwrap{margin:10px 0 4px;}
+  .bbtable{border-collapse:collapse; margin:0 0 14px; font-size:.92rem;}
+  .bbtable th,.bbtable td{border:1px solid var(--line); padding:6px 14px; text-align:center;}
+  .bbtable th{background:#f0f4f8;}
+  svg{display:block; max-width:100%; touch-action:none;}
+  .barrect{fill:var(--accent); cursor:pointer; transition:height .05s, y .05s;}
+  .barhit{fill:transparent; cursor:pointer;}
+  .barval{font-size:12px; fill:var(--ink); font-weight:600; text-anchor:middle;}
+  .axislbl{font-size:12px; fill:var(--muted); text-anchor:middle;}
+  .axisnum{font-size:11px; fill:var(--muted); text-anchor:end;}
+  .gridline{stroke:#e6ebf1; stroke-width:1;}
+  /* results */
+  .score{font-size:2.6rem; font-weight:700; margin:6px 0 2px;}
+  .score small{font-size:1.1rem; color:var(--muted); font-weight:600;}
+  .rev{border-top:1px solid var(--line); padding:14px 0; }
+  .rev:last-child{border-bottom:1px solid var(--line);}
+  .revq{font-weight:600; margin:0 0 6px; font-size:.98rem;}
+  .tag{font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:6px; margin-right:8px;}
+  .tag.ok{background:var(--good-bg); color:var(--good);}
+  .tag.no{background:var(--bad-bg); color:var(--bad);}
+  .revline{font-size:.9rem; color:var(--muted); margin:2px 0;}
+  .revline b{color:var(--ink);}
+  .center{text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="app"></div>
+</div>
+
+<script>
+/* ---------------- QUESTION BANK (easy -> hard) ---------------- */
+const QUESTIONS = [
+  // 1
+  {type:"mcq", topic:"Types of data",
+   q:"A survey records the eye colour of each student (brown, blue, green, hazel). What type of data is this?",
+   options:["Nominal","Ordinal","Discrete numerical","Continuous numerical"], answer:0},
+  // 2
+  {type:"mcq", topic:"Types of data",
+   q:"The number of pets each household owns is recorded. What type of data is this?",
+   options:["Nominal","Ordinal","Discrete numerical","Continuous numerical"], answer:2},
+  // 3
+  {type:"mcq", topic:"Types of data",
+   q:"Students rate a film as Poor, Fair, Good or Excellent. What type of data is this?",
+   options:["Nominal","Ordinal","Discrete numerical","Continuous numerical"], answer:1},
+  // 4
+  {type:"mcq", topic:"Types of data",
+   q:"The exact time (in seconds) each athlete takes to run 100 m is measured. What type of data is this?",
+   options:["Nominal","Ordinal","Discrete numerical","Continuous numerical"], answer:3},
+  // 5
+  {type:"mcq", topic:"Distribution shape",
+   q:"A histogram is a mirror image about its centre, with the mean, median and mode all roughly equal. This distribution is best described as:",
+   options:["Positively skewed","Negatively skewed","Symmetrical","Bimodal"], answer:2},
+  // 6
+  {type:"mcq", topic:"Distribution shape",
+   q:"A data set has most values bunched at the low end and a long tail stretching towards the high values. This distribution is:",
+   options:["Positively skewed","Negatively skewed","Symmetrical","Bimodal"], answer:0},
+  // 7
+  {type:"mcq", topic:"Distribution shape",
+   q:"A histogram of test scores shows two clearly separated peaks. This distribution is described as:",
+   options:["Symmetrical","Bimodal","Negatively skewed","Uniform"], answer:1},
+  // 8
+  {type:"mcq", topic:"Sampling methods",
+   q:"Every student's name is placed in a hat and 30 names are drawn out. Which sampling method is this?",
+   options:["Systematic sampling","Stratified sampling","Simple random sampling","Convenience sampling"], answer:2},
+  // 9
+  {type:"mcq", topic:"Sampling methods",
+   q:"A researcher surveys every 8th person who walks out of a shopping centre. Which sampling method is this?",
+   options:["Systematic sampling","Stratified sampling","Simple random sampling","Convenience sampling"], answer:0},
+  // 10
+  {type:"mcq", topic:"Sampling methods",
+   q:"A school is split into year levels and a number is chosen from each year level in proportion to its size. Which sampling method is this?",
+   options:["Systematic sampling","Stratified sampling","Simple random sampling","Convenience sampling"], answer:1},
+  // 11 mean median mode
+  {type:"multi", topic:"Mean, median & mode",
+   q:"For the data set below, find the mean, median and mode.",
+   data:[4,7,7,2,10],
+   fields:[{label:"Mean",ans:6},{label:"Median",ans:7},{label:"Mode",ans:7}]},
+  // 12 median of even set
+  {type:"multi", topic:"Mean, median & mode",
+   q:"For the data set below (an even number of values), find the mean and median.",
+   data:[3,8,5,9,2,7],
+   fields:[{label:"Mean",ans:5.666667,tol:0.02},{label:"Median",ans:6}]},
+  // 13 Q1/Q3 odd
+  {type:"multi", topic:"Quartiles (odd set)",
+   q:"The data below is already in order (7 values). Find the lower quartile Q1 and the upper quartile Q3.",
+   data:[5,8,12,15,18,21,24],
+   fields:[{label:"Q1",ans:8},{label:"Q3",ans:21}]},
+  // 14 Q1/Q3 even
+  {type:"multi", topic:"Quartiles (even set)",
+   q:"The data below is already in order (8 values). Find the lower quartile Q1 and the upper quartile Q3.",
+   data:[3,7,7,10,12,14,18,21],
+   fields:[{label:"Q1",ans:7},{label:"Q3",ans:16}]},
+  // 15 IQR odd
+  {type:"multi", topic:"Interquartile range (odd set)",
+   q:"The data below is in order (9 values). Find Q1, Q3 and the interquartile range (IQR).",
+   data:[2,4,5,7,9,11,12,15,20],
+   fields:[{label:"Q1",ans:4.5},{label:"Q3",ans:13.5},{label:"IQR",ans:9}]},
+  // 16 IQR even
+  {type:"multi", topic:"Interquartile range (even set)",
+   q:"The data below is in order (10 values). Find Q1, Q3 and the interquartile range (IQR).",
+   data:[6,9,10,12,15,16,19,22,25,30],
+   fields:[{label:"Q1",ans:10},{label:"Q3",ans:22},{label:"IQR",ans:12}]},
+  // 17 stratified
+  {type:"multi", topic:"Stratified sampling",
+   q:"A school has 1200 students: 480 in Junior, 420 in Middle and 300 in Senior. A stratified sample of 80 students is taken. How many students should be selected from each level?",
+   fields:[{label:"Junior",ans:32},{label:"Middle",ans:28},{label:"Senior",ans:20}]},
+  // 18 stratified harder
+  {type:"multi", topic:"Stratified sampling",
+   q:"A town of 2500 residents has 1000 aged under 18, 900 aged 18-64 and 600 aged 65+. A stratified sample of 150 people is taken. How many should be selected from the 65+ group?",
+   fields:[{label:"65+ selected",ans:36}]},
+  // 19 bar builder
+  {type:"barbuilder", topic:"Drawing a column graph",
+   q:"Use the frequency table to build a column graph. Click inside each column at the correct height to set its bar. Each bar must match its frequency exactly.",
+   categories:["Soccer","Netball","Tennis","Cricket"],
+   freqs:[8,5,3,6], max:10}
+];
+
+/* ---------------- STATE ---------------- */
+let idx = 0;
+const responses = new Array(QUESTIONS.length).fill(null);
+const app = document.getElementById("app");
+const N = QUESTIONS.length;
+
+/* ---------------- HELPERS ---------------- */
+function approx(a,b,tol){ tol = tol==null?0.001:tol; return Math.abs(a-b)<=tol; }
+function esc(s){ return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+/* ---------------- SCREENS ---------------- */
+function startScreen(){
+  app.innerHTML = `
+    <h1>Year 8 Statistics Quiz</h1>
+    <p class="sub">${N} questions, increasing in difficulty. Data types, distributions, sampling,
+    averages, quartiles, the IQR, stratified sampling and column graphs.</p>
+    <p style="font-size:.95rem;color:var(--muted)">Each question is marked when you press <b>Submit</b>.
+    You cannot change an answer once submitted. Your score and a full review appear at the end.
+    Aim for about 20 minutes.</p>
+    <div class="actions"><button class="btn" id="go">Start quiz</button></div>`;
+  document.getElementById("go").onclick = ()=>{ idx=0; render(); };
+}
+
+function render(){
+  if(idx>=N){ return resultsScreen(); }
+  const Q = QUESTIONS[idx];
+  const pct = Math.round((idx)/N*100);
+  let body = "";
+  if(Q.type==="mcq") body = renderMCQ(Q);
+  else if(Q.type==="multi") body = renderMulti(Q);
+  else if(Q.type==="barbuilder") body = renderBar(Q);
+
+  app.innerHTML = `
+    <div class="topbar">
+      <span class="qmeta">Question ${idx+1} of ${N}</span>
+      <span class="pill">${esc(Q.topic)}</span>
+    </div>
+    <div class="progress"><i style="width:${pct}%"></i></div>
+    ${body}
+    <div class="actions">
+      <button class="btn" id="submit">Submit</button>
+    </div>`;
+
+  if(Q.type==="mcq") wireMCQ();
+  else if(Q.type==="multi") wireMulti();
+  else if(Q.type==="barbuilder") wireBar(Q);
+}
+
+/* ----- MCQ ----- */
+function renderMCQ(Q){
+  const opts = Q.options.map((o,i)=>`
+    <label class="opt" data-i="${i}">
+      <input type="radio" name="mcq" value="${i}">
+      <span>${esc(o)}</span>
+    </label>`).join("");
+  return `<p class="qtext">${esc(Q.q)}</p><div class="opts">${opts}</div>`;
+}
+function wireMCQ(){
+  app.querySelectorAll(".opt").forEach(el=>{
+    el.onclick = ()=>{
+      app.querySelectorAll(".opt").forEach(o=>o.classList.remove("sel"));
+      el.classList.add("sel");
+      el.querySelector("input").checked = true;
+    };
+  });
+  document.getElementById("submit").onclick = ()=>{
+    const chk = app.querySelector("input[name=mcq]:checked");
+    if(!chk){ flash("Select an answer first."); return; }
+    const pick = +chk.value;
+    const Q = QUESTIONS[idx];
+    responses[idx] = {picked:pick, correct: pick===Q.answer};
+    next();
+  };
+}
+
+/* ----- MULTI numeric ----- */
+function renderMulti(Q){
+  const dataHtml = Q.data ? `<div class="data">${Q.data.join(",  ")}</div>` : "";
+  const fields = Q.fields.map((f,i)=>`
+    <div class="numfield">
+      <label for="nf${i}">${esc(f.label)}</label>
+      <input type="number" step="any" id="nf${i}">
+    </div>`).join("");
+  return `<p class="qtext">${esc(Q.q)}</p>${dataHtml}<div class="numrow">${fields}</div>`;
+}
+function wireMulti(){
+  document.getElementById("submit").onclick = ()=>{
+    const Q = QUESTIONS[idx];
+    const vals = [], marks = [];
+    for(let i=0;i<Q.fields.length;i++){
+      const raw = document.getElementById("nf"+i).value.trim();
+      if(raw===""){ flash("Fill in every box first."); return; }
+      const v = parseFloat(raw);
+      vals.push(raw);
+      marks.push(!isNaN(v) && approx(v, Q.fields[i].ans, Q.fields[i].tol));
+    }
+    responses[idx] = {vals, marks, correct: marks.every(m=>m)};
+    next();
+  };
+}
+
+/* ----- BAR BUILDER ----- */
+function renderBar(Q){
+  const rows = Q.categories.map((c,i)=>`<td>${esc(c)}</td>`).join("");
+  const frow = Q.freqs.map(f=>`<td>${f}</td>`).join("");
+  return `
+    <p class="qtext">${esc(Q.q)}</p>
+    <div class="bbwrap">
+      <table class="bbtable">
+        <tr><th>Category</th>${rows}</tr>
+        <tr><th>Frequency</th>${frow}</tr>
+      </table>
+      <div id="bbsvg"></div>
+    </div>`;
+}
+function wireBar(Q){
+  const cats = Q.categories, max = Q.max;
+  const state = new Array(cats.length).fill(0);
+  const W=520,H=320, padL=44,padR=16,padT=24,padB=54;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const base=padT+plotH, unit=plotH/max, band=plotW/cats.length, bw=band*0.55;
+
+  function draw(){
+    let g="";
+    for(let v=0; v<=max; v++){
+      const y=base-v*unit;
+      g+=`<line class="gridline" x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}"/>`;
+      g+=`<text class="axisnum" x="${padL-8}" y="${y+4}">${v}</text>`;
+    }
+    g+=`<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${base}" stroke="#9aa7b6"/>`;
+    g+=`<line x1="${padL}" y1="${base}" x2="${W-padR}" y2="${base}" stroke="#9aa7b6"/>`;
+    g+=`<text class="axislbl" transform="translate(14,${padT+plotH/2}) rotate(-90)">Frequency</text>`;
+    for(let i=0;i<cats.length;i++){
+      const cx=padL+band*i+band/2, x=cx-bw/2;
+      const v=state[i], h=v*unit, y=base-h;
+      g+=`<rect class="barhit" data-i="${i}" x="${padL+band*i}" y="${padT}" width="${band}" height="${plotH}"></rect>`;
+      if(v>0) g+=`<rect class="barrect" data-i="${i}" x="${x}" y="${y}" width="${bw}" height="${h}"></rect>`;
+      if(v>0) g+=`<text class="barval" x="${cx}" y="${y-6}">${v}</text>`;
+      g+=`<text class="axislbl" x="${cx}" y="${base+20}">${esc(cats[i])}</text>`;
+    }
+    document.getElementById("bbsvg").innerHTML =
+      `<svg viewBox="0 0 ${W} ${H}" id="svgEl">${g}</svg>`;
+    const svg=document.getElementById("svgEl");
+    svg.querySelectorAll(".barhit,.barrect").forEach(r=>{
+      r.addEventListener("click", ev=>setBar(ev, +r.getAttribute("data-i")));
+    });
+  }
+  function setBar(ev,i){
+    const svg=document.getElementById("svgEl");
+    const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
+    const loc=pt.matrixTransform(svg.getScreenCTM().inverse());
+    let v=Math.round((base-loc.y)/unit);
+    v=Math.max(0,Math.min(max,v));
+    state[i]=v; draw();
+  }
+  draw();
+  document.getElementById("submit").onclick = ()=>{
+    const marks = state.map((v,i)=>v===Q.freqs[i]);
+    responses[idx] = {vals:[...state], marks, correct: marks.every(m=>m)};
+    next();
+  };
+}
+
+/* ----- flow ----- */
+function next(){ idx++; render(); }
+function flash(msg){
+  let f=document.getElementById("flashmsg");
+  if(!f){
+    f=document.createElement("div"); f.id="flashmsg";
+    f.style.cssText="color:var(--bad);font-size:.85rem;margin-top:12px;font-weight:600;";
+    app.querySelector(".actions").before(f);
+  }
+  f.textContent=msg;
+}
+
+/* ---------------- RESULTS ---------------- */
+function resultsScreen(){
+  const score = responses.filter(r=>r&&r.correct).length;
+  const pctScore = Math.round(score/N*100);
+  let list = "";
+  QUESTIONS.forEach((Q,i)=>{
+    const r = responses[i];
+    const ok = r&&r.correct;
+    let yours="", corr="";
+    if(Q.type==="mcq"){
+      yours = esc(Q.options[r.picked]);
+      corr  = esc(Q.options[Q.answer]);
+    } else if(Q.type==="multi"){
+      yours = Q.fields.map((f,j)=>`${esc(f.label)}: ${esc(r.vals[j])}`).join(",  ");
+      corr  = Q.fields.map(f=>`${esc(f.label)}: ${fmt(f.ans)}`).join(",  ");
+    } else if(Q.type==="barbuilder"){
+      yours = Q.categories.map((c,j)=>`${esc(c)}: ${r.vals[j]}`).join(",  ");
+      corr  = Q.categories.map((c,j)=>`${esc(c)}: ${Q.freqs[j]}`).join(",  ");
+    }
+    list += `
+      <div class="rev">
+        <p class="revq"><span class="tag ${ok?'ok':'no'}">${ok?'CORRECT':'INCORRECT'}</span>Q${i+1}. ${esc(Q.topic)}</p>
+        <p class="revline">Your answer: <b>${yours}</b></p>
+        ${ok?'':`<p class="revline">Correct answer: <b>${corr}</b></p>`}
+      </div>`;
+  });
+  app.innerHTML = `
+    <h1>Results</h1>
+    <div class="center">
+      <div class="score">${score}<small> / ${N}</small></div>
+      <p class="sub">${pctScore}% correct</p>
+    </div>
+    <h2 style="margin-top:20px">Review</h2>
+    ${list}
+    <div class="actions">
+      <button class="btn ghost" id="restart">Restart quiz</button>
+    </div>`;
+  document.getElementById("restart").onclick = ()=>{
+    idx=0; responses.fill(null); startScreen();
+  };
+}
+function fmt(x){
+  if(Math.abs(x-Math.round(x))<0.005) return String(Math.round(x));
+  return (Math.round(x*100)/100).toString();
+}
+
+/* ---------------- INIT ---------------- */
+startScreen();
+</script>
+</body>
+</html>
