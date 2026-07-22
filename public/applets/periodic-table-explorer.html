@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Periodic Table Explorer</title>
+<style>
+  :root {
+    --ink: #1e293b;
+    --muted: #64748b;
+    --ring: #cbd5e1;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --accent: #2563eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px;
+    min-height: 100vh;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+    padding: 26px 30px;
+    width: 100%;
+    max-width: 1000px;
+  }
+  h1 { font-size: 1.15rem; font-weight: 600; margin-bottom: 2px; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); margin-bottom: 14px; }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .view-btn {
+    border: 1px solid var(--ring);
+    background: var(--card);
+    border-radius: 8px;
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .view-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .dim-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-left: auto;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .detail {
+    border: 1px solid var(--ring);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    margin-bottom: 16px;
+    min-height: 96px;
+  }
+  .detail .tile-big {
+    width: 74px;
+    height: 74px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    border: 1px solid rgba(15,23,42,0.15);
+  }
+  .detail .tile-big .z { font-size: 0.65rem; }
+  .detail .tile-big .sym { font-size: 1.7rem; font-weight: 700; line-height: 1.05; }
+  .detail .tile-big .mass { font-size: 0.62rem; }
+  .detail .info { line-height: 1.5; font-size: 0.85rem; }
+  .detail .info .name { font-size: 1.1rem; font-weight: 700; }
+  .detail .info .meta { color: var(--muted); }
+  .detail .info .meta b { color: var(--ink); font-weight: 600; }
+
+  .table {
+    display: grid;
+    grid-template-columns: repeat(18, minmax(0, 1fr));
+    gap: 3px;
+  }
+  .gl {
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-align: center;
+    align-self: end;
+    padding-bottom: 1px;
+  }
+  .el {
+    border: 1px solid rgba(15,23,42,0.14);
+    border-radius: 5px;
+    padding: 2px 1px 3px;
+    text-align: center;
+    cursor: pointer;
+    line-height: 1.1;
+    transition: transform 0.06s;
+  }
+  .el:hover { transform: scale(1.12); z-index: 2; position: relative; border-color: var(--ink); }
+  .el.selected { outline: 2px solid var(--ink); z-index: 1; position: relative; }
+  .el .z { font-size: 0.52rem; color: rgba(15,23,42,0.6); display: block; text-align: left; padding-left: 3px; }
+  .el .sym { font-size: 0.78rem; font-weight: 700; display: block; }
+  .el.dimmed { opacity: 0.22; }
+  .placeholder {
+    border: 1px dashed var(--ring);
+    border-radius: 5px;
+    font-size: 0.55rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .spacer { grid-column: 1 / -1; height: 7px; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin-top: 14px;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .swatch {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    border: 1px solid rgba(15,23,42,0.2);
+    display: inline-block;
+  }
+  .note { margin-top: 12px; font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Periodic Table Explorer</h1>
+  <div class="subtitle">Click any element · switch views to see how the table is organised</div>
+
+  <div class="toolbar">
+    <button class="view-btn active" id="viewCat">Element categories</button>
+    <button class="view-btn" id="viewMet">Metals vs non-metals</button>
+    <span style="width:10px"></span>
+    <button class="view-btn active" id="cfgToggle">Electron configuration: Bohr</button>
+    <label class="dim-toggle"><input type="checkbox" id="dim20"> Highlight first 20 elements only</label>
+  </div>
+
+  <div class="detail" id="detail"></div>
+
+  <div class="table" id="table"></div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="note">
+    Elements in the same vertical <b>group</b> have similar chemical properties.
+    Each horizontal <b>period</b> starts a new electron shell. Atomic masses are rounded;
+    values in brackets are the mass number of the most stable isotope of elements that
+    do not occur naturally. State is at 25 °C.
+  </div>
+</div>
+
+<script>
+  // [symbol, name, atomic mass (string)]
+  const E = [
+    ["H","Hydrogen","1.008"],["He","Helium","4.003"],["Li","Lithium","6.94"],["Be","Beryllium","9.012"],
+    ["B","Boron","10.81"],["C","Carbon","12.011"],["N","Nitrogen","14.007"],["O","Oxygen","15.999"],
+    ["F","Fluorine","18.998"],["Ne","Neon","20.180"],["Na","Sodium","22.990"],["Mg","Magnesium","24.305"],
+    ["Al","Aluminium","26.982"],["Si","Silicon","28.086"],["P","Phosphorus","30.974"],["S","Sulfur","32.06"],
+    ["Cl","Chlorine","35.45"],["Ar","Argon","39.95"],["K","Potassium","39.098"],["Ca","Calcium","40.078"],
+    ["Sc","Scandium","44.956"],["Ti","Titanium","47.867"],["V","Vanadium","50.942"],["Cr","Chromium","51.996"],
+    ["Mn","Manganese","54.938"],["Fe","Iron","55.845"],["Co","Cobalt","58.933"],["Ni","Nickel","58.693"],
+    ["Cu","Copper","63.546"],["Zn","Zinc","65.38"],["Ga","Gallium","69.723"],["Ge","Germanium","72.630"],
+    ["As","Arsenic","74.922"],["Se","Selenium","78.971"],["Br","Bromine","79.904"],["Kr","Krypton","83.798"],
+    ["Rb","Rubidium","85.468"],["Sr","Strontium","87.62"],["Y","Yttrium","88.906"],["Zr","Zirconium","91.224"],
+    ["Nb","Niobium","92.906"],["Mo","Molybdenum","95.95"],["Tc","Technetium","(98)"],["Ru","Ruthenium","101.07"],
+    ["Rh","Rhodium","102.906"],["Pd","Palladium","106.42"],["Ag","Silver","107.868"],["Cd","Cadmium","112.414"],
+    ["In","Indium","114.818"],["Sn","Tin","118.710"],["Sb","Antimony","121.760"],["Te","Tellurium","127.60"],
+    ["I","Iodine","126.904"],["Xe","Xenon","131.293"],["Cs","Caesium","132.905"],["Ba","Barium","137.327"],
+    ["La","Lanthanum","138.905"],["Ce","Cerium","140.116"],["Pr","Praseodymium","140.908"],["Nd","Neodymium","144.242"],
+    ["Pm","Promethium","(145)"],["Sm","Samarium","150.36"],["Eu","Europium","151.964"],["Gd","Gadolinium","157.25"],
+    ["Tb","Terbium","158.925"],["Dy","Dysprosium","162.500"],["Ho","Holmium","164.930"],["Er","Erbium","167.259"],
+    ["Tm","Thulium","168.934"],["Yb","Ytterbium","173.045"],["Lu","Lutetium","174.967"],["Hf","Hafnium","178.486"],
+    ["Ta","Tantalum","180.948"],["W","Tungsten","183.84"],["Re","Rhenium","186.207"],["Os","Osmium","190.23"],
+    ["Ir","Iridium","192.217"],["Pt","Platinum","195.084"],["Au","Gold","196.967"],["Hg","Mercury","200.592"],
+    ["Tl","Thallium","204.38"],["Pb","Lead","207.2"],["Bi","Bismuth","208.980"],["Po","Polonium","(209)"],
+    ["At","Astatine","(210)"],["Rn","Radon","(222)"],["Fr","Francium","(223)"],["Ra","Radium","(226)"],
+    ["Ac","Actinium","(227)"],["Th","Thorium","232.038"],["Pa","Protactinium","231.036"],["U","Uranium","238.029"],
+    ["Np","Neptunium","(237)"],["Pu","Plutonium","(244)"],["Am","Americium","(243)"],["Cm","Curium","(247)"],
+    ["Bk","Berkelium","(247)"],["Cf","Californium","(251)"],["Es","Einsteinium","(252)"],["Fm","Fermium","(257)"],
+    ["Md","Mendelevium","(258)"],["No","Nobelium","(259)"],["Lr","Lawrencium","(266)"],["Rf","Rutherfordium","(267)"],
+    ["Db","Dubnium","(268)"],["Sg","Seaborgium","(269)"],["Bh","Bohrium","(270)"],["Hs","Hassium","(277)"],
+    ["Mt","Meitnerium","(278)"],["Ds","Darmstadtium","(281)"],["Rg","Roentgenium","(282)"],["Cn","Copernicium","(285)"],
+    ["Nh","Nihonium","(286)"],["Fl","Flerovium","(289)"],["Mc","Moscovium","(290)"],["Lv","Livermorium","(293)"],
+    ["Ts","Tennessine","(294)"],["Og","Oganesson","(294)"]
+  ];
+
+  const CAT_COLOURS = {
+    alkali:      ["#fca5a5", "Alkali metal"],
+    alkaline:    ["#fdba74", "Alkaline earth metal"],
+    transition:  ["#fcd34d", "Transition metal"],
+    post:        ["#bef264", "Other metal"],
+    metalloid:   ["#5eead4", "Metalloid"],
+    nonmetal:    ["#93c5fd", "Non-metal"],
+    halogen:     ["#a5b4fc", "Halogen"],
+    noble:       ["#d8b4fe", "Noble gas"],
+    lanthanoid:  ["#f9a8d4", "Lanthanoid"],
+    actinoid:    ["#fda4af", "Actinoid"]
+  };
+  const MET_COLOURS = {
+    metal:     ["#fcd34d", "Metal"],
+    metalloid: ["#5eead4", "Metalloid"],
+    nonmetal:  ["#93c5fd", "Non-metal"]
+  };
+
+  const METALLOIDS = new Set([5, 14, 32, 33, 51, 52]);
+  const GASES = new Set([1, 2, 7, 8, 9, 10, 17, 18, 36, 54, 86]);
+  const LIQUIDS = new Set([35, 80]);
+
+  function category(z) {
+    if ([2,10,18,36,54,86,118].includes(z)) return "noble";
+    if ([3,11,19,37,55,87].includes(z)) return "alkali";
+    if ([4,12,20,38,56,88].includes(z)) return "alkaline";
+    if (z >= 57 && z <= 71) return "lanthanoid";
+    if (z >= 89 && z <= 103) return "actinoid";
+    if ((z >= 21 && z <= 30) || (z >= 39 && z <= 48) || (z >= 72 && z <= 80) || (z >= 104 && z <= 112)) return "transition";
+    if (METALLOIDS.has(z)) return "metalloid";
+    if ([9,17,35,53,85,117].includes(z)) return "halogen";
+    if ([1,6,7,8,15,16,34].includes(z)) return "nonmetal";
+    return "post";
+  }
+  function metClass(z) {
+    const c = category(z);
+    if (c === "metalloid") return "metalloid";
+    if (c === "nonmetal" || c === "halogen" || c === "noble") return "nonmetal";
+    return "metal";
+  }
+  function position(z) { // returns [col, row] ; rows: 2-8 periods 1-7, 10 lanth, 11 act
+    if (z === 1) return [1, 2];
+    if (z === 2) return [18, 2];
+    if (z <= 18) {
+      const p = z <= 10 ? 3 : 4, base = z <= 10 ? 2 : 10;
+      const k = z - base; // 1..8
+      return [k <= 2 ? k : k + 10, p];
+    }
+    if (z <= 36) return [z - 18, 5];
+    if (z <= 54) return [z - 36, 6];
+    if (z === 55 || z === 56) return [z - 54, 7];
+    if (z >= 57 && z <= 71) return [3 + (z - 57), 10];
+    if (z <= 86) return [z - 68, 7];
+    if (z === 87 || z === 88) return [z - 86, 8];
+    if (z >= 89 && z <= 103) return [3 + (z - 89), 11];
+    return [z - 100, 8];
+  }
+  function group(z) {
+    const [col, row] = position(z);
+    return (row === 10 || row === 11) ? "3 (f-block)" : col;
+  }
+  function period(z) {
+    const [, row] = position(z);
+    if (row === 10) return 6;
+    if (row === 11) return 7;
+    return row - 1;
+  }
+  // ---- electron configuration (Madelung order + accepted exceptions) ----
+  const ORDER = ["1s","2s","2p","3s","3p","4s","3d","4p","5s","4d","5p","6s","4f","5d","6p","7s","5f","6d","7p"];
+  const CAP = { s: 2, p: 6, d: 10, f: 14 };
+  const EXC = {
+    24: {"3d":1,"4s":-1}, 29: {"3d":1,"4s":-1},
+    41: {"4d":1,"5s":-1}, 42: {"4d":1,"5s":-1}, 44: {"4d":1,"5s":-1},
+    45: {"4d":1,"5s":-1}, 46: {"4d":2,"5s":-2}, 47: {"4d":1,"5s":-1},
+    57: {"4f":-1,"5d":1}, 58: {"4f":-1,"5d":1}, 64: {"4f":-1,"5d":1},
+    78: {"5d":1,"6s":-1}, 79: {"5d":1,"6s":-1},
+    89: {"5f":-1,"6d":1}, 90: {"5f":-2,"6d":2}, 91: {"5f":-1,"6d":1},
+    92: {"5f":-1,"6d":1}, 93: {"5f":-1,"6d":1}, 96: {"5f":-1,"6d":1},
+    103: {"6d":-1,"7p":1}
+  };
+  function subshellsOf(z) {
+    const cfg = {};
+    let left = z;
+    for (const sub of ORDER) {
+      if (left <= 0) break;
+      const take = Math.min(CAP[sub[1]], left);
+      cfg[sub] = take;
+      left -= take;
+    }
+    if (EXC[z]) {
+      for (const [sub, d] of Object.entries(EXC[z])) {
+        cfg[sub] = (cfg[sub] || 0) + d;
+        if (cfg[sub] <= 0) delete cfg[sub];
+      }
+    }
+    return cfg;
+  }
+  function bohrShells(z) { // e.g. [2,8,9,2] for Sc
+    const cfg = subshellsOf(z), shells = [];
+    for (const [sub, e] of Object.entries(cfg)) {
+      const n = +sub[0];
+      shells[n - 1] = (shells[n - 1] || 0) + e;
+    }
+    return shells.filter(v => v);
+  }
+  const L_ORDER = { s: 0, p: 1, d: 2, f: 3 };
+  const SUP = { "0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹" };
+  function sup(num) { return String(num).split("").map(c => SUP[c]).join(""); }
+  function schrodingerOf(z) { // full configuration from 1s, subshells in n,l order
+    return Object.entries(subshellsOf(z))
+      .sort((a, b) => (+a[0][0] - +b[0][0]) || (L_ORDER[a[0][1]] - L_ORDER[b[0][1]]))
+      .map(([sub, e]) => sub + sup(e))
+      .join(" ");
+  }
+  function massNumber(z) {
+    const m = E[z - 1][2];
+    return Math.round(parseFloat(m.replace(/[()]/g, "")));
+  }
+  function stateAt25(z) {
+    if (GASES.has(z)) return "gas";
+    if (LIQUIDS.has(z)) return "liquid";
+    if (z >= 104) return "unknown (too unstable)";
+    return "solid";
+  }
+
+  let view = "cat", selected = 6, dim20 = false, cfgView = "bohr";
+
+  function fillOf(z) {
+    return view === "cat" ? CAT_COLOURS[category(z)][0] : MET_COLOURS[metClass(z)][0];
+  }
+
+  const tableBox = document.getElementById("table");
+  function buildTable() {
+    let html = "";
+    for (let g = 1; g <= 18; g++) {
+      html += '<div class="gl" style="grid-column:' + g + ';grid-row:1">' + g + '</div>';
+    }
+    for (let z = 1; z <= 118; z++) {
+      const [col, row] = position(z);
+      const dimmed = dim20 && z > 20 ? " dimmed" : "";
+      const sel = z === selected ? " selected" : "";
+      html += '<div class="el' + dimmed + sel + '" data-z="' + z +
+              '" style="grid-column:' + col + ';grid-row:' + row + ';background:' + fillOf(z) + '" title="' + E[z-1][1] + '">' +
+              '<span class="z">' + z + '</span><span class="sym">' + E[z-1][0] + '</span></div>';
+    }
+    html += '<div class="placeholder" style="grid-column:3;grid-row:7">57–71</div>';
+    html += '<div class="placeholder" style="grid-column:3;grid-row:8">89–103</div>';
+    html += '<div class="spacer" style="grid-row:9"></div>';
+    tableBox.innerHTML = html;
+    tableBox.querySelectorAll(".el").forEach(el => {
+      el.addEventListener("click", () => { selected = +el.dataset.z; buildTable(); showDetail(); });
+    });
+  }
+
+  function showDetail() {
+    const z = selected, d = E[z - 1];
+    const catLabel = CAT_COLOURS[category(z)][1];
+    const metLabel = MET_COLOURS[metClass(z)][1];
+    const A = massNumber(z);
+    const cfgLine = 'Electron configuration <b>' +
+      (cfgView === "bohr" ? bohrShells(z).join(",") : schrodingerOf(z)) + '</b>';
+    document.getElementById("detail").innerHTML =
+      '<div class="tile-big" style="background:' + fillOf(z) + '">' +
+        '<span class="z">' + z + '</span><span class="sym">' + d[0] + '</span><span class="mass">' + d[2] + '</span>' +
+      '</div>' +
+      '<div class="info">' +
+        '<div class="name">' + d[1] + '</div>' +
+        '<div class="meta">Atomic number <b>' + z + '</b> · Atomic mass <b>' + d[2] + '</b> · Group <b>' + group(z) + '</b> · Period <b>' + period(z) + '</b></div>' +
+        '<div class="meta">Protons <b>' + z + '</b> · Neutrons <b>' + (A - z) + '</b> (mass number ' + A + ') · Electrons <b>' + z + '</b></div>' +
+        '<div class="meta">' + cfgLine + '</div>' +
+        '<div class="meta">' + catLabel + (metLabel.toLowerCase() === catLabel.toLowerCase() ? '' : ' · ' + metLabel) + ' · <b>' + stateAt25(z) + '</b> at 25 °C</div>' +
+      '</div>';
+  }
+
+  function showLegend() {
+    const src = view === "cat" ? CAT_COLOURS : MET_COLOURS;
+    document.getElementById("legend").innerHTML = Object.values(src)
+      .map(([c, label]) => '<span><span class="swatch" style="background:' + c + '"></span>' + label + '</span>')
+      .join("");
+  }
+
+  document.getElementById("viewCat").addEventListener("click", () => setView("cat"));
+  document.getElementById("viewMet").addEventListener("click", () => setView("met"));
+  function setView(v) {
+    view = v;
+    document.getElementById("viewCat").classList.toggle("active", v === "cat");
+    document.getElementById("viewMet").classList.toggle("active", v === "met");
+    buildTable(); showDetail(); showLegend();
+  }
+  document.getElementById("cfgToggle").addEventListener("click", () => {
+    cfgView = cfgView === "bohr" ? "sch" : "bohr";
+    document.getElementById("cfgToggle").innerHTML =
+      "Electron configuration: " + (cfgView === "bohr" ? "Bohr" : "Schrödinger");
+    showDetail();
+  });
+  document.getElementById("dim20").addEventListener("change", e => {
+    dim20 = e.target.checked;
+    buildTable();
+  });
+
+  buildTable(); showDetail(); showLegend();
+</script>
+</body>
+</html>
