@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Periodic Table Quiz</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --ink: #1a2233;
+    --muted: #5b6577;
+    --accent: #1f5fbf;
+    --accent-dark: #174a96;
+    --reveal-bg: #eef5ee;
+    --reveal-border: #3a7d44;
+    --hidden-bg: #fff7e0;
+    --hidden-border: #d99a1b;
+    --border: #d4d9e2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- Settings bar ---------- */
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0.7rem 1.2rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.4rem;
+  }
+  header h1 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+    white-space: nowrap;
+  }
+  .setting {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+  .setting label { white-space: nowrap; }
+  select, input[type="number"] {
+    font-size: 0.95rem;
+    padding: 0.3rem 0.45rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--ink);
+  }
+  input[type="number"] { width: 4.6rem; }
+  input[type="checkbox"] { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
+  #dirSetting { display: none; }
+
+  /* ---------- Main area ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.2rem;
+    gap: 1.1rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .task-line {
+    font-size: clamp(1.15rem, 2.4vw, 1.6rem);
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* ---------- Element tile ---------- */
+  .tile {
+    background: var(--card);
+    border: 3px solid var(--ink);
+    border-radius: 14px;
+    box-shadow: 0 4px 18px rgba(20, 30, 60, 0.10);
+    width: min(46vh, 82vw, 380px);
+    aspect-ratio: 1 / 1.08;
+    display: flex;
+    flex-direction: column;
+    padding: 0.9rem 1.1rem;
+  }
+  .tile-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .corner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+  }
+  .corner .num {
+    font-size: clamp(1.6rem, 3.6vw, 2.3rem);
+    font-weight: 700;
+    line-height: 1.1;
+    min-width: 2.2ch;
+    text-align: center;
+  }
+  .corner .cap {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+  .tile-sym {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(4rem, 12vw, 7.5rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+  .tile-name {
+    text-align: center;
+    font-size: clamp(1.3rem, 3vw, 1.9rem);
+    font-weight: 600;
+    min-height: 1.4em;
+  }
+
+  /* Hidden / revealed field states */
+  .masked {
+    background: var(--hidden-bg);
+    border: 2px dashed var(--hidden-border);
+    border-radius: 8px;
+    color: var(--hidden-border);
+    padding: 0 0.35em;
+  }
+  .revealed {
+    background: var(--reveal-bg);
+    border: 2px solid var(--reveal-border);
+    border-radius: 8px;
+    padding: 0 0.35em;
+  }
+
+  /* ---------- p/n/e answer panel ---------- */
+  #answer {
+    display: none;
+    background: var(--reveal-bg);
+    border: 2px solid var(--reveal-border);
+    border-radius: 12px;
+    padding: 0.7rem 1.8rem;
+  }
+  #answer.visible { display: block; }
+  #answer table { border-collapse: collapse; margin: 0 auto; }
+  #answer td {
+    padding: 0.12rem 0.9rem;
+    text-align: left;
+    font-size: clamp(1.3rem, 3vw, 1.9rem);
+  }
+  #answer td.val { font-weight: 700; text-align: right; }
+
+  /* ---------- Buttons ---------- */
+  .controls { display: flex; gap: 0.9rem; }
+  button {
+    font-size: 1.15rem;
+    font-weight: 600;
+    padding: 0.7rem 1.7rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+  }
+  #actionBtn { background: var(--accent); color: #fff; }
+  #actionBtn:hover { background: var(--accent-dark); }
+  #skipBtn { background: #e6e9ef; color: var(--ink); }
+  #skipBtn:hover { background: #d8dce5; }
+
+  footer {
+    padding: 0.5rem 1.2rem 0.9rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Periodic Table Quiz</h1>
+  <div class="setting">
+    <label for="mode">Quiz type</label>
+    <select id="mode">
+      <option value="pne">Protons, neutrons &amp; electrons</option>
+      <option value="namesym">Element name &amp; symbol</option>
+      <option value="atomic">Atomic number</option>
+    </select>
+  </div>
+  <div class="setting" id="dirSetting">
+    <label for="dir">Hide</label>
+    <select id="dir">
+      <option value="mixed">Mixed</option>
+      <option value="n2s">Symbol (show name)</option>
+      <option value="s2n">Name (show symbol)</option>
+    </select>
+  </div>
+  <div class="setting">
+    <label for="maxZ">Max atomic number</label>
+    <input type="number" id="maxZ" min="2" max="118" step="1" value="20">
+  </div>
+  <div class="setting">
+    <input type="checkbox" id="noRepeat" checked>
+    <label for="noRepeat">No repeats until all used</label>
+  </div>
+</header>
+
+<main id="stage" title="Click to reveal / next">
+  <div class="task-line" id="taskLine"></div>
+
+  <div class="tile">
+    <div class="tile-top">
+      <div class="corner">
+        <span class="num" id="tileZ"></span>
+        <span class="cap">atomic number</span>
+      </div>
+      <div class="corner">
+        <span class="num" id="tileA"></span>
+        <span class="cap">mass number</span>
+      </div>
+    </div>
+    <div class="tile-sym" id="tileSym"></div>
+    <div class="tile-name" id="tileName"></div>
+  </div>
+
+  <div id="answer"></div>
+
+  <div class="controls">
+    <button id="actionBtn">Show answer</button>
+    <button id="skipBtn">Skip &rarr;</button>
+  </div>
+</main>
+
+<footer>
+  Click anywhere, press <strong>Space</strong> or <strong>Enter</strong> to reveal / advance &middot; <strong>S</strong> to skip &middot; <span id="poolInfo"></span>
+</footer>
+
+<script>
+"use strict";
+
+/* [Z, symbol, name, A] where A = mass number of the most common
+   (or, for radioactive elements, most stable) isotope. */
+const ELEMENTS = [
+[1,"H","Hydrogen",1],[2,"He","Helium",4],[3,"Li","Lithium",7],[4,"Be","Beryllium",9],
+[5,"B","Boron",11],[6,"C","Carbon",12],[7,"N","Nitrogen",14],[8,"O","Oxygen",16],
+[9,"F","Fluorine",19],[10,"Ne","Neon",20],[11,"Na","Sodium",23],[12,"Mg","Magnesium",24],
+[13,"Al","Aluminium",27],[14,"Si","Silicon",28],[15,"P","Phosphorus",31],[16,"S","Sulfur",32],
+[17,"Cl","Chlorine",35],[18,"Ar","Argon",40],[19,"K","Potassium",39],[20,"Ca","Calcium",40],
+[21,"Sc","Scandium",45],[22,"Ti","Titanium",48],[23,"V","Vanadium",51],[24,"Cr","Chromium",52],
+[25,"Mn","Manganese",55],[26,"Fe","Iron",56],[27,"Co","Cobalt",59],[28,"Ni","Nickel",58],
+[29,"Cu","Copper",63],[30,"Zn","Zinc",64],[31,"Ga","Gallium",69],[32,"Ge","Germanium",74],
+[33,"As","Arsenic",75],[34,"Se","Selenium",80],[35,"Br","Bromine",79],[36,"Kr","Krypton",84],
+[37,"Rb","Rubidium",85],[38,"Sr","Strontium",88],[39,"Y","Yttrium",89],[40,"Zr","Zirconium",90],
+[41,"Nb","Niobium",93],[42,"Mo","Molybdenum",98],[43,"Tc","Technetium",98],[44,"Ru","Ruthenium",102],
+[45,"Rh","Rhodium",103],[46,"Pd","Palladium",106],[47,"Ag","Silver",107],[48,"Cd","Cadmium",114],
+[49,"In","Indium",115],[50,"Sn","Tin",120],[51,"Sb","Antimony",121],[52,"Te","Tellurium",130],
+[53,"I","Iodine",127],[54,"Xe","Xenon",132],[55,"Cs","Caesium",133],[56,"Ba","Barium",138],
+[57,"La","Lanthanum",139],[58,"Ce","Cerium",140],[59,"Pr","Praseodymium",141],[60,"Nd","Neodymium",142],
+[61,"Pm","Promethium",145],[62,"Sm","Samarium",152],[63,"Eu","Europium",153],[64,"Gd","Gadolinium",158],
+[65,"Tb","Terbium",159],[66,"Dy","Dysprosium",164],[67,"Ho","Holmium",165],[68,"Er","Erbium",166],
+[69,"Tm","Thulium",169],[70,"Yb","Ytterbium",174],[71,"Lu","Lutetium",175],[72,"Hf","Hafnium",180],
+[73,"Ta","Tantalum",181],[74,"W","Tungsten",184],[75,"Re","Rhenium",187],[76,"Os","Osmium",192],
+[77,"Ir","Iridium",193],[78,"Pt","Platinum",195],[79,"Au","Gold",197],[80,"Hg","Mercury",202],
+[81,"Tl","Thallium",205],[82,"Pb","Lead",208],[83,"Bi","Bismuth",209],[84,"Po","Polonium",209],
+[85,"At","Astatine",210],[86,"Rn","Radon",222],[87,"Fr","Francium",223],[88,"Ra","Radium",226],
+[89,"Ac","Actinium",227],[90,"Th","Thorium",232],[91,"Pa","Protactinium",231],[92,"U","Uranium",238],
+[93,"Np","Neptunium",237],[94,"Pu","Plutonium",244],[95,"Am","Americium",243],[96,"Cm","Curium",247],
+[97,"Bk","Berkelium",247],[98,"Cf","Californium",251],[99,"Es","Einsteinium",252],[100,"Fm","Fermium",257],
+[101,"Md","Mendelevium",258],[102,"No","Nobelium",259],[103,"Lr","Lawrencium",266],[104,"Rf","Rutherfordium",267],
+[105,"Db","Dubnium",268],[106,"Sg","Seaborgium",269],[107,"Bh","Bohrium",270],[108,"Hs","Hassium",269],
+[109,"Mt","Meitnerium",278],[110,"Ds","Darmstadtium",281],[111,"Rg","Roentgenium",282],[112,"Cn","Copernicium",285],
+[113,"Nh","Nihonium",286],[114,"Fl","Flerovium",289],[115,"Mc","Moscovium",290],[116,"Lv","Livermorium",293],
+[117,"Ts","Tennessine",294],[118,"Og","Oganesson",294]
+];
+
+const modeSel    = document.getElementById("mode");
+const dirSel     = document.getElementById("dir");
+const dirSetting = document.getElementById("dirSetting");
+const maxZInput  = document.getElementById("maxZ");
+const noRepeat   = document.getElementById("noRepeat");
+const taskLine   = document.getElementById("taskLine");
+const tileZ      = document.getElementById("tileZ");
+const tileA      = document.getElementById("tileA");
+const tileSym    = document.getElementById("tileSym");
+const tileName   = document.getElementById("tileName");
+const answerBox  = document.getElementById("answer");
+const actionBtn  = document.getElementById("actionBtn");
+const skipBtn    = document.getElementById("skipBtn");
+const poolInfo   = document.getElementById("poolInfo");
+const stage      = document.getElementById("stage");
+
+let pool = [];
+let current = null;
+let hiddenFields = [];   // which tile fields are masked this round
+let revealed = false;
+
+function clampMaxZ() {
+  let v = parseInt(maxZInput.value, 10);
+  if (isNaN(v)) v = 20;
+  v = Math.max(2, Math.min(118, v));
+  maxZInput.value = v;
+  return v;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function rebuildPool() {
+  const maxZ = clampMaxZ();
+  pool = shuffle(Array.from({ length: maxZ }, (_, i) => i));
+}
+
+function updatePoolInfo() {
+  const maxZ = clampMaxZ();
+  poolInfo.textContent = noRepeat.checked
+    ? pool.length + " of " + maxZ + " elements remaining this cycle"
+    : "Drawing from elements 1–" + maxZ;
+}
+
+function pickElement() {
+  const maxZ = clampMaxZ();
+  if (noRepeat.checked) {
+    if (pool.length === 0 || pool.some(i => i >= maxZ)) rebuildPool();
+    return ELEMENTS[pool.pop()];
+  }
+  return ELEMENTS[Math.floor(Math.random() * maxZ)];
+}
+
+/* Set a tile field to shown value, or mask it with "?" */
+function setField(node, value, masked) {
+  if (masked) {
+    node.textContent = "?";
+    node.className = node.className.replace(/\b(masked|revealed)\b/g, "").trim() + " masked";
+  } else {
+    node.textContent = value;
+    node.className = node.className.replace(/\b(masked|revealed)\b/g, "").trim();
+  }
+}
+
+function nextQuestion() {
+  current = pickElement();
+  revealed = false;
+  answerBox.classList.remove("visible");
+  const [Z, sym, name, A] = current;
+  const mode = modeSel.value;
+  hiddenFields = [];
+
+  if (mode === "pne") {
+    taskLine.textContent = "How many protons, neutrons and electrons in a neutral atom of this element?";
+  } else if (mode === "namesym") {
+    let d = dirSel.value;
+    if (d === "mixed") d = Math.random() < 0.5 ? "n2s" : "s2n";
+    if (d === "n2s") {
+      hiddenFields = ["sym"];
+      taskLine.textContent = "What is the chemical symbol for this element?";
+    } else {
+      hiddenFields = ["name"];
+      taskLine.textContent = "What is the name of this element?";
+    }
+  } else { // atomic number
+    hiddenFields = ["Z", "A"];
+    taskLine.textContent = "What is the atomic number of this element?";
+  }
+
+  setField(tileZ,    Z,    hiddenFields.includes("Z"));
+  setField(tileA,    A,    hiddenFields.includes("A"));
+  setField(tileSym,  sym,  hiddenFields.includes("sym"));
+  setField(tileName, name, hiddenFields.includes("name"));
+
+  actionBtn.textContent = "Show answer";
+  updatePoolInfo();
+}
+
+function reveal() {
+  if (!current || revealed) return;
+  const [Z, sym, name, A] = current;
+  const mode = modeSel.value;
+
+  /* Unmask hidden tile fields with a green highlight */
+  const values = { Z: Z, A: A, sym: sym, name: name };
+  const nodes  = { Z: tileZ, A: tileA, sym: tileSym, name: tileName };
+  for (const f of hiddenFields) {
+    nodes[f].textContent = values[f];
+    nodes[f].className = nodes[f].className.replace(/\bmasked\b/g, "").trim() + " revealed";
+  }
+
+  /* p/n/e answers live below the tile (they are not tile fields) */
+  if (mode === "pne") {
+    answerBox.innerHTML = '<table>' +
+      '<tr><td>Protons</td><td class="val">' + Z + '</td></tr>' +
+      '<tr><td>Neutrons</td><td class="val">' + (A - Z) + '</td></tr>' +
+      '<tr><td>Electrons</td><td class="val">' + Z + '</td></tr>' +
+      '</table>';
+    answerBox.classList.add("visible");
+  }
+
+  revealed = true;
+  actionBtn.textContent = "Next element";
+}
+
+function advance() {
+  if (!revealed) reveal();
+  else nextQuestion();
+}
+
+/* Events */
+actionBtn.addEventListener("click", (e) => { e.stopPropagation(); advance(); });
+skipBtn.addEventListener("click", (e) => { e.stopPropagation(); nextQuestion(); });
+stage.addEventListener("click", advance);
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); advance(); }
+  if (e.key === "s" || e.key === "S") nextQuestion();
+});
+
+modeSel.addEventListener("change", () => {
+  dirSetting.style.display = modeSel.value === "namesym" ? "flex" : "none";
+  nextQuestion();
+});
+dirSel.addEventListener("change", nextQuestion);
+maxZInput.addEventListener("change", () => { rebuildPool(); nextQuestion(); });
+noRepeat.addEventListener("change", () => { rebuildPool(); updatePoolInfo(); });
+
+/* Init */
+rebuildPool();
+nextQuestion();
+</script>
+</body>
+</html>
