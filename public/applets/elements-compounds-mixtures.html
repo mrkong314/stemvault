@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elements, Compounds &amp; Mixtures</title>
+<style>
+  :root {
+    --ink: #1e293b;
+    --muted: #64748b;
+    --ring: #cbd5e1;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --accent: #2563eb;
+    --good: #16a34a;
+    --bad: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px;
+    min-height: 100vh;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+    padding: 28px 32px;
+    width: 100%;
+    max-width: 640px;
+  }
+  h1 { font-size: 1.15rem; font-weight: 600; margin-bottom: 2px; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); margin-bottom: 16px; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab {
+    border: 1px solid var(--ring);
+    background: var(--card);
+    border-radius: 8px;
+    padding: 6px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .picker { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .pick {
+    border: 1px solid var(--ring);
+    background: var(--card);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 0.76rem;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .pick:hover { border-color: var(--accent); color: var(--accent); }
+  .pick.active { background: #dbeafe; border-color: var(--accent); font-weight: 600; }
+
+  .box-wrap { display: flex; justify-content: center; }
+  svg {
+    width: 100%;
+    max-width: 460px;
+    height: auto;
+    border: 2px solid var(--ring);
+    border-radius: 10px;
+    background: #f8fafc;
+    display: block;
+  }
+
+  .explain {
+    margin-top: 14px;
+    border: 1px solid var(--ring);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    min-height: 74px;
+  }
+  .explain b { font-weight: 600; }
+
+  .quiz-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 14px 0 0;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .answers { display: flex; gap: 8px; }
+  .ans {
+    border: 1px solid var(--ring);
+    background: var(--card);
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .ans:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .ans:disabled { cursor: default; opacity: 0.9; }
+  .ans.correct { background: #dcfce7; border-color: var(--good); color: var(--good); }
+  .ans.wrong { background: #fee2e2; border-color: var(--bad); color: var(--bad); }
+  .score { font-size: 0.82rem; color: var(--muted); }
+  .score b { color: var(--ink); }
+  .next-btn {
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: none;
+  }
+  .feedback { margin-top: 10px; font-size: 0.85rem; line-height: 1.5; min-height: 42px; }
+  .feedback.good { color: var(--good); }
+  .feedback.bad { color: var(--bad); }
+  .feedback .why { color: var(--ink); display: block; margin-top: 2px; }
+  .note { margin-top: 14px; font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Elements, Compounds &amp; Mixtures</h1>
+  <div class="subtitle">Particle diagrams · each circle is one atom; touching circles are chemically bonded into a molecule</div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabExplore">Explore</button>
+    <button class="tab" id="tabQuiz">Quiz</button>
+  </div>
+
+  <div id="explorePicker" class="picker"></div>
+
+  <div class="box-wrap">
+    <svg id="svg" viewBox="0 0 460 300" role="img" aria-label="Particle diagram"></svg>
+  </div>
+
+  <div class="explain" id="explain"></div>
+
+  <div id="quizUI" class="hidden">
+    <div class="quiz-bar">
+      <div class="answers">
+        <button class="ans" data-a="element">Element</button>
+        <button class="ans" data-a="compound">Compound</button>
+        <button class="ans" data-a="mixture">Mixture</button>
+      </div>
+      <button class="next-btn" id="nextBtn">Next &#8594;</button>
+      <span class="score">Score <b id="scoreVal">0</b>/<b id="attemptVal">0</b> · Streak <b id="streakVal">0</b></span>
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <div class="note">
+    Pure substances (elements and compounds) contain only one kind of particle.
+    A mixture contains two or more kinds of particle that are not chemically bonded,
+    so they can be separated by physical means.
+  </div>
+</div>
+
+<script>
+  const PAL = ["#ef4444", "#3b82f6", "#22c55e", "#f59e0b", "#a855f7", "#334155"];
+  const LIGHT = "#e2e8f0";
+  const AR = 9; // atom radius
+
+  function atomSVG(x, y, fill) {
+    const edge = fill === LIGHT ? "#94a3b8" : "rgba(15,23,42,0.35)";
+    return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + AR +
+           '" fill="' + fill + '" stroke="' + edge + '" stroke-width="1"/>';
+  }
+
+  // unit kinds: atom | di (A2) | diAB | triAB2 (bent, like water)
+  function unitSVG(kind, x, y, rot, c1, c2) {
+    const cos = Math.cos(rot), sin = Math.sin(rot);
+    const pt = (dx, dy) => [x + dx * cos - dy * sin, y + dx * sin + dy * cos];
+    let s = "";
+    if (kind === "atom") {
+      s += atomSVG(x, y, c1);
+    } else if (kind === "di") {
+      let p1 = pt(-AR + 1.5, 0), p2 = pt(AR - 1.5, 0);
+      s += atomSVG(p1[0], p1[1], c1) + atomSVG(p2[0], p2[1], c1);
+    } else if (kind === "diAB") {
+      let p1 = pt(-AR + 1.5, 0), p2 = pt(AR - 1.5, 0);
+      s += atomSVG(p1[0], p1[1], c1) + atomSVG(p2[0], p2[1], c2);
+    } else if (kind === "triAB2") {
+      let pA = pt(0, -3);
+      let pB1 = pt(-AR - 3, 7), pB2 = pt(AR + 3, 7);
+      s += atomSVG(pB1[0], pB1[1], c2) + atomSVG(pB2[0], pB2[1], c2) + atomSVG(pA[0], pA[1], c1);
+    }
+    return s;
+  }
+
+  // place n units on a jittered grid inside 460x300
+  function layout(n) {
+    const cols = 6, rows = 4;
+    const cells = [];
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) cells.push([c, r]);
+    // shuffle
+    for (let i = cells.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [cells[i], cells[j]] = [cells[j], cells[i]];
+    }
+    const cw = 460 / cols, ch = 300 / rows;
+    return cells.slice(0, n).map(([c, r]) => [
+      (c + 0.5) * cw + (Math.random() - 0.5) * 16,
+      (r + 0.5) * ch + (Math.random() - 0.5) * 14,
+      Math.random() * Math.PI * 2
+    ]);
+  }
+
+  // spec: array of {kind, c1, c2, weight}
+  function drawBox(spec, n) {
+    const pos = layout(n);
+    // build the unit list: proportional to weights, shuffled by position order
+    const units = [];
+    const totalW = spec.reduce((a, s) => a + s.weight, 0);
+    spec.forEach(s => {
+      const count = Math.max(1, Math.round(n * s.weight / totalW));
+      for (let i = 0; i < count && units.length < n; i++) units.push(s);
+    });
+    while (units.length < n) units.push(spec[0]);
+    let out = "";
+    pos.forEach((p, i) => {
+      const u = units[i];
+      out += unitSVG(u.kind, p[0], p[1], p[2], u.c1, u.c2);
+    });
+    document.getElementById("svg").innerHTML = out;
+  }
+
+  const EXPLORE = [
+    {
+      label: "Element (atoms)",
+      title: "Element made of single atoms (e.g. helium, He)",
+      body: "Every particle is a single atom, and every atom is the same. One type of atom only, so it is an <b>element</b>. The noble gases (He, Ne, Ar) exist as single atoms.",
+      spec: [{ kind: "atom", c1: PAL[1], weight: 1 }], n: 14
+    },
+    {
+      label: "Element (molecules)",
+      title: "Element made of molecules (e.g. oxygen, O₂)",
+      body: "The atoms are joined in pairs, but both atoms in each molecule are the <b>same</b> type. Still only one type of atom, so it is an <b>element</b>. H₂, N₂, O₂ and Cl₂ are like this.",
+      spec: [{ kind: "di", c1: PAL[0], weight: 1 }], n: 11
+    },
+    {
+      label: "Compound",
+      title: "Compound (e.g. water, H₂O)",
+      body: "Every particle is identical, but each molecule contains <b>two different types of atom chemically bonded</b> together. That makes it a <b>compound</b>: a pure substance that can only be broken up by a chemical reaction.",
+      spec: [{ kind: "triAB2", c1: PAL[0], c2: LIGHT, weight: 1 }], n: 10
+    },
+    {
+      label: "Mixture of elements",
+      title: "Mixture of two elements",
+      body: "There are two different substances here (two different atoms), and they are <b>not bonded</b> to each other. Because more than one substance is present, it is a <b>mixture</b>; it could be separated physically.",
+      spec: [
+        { kind: "atom", c1: PAL[1], weight: 3 },
+        { kind: "atom", c1: PAL[2], weight: 2 }
+      ], n: 14
+    },
+    {
+      label: "Mixture of compounds",
+      title: "Mixture of two compounds",
+      body: "Two different <b>molecules</b> are present, each made of different atoms bonded together. Two substances not bonded to each other = a <b>mixture</b> (of compounds).",
+      spec: [
+        { kind: "triAB2", c1: PAL[0], c2: LIGHT, weight: 3 },
+        { kind: "diAB", c1: PAL[5], c2: PAL[3], weight: 2 }
+      ], n: 10
+    },
+    {
+      label: "Mixture of element + compound",
+      title: "Mixture of an element and a compound",
+      body: "The paired same-colour molecules are an <b>element</b>; the two-colour molecules are a <b>compound</b>. Together, unbonded, they form a <b>mixture</b>, like oxygen dissolved in water.",
+      spec: [
+        { kind: "di", c1: PAL[0], weight: 2 },
+        { kind: "triAB2", c1: PAL[1], c2: LIGHT, weight: 3 }
+      ], n: 10
+    }
+  ];
+
+  const FEEDBACK = {
+    element: "All the particles are identical and contain only ONE type of atom (even if the atoms are joined in molecules).",
+    compound: "All the particles are identical, and each molecule contains two or more DIFFERENT atoms chemically bonded together.",
+    mixture: "There is more than one kind of particle present, and they are not bonded to each other."
+  };
+
+  // ---------- Explore mode ----------
+  const picker = document.getElementById("explorePicker");
+  EXPLORE.forEach((e, i) => {
+    const b = document.createElement("button");
+    b.className = "pick";
+    b.textContent = e.label;
+    b.addEventListener("click", () => showExplore(i));
+    picker.appendChild(b);
+  });
+
+  function showExplore(i) {
+    const e = EXPLORE[i];
+    drawBox(e.spec, e.n);
+    document.getElementById("explain").innerHTML = "<b>" + e.title + "</b><br>" + e.body;
+    document.querySelectorAll(".pick").forEach((p, idx) => p.classList.toggle("active", idx === i));
+  }
+
+  // ---------- Quiz mode ----------
+  let score = 0, attempts = 0, streak = 0, answer = null, locked = false;
+
+  function rnd(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function twoColours() {
+    const i = Math.floor(Math.random() * PAL.length);
+    let j = Math.floor(Math.random() * (PAL.length - 1));
+    if (j >= i) j++;
+    return [PAL[i], PAL[j]];
+  }
+
+  function newQuestion() {
+    locked = false;
+    document.getElementById("feedback").textContent = "";
+    document.getElementById("feedback").className = "feedback";
+    document.getElementById("nextBtn").style.display = "none";
+    document.querySelectorAll(".ans").forEach(b => {
+      b.disabled = false;
+      b.classList.remove("correct", "wrong");
+    });
+
+    const cat = rnd(["element", "compound", "mixture"]);
+    answer = cat;
+    const [cA, cB] = twoColours();
+
+    if (cat === "element") {
+      const kind = rnd(["atom", "di"]);
+      drawBox([{ kind: kind, c1: cA, weight: 1 }], kind === "atom" ? 14 : 11);
+    } else if (cat === "compound") {
+      const kind = rnd(["diAB", "triAB2"]);
+      const c2 = Math.random() < 0.4 ? LIGHT : cB;
+      drawBox([{ kind: kind, c1: cA, c2: c2, weight: 1 }], 10);
+    } else {
+      const variant = rnd(["ee", "cc", "ec"]);
+      const [cC, cD] = twoColours();
+      if (variant === "ee") {
+        drawBox([
+          { kind: rnd(["atom", "di"]), c1: cA, weight: 3 },
+          { kind: rnd(["atom", "di"]), c1: cB, weight: 2 }
+        ], 13);
+      } else if (variant === "cc") {
+        drawBox([
+          { kind: "triAB2", c1: cA, c2: LIGHT, weight: 3 },
+          { kind: "diAB", c1: cC, c2: cD, weight: 2 }
+        ], 10);
+      } else {
+        drawBox([
+          { kind: rnd(["atom", "di"]), c1: cA, weight: 2 },
+          { kind: rnd(["diAB", "triAB2"]), c1: cC, c2: cD, weight: 3 }
+        ], 11);
+      }
+    }
+  }
+
+  document.querySelectorAll(".ans").forEach(b => {
+    b.addEventListener("click", () => {
+      if (locked) return;
+      locked = true;
+      attempts++;
+      const chosen = b.dataset.a;
+      const fb = document.getElementById("feedback");
+      document.querySelectorAll(".ans").forEach(x => {
+        x.disabled = true;
+        if (x.dataset.a === answer) x.classList.add("correct");
+      });
+      const article = answer === "element" ? "an " : "a ";
+      if (chosen === answer) {
+        score++; streak++;
+        fb.className = "feedback good";
+        fb.innerHTML = "Correct: it is " + article + answer + ".<span class='why'>" + FEEDBACK[answer] + "</span>";
+      } else {
+        streak = 0;
+        b.classList.add("wrong");
+        fb.className = "feedback bad";
+        fb.innerHTML = "Not quite: it is " + article + answer + ".<span class='why'>" + FEEDBACK[answer] + "</span>";
+      }
+      document.getElementById("scoreVal").textContent = score;
+      document.getElementById("attemptVal").textContent = attempts;
+      document.getElementById("streakVal").textContent = streak;
+      document.getElementById("nextBtn").style.display = "inline-block";
+    });
+  });
+
+  document.getElementById("nextBtn").addEventListener("click", newQuestion);
+
+  // ---------- Tabs ----------
+  const tabExplore = document.getElementById("tabExplore");
+  const tabQuiz = document.getElementById("tabQuiz");
+  function setMode(quiz) {
+    tabExplore.classList.toggle("active", !quiz);
+    tabQuiz.classList.toggle("active", quiz);
+    document.getElementById("explorePicker").classList.toggle("hidden", quiz);
+    document.getElementById("explain").classList.toggle("hidden", quiz);
+    document.getElementById("quizUI").classList.toggle("hidden", !quiz);
+    if (quiz) newQuestion(); else showExplore(0);
+  }
+  tabExplore.addEventListener("click", () => setMode(false));
+  tabQuiz.addEventListener("click", () => setMode(true));
+
+  showExplore(0);
+</script>
+</body>
+</html>
