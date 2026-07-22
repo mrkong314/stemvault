@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Name That Element</title>
+<style>
+  :root {
+    --ink: #1e293b;
+    --muted: #64748b;
+    --ring: #cbd5e1;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --accent: #2563eb;
+    --good: #16a34a;
+    --half: #d97706;
+    --bad: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px;
+    min-height: 100vh;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+    padding: 28px 32px;
+    width: 100%;
+    max-width: 640px;
+  }
+  h1 { font-size: 1.15rem; font-weight: 600; margin-bottom: 2px; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); margin-bottom: 16px; }
+
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .progress-label { font-size: 0.8rem; color: var(--muted); }
+  .progress-label b { color: var(--ink); }
+  .range-picker { display: flex; gap: 6px; }
+  .range-btn {
+    border: 1px solid var(--ring);
+    background: var(--card);
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-size: 0.76rem;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .range-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .bar {
+    height: 6px;
+    border-radius: 3px;
+    background: #e2e8f0;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .bar > div { height: 100%; width: 0%; background: var(--accent); transition: width 0.25s; }
+
+  .question { display: flex; align-items: center; justify-content: center; gap: 22px; margin-bottom: 20px; }
+  .tile {
+    width: 110px;
+    height: 110px;
+    border: 2px solid var(--ring);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    flex: 0 0 auto;
+  }
+  .tile .lbl { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .tile .num { font-size: 2.6rem; font-weight: 700; line-height: 1.1; }
+  .tile .sym { font-size: 1rem; font-weight: 600; color: var(--muted); min-height: 1.3em; }
+  .prompt { font-size: 1rem; line-height: 1.5; max-width: 280px; }
+
+  .answer-row { display: flex; gap: 8px; justify-content: center; }
+  input[type="text"] {
+    border: 2px solid var(--ring);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 1rem;
+    width: 280px;
+    outline: none;
+    color: var(--ink);
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]:disabled { background: #f8fafc; }
+  .submit-btn, .next-btn, .restart-btn {
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .submit-btn:disabled { opacity: 0.4; cursor: default; }
+
+  .feedback {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    min-height: 66px;
+  }
+  .feedback .verdict { font-weight: 700; }
+  .feedback.full .verdict { color: var(--good); }
+  .feedback.half .verdict { color: var(--half); }
+  .feedback.zero .verdict { color: var(--bad); }
+  .feedback .hint { color: var(--muted); display: block; margin-top: 3px; }
+  .controls { display: flex; justify-content: center; margin-top: 8px; min-height: 42px; }
+  .next-btn { display: none; }
+
+  .summary { text-align: center; padding: 26px 0 8px; }
+  .summary .big { font-size: 2.2rem; font-weight: 700; margin-bottom: 6px; }
+  .summary .msg { color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; }
+  .review {
+    text-align: left;
+    font-size: 0.82rem;
+    color: var(--muted);
+    border: 1px solid var(--ring);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 0 auto 18px;
+    max-width: 440px;
+    line-height: 1.7;
+  }
+  .review b { color: var(--ink); }
+  .marks { font-variant-numeric: tabular-nums; }
+  .note { margin-top: 14px; font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Name That Element</h1>
+  <div class="subtitle">Type the element's name from its atomic number · exact spelling = 1 mark, close spelling = &frac12; mark</div>
+
+  <div class="top-row">
+    <span class="progress-label">Question <b id="qNum">1</b> of <b id="qTotal">20</b> · Marks <b class="marks" id="score">0</b></span>
+    <div class="range-picker">
+      <button class="range-btn active" data-max="20">Elements 1&ndash;20</button>
+      <button class="range-btn" data-max="36">Elements 1&ndash;36</button>
+    </div>
+  </div>
+  <div class="bar"><div id="barFill"></div></div>
+
+  <div id="quizArea">
+    <div class="question">
+      <div class="tile">
+        <span class="lbl">Atomic number</span>
+        <span class="num" id="zNum">?</span>
+        <span class="sym" id="zSym"></span>
+      </div>
+      <div class="prompt">Which element has this atomic number? Type its <b>full name</b> and press Enter.</div>
+    </div>
+    <div class="answer-row">
+      <input type="text" id="answer" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Element name...">
+      <button class="submit-btn" id="submitBtn">Check</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="controls"><button class="next-btn" id="nextBtn">Next &#8594;</button></div>
+  </div>
+
+  <div id="summaryArea" class="hidden">
+    <div class="summary">
+      <div class="big" id="finalScore"></div>
+      <div class="msg" id="finalMsg"></div>
+      <div class="review" id="review"></div>
+      <button class="restart-btn" id="restartBtn">Play again (reshuffled)</button>
+    </div>
+  </div>
+
+  <div class="note">
+    Capitalisation does not matter. Accepted alternative spellings (such as sulphur or
+    aluminum) earn full marks. A near-miss spelling earns half marks; the correct
+    spelling is always shown so you can learn it.
+  </div>
+</div>
+
+<script>
+  // [symbol, name, aliases...]
+  const ELEMENTS = [
+    ["H","Hydrogen"],["He","Helium"],["Li","Lithium"],["Be","Beryllium"],["B","Boron"],
+    ["C","Carbon"],["N","Nitrogen"],["O","Oxygen"],["F","Fluorine"],["Ne","Neon"],
+    ["Na","Sodium"],["Mg","Magnesium"],["Al","Aluminium","Aluminum"],["Si","Silicon"],
+    ["P","Phosphorus"],["S","Sulfur","Sulphur"],["Cl","Chlorine"],["Ar","Argon"],
+    ["K","Potassium"],["Ca","Calcium"],["Sc","Scandium"],["Ti","Titanium"],["V","Vanadium"],
+    ["Cr","Chromium"],["Mn","Manganese"],["Fe","Iron"],["Co","Cobalt"],["Ni","Nickel"],
+    ["Cu","Copper"],["Zn","Zinc"],["Ga","Gallium"],["Ge","Germanium"],["As","Arsenic"],
+    ["Se","Selenium"],["Br","Bromine"],["Kr","Krypton"]
+  ];
+
+  function norm(s) { return s.trim().toLowerCase().replace(/\s+/g, ""); }
+
+  // Damerau-Levenshtein: swaps of adjacent letters ("noen" for "neon") count as one edit
+  function levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    if (!m) return n;
+    if (!n) return m;
+    const d = Array.from({ length: m + 1 }, (_, i) =>
+      Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+        if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+          d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+        }
+      }
+    }
+    return d[m][n];
+  }
+
+  // returns {mark: 1|0.5|0, best: closest accepted spelling}
+  function judge(input, el) {
+    const guess = norm(input);
+    const accepted = el.slice(1).map(norm);
+    let best = el[1], bestD = Infinity;
+    accepted.forEach((a, i) => {
+      const d = levenshtein(guess, a);
+      if (d < bestD) { bestD = d; best = el[i + 1]; }
+    });
+    if (bestD === 0) return { mark: 1, best };
+    const maxD = best.length <= 5 ? 1 : 2;
+    if (bestD <= maxD) return { mark: 0.5, best };
+    return { mark: 0, best };
+  }
+
+  let maxZ = 20, order = [], idx = 0, score = 0, locked = false, missed = [];
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function fmtScore(s) { return (Math.round(s * 2) / 2).toString(); }
+
+  function start() {
+    order = shuffle(Array.from({ length: maxZ }, (_, i) => i + 1));
+    idx = 0; score = 0; missed = [];
+    document.getElementById("qTotal").textContent = order.length;
+    document.getElementById("summaryArea").classList.add("hidden");
+    document.getElementById("quizArea").classList.remove("hidden");
+    show();
+  }
+
+  function show() {
+    locked = false;
+    document.getElementById("zNum").textContent = order[idx];
+    document.getElementById("zSym").textContent = "";
+    document.getElementById("qNum").textContent = idx + 1;
+    document.getElementById("score").textContent = fmtScore(score);
+    document.getElementById("barFill").style.width = (idx / order.length * 100) + "%";
+    document.getElementById("feedback").textContent = "";
+    document.getElementById("feedback").className = "feedback";
+    document.getElementById("nextBtn").style.display = "none";
+    const inp = document.getElementById("answer");
+    inp.value = "";
+    inp.disabled = false;
+    document.getElementById("submitBtn").disabled = false;
+    inp.focus();
+  }
+
+  function submit() {
+    if (locked) return;
+    const inp = document.getElementById("answer");
+    const raw = inp.value;
+    if (!norm(raw)) return;
+    const z = order[idx];
+    const el = ELEMENTS[z - 1];
+
+    // typed the symbol instead of the name: warn, don't mark
+    if (norm(raw) === norm(el[0])) {
+      const fb = document.getElementById("feedback");
+      fb.className = "feedback";
+      fb.innerHTML = "<span class='hint'>That is the symbol; type the element's full name.</span>";
+      inp.select();
+      return;
+    }
+
+    locked = true;
+    const { mark, best } = judge(raw, el);
+    score += mark;
+    const fb = document.getElementById("feedback");
+    const revealed = el[1] + " (" + el[0] + ")";
+    document.getElementById("zSym").textContent = el[0];
+    if (mark === 1) {
+      fb.className = "feedback full";
+      fb.innerHTML = "<span class='verdict'>Correct! Element " + z + " is " + revealed + ". (1 mark)</span>";
+    } else if (mark === 0.5) {
+      fb.className = "feedback half";
+      fb.innerHTML = "<span class='verdict'>Close! (&frac12; mark)</span>" +
+        "<span class='hint'>You wrote “" + raw.trim() + "”; the correct spelling is <b>" + best + "</b>.</span>";
+      missed.push({ z, name: el[1], you: raw.trim(), half: true });
+    } else {
+      fb.className = "feedback zero";
+      fb.innerHTML = "<span class='verdict'>Not quite. (0 marks)</span>" +
+        "<span class='hint'>Element " + z + " is <b>" + revealed + "</b>.</span>";
+      missed.push({ z, name: el[1], you: raw.trim(), half: false });
+    }
+    document.getElementById("score").textContent = fmtScore(score);
+    inp.disabled = true;
+    document.getElementById("submitBtn").disabled = true;
+    const nb = document.getElementById("nextBtn");
+    nb.style.display = "inline-block";
+    nb.textContent = idx === order.length - 1 ? "See results →" : "Next →";
+    nb.focus();
+  }
+
+  function next() {
+    idx++;
+    if (idx >= order.length) {
+      document.getElementById("quizArea").classList.add("hidden");
+      document.getElementById("summaryArea").classList.remove("hidden");
+      document.getElementById("barFill").style.width = "100%";
+      document.getElementById("finalScore").textContent = fmtScore(score) + " / " + order.length;
+      const pct = score / order.length;
+      document.getElementById("finalMsg").textContent =
+        pct === 1 ? "Perfect score, every name spelled exactly right." :
+        pct >= 0.85 ? "Excellent recall. Tidy up the spellings below and it is full marks." :
+        pct >= 0.6 ? "Good knowledge of the elements; review the ones below." :
+        "Keep practising; the list below shows the ones to revise.";
+      const rev = document.getElementById("review");
+      if (missed.length === 0) {
+        rev.innerHTML = "No corrections needed.";
+      } else {
+        rev.innerHTML = "<b>To revise:</b><br>" + missed.map(m =>
+          "Element " + m.z + " is <b>" + m.name + "</b>" +
+          (m.half ? " (you wrote “" + m.you + "”)" : "")
+        ).join("<br>");
+      }
+    } else {
+      show();
+    }
+  }
+
+  document.getElementById("submitBtn").addEventListener("click", submit);
+  document.getElementById("answer").addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); submit(); }
+  });
+  document.getElementById("nextBtn").addEventListener("click", next);
+  document.getElementById("restartBtn").addEventListener("click", start);
+  document.querySelectorAll(".range-btn").forEach(b => {
+    b.addEventListener("click", () => {
+      maxZ = +b.dataset.max;
+      document.querySelectorAll(".range-btn").forEach(x => x.classList.toggle("active", x === b));
+      start();
+    });
+  });
+
+  start();
+</script>
+</body>
+</html>
