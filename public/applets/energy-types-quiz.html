@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Types of Energy Quiz</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --accent: #3b5bdb;
+    --accent-soft: #e7ecff;
+    --correct: #12813d;
+    --correct-soft: #e2f5e9;
+    --wrong: #c22f2f;
+    --wrong-soft: #fdeaea;
+    --border: #dfe3ee;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 48px;
+  }
+  .app { width: 100%; max-width: 680px; }
+  header { text-align: center; margin-bottom: 18px; }
+  header h1 { font-size: 1.55rem; font-weight: 700; }
+  header p { color: var(--muted); font-size: 0.95rem; margin-top: 4px; }
+
+  .progress-wrap {
+    background: #e2e6f0;
+    border-radius: 99px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.3s ease;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: 0 2px 10px rgba(30, 45, 90, 0.06);
+  }
+  .qtype {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 4px 10px;
+    border-radius: 99px;
+    margin-bottom: 12px;
+  }
+  .qtext { font-size: 1.08rem; font-weight: 600; line-height: 1.5; margin-bottom: 18px; }
+
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  button.option {
+    text-align: left;
+    font-size: 0.98rem;
+    font-family: inherit;
+    color: var(--ink);
+    background: #fafbfe;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  button.option:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+  button.option:disabled { cursor: default; }
+  button.option.correct { border-color: var(--correct); background: var(--correct-soft); }
+  button.option.wrong { border-color: var(--wrong); background: var(--wrong-soft); }
+  button.option.reveal { border-color: var(--correct); }
+
+  .feedback {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 0.93rem;
+    line-height: 1.5;
+    display: none;
+  }
+  .feedback.show { display: block; }
+  .feedback.good { background: var(--correct-soft); color: #0d5c2c; }
+  .feedback.bad { background: var(--wrong-soft); color: #8f1f1f; }
+  .feedback strong { display: block; margin-bottom: 2px; }
+
+  .match-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .match-row:last-of-type { border-bottom: none; }
+  .match-scenario { flex: 1; font-size: 0.95rem; line-height: 1.4; }
+  .match-row select {
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 8px 10px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: #fafbfe;
+    color: var(--ink);
+    cursor: pointer;
+    min-width: 190px;
+  }
+  .match-row select.correct { border-color: var(--correct); background: var(--correct-soft); }
+  .match-row select.wrong { border-color: var(--wrong); background: var(--wrong-soft); }
+
+  .actions { margin-top: 20px; display: flex; justify-content: flex-end; }
+  button.primary {
+    font-family: inherit;
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 26px;
+    cursor: pointer;
+    transition: filter 0.15s;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  button.primary:disabled { background: #b9c2da; cursor: default; }
+
+  /* Results */
+  .results { text-align: center; }
+  .score-big { font-size: 3rem; font-weight: 800; color: var(--accent); margin: 8px 0 2px; }
+  .score-msg { font-size: 1.05rem; color: var(--muted); margin-bottom: 22px; }
+  .review {
+    text-align: left;
+    margin-top: 8px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  .review h3 { font-size: 0.95rem; margin-bottom: 10px; }
+  .review-item {
+    display: flex;
+    gap: 8px;
+    font-size: 0.88rem;
+    padding: 6px 0;
+    line-height: 1.4;
+    border-bottom: 1px dashed var(--border);
+  }
+  .review-item:last-child { border-bottom: none; }
+  .tick { color: var(--correct); font-weight: 700; }
+  .cross { color: var(--wrong); font-weight: 700; }
+
+  /* Start screen */
+  .energy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 18px 0 22px;
+  }
+  .energy-chip {
+    font-size: 0.82rem;
+    text-align: center;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 8px 6px;
+  }
+  @media (max-width: 480px) {
+    .energy-grid { grid-template-columns: repeat(2, 1fr); }
+    .match-row { flex-direction: column; align-items: flex-start; }
+    .match-row select { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Types of Energy Quiz</h1>
+    <p>Kinetic, potential and everything in between</p>
+  </header>
+
+  <div class="progress-wrap"><div class="progress-bar" id="bar"></div></div>
+  <div class="progress-label">
+    <span id="progressText">Ready to start</span>
+    <span id="scoreText"></span>
+  </div>
+
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+"use strict";
+
+const TYPES = [
+  "Kinetic", "Heat", "Light", "Sound", "Electrical",
+  "Gravitational potential", "Elastic potential", "Chemical potential", "Nuclear potential"
+];
+
+// Question bank: 12 MC + 6 TF + 2 matching = 20 questions
+const QUESTIONS = [
+  {
+    type: "mc",
+    q: "A car driving along a road mainly has which type of energy?",
+    options: ["Kinetic energy", "Sound energy", "Elastic potential energy", "Light energy"],
+    answer: 0,
+    explain: "Kinetic energy is the energy of movement. Anything that is moving has kinetic energy."
+  },
+  {
+    type: "tf",
+    q: "True or false: A compressed spring stores elastic potential energy.",
+    answer: true,
+    explain: "Stretching or compressing a springy object stores elastic potential energy, which is released when it snaps back."
+  },
+  {
+    type: "mc",
+    q: "The energy stored in the food you eat is:",
+    options: ["Nuclear potential energy", "Chemical potential energy", "Heat energy", "Kinetic energy"],
+    answer: 1,
+    explain: "Food stores chemical potential energy in the bonds between atoms. Your body releases it during digestion and respiration."
+  },
+  {
+    type: "mc",
+    q: "A book sitting on a high shelf has which type of stored energy?",
+    options: ["Elastic potential energy", "Electrical energy", "Gravitational potential energy", "Sound energy"],
+    answer: 2,
+    explain: "Objects raised above the ground store gravitational potential energy. If the book falls, that stored energy becomes kinetic energy."
+  },
+  {
+    type: "tf",
+    q: "True or false: Sound energy can travel through the vacuum of space.",
+    answer: false,
+    explain: "Sound needs particles (a solid, liquid or gas) to travel through. Space is a vacuum, so sound cannot travel there — but light can."
+  },
+  {
+    type: "mc",
+    q: "Which type of energy is carried by moving electric charges in a wire?",
+    options: ["Heat energy", "Chemical potential energy", "Light energy", "Electrical energy"],
+    answer: 3,
+    explain: "Electrical energy is carried by electric charges moving through a conductor, such as electrons in a copper wire."
+  },
+  {
+    type: "match",
+    q: "Match each scenario to the type of energy it best shows.",
+    pairs: [
+      { scenario: "A soccer ball rolling across the pitch", answer: "Kinetic" },
+      { scenario: "A freshly made cup of hot tea", answer: "Heat" },
+      { scenario: "A vibrating guitar string you can hear", answer: "Sound" },
+      { scenario: "The beam from a torch", answer: "Light" }
+    ],
+    choices: ["Kinetic", "Heat", "Sound", "Light"],
+    explain: "Movement → kinetic. Hotness → heat. Vibrations you hear → sound. What you see → light."
+  },
+  {
+    type: "mc",
+    q: "A stretched rubber band stores:",
+    options: ["Elastic potential energy", "Gravitational potential energy", "Nuclear potential energy", "Heat energy"],
+    answer: 0,
+    explain: "Stretching the rubber band stores elastic potential energy. Let go and it converts to kinetic energy."
+  },
+  {
+    type: "tf",
+    q: "True or false: Heat energy naturally flows from cold objects to hot objects.",
+    answer: false,
+    explain: "It is the other way around — heat naturally flows from hotter objects to colder ones until they reach the same temperature."
+  },
+  {
+    type: "mc",
+    q: "The energy released inside the Sun, and in nuclear power stations, comes from:",
+    options: ["Chemical potential energy", "Electrical energy", "Nuclear potential energy", "Elastic potential energy"],
+    answer: 2,
+    explain: "Nuclear potential energy is stored in the nucleus of atoms. The Sun releases it by fusion; power stations release it by fission."
+  },
+  {
+    type: "mc",
+    q: "Which of these is a form of stored (potential) energy?",
+    options: ["Sound energy", "Light energy", "Kinetic energy", "Chemical potential energy"],
+    answer: 3,
+    explain: "Potential energy is stored energy. Chemical potential energy is stored in substances like food, fuel and batteries. Sound, light and kinetic energy are all energy in action, not stored."
+  },
+  {
+    type: "tf",
+    q: "True or false: The higher you lift an object, the more gravitational potential energy it stores.",
+    answer: true,
+    explain: "Gravitational potential energy increases with height (and with mass). A diver on the 10 m board stores more than one on the 3 m board."
+  },
+  {
+    type: "mc",
+    q: "A charged phone battery is a store of:",
+    options: ["Chemical potential energy", "Light energy", "Sound energy", "Kinetic energy"],
+    answer: 0,
+    explain: "Batteries store chemical potential energy, which is converted to electrical energy when the phone is switched on."
+  },
+  {
+    type: "mc",
+    q: "Which type of energy lets you see the objects around you?",
+    options: ["Sound energy", "Light energy", "Electrical energy", "Heat energy"],
+    answer: 1,
+    explain: "You see objects when light energy reflects off them and enters your eyes."
+  },
+  {
+    type: "tf",
+    q: "True or false: Electrical energy is a type of stored (potential) energy.",
+    answer: false,
+    explain: "Electrical energy is energy in action — it is carried by moving charges. The stored energies are gravitational, elastic, chemical and nuclear potential energy."
+  },
+  {
+    type: "mc",
+    q: "When you rub your hands together quickly, kinetic energy is mostly converted into:",
+    options: ["Light energy", "Nuclear potential energy", "Heat energy", "Elastic potential energy"],
+    answer: 2,
+    explain: "Friction between your hands converts the kinetic energy of the rubbing into heat energy, which is why they warm up."
+  },
+  {
+    type: "match",
+    q: "Match each scenario to the type of stored energy it best shows.",
+    pairs: [
+      { scenario: "A diver standing on a high platform", answer: "Gravitational potential" },
+      { scenario: "A wound-up clockwork toy", answer: "Elastic potential" },
+      { scenario: "Petrol in a car's fuel tank", answer: "Chemical potential" },
+      { scenario: "A uranium fuel rod in a reactor", answer: "Nuclear potential" }
+    ],
+    choices: ["Gravitational potential", "Elastic potential", "Chemical potential", "Nuclear potential"],
+    explain: "Height → gravitational. Stretched or wound springs → elastic. Fuels and food → chemical. The nucleus of atoms → nuclear."
+  },
+  {
+    type: "mc",
+    q: "A ringing school bell mainly transfers energy to your ears as:",
+    options: ["Sound energy", "Chemical potential energy", "Gravitational potential energy", "Electrical energy"],
+    answer: 0,
+    explain: "The bell vibrates, making the air particles vibrate. Those vibrations carry sound energy to your ears."
+  },
+  {
+    type: "tf",
+    q: "True or false: A faster-moving object has more kinetic energy than the same object moving slowly.",
+    answer: true,
+    explain: "Kinetic energy depends on mass and speed. The same object moving faster has more kinetic energy."
+  },
+  {
+    type: "mc",
+    q: "Burning wood in a campfire releases stored energy as heat and light. Which type of energy was stored in the wood?",
+    options: ["Nuclear potential energy", "Elastic potential energy", "Chemical potential energy", "Electrical energy"],
+    answer: 2,
+    explain: "Wood, like all fuels, stores chemical potential energy. Burning it releases that energy as heat and light."
+  }
+];
+
+const TOTAL = QUESTIONS.length;
+let current = -1;          // -1 = start screen
+let score = 0;
+let answered = false;
+const results = [];        // { q, correct }
+
+const card = document.getElementById("card");
+const bar = document.getElementById("bar");
+const progressText = document.getElementById("progressText");
+const scoreText = document.getElementById("scoreText");
+
+function updateProgress() {
+  const done = Math.max(current, 0);
+  bar.style.width = (done / TOTAL * 100) + "%";
+  if (current >= 0 && current < TOTAL) {
+    progressText.textContent = "Question " + (current + 1) + " of " + TOTAL;
+    scoreText.textContent = "Score: " + score;
+  } else if (current >= TOTAL) {
+    progressText.textContent = "Finished";
+    scoreText.textContent = "Score: " + score + " / " + TOTAL;
+    bar.style.width = "100%";
+  } else {
+    progressText.textContent = "Ready to start";
+    scoreText.textContent = "";
+  }
+}
+
+function showStart() {
+  current = -1;
+  score = 0;
+  answered = false;
+  results.length = 0;
+  updateProgress();
+  card.innerHTML =
+    '<div class="qtype">Introduction</div>' +
+    '<div class="qtext">How well do you know the nine types of energy?</div>' +
+    '<p style="color:var(--muted); font-size:0.95rem; line-height:1.5;">' +
+    'Twenty questions: multiple choice, true or false, and matching. ' +
+    'You get instant feedback after each answer.</p>' +
+    '<div class="energy-grid">' +
+    TYPES.map(t => '<div class="energy-chip">' + t + '</div>').join("") +
+    '</div>' +
+    '<div class="actions"><button class="primary" id="startBtn">Start quiz</button></div>';
+  document.getElementById("startBtn").addEventListener("click", nextQuestion);
+}
+
+function nextQuestion() {
+  current++;
+  answered = false;
+  updateProgress();
+  if (current >= TOTAL) { showResults(); return; }
+  const q = QUESTIONS[current];
+  if (q.type === "mc") renderMC(q);
+  else if (q.type === "tf") renderTF(q);
+  else renderMatch(q);
+}
+
+function renderMC(q) {
+  card.innerHTML =
+    '<div class="qtype">Multiple choice</div>' +
+    '<div class="qtext">' + q.q + '</div>' +
+    '<div class="options">' +
+    q.options.map((opt, i) =>
+      '<button class="option" data-i="' + i + '">' + opt + '</button>').join("") +
+    '</div>' +
+    '<div class="feedback" id="fb"></div>' +
+    '<div class="actions"><button class="primary" id="nextBtn" disabled>Next</button></div>';
+
+  const buttons = card.querySelectorAll("button.option");
+  buttons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (answered) return;
+      answered = true;
+      const i = Number(btn.dataset.i);
+      const correct = i === q.answer;
+      if (correct) score++;
+      results.push({ q: q.q, correct });
+      buttons.forEach(b => { b.disabled = true; });
+      if (correct) {
+        btn.classList.add("correct");
+      } else {
+        btn.classList.add("wrong");
+        buttons[q.answer].classList.add("reveal", "correct");
+      }
+      showFeedback(correct, q.explain);
+      enableNext();
+    });
+  });
+  wireNext();
+}
+
+function renderTF(q) {
+  card.innerHTML =
+    '<div class="qtype">True or false</div>' +
+    '<div class="qtext">' + q.q + '</div>' +
+    '<div class="options">' +
+    '<button class="option" data-v="true">True</button>' +
+    '<button class="option" data-v="false">False</button>' +
+    '</div>' +
+    '<div class="feedback" id="fb"></div>' +
+    '<div class="actions"><button class="primary" id="nextBtn" disabled>Next</button></div>';
+
+  const buttons = card.querySelectorAll("button.option");
+  buttons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (answered) return;
+      answered = true;
+      const val = btn.dataset.v === "true";
+      const correct = val === q.answer;
+      if (correct) score++;
+      results.push({ q: q.q, correct });
+      buttons.forEach(b => { b.disabled = true; });
+      if (correct) {
+        btn.classList.add("correct");
+      } else {
+        btn.classList.add("wrong");
+        buttons[q.answer ? 0 : 1].classList.add("reveal", "correct");
+      }
+      showFeedback(correct, q.explain);
+      enableNext();
+    });
+  });
+  wireNext();
+}
+
+function renderMatch(q) {
+  const optionsHtml = '<option value="">Choose…</option>' +
+    q.choices.map(c => '<option value="' + c + '">' + c + ' energy</option>').join("");
+  card.innerHTML =
+    '<div class="qtype">Matching</div>' +
+    '<div class="qtext">' + q.q + '</div>' +
+    q.pairs.map((p, i) =>
+      '<div class="match-row">' +
+      '<div class="match-scenario">' + p.scenario + '</div>' +
+      '<select data-i="' + i + '">' + optionsHtml + '</select>' +
+      '</div>').join("") +
+    '<div class="feedback" id="fb"></div>' +
+    '<div class="actions">' +
+    '<button class="primary" id="checkBtn" disabled>Check answers</button>' +
+    '<button class="primary" id="nextBtn" disabled style="display:none; margin-left:10px;">Next</button>' +
+    '</div>';
+
+  const selects = card.querySelectorAll("select");
+  const checkBtn = document.getElementById("checkBtn");
+
+  selects.forEach(sel => {
+    sel.addEventListener("change", () => {
+      const allChosen = Array.from(selects).every(s => s.value !== "");
+      checkBtn.disabled = !allChosen;
+    });
+  });
+
+  checkBtn.addEventListener("click", () => {
+    if (answered) return;
+    answered = true;
+    let allRight = true;
+    selects.forEach(sel => {
+      const i = Number(sel.dataset.i);
+      const right = sel.value === q.pairs[i].answer;
+      if (!right) allRight = false;
+      sel.classList.add(right ? "correct" : "wrong");
+      sel.disabled = true;
+    });
+    if (allRight) score++;
+    results.push({ q: q.q, correct: allRight });
+    // reveal correct answers for any wrong rows
+    if (!allRight) {
+      const wrongLines = q.pairs
+        .filter((p, i) => selects[i].value !== p.answer)
+        .map(p => "“" + p.scenario + "” → " + p.answer + " energy")
+        .join("<br>");
+      showFeedback(false, q.explain + "<br><br><em>Correct answers:</em><br>" + wrongLines);
+    } else {
+      showFeedback(true, q.explain);
+    }
+    checkBtn.style.display = "none";
+    const nextBtn = document.getElementById("nextBtn");
+    nextBtn.style.display = "inline-block";
+    nextBtn.disabled = false;
+    updateProgress();
+  });
+  wireNext();
+}
+
+function showFeedback(correct, explain) {
+  const fb = document.getElementById("fb");
+  fb.className = "feedback show " + (correct ? "good" : "bad");
+  fb.innerHTML = "<strong>" + (correct ? "Correct!" : "Not quite.") + "</strong>" + explain;
+  updateProgress();
+}
+
+function enableNext() {
+  document.getElementById("nextBtn").disabled = false;
+}
+
+function wireNext() {
+  document.getElementById("nextBtn").addEventListener("click", nextQuestion);
+}
+
+function showResults() {
+  const pct = Math.round(score / TOTAL * 100);
+  let msg;
+  if (pct >= 90) msg = "Outstanding — you really know your energy types.";
+  else if (pct >= 75) msg = "Great work — just a couple of ideas to revise.";
+  else if (pct >= 50) msg = "Good start — review the questions you missed below.";
+  else msg = "Keep going — work through the review below and try again.";
+
+  card.innerHTML =
+    '<div class="results">' +
+    '<div class="qtype">Results</div>' +
+    '<div class="score-big">' + score + ' / ' + TOTAL + '</div>' +
+    '<div class="score-msg">' + msg + '</div>' +
+    '<div class="actions" style="justify-content:center;">' +
+    '<button class="primary" id="restartBtn">Try again</button></div>' +
+    '<div class="review"><h3>Question review</h3>' +
+    results.map(r =>
+      '<div class="review-item">' +
+      '<span class="' + (r.correct ? "tick" : "cross") + '">' + (r.correct ? "✓" : "✗") + '</span>' +
+      '<span>' + r.q + '</span></div>').join("") +
+    '</div></div>';
+  document.getElementById("restartBtn").addEventListener("click", showStart);
+}
+
+showStart();
+</script>
+</body>
+</html>
