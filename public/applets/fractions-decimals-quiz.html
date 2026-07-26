@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fractions and Decimals Quiz</title>
+<style>
+  :root {
+    --bg: #f4f7fb;
+    --card: #ffffff;
+    --ink: #1f2a44;
+    --muted: #64748b;
+    --blue: #2563eb;
+    --blue-dark: #1d4ed8;
+    --green: #16a34a;
+    --green-bg: #dcfce7;
+    --red: #dc2626;
+    --red-bg: #fee2e2;
+    --amber: #f59e0b;
+    --border: #dbe3ef;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 24px 12px;
+  }
+  .app { width: 100%; max-width: 560px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    box-shadow: 0 4px 16px rgba(31, 42, 68, 0.06);
+  }
+  h1 { font-size: 1.5rem; text-align: center; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: var(--muted); margin-bottom: 24px; font-size: 0.95rem; }
+
+  /* Fraction rendering */
+  .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    vertical-align: middle;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+  }
+  .frac .num { padding: 0 6px; }
+  .frac .den { padding: 0 6px; border-top: 2.5px solid currentColor; }
+
+  /* Start screen */
+  .mode-btns { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+  .mode-btn {
+    font-size: 1.05rem;
+    font-weight: 600;
+    padding: 16px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    text-align: left;
+  }
+  .mode-btn small { display: block; font-weight: 400; color: var(--muted); margin-top: 4px; }
+  .mode-btn:hover { border-color: var(--blue); background: #f0f5ff; }
+
+  /* Quiz header */
+  .quiz-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.9rem; color: var(--muted); font-weight: 600; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 20px; }
+  .progress-fill { height: 100%; background: var(--blue); border-radius: 4px; width: 0%; transition: width .3s; }
+
+  .prompt { text-align: center; font-size: 1.1rem; color: var(--muted); margin-bottom: 10px; }
+  .question {
+    text-align: center;
+    font-size: 2.6rem;
+    font-weight: 700;
+    margin: 12px 0 24px;
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .question .frac { font-size: 2.2rem; }
+
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .answer-btn {
+    font-size: 1.45rem;
+    font-weight: 700;
+    padding: 18px 8px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .05s;
+    min-height: 74px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .answer-btn .frac { font-size: 1.25rem; }
+  .answer-btn:hover:not(:disabled) { border-color: var(--blue); background: #f0f5ff; }
+  .answer-btn:active:not(:disabled) { transform: scale(0.98); }
+  .answer-btn:disabled { cursor: default; }
+  .answer-btn.correct { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+  .answer-btn.wrong { border-color: var(--red); background: var(--red-bg); color: var(--red); }
+  .answer-btn.faded { opacity: 0.45; }
+
+  .feedback {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 1rem;
+    text-align: center;
+    display: none;
+  }
+  .feedback.show { display: block; }
+  .feedback.good { background: var(--green-bg); color: #14532d; }
+  .feedback.bad { background: var(--red-bg); color: #7f1d1d; }
+  .feedback .frac { font-size: 0.95rem; }
+
+  .next-btn, .big-btn {
+    display: block;
+    width: 100%;
+    margin-top: 18px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    background: var(--blue);
+    color: #fff;
+    cursor: pointer;
+  }
+  .next-btn:hover, .big-btn:hover { background: var(--blue-dark); }
+  .ghost-btn {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 13px;
+    border-radius: 12px;
+    border: 2px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .ghost-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* Results */
+  .result-score { text-align: center; font-size: 3.2rem; font-weight: 800; margin: 8px 0; }
+  .result-msg { text-align: center; font-size: 1.15rem; margin-bottom: 4px; }
+  .stars { text-align: center; font-size: 2rem; letter-spacing: 6px; margin-bottom: 16px; color: var(--amber); }
+  .review-title { font-weight: 700; margin: 18px 0 8px; font-size: 1rem; }
+  .review-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  .review-item .eq { color: var(--muted); font-weight: 400; padding: 0 4px; }
+  .review-item .frac { font-size: 0.95rem; }
+  .streak-note { text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: 14px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+
+    <!-- START SCREEN -->
+    <div id="screen-start">
+      <h1>Fractions &amp; Decimals Quiz</h1>
+      <p class="subtitle">10 questions. Halves, quarters, fifths, tenths and hundredths.</p>
+      <div class="mode-btns">
+        <button class="mode-btn" onclick="startQuiz('f2d')">
+          Fractions &rarr; Decimals
+          <small>See a fraction, pick the matching decimal</small>
+        </button>
+        <button class="mode-btn" onclick="startQuiz('d2f')">
+          Decimals &rarr; Fractions
+          <small>See a decimal, pick the matching fraction</small>
+        </button>
+        <button class="mode-btn" onclick="startQuiz('mixed')">
+          Mixed challenge
+          <small>Both directions, shuffled together</small>
+        </button>
+      </div>
+    </div>
+
+    <!-- QUIZ SCREEN -->
+    <div id="screen-quiz" class="hidden">
+      <div class="quiz-top">
+        <span id="q-counter">Question 1 of 10</span>
+        <span id="q-score">Score: 0</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+      <p class="prompt" id="prompt-text"></p>
+      <div class="question" id="question-display"></div>
+      <div class="answers" id="answers"></div>
+      <div class="feedback" id="feedback"></div>
+      <button class="next-btn hidden" id="next-btn" onclick="nextQuestion()">Next question</button>
+    </div>
+
+    <!-- RESULTS SCREEN -->
+    <div id="screen-results" class="hidden">
+      <h1>Round complete!</h1>
+      <div class="result-score" id="final-score"></div>
+      <div class="stars" id="stars"></div>
+      <p class="result-msg" id="result-msg"></p>
+      <div id="review-block"></div>
+      <button class="big-btn" onclick="startQuiz(lastMode)">Play again</button>
+      <button class="ghost-btn" onclick="showStart()">Change quiz type</button>
+      <p class="streak-note" id="best-note"></p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ---------- Question pool ----------
+// Each entry: numerator, denominator, decimal value (as display string), family,
+// canonical: true if this fraction is the one shown as the answer in decimal->fraction mode.
+const POOL = [
+  { n:1, d:2,  dec:"0.5",  family:"half",    canonical:true,  explain:"1 out of 2 is the same as 5 tenths, so 0.5" },
+  { n:1, d:4,  dec:"0.25", family:"quarter", canonical:true,  explain:"1 quarter is 25 out of 100, so 0.25" },
+  { n:3, d:4,  dec:"0.75", family:"quarter", canonical:true,  explain:"3 quarters is 75 out of 100, so 0.75" },
+  { n:1, d:5,  dec:"0.2",  family:"fifth",   canonical:true,  explain:"1 fifth is the same as 2 tenths, so 0.2" },
+  { n:2, d:5,  dec:"0.4",  family:"fifth",   canonical:true,  explain:"2 fifths is the same as 4 tenths, so 0.4" },
+  { n:3, d:5,  dec:"0.6",  family:"fifth",   canonical:true,  explain:"3 fifths is the same as 6 tenths, so 0.6" },
+  { n:4, d:5,  dec:"0.8",  family:"fifth",   canonical:true,  explain:"4 fifths is the same as 8 tenths, so 0.8" },
+  { n:1, d:10, dec:"0.1",  family:"tenth",   canonical:true,  explain:"1 tenth is 0.1" },
+  { n:3, d:10, dec:"0.3",  family:"tenth",   canonical:true,  explain:"3 tenths is 0.3" },
+  { n:7, d:10, dec:"0.7",  family:"tenth",   canonical:true,  explain:"7 tenths is 0.7" },
+  { n:9, d:10, dec:"0.9",  family:"tenth",   canonical:true,  explain:"9 tenths is 0.9" },
+  { n:1,  d:100, dec:"0.01", family:"hundredth", canonical:true, explain:"1 hundredth is 0.01" },
+  { n:5,  d:100, dec:"0.05", family:"hundredth", canonical:true, explain:"5 hundredths is 0.05" },
+  { n:9,  d:100, dec:"0.09", family:"hundredth", canonical:true, explain:"9 hundredths is 0.09" },
+  { n:25, d:100, dec:"0.25", family:"hundredth", canonical:false, explain:"25 hundredths is 0.25 (the same as 1 quarter)" },
+  { n:50, d:100, dec:"0.5",  family:"hundredth", canonical:false, explain:"50 hundredths is 0.5 (the same as 1 half)" },
+  { n:75, d:100, dec:"0.75", family:"hundredth", canonical:false, explain:"75 hundredths is 0.75 (the same as 3 quarters)" },
+  { n:35, d:100, dec:"0.35", family:"hundredth", canonical:true, explain:"35 hundredths is 0.35" },
+  { n:60, d:100, dec:"0.6",  family:"hundredth", canonical:false, explain:"60 hundredths is 0.6 (the same as 3 fifths)" },
+  { n:99, d:100, dec:"0.99", family:"hundredth", canonical:true, explain:"99 hundredths is 0.99" }
+];
+const QUESTIONS_PER_ROUND = 10;
+
+// ---------- Helpers ----------
+function val(item) { return parseFloat(item.dec); }
+function fracHTML(item) {
+  return '<span class="frac"><span class="num">' + item.n + '</span><span class="den">' + item.d + '</span></span>';
+}
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function uniqueDecimals() {
+  const seen = new Set();
+  return POOL.filter(p => {
+    if (seen.has(p.dec)) return false;
+    seen.add(p.dec);
+    return true;
+  });
+}
+
+// Common misconception distractor: n/d read as "0.n"
+function misconceptionDecimal(item) {
+  if (item.d === 10 || item.d === 100) return null;
+  const wrong = "0." + item.n;
+  if (parseFloat(wrong) === val(item)) return null;
+  return wrong;
+}
+
+// ---------- Distractors ----------
+function decimalDistractors(item) {
+  const opts = new Set();
+  const mis = misconceptionDecimal(item);
+  if (mis) opts.add(mis);
+  const candidates = shuffle(POOL.filter(p => val(p) !== val(item)));
+  // prefer same-family decimals so the wrong answers look plausible
+  candidates.sort((a, b) => (a.family === item.family ? -1 : 0) - (b.family === item.family ? -1 : 0));
+  for (const c of candidates) {
+    if (opts.size >= 3) break;
+    if (parseFloat(c.dec) !== val(item)) opts.add(c.dec);
+  }
+  return Array.from(opts).slice(0, 3);
+}
+
+function fractionDistractors(item) {
+  const out = [];
+  const used = new Set([val(item)]);
+  const candidates = shuffle(POOL.filter(p => p.canonical));
+  candidates.sort((a, b) => (a.family === item.family ? -1 : 0) - (b.family === item.family ? -1 : 0));
+  for (const c of candidates) {
+    if (out.length >= 3) break;
+    if (!used.has(val(c))) {
+      used.add(val(c));
+      out.push(c);
+    }
+  }
+  return out;
+}
+
+// ---------- Question building ----------
+function buildQuestions(mode) {
+  const base = shuffle(uniqueDecimals()).slice(0, QUESTIONS_PER_ROUND);
+  return base.map((item, i) => {
+    let dir;
+    if (mode === "f2d") dir = "f2d";
+    else if (mode === "d2f") dir = "d2f";
+    else dir = (i % 2 === 0) ? "f2d" : "d2f";
+
+    if (dir === "d2f") {
+      // show decimal, answer with canonical fraction of that value
+      const canon = POOL.find(p => p.canonical && val(p) === val(item)) || item;
+      return { dir, item: canon };
+    }
+    return { dir, item };
+  });
+}
+
+// ---------- State ----------
+let questions = [], current = 0, score = 0, mistakes = [], lastMode = "mixed", bestScore = null;
+
+// ---------- Screens ----------
+function show(id) {
+  ["screen-start", "screen-quiz", "screen-results"].forEach(s =>
+    document.getElementById(s).classList.toggle("hidden", s !== id));
+}
+function showStart() { show("screen-start"); }
+
+function startQuiz(mode) {
+  lastMode = mode;
+  questions = buildQuestions(mode);
+  current = 0;
+  score = 0;
+  mistakes = [];
+  show("screen-quiz");
+  renderQuestion();
+}
+
+// ---------- Rendering ----------
+function renderQuestion() {
+  const q = questions[current];
+  const item = q.item;
+  document.getElementById("q-counter").textContent = "Question " + (current + 1) + " of " + questions.length;
+  document.getElementById("q-score").textContent = "Score: " + score;
+  document.getElementById("progress").style.width = ((current) / questions.length * 100) + "%";
+  document.getElementById("feedback").className = "feedback";
+  document.getElementById("next-btn").classList.add("hidden");
+
+  const promptEl = document.getElementById("prompt-text");
+  const qEl = document.getElementById("question-display");
+  const ansEl = document.getElementById("answers");
+  ansEl.innerHTML = "";
+
+  if (q.dir === "f2d") {
+    promptEl.textContent = "What is this fraction as a decimal?";
+    qEl.innerHTML = fracHTML(item);
+    const options = shuffle([item.dec].concat(decimalDistractors(item)));
+    options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "answer-btn";
+      btn.textContent = opt;
+      btn.onclick = () => answer(btn, opt === item.dec, item);
+      ansEl.appendChild(btn);
+    });
+  } else {
+    promptEl.textContent = "What is this decimal as a fraction?";
+    qEl.textContent = item.dec;
+    const options = shuffle([item].concat(fractionDistractors(item)));
+    options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "answer-btn";
+      btn.innerHTML = fracHTML(opt);
+      btn.dataset.correct = (val(opt) === val(item)) ? "1" : "0";
+      btn.onclick = () => answer(btn, btn.dataset.correct === "1", item);
+      ansEl.appendChild(btn);
+    });
+  }
+}
+
+function answer(btn, isCorrect, item) {
+  const buttons = document.querySelectorAll(".answer-btn");
+  buttons.forEach(b => { b.disabled = true; });
+  const fb = document.getElementById("feedback");
+
+  if (isCorrect) {
+    btn.classList.add("correct");
+    buttons.forEach(b => { if (b !== btn) b.classList.add("faded"); });
+    score++;
+    fb.className = "feedback show good";
+    fb.innerHTML = "Correct! " + item.explain + ".";
+  } else {
+    btn.classList.add("wrong");
+    buttons.forEach(b => {
+      const label = b.textContent.trim();
+      const correctByText = label === item.dec;
+      const correctByData = b.dataset.correct === "1";
+      if (correctByText || correctByData) b.classList.add("correct");
+      else if (b !== btn) b.classList.add("faded");
+    });
+    mistakes.push(item);
+    fb.className = "feedback show bad";
+    fb.innerHTML = "Not quite. " + fracHTML(item) + " = " + item.dec + ". " + item.explain + ".";
+  }
+
+  document.getElementById("q-score").textContent = "Score: " + score;
+  document.getElementById("next-btn").classList.remove("hidden");
+  document.getElementById("next-btn").textContent =
+    (current === questions.length - 1) ? "See results" : "Next question";
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= questions.length) showResults();
+  else renderQuestion();
+}
+
+// ---------- Results ----------
+function showResults() {
+  show("screen-results");
+  const total = questions.length;
+  document.getElementById("final-score").textContent = score + " / " + total;
+
+  const pct = score / total;
+  let stars, msg;
+  if (pct === 1)      { stars = "★★★★★"; msg = "Perfect score! You know these by heart."; }
+  else if (pct >= 0.8){ stars = "★★★★☆"; msg = "Excellent work! Nearly there."; }
+  else if (pct >= 0.6){ stars = "★★★☆☆"; msg = "Good effort. Review the tricky ones below."; }
+  else if (pct >= 0.4){ stars = "★★☆☆☆"; msg = "Keep practising. Focus on the ones below."; }
+  else                { stars = "★☆☆☆☆"; msg = "Good try! Practise the ones below and go again."; }
+  document.getElementById("stars").textContent = stars;
+  document.getElementById("result-msg").textContent = msg;
+
+  const review = document.getElementById("review-block");
+  if (mistakes.length === 0) {
+    review.innerHTML = "";
+  } else {
+    let html = '<p class="review-title">Ones to practise:</p>';
+    const seen = new Set();
+    mistakes.forEach(m => {
+      if (seen.has(m.dec + "/" + m.n + "/" + m.d)) return;
+      seen.add(m.dec + "/" + m.n + "/" + m.d);
+      html += '<div class="review-item"><span>' + fracHTML(m) + '</span><span class="eq">=</span><span>' + m.dec + "</span></div>";
+    });
+    review.innerHTML = html;
+  }
+
+  if (bestScore === null || score > bestScore) bestScore = score;
+  document.getElementById("best-note").textContent = "Best score this session: " + bestScore + " / " + total;
+}
+</script>
+</body>
+</html>

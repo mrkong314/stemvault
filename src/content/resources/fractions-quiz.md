@@ -1,5 +1,5 @@
 ---
-title: "Fractions Quiz"
+title: "Adding, Subtracting, Multiplying and Dividing Fractions Quiz"
 type: applet
 subject: Mathematics
 yearLevel: [7, 8, 9]
