@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Times Tables Tester</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --ink: #1c2333;
+    --muted: #6b7280;
+    --accent: #2f5fde;
+    --accent-dark: #234bb5;
+    --good: #1a9d5c;
+    --bad: #d63b3b;
+    --border: #dfe4ee;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 30px rgba(28, 35, 51, 0.08);
+    width: 100%;
+    max-width: 460px;
+    padding: 32px 28px;
+    text-align: center;
+  }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 24px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Start screen */
+  .mode-grid { display: grid; gap: 12px; margin-bottom: 20px; }
+  .mode-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: #fbfcfe;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .mode-btn:hover, .mode-btn:focus-visible { border-color: var(--accent); background: #f0f4ff; outline: none; }
+  .mode-btn .t { font-weight: 600; font-size: 1.05rem; }
+  .mode-btn .d { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+  .opt-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .opt-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+  .chip {
+    padding: 7px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    background: #fbfcfe;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: all 0.15s;
+  }
+  .chip.sel { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+  /* Quiz screen */
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .hud .timer { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .hud .timer.low { color: var(--bad); }
+  .progress-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.25s ease;
+  }
+  .question {
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 24px;
+    font-variant-numeric: tabular-nums;
+  }
+  .answer-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; }
+  #answerInput {
+    width: 140px;
+    font-size: 1.8rem;
+    text-align: center;
+    padding: 10px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+  }
+  #answerInput:focus { outline: none; border-color: var(--accent); }
+  #answerInput.flash-good { border-color: var(--good); background: #ecfaf2; }
+  #answerInput.flash-bad { border-color: var(--bad); background: #fdeeee; }
+  .btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--accent-dark); }
+  .btn.ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    font-weight: 500;
+  }
+  .btn.ghost:hover { background: #f0f2f7; color: var(--ink); }
+  .feedback {
+    min-height: 24px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .feedback.good { color: var(--good); }
+  .feedback.bad { color: var(--bad); }
+
+  /* Results screen */
+  .score-big { font-size: 3rem; font-weight: 700; margin-bottom: 4px; }
+  .score-sub { color: var(--muted); margin-bottom: 20px; }
+  .stat-row {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat .v { font-size: 1.3rem; font-weight: 700; }
+  .stat .k { font-size: 0.8rem; color: var(--muted); }
+  .misses {
+    text-align: left;
+    margin-bottom: 20px;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .misses h3 { font-size: 0.9rem; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+  .miss-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #fdf3f3;
+    margin-bottom: 5px;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .miss-item .wrong { color: var(--bad); text-decoration: line-through; margin-right: 8px; }
+  .miss-item .right { color: var(--good); font-weight: 600; }
+  .perfect { color: var(--good); font-weight: 600; margin-bottom: 20px; }
+  .btn-row { display: flex; gap: 10px; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- START -->
+  <div class="screen active" id="startScreen">
+    <h1>Times Tables Tester</h1>
+    <p class="sub">Tables 2 to 12, mixed. Type your answer and press Enter.</p>
+    <div class="mode-grid">
+      <button class="mode-btn" id="practiceBtn">
+        <span class="t">Practice</span>
+        <span class="d">Untimed. Fixed number of questions, feedback after each.</span>
+      </button>
+      <button class="mode-btn" id="sprintBtn">
+        <span class="t">Timed sprint</span>
+        <span class="d">Answer as many as you can before the clock runs out.</span>
+      </button>
+    </div>
+    <div id="practiceOpts">
+      <div class="opt-label">Questions</div>
+      <div class="opt-row" id="countRow">
+        <button class="chip" data-count="10">10</button>
+        <button class="chip sel" data-count="20">20</button>
+        <button class="chip" data-count="30">30</button>
+      </div>
+    </div>
+    <div id="sprintOpts">
+      <div class="opt-label">Time limit</div>
+      <div class="opt-row" id="timeRow">
+        <button class="chip sel" data-secs="60">60 s</button>
+        <button class="chip" data-secs="120">120 s</button>
+        <button class="chip" data-secs="180">180 s</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="screen" id="quizScreen">
+    <div class="hud">
+      <span id="hudLeft"></span>
+      <span class="timer" id="hudTimer"></span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="question" id="questionText"></div>
+    <div class="answer-row">
+      <input type="number" id="answerInput" inputmode="numeric" autocomplete="off">
+      <button class="btn" id="submitBtn">Go</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <button class="btn ghost" id="quitBtn">End quiz</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="screen" id="resultScreen">
+    <h1 id="resultTitle">Results</h1>
+    <div class="score-big" id="scoreBig"></div>
+    <div class="score-sub" id="scoreSub"></div>
+    <div class="stat-row">
+      <div class="stat"><div class="v" id="statCorrect"></div><div class="k">correct</div></div>
+      <div class="stat"><div class="v" id="statWrong"></div><div class="k">wrong</div></div>
+      <div class="stat"><div class="v" id="statRate"></div><div class="k">accuracy</div></div>
+    </div>
+    <div class="misses" id="missBox"></div>
+    <div class="btn-row">
+      <button class="btn" id="againBtn">Play again</button>
+      <button class="btn ghost" id="menuBtn">Menu</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  var MIN_TABLE = 2, MAX_TABLE = 12;
+
+  var state = {
+    mode: null,            // 'practice' | 'sprint'
+    totalQuestions: 20,    // practice
+    timeLimit: 60,         // sprint, seconds
+    asked: 0,
+    correct: 0,
+    wrong: 0,
+    misses: [],            // {a, b, given, answer}
+    current: null,         // {a, b, answer}
+    prevKey: null,
+    timerId: null,
+    timeLeft: 0,
+    finished: false
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var screens = { start: $('startScreen'), quiz: $('quizScreen'), result: $('resultScreen') };
+
+  function show(name) {
+    Object.keys(screens).forEach(function (k) {
+      screens[k].classList.toggle('active', k === name);
+    });
+  }
+
+  function randInt(lo, hi) {
+    return lo + Math.floor(Math.random() * (hi - lo + 1));
+  }
+
+  function nextQuestion() {
+    var a, b, key;
+    do {
+      a = randInt(MIN_TABLE, MAX_TABLE);
+      b = randInt(MIN_TABLE, MAX_TABLE);
+      key = a + 'x' + b;
+    } while (key === state.prevKey);
+    state.prevKey = key;
+    state.current = { a: a, b: b, answer: a * b };
+    $('questionText').textContent = a + ' × ' + b + ' = ?';
+    var input = $('answerInput');
+    input.value = '';
+    input.classList.remove('flash-good', 'flash-bad');
+    input.focus();
+    updateHud();
+  }
+
+  function updateHud() {
+    if (state.mode === 'practice') {
+      $('hudLeft').textContent = 'Question ' + Math.min(state.asked + 1, state.totalQuestions) + ' of ' + state.totalQuestions;
+      $('hudTimer').textContent = state.correct + ' ✓';
+      $('progressFill').style.width = (state.asked / state.totalQuestions * 100) + '%';
+    } else {
+      $('hudLeft').textContent = 'Answered: ' + state.asked;
+      $('progressFill').style.width = (state.timeLeft / state.timeLimit * 100) + '%';
+    }
+  }
+
+  function formatTime(s) {
+    var m = Math.floor(s / 60), r = s % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
+  function tick() {
+    state.timeLeft--;
+    var t = $('hudTimer');
+    t.textContent = formatTime(state.timeLeft);
+    t.classList.toggle('low', state.timeLeft <= 10);
+    $('progressFill').style.width = (state.timeLeft / state.timeLimit * 100) + '%';
+    if (state.timeLeft <= 0) finish();
+  }
+
+  function submit() {
+    if (state.finished || !state.current) return;
+    var input = $('answerInput');
+    var raw = input.value.trim();
+    if (raw === '') return;
+    var given = parseInt(raw, 10);
+    var fb = $('feedback');
+    state.asked++;
+
+    if (given === state.current.answer) {
+      state.correct++;
+      fb.textContent = 'Correct!';
+      fb.className = 'feedback good';
+      input.classList.add('flash-good');
+    } else {
+      state.wrong++;
+      state.misses.push({ a: state.current.a, b: state.current.b, given: given, answer: state.current.answer });
+      fb.textContent = state.current.a + ' × ' + state.current.b + ' = ' + state.current.answer;
+      fb.className = 'feedback bad';
+      input.classList.add('flash-bad');
+    }
+
+    if (state.mode === 'practice' && state.asked >= state.totalQuestions) {
+      state.current = null;
+      updateHud();
+      $('progressFill').style.width = '100%';
+      setTimeout(finish, 650);
+      return;
+    }
+
+    // brief pause so feedback registers, shorter in sprint mode
+    var delay = state.mode === 'sprint' ? 350 : 550;
+    state.current = null;
+    setTimeout(function () {
+      if (!state.finished) {
+        $('feedback').textContent = '';
+        $('feedback').className = 'feedback';
+        nextQuestion();
+      }
+    }, delay);
+  }
+
+  function start(mode) {
+    state.mode = mode;
+    state.asked = 0;
+    state.correct = 0;
+    state.wrong = 0;
+    state.misses = [];
+    state.prevKey = null;
+    state.finished = false;
+    $('feedback').textContent = '';
+    $('feedback').className = 'feedback';
+
+    if (mode === 'sprint') {
+      state.timeLeft = state.timeLimit;
+      $('hudTimer').textContent = formatTime(state.timeLeft);
+      $('hudTimer').classList.remove('low');
+      state.timerId = setInterval(tick, 1000);
+    } else {
+      $('hudTimer').classList.remove('low');
+    }
+
+    show('quiz');
+    nextQuestion();
+  }
+
+  function finish() {
+    if (state.finished) return;
+    state.finished = true;
+    if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
+
+    var total = state.correct + state.wrong;
+    $('resultTitle').textContent = state.mode === 'sprint' ? 'Time!' : 'Finished!';
+    $('scoreBig').textContent = state.correct + ' / ' + total;
+    $('scoreSub').textContent = state.mode === 'sprint'
+      ? 'in ' + formatTime(state.timeLimit)
+      : 'questions answered correctly';
+    $('statCorrect').textContent = state.correct;
+    $('statWrong').textContent = state.wrong;
+    $('statRate').textContent = total > 0 ? Math.round(state.correct / total * 100) + '%' : '–';
+
+    var box = $('missBox');
+    box.innerHTML = '';
+    if (state.misses.length === 0 && total > 0) {
+      box.innerHTML = '<div class="perfect">Perfect – no mistakes!</div>';
+    } else if (state.misses.length > 0) {
+      var h = document.createElement('h3');
+      h.textContent = 'Ones to revise';
+      box.appendChild(h);
+      state.misses.forEach(function (m) {
+        var d = document.createElement('div');
+        d.className = 'miss-item';
+        d.innerHTML = '<span>' + m.a + ' × ' + m.b + '</span>' +
+          '<span><span class="wrong">' + m.given + '</span><span class="right">' + m.answer + '</span></span>';
+        box.appendChild(d);
+      });
+    }
+    show('result');
+  }
+
+  // --- wiring ---
+  $('practiceBtn').addEventListener('click', function () { start('practice'); });
+  $('sprintBtn').addEventListener('click', function () { start('sprint'); });
+
+  $('countRow').addEventListener('click', function (e) {
+    var btn = e.target.closest('.chip');
+    if (!btn) return;
+    this.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('sel'); });
+    btn.classList.add('sel');
+    state.totalQuestions = parseInt(btn.dataset.count, 10);
+  });
+
+  $('timeRow').addEventListener('click', function (e) {
+    var btn = e.target.closest('.chip');
+    if (!btn) return;
+    this.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('sel'); });
+    btn.classList.add('sel');
+    state.timeLimit = parseInt(btn.dataset.secs, 10);
+  });
+
+  $('submitBtn').addEventListener('click', submit);
+  $('answerInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') submit();
+  });
+
+  $('quitBtn').addEventListener('click', finish);
+  $('againBtn').addEventListener('click', function () { start(state.mode); });
+  $('menuBtn').addEventListener('click', function () { show('start'); });
+})();
+</script>
+</body>
+</html>
