@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VCE Physics Unit 4 AOS 1 Quiz</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --ink: #1c2733;
+    --muted: #5b6b7b;
+    --accent: #0b5fa5;
+    --accent-soft: #e3eef7;
+    --good: #1b7f4d;
+    --good-soft: #e2f3ea;
+    --bad: #b23a3a;
+    --bad-soft: #f9e7e7;
+    --hint: #8a6d1a;
+    --hint-soft: #faf3dd;
+    --border: #d7dee6;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+  header h1 { font-size: 1.35rem; margin: 0 0 2px; }
+  header p { margin: 0 0 14px; color: var(--muted); font-size: 0.9rem; }
+
+  .statbar {
+    display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+  }
+  .stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 8px 14px; min-width: 106px; text-align: center;
+  }
+  .stat .num { font-size: 1.25rem; font-weight: 600; }
+  .stat .lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat.streak .num { color: var(--accent); }
+
+  .topics {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 14px; margin-bottom: 14px; font-size: 0.88rem;
+  }
+  .topics legend, .topics .t-title { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px; }
+  .topics label { margin-right: 14px; white-space: nowrap; display: inline-block; margin-bottom: 4px; cursor: pointer; }
+  .topics input { accent-color: var(--accent); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 20px; margin-bottom: 14px;
+  }
+  .badge {
+    display: inline-block; background: var(--accent-soft); color: var(--accent);
+    font-size: 0.72rem; font-weight: 600; padding: 2px 10px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px;
+  }
+  .qtext { font-size: 1.02rem; margin-bottom: 16px; }
+  .qtext sup, .qtext sub { line-height: 0; }
+
+  .answer-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input.num-in {
+    font-size: 1rem; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    width: 190px; font-family: inherit;
+  }
+  input.num-in:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .unit { color: var(--muted); font-size: 0.95rem; min-width: 40px; }
+
+  .choices { display: grid; gap: 8px; }
+  button.choice {
+    text-align: left; font-size: 0.95rem; font-family: inherit;
+    background: #fbfcfe; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; cursor: pointer; color: var(--ink);
+  }
+  button.choice:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+  button.choice:disabled { cursor: default; }
+  button.choice.correct { background: var(--good-soft); border-color: var(--good); }
+  button.choice.wrong { background: var(--bad-soft); border-color: var(--bad); }
+
+  .btnrow { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+  button.btn {
+    font-family: inherit; font-size: 0.92rem; font-weight: 600;
+    border-radius: 8px; padding: 9px 18px; cursor: pointer; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #094e88; }
+  .btn-ghost { background: #fff; color: var(--accent); border-color: var(--accent); }
+  .btn-ghost:hover { background: var(--accent-soft); }
+  .btn-hint { background: var(--hint-soft); color: var(--hint); border-color: #e0cf96; }
+  .btn-hint:hover { background: #f3e8c4; }
+  .btn-exp { padding: 8px 12px; font-size: 0.9rem; font-weight: 400; }
+  .btn-exp sup { font-size: 0.65em; }
+  .num-preview { margin-top: 6px; color: var(--muted); font-size: 0.98rem; min-height: 1.3em; }
+  .num-preview .prev-bad { color: var(--bad); font-size: 0.85rem; }
+
+  .hintbox {
+    display: none; margin-top: 14px; background: var(--hint-soft); border: 1px solid #e0cf96;
+    border-radius: 8px; padding: 12px 14px; font-size: 0.92rem;
+  }
+  .hintbox.show { display: block; }
+  .hintbox h4 { margin: 0 0 6px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--hint); }
+  .hintbox .frm { margin: 3px 0; }
+
+  .feedback { display: none; margin-top: 14px; border-radius: 8px; padding: 12px 14px; font-size: 0.94rem; }
+  .feedback.show { display: block; }
+  .feedback.good { background: var(--good-soft); border: 1px solid var(--good); }
+  .feedback.bad { background: var(--bad-soft); border: 1px solid var(--bad); }
+  .feedback .verdict { font-weight: 700; margin-bottom: 6px; }
+  .feedback.good .verdict { color: var(--good); }
+  .feedback.bad .verdict { color: var(--bad); }
+  .soln { border-top: 1px dashed rgba(0,0,0,0.2); margin-top: 8px; padding-top: 8px; }
+
+  .review h2 { font-size: 1rem; margin: 22px 0 8px; }
+  .rev-item {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 14px; margin-bottom: 8px; font-size: 0.9rem;
+  }
+  .rev-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; cursor: pointer; }
+  .rev-num { color: var(--muted); font-size: 0.8rem; }
+  .rev-mark { font-weight: 700; }
+  .rev-mark.ok { color: var(--good); }
+  .rev-mark.no { color: var(--bad); }
+  .rev-tag { font-size: 0.72rem; background: var(--hint-soft); color: var(--hint); padding: 1px 8px; border-radius: 12px; }
+  .rev-topic { font-size: 0.72rem; background: var(--accent-soft); color: var(--accent); padding: 1px 8px; border-radius: 12px; }
+  .rev-body { display: none; margin-top: 8px; color: var(--ink); }
+  .rev-item.open .rev-body { display: block; }
+  .rev-body .rev-q { margin-bottom: 6px; }
+  .rev-body .rev-ans { color: var(--muted); margin-bottom: 6px; }
+  .rev-empty { color: var(--muted); font-size: 0.88rem; }
+  .note { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>VCE Physics Unit 4 AOS 1: How has understanding about the physical world changed?</h1>
+    <p>Unlimited randomised questions. Numeric answers accept calculator-style entry (3.2&times;10^-7, via the &times;10<sup>n</sup> button) or e-notation (3.2e-7). Tolerance ±2.5%.</p>
+  </header>
+
+  <div class="statbar">
+    <div class="stat streak"><div class="num" id="stStreak">0</div><div class="lbl">Streak</div></div>
+    <div class="stat"><div class="num" id="stBest">0</div><div class="lbl">Best streak</div></div>
+    <div class="stat"><div class="num" id="stScore">0 / 0</div><div class="lbl">Correct</div></div>
+    <div class="stat"><div class="num" id="stAcc">&ndash;</div><div class="lbl">Accuracy</div></div>
+  </div>
+
+  <div class="topics">
+    <div class="t-title">Topics</div>
+    <label><input type="checkbox" data-topic="wave" checked> Wave equation</label>
+    <label><input type="checkbox" data-topic="diff" checked> Diffraction</label>
+    <label><input type="checkbox" data-topic="ds" checked> Double slit</label>
+    <label><input type="checkbox" data-topic="sw" checked> Superposition &amp; standing waves</label>
+    <label><input type="checkbox" data-topic="pe" checked> Photoelectric effect</label>
+    <label><input type="checkbox" data-topic="graph" checked> Photoelectric graphs</label>
+    <label><input type="checkbox" data-topic="dual" checked> Wave-particle duality</label>
+    <label><input type="checkbox" data-topic="mw" checked> Matter waves (de Broglie)</label>
+    <label><input type="checkbox" data-topic="spec" checked> Atomic spectra &amp; energy levels</label>
+    <label><input type="checkbox" data-topic="rel" checked> Special relativity</label>
+  </div>
+
+  <div class="card" id="qcard">
+    <span class="badge" id="qbadge"></span>
+    <div class="qtext" id="qtext"></div>
+    <div id="answerArea"></div>
+    <div class="btnrow">
+      <button class="btn btn-hint" id="btnHint" type="button">Hint</button>
+      <button class="btn btn-primary" id="btnSubmit" type="button">Submit</button>
+      <button class="btn btn-ghost" id="btnNext" type="button" style="display:none">Next question</button>
+    </div>
+    <div class="hintbox" id="hintbox"></div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <div class="review">
+    <h2>Previous questions</h2>
+    <div id="revList"><div class="rev-empty">Answered questions appear here. Click one to see the worked solution.</div></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- constants (VCE formula sheet values) ---------- */
+var H   = 6.63e-34;   // J s
+var HEV = 4.14e-15;   // eV s
+var C   = 3.0e8;      // m/s
+var QE  = 1.6e-19;    // C
+
+var ME  = 9.1e-31;    // kg
+var MP  = 1.67e-27;   // kg
+
+var CONSTS = 'h = 6.63 &times; 10<sup>&minus;34</sup> J s &nbsp;|&nbsp; h = 4.14 &times; 10<sup>&minus;15</sup> eV s &nbsp;|&nbsp; c = 3.0 &times; 10<sup>8</sup> m s<sup>&minus;1</sup> &nbsp;|&nbsp; e = 1.6 &times; 10<sup>&minus;19</sup> C &nbsp;|&nbsp; 1 eV = 1.6 &times; 10<sup>&minus;19</sup> J &nbsp;|&nbsp; m<sub>e</sub> = 9.1 &times; 10<sup>&minus;31</sup> kg &nbsp;|&nbsp; m<sub>p</sub> = 1.67 &times; 10<sup>&minus;27</sup> kg';
+
+var HINTS = {
+  wave:  ['v = f&lambda;', 'T = 1/f', 'All EM waves travel at c = 3.0 &times; 10<sup>8</sup> m s<sup>&minus;1</sup> in a vacuum'],
+  diff:  ['Diffraction is significant when &lambda;/w &#8819; 1 (wavelength comparable to or larger than the gap)', 'Longer wavelength or narrower gap &rarr; more spreading'],
+  ds:    ['Fringe spacing: &Delta;x = &lambda;L/d', 'Bright (constructive): path difference = n&lambda;', 'Dark (destructive): path difference = (n &minus; &frac12;)&lambda;'],
+  sw:    ['String fixed at both ends: &lambda;<sub>n</sub> = 2L/n (n = 1, 2, 3 ...)', 'v = f&lambda;', 'Adjacent nodes are &lambda;/2 apart; node to adjacent antinode is &lambda;/4'],
+  pe:    ['E<sub>photon</sub> = hf = hc/&lambda;', 'E<sub>k max</sub> = hf &minus; &phi;', 'Threshold: f<sub>0</sub> = &phi;/h', 'Stopping voltage: eV<sub>0</sub> = E<sub>k max</sub>'],
+  graph: ['E<sub>k max</sub> vs f: gradient = h, x-intercept = f<sub>0</sub>, y-intercept = &minus;&phi;', 'V<sub>0</sub> vs f: gradient = h/e', 'Different metals give parallel lines (same gradient h)'],
+  dual:  ['Wave evidence: diffraction, interference (double slit)', 'Particle evidence: photoelectric effect', 'Light is a transverse EM wave produced by accelerating charges'],
+  mw:    ['&lambda; = h/p', 'For matter: p = mv', 'For photons: p = h/&lambda;', 'Same wavelength &rarr; same momentum'],
+  spec:  ['&Delta;E = hf = hc/&lambda; for the emitted or absorbed photon', 'Photon energy must exactly match a difference between energy levels', 'Quantised levels: electron standing waves, n&lambda; = 2&pi;r'],
+  rel:   ['&gamma; = 1/&radic;(1 &minus; v&sup2;/c&sup2;)', 'Time dilation: t = t<sub>0</sub>&gamma;', 'Length contraction: L = L<sub>0</sub>/&gamma;', 'E<sub>0</sub> = mc&sup2;, &nbsp;E<sub>tot</sub> = &gamma;mc&sup2;, &nbsp;E<sub>k</sub> = (&gamma; &minus; 1)mc&sup2;']
+};
+
+var TOPIC_NAMES = {
+  wave: 'Wave equation', diff: 'Diffraction', ds: 'Double slit', sw: 'Standing waves',
+  pe: 'Photoelectric effect', graph: 'Photoelectric graphs', dual: 'Duality',
+  mw: 'Matter waves', spec: 'Atomic spectra', rel: 'Special relativity'
+};
+
+/* ---------- helpers ---------- */
+function ri(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function shuffle(arr){
+  for (var i=arr.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=arr[i]; arr[i]=arr[j]; arr[j]=t; }
+  return arr;
+}
+function sci(x, sf){
+  sf = sf || 3;
+  if (x === 0) return '0';
+  var neg = x < 0 ? '&minus;' : '';
+  var ax = Math.abs(x);
+  var exp = Math.floor(Math.log10(ax));
+  var m = ax / Math.pow(10, exp);
+  m = parseFloat(m.toPrecision(sf));
+  if (m >= 10) { m = m/10; exp += 1; }
+  if (exp >= -2 && exp <= 3) return neg + String(parseFloat(ax.toPrecision(sf)));
+  return neg + m + ' &times; 10<sup>' + exp + '</sup>';
+}
+function plain(x, sf){ return parseFloat(x.toPrecision(sf||3)); }
+function sciDisp(x){
+  // display exactly what was entered, in proper ×10 superscript form, without heavy rounding
+  if (x === 0) return '0';
+  var neg = x < 0 ? '&minus;' : '';
+  var ax = Math.abs(x);
+  var exp = Math.floor(Math.log10(ax));
+  if (exp >= -2 && exp <= 4) return neg + String(parseFloat(ax.toPrecision(8)));
+  var m = ax / Math.pow(10, exp);
+  m = parseFloat(m.toPrecision(8));
+  if (m >= 10) { m = m/10; exp += 1; }
+  var es = exp < 0 ? '&minus;' + (-exp) : String(exp);
+  return neg + m + ' &times; 10<sup>' + es + '</sup>';
+}
+
+/* ---------- question generators ---------- */
+/* Each returns: { topic, text, type:'numeric'|'mc', answer, unit, choices:[{text,correct}], solution } */
+
+var GENS = [
+
+/* ===== wave equation ===== */
+function(){ // frequency of light given wavelength
+  var lamNm = ri(40,70)*10; var lam = lamNm*1e-9;
+  var f = C/lam;
+  return { topic:'wave', type:'numeric', unit:'Hz', answer:f,
+    text:'Light in a vacuum has a wavelength of ' + lamNm + ' nm. Calculate its frequency.',
+    solution:'f = c/&lambda; = (3.0 &times; 10<sup>8</sup>) / (' + sci(lam) + ') = ' + sci(f) + ' Hz' };
+},
+function(){ // wavelength given frequency, answer in nm
+  var lamNm = ri(40,70)*10; var lam = lamNm*1e-9;
+  var f = C/lam;
+  return { topic:'wave', type:'numeric', unit:'nm', answer:lamNm,
+    text:'An electromagnetic wave in a vacuum has a frequency of ' + sci(f) + ' Hz. Calculate its wavelength in nanometres.',
+    solution:'&lambda; = c/f = (3.0 &times; 10<sup>8</sup>) / (' + sci(f) + ') = ' + sci(lam) + ' m = ' + lamNm + ' nm' };
+},
+function(){ // period from frequency
+  var f = ri(2,9) * Math.pow(10, ri(2,6));
+  var T = 1/f;
+  return { topic:'wave', type:'numeric', unit:'s', answer:T,
+    text:'A wave has a frequency of ' + sci(f) + ' Hz. Calculate its period.',
+    solution:'T = 1/f = 1 / (' + sci(f) + ') = ' + sci(T) + ' s' };
+},
+function(){ // v = f lambda for a water wave
+  var f = ri(5,40)/10; var lam = ri(5,50)/10;
+  var v = f*lam;
+  return { topic:'wave', type:'numeric', unit:'m s⁻¹', answer:v,
+    text:'Water waves have a frequency of ' + f + ' Hz and a wavelength of ' + lam + ' m. Calculate the wave speed.',
+    solution:'v = f&lambda; = ' + f + ' &times; ' + lam + ' = ' + plain(v) + ' m s<sup>&minus;1</sup>' };
+},
+function(){ // MC: frequency doubled, same medium
+  return { topic:'wave', type:'mc',
+    text:'A wave source in a uniform medium has its frequency doubled. The wave speed in the medium is unchanged. What happens to the wavelength?',
+    choices: shuffle([
+      {text:'It halves', correct:true},
+      {text:'It doubles', correct:false},
+      {text:'It stays the same', correct:false},
+      {text:'It quarters', correct:false}
+    ]),
+    solution:'v = f&lambda; is fixed by the medium. If f doubles and v is constant, &lambda; = v/f must halve.' };
+},
+function(){ // MC: property shared by all EM waves in vacuum
+  return { topic:'wave', type:'mc',
+    text:'Radio waves, visible light and X-rays all travel through a vacuum. Which property do they all share?',
+    choices: shuffle([
+      {text:'The same speed, c', correct:true},
+      {text:'The same frequency', correct:false},
+      {text:'The same wavelength', correct:false},
+      {text:'The same photon energy', correct:false}
+    ]),
+    solution:'All electromagnetic waves travel at c = 3.0 &times; 10<sup>8</sup> m s<sup>&minus;1</sup> in a vacuum. Frequency, wavelength and photon energy differ between the bands.' };
+},
+
+/* ===== diffraction ===== */
+function(){ // MC: gap width halved
+  return { topic:'diff', type:'mc',
+    text:'Light of fixed wavelength passes through a narrow slit. The slit width is halved. What happens to the amount of diffraction?',
+    choices: shuffle([
+      {text:'It increases, because λ/w increases', correct:true},
+      {text:'It decreases, because λ/w increases', correct:false},
+      {text:'It decreases, because λ/w decreases', correct:false},
+      {text:'It is unchanged, since λ is unchanged', correct:false}
+    ]),
+    solution:'The spread due to diffraction depends on the ratio &lambda;/w. Halving w doubles &lambda;/w, so the light spreads more.' };
+},
+function(){ // MC: red vs blue
+  var q = pick([
+    {t:'Red light and blue light pass separately through the same narrow slit. Which diffracts (spreads) more, and why?',
+     ok:'Red, because it has the longer wavelength', d:['Blue, because it has the longer wavelength','Blue, because it has more photon energy','They diffract equally, since the slit is the same']},
+    {t:'White light passes through a very narrow gap. Which colour spreads out the most?',
+     ok:'Red, since λ/w is largest for the longest wavelength', d:['Violet, since it has the highest frequency','Green, since it is in the middle of the spectrum','All colours spread equally']}
+  ]);
+  var ch = [{text:q.ok, correct:true}];
+  for (var i=0;i<q.d.length;i++) ch.push({text:q.d[i], correct:false});
+  return { topic:'diff', type:'mc', text:q.t, choices: shuffle(ch),
+    solution:'Diffraction is significant when &lambda;/w is comparable to or greater than 1. Red light has the longest visible wavelength, so its &lambda;/w ratio is largest and it spreads the most.' };
+},
+function(){ // numeric ratio
+  var lamNm = ri(40,70)*10;
+  var wNm = lamNm * pick([0.5, 1, 2, 4]);
+  var ratio = lamNm/wNm;
+  return { topic:'diff', type:'numeric', unit:'(no unit)', answer:ratio,
+    text:'Light of wavelength ' + lamNm + ' nm passes through a gap of width ' + sci(wNm*1e-9) + ' m. Calculate the ratio &lambda;/w.',
+    solution:'&lambda;/w = (' + lamNm + ' &times; 10<sup>&minus;9</sup>) / (' + sci(wNm*1e-9) + ') = ' + plain(ratio) + '. ' + (ratio >= 1 ? 'Since &lambda;/w &ge; 1, diffraction is significant.' : 'Since &lambda;/w &lt; 1, diffraction is limited.') };
+},
+function(){ // MC: sound vs light doorway
+  return { topic:'diff', type:'mc',
+    text:'You can hear someone through an open doorway without seeing them. Why does sound diffract around the doorway much more than light?',
+    choices: shuffle([
+      {text:'The wavelength of sound (about 1 m) is comparable to the doorway width, while light’s wavelength is far smaller', correct:true},
+      {text:'Sound travels faster than light indoors', correct:false},
+      {text:'Sound is a transverse wave, so it bends around corners', correct:false},
+      {text:'Light is absorbed by the door frame', correct:false}
+    ]),
+    solution:'Diffraction is significant when &lambda;/w &#8819; 1. Audible sound has wavelengths of roughly 0.02 m to 17 m, comparable to a doorway, so &lambda;/w &asymp; 1. Visible light has &lambda; &asymp; 5 &times; 10<sup>&minus;7</sup> m, so &lambda;/w is tiny and it barely spreads.' };
+},
+function(){ // MC: condition for significant diffraction
+  return { topic:'diff', type:'mc',
+    text:'A wave passes through a gap of width w. Significant diffraction occurs when:',
+    choices: shuffle([
+      {text:'λ/w ≥ 1 (approximately)', correct:true},
+      {text:'λ/w ≪ 1', correct:false},
+      {text:'the wave speed is large', correct:false},
+      {text:'the frequency is high', correct:false}
+    ]),
+    solution:'Diffraction is significant when the wavelength is comparable to or larger than the gap, i.e. &lambda;/w &#8819; 1. High frequency means short wavelength, which reduces diffraction.' };
+},
+
+/* ===== double slit ===== */
+function(){ // fringe spacing
+  var lamNm = ri(45,70)*10; var lam = lamNm*1e-9;
+  var L = ri(10,30)/10;
+  var dmm = ri(10,50)/100; var d = dmm*1e-3;
+  var dx = lam*L/d;
+  return { topic:'ds', type:'numeric', unit:'mm', answer:dx*1e3,
+    text:'In a Young’s double slit experiment, light of wavelength ' + lamNm + ' nm passes through slits separated by ' + dmm.toFixed(2) + ' mm. The screen is ' + L.toFixed(1) + ' m away. Calculate the fringe spacing in millimetres.',
+    solution:'&Delta;x = &lambda;L/d = (' + sci(lam) + ' &times; ' + L.toFixed(1) + ') / (' + sci(d) + ') = ' + sci(dx) + ' m = ' + plain(dx*1e3) + ' mm' };
+},
+function(){ // find wavelength
+  var lamNm = ri(45,70)*10; var lam = lamNm*1e-9;
+  var L = ri(10,30)/10;
+  var dmm = ri(10,50)/100; var d = dmm*1e-3;
+  var dx = plain(lam*L/d*1e3, 3); // mm, rounded as shown
+  return { topic:'ds', type:'numeric', unit:'nm', answer:(dx*1e-3)*d/L*1e9,
+    text:'In a double slit experiment the fringe spacing is measured as ' + dx + ' mm, with slit separation ' + dmm.toFixed(2) + ' mm and slit-to-screen distance ' + L.toFixed(1) + ' m. Calculate the wavelength of the light in nanometres.',
+    solution:'&lambda; = &Delta;x d / L = (' + sci(dx*1e-3) + ' &times; ' + sci(d) + ') / ' + L.toFixed(1) + ' = ' + sci((dx*1e-3)*d/L) + ' m &asymp; ' + Math.round((dx*1e-3)*d/L*1e9) + ' nm' };
+},
+function(){ // find slit separation
+  var lamNm = ri(45,70)*10; var lam = lamNm*1e-9;
+  var L = ri(10,30)/10;
+  var dmm = ri(10,50)/100; var d = dmm*1e-3;
+  var dx = plain(lam*L/d*1e3, 3); // mm shown
+  return { topic:'ds', type:'numeric', unit:'mm', answer:lam*L/(dx*1e-3)*1e3,
+    text:'Light of wavelength ' + lamNm + ' nm produces fringes ' + dx + ' mm apart on a screen ' + L.toFixed(1) + ' m from a pair of slits. Calculate the slit separation in millimetres.',
+    solution:'d = &lambda;L/&Delta;x = (' + sci(lam) + ' &times; ' + L.toFixed(1) + ') / (' + sci(dx*1e-3) + ') = ' + sci(lam*L/(dx*1e-3)) + ' m &asymp; ' + plain(lam*L/(dx*1e-3)*1e3) + ' mm' };
+},
+function(){ // path difference bright fringe
+  var lamNm = ri(45,70)*10;
+  var n = ri(2,4);
+  var ord = ['','first','second','third','fourth'][n];
+  return { topic:'ds', type:'numeric', unit:'nm', answer:n*lamNm,
+    text:'In a two-slit interference pattern using ' + lamNm + ' nm light, what is the path difference (in nm) at the ' + ord + ' bright fringe from the central maximum?',
+    solution:'Bright fringes occur where the path difference = n&lambda;. At the ' + ord + ' bright fringe, pd = ' + n + ' &times; ' + lamNm + ' = ' + (n*lamNm) + ' nm.' };
+},
+function(){ // path difference dark fringe
+  var lamNm = ri(45,70)*10;
+  var n = ri(1,3);
+  var ord = ['','first','second','third'][n];
+  var pd = (n-0.5)*lamNm;
+  return { topic:'ds', type:'numeric', unit:'nm', answer:pd,
+    text:'In a two-slit interference pattern using ' + lamNm + ' nm light, what is the path difference (in nm) at the ' + ord + ' dark fringe from the central maximum?',
+    solution:'Dark fringes occur where the path difference = (n &minus; &frac12;)&lambda;. At the ' + ord + ' dark fringe, pd = ' + (n-0.5) + ' &times; ' + lamNm + ' = ' + pd + ' nm.' };
+},
+function(){ // bright, dark or neither
+  var lamNm = ri(45,70)*10;
+  var k = pick([1, 1.5, 2, 2.5, 3]);
+  var pd = k*lamNm;
+  var isBright = (k === Math.round(k));
+  return { topic:'ds', type:'mc',
+    text:'Light of wavelength ' + lamNm + ' nm illuminates two slits. At point P on the screen, the path difference between the two slits is ' + pd + ' nm. What is observed at P?',
+    choices: shuffle([
+      {text:'A bright fringe (constructive interference)', correct:isBright},
+      {text:'A dark fringe (destructive interference)', correct:!isBright},
+      {text:'Half brightness', correct:false},
+      {text:'It cannot be determined from the path difference', correct:false}
+    ]),
+    solution:'pd/&lambda; = ' + pd + ' / ' + lamNm + ' = ' + k + '. ' + (isBright ? 'A whole number of wavelengths means the waves arrive in phase: constructive interference, a bright fringe.' : 'A half-integer number of wavelengths means the waves arrive exactly out of phase: destructive interference, a dark fringe.') };
+},
+function(){ // effect of change on fringe spacing
+  var q = pick([
+    {t:'the slit separation d is increased', ok:'The fringes move closer together', why:'&Delta;x = &lambda;L/d, so increasing d decreases &Delta;x.'},
+    {t:'the screen is moved further from the slits', ok:'The fringes move further apart', why:'&Delta;x = &lambda;L/d, so increasing L increases &Delta;x.'},
+    {t:'the red light source is replaced with a blue one', ok:'The fringes move closer together', why:'Blue light has a shorter wavelength, and &Delta;x = &lambda;L/d, so &Delta;x decreases.'},
+    {t:'the light source is replaced with one of longer wavelength', ok:'The fringes move further apart', why:'&Delta;x = &lambda;L/d is proportional to &lambda;, so a longer wavelength gives wider spacing.'}
+  ]);
+  var others = ['The fringes move further apart','The fringes move closer together','The fringe spacing is unchanged','The pattern disappears entirely'].filter(function(o){ return o !== q.ok; });
+  var ch = [{text:q.ok, correct:true}];
+  shuffle(others);
+  for (var i=0;i<3;i++) ch.push({text:others[i], correct:false});
+  return { topic:'ds', type:'mc',
+    text:'In a Young’s double slit experiment, ' + q.t + ' while everything else is kept constant. What happens to the fringe pattern?',
+    choices: shuffle(ch),
+    solution:q.why };
+},
+
+/* ===== superposition & standing waves ===== */
+function(){ // MC: how standing waves form
+  return { topic:'sw', type:'mc',
+    text:'A standing wave forms on a stretched string. Which of the following best describes how it is produced?',
+    choices: shuffle([
+      {text:'Superposition of two waves of the same frequency and amplitude travelling in opposite directions', correct:true},
+      {text:'Superposition of two waves of different frequencies travelling in the same direction', correct:false},
+      {text:'A single wave reflecting and losing energy at each end', correct:false},
+      {text:'Interference between a transverse and a longitudinal wave', correct:false}
+    ]),
+    solution:'A standing wave results from the superposition of a travelling wave and its reflection: two waves of equal frequency and amplitude moving in opposite directions. Nodes stay fixed where the waves always cancel.' };
+},
+function(){ // wavelength of nth harmonic
+  var L = ri(5,20)/10;
+  var n = ri(1,4);
+  var lam = 2*L/n;
+  var name = n===1 ? 'fundamental (first harmonic)' : ['','', 'second harmonic', 'third harmonic', 'fourth harmonic'][n];
+  return { topic:'sw', type:'numeric', unit:'m', answer:lam,
+    text:'A string of length ' + L.toFixed(1) + ' m is fixed at both ends. Calculate the wavelength of the ' + name + ' standing wave.',
+    solution:'For a string fixed at both ends, &lambda;<sub>n</sub> = 2L/n. Here &lambda; = 2 &times; ' + L.toFixed(1) + ' / ' + n + ' = ' + plain(lam) + ' m.' };
+},
+function(){ // fundamental frequency
+  var L = ri(5,20)/10;
+  var v = ri(20,120);
+  var f1 = v/(2*L);
+  return { topic:'sw', type:'numeric', unit:'Hz', answer:f1,
+    text:'Waves travel at ' + v + ' m s⁻¹ along a string of length ' + L.toFixed(1) + ' m fixed at both ends. Calculate the frequency of the fundamental standing wave.',
+    solution:'Fundamental: &lambda; = 2L = ' + plain(2*L) + ' m. f = v/&lambda; = ' + v + ' / ' + plain(2*L) + ' = ' + plain(f1) + ' Hz.' };
+},
+function(){ // node spacing
+  var lam = ri(4,24)/10;
+  var mode = pick([
+    {t:'adjacent nodes', f:0.5, s:'Adjacent nodes are half a wavelength apart: &lambda;/2'},
+    {t:'a node and the nearest antinode', f:0.25, s:'A node and the nearest antinode are a quarter wavelength apart: &lambda;/4'}
+  ]);
+  return { topic:'sw', type:'numeric', unit:'m', answer:lam*mode.f,
+    text:'A standing wave has a wavelength of ' + lam.toFixed(1) + ' m. What is the distance between ' + mode.t + '?',
+    solution:mode.s + ' = ' + lam.toFixed(1) + (mode.f===0.5?' / 2 = ':' / 4 = ') + plain(lam*mode.f) + ' m.' };
+},
+function(){ // MC: pulses superposing
+  var a1 = ri(2,5); var a2 = ri(2,5);
+  var same = pick([true,false]);
+  if (!same && a2 === a1) a2 = a1 + ri(1,3); // avoid ambiguous zero-amplitude case
+  var res = same ? a1+a2 : Math.abs(a1-a2);
+  var ch = [
+    {text:res + ' cm', correct:true},
+    {text:(a1+a2) === res ? Math.abs(a1-a2) + ' cm' : (a1+a2) + ' cm', correct:false},
+    {text:(a1*a2) + ' cm', correct:false},
+    {text:'0 cm, the pulses destroy each other permanently', correct:false}
+  ];
+  // remove accidental duplicate texts
+  var seen = {}; ch = ch.filter(function(c){ if (seen[c.text]) return false; seen[c.text]=true; return true; });
+  return { topic:'sw', type:'mc',
+    text:'Two wave pulses travel towards each other on a rope: one has amplitude ' + a1 + ' cm and the other ' + a2 + ' cm ' + (same ? 'on the same side of the rope (both upward)' : 'on opposite sides of the rope (one upward, one downward)') + '. What is the amplitude of the rope at the instant they completely overlap?',
+    choices: shuffle(ch),
+    solution:'By superposition, displacements add algebraically: ' + (same ? a1 + ' + ' + a2 + ' = ' + res + ' cm (constructive).' : a1 + ' &minus; ' + a2 + ' gives a magnitude of ' + res + ' cm (destructive).') + ' The pulses then pass through each other unchanged.' };
+},
+
+/* ===== photoelectric effect ===== */
+function(){ // photon energy in J from f
+  var f = ri(50,150)/10 * 1e14;
+  var E = H*f;
+  return { topic:'pe', type:'numeric', unit:'J', answer:E,
+    text:'Calculate the energy, in joules, of a photon of frequency ' + sci(f) + ' Hz.',
+    solution:'E = hf = (6.63 &times; 10<sup>&minus;34</sup>) &times; (' + sci(f) + ') = ' + sci(E) + ' J' };
+},
+function(){ // photon energy in eV from wavelength
+  var lamNm = ri(20,60)*10; var lam = lamNm*1e-9;
+  var E = HEV*C/lam;
+  return { topic:'pe', type:'numeric', unit:'eV', answer:E,
+    text:'Calculate the energy, in electronvolts, of a photon of wavelength ' + lamNm + ' nm.',
+    solution:'E = hc/&lambda; = (4.14 &times; 10<sup>&minus;15</sup> &times; 3.0 &times; 10<sup>8</sup>) / (' + sci(lam) + ') = ' + plain(E) + ' eV' };
+},
+function(){ // Ek max
+  var m = pick([['sodium',2.36],['caesium',2.14],['potassium',2.30],['zinc',4.31],['aluminium',4.08]]);
+  var phi = m[1];
+  var f0 = phi/HEV;
+  var f = plain(f0 * (1.2 + Math.random()*0.8), 3);
+  var ek = HEV*f - phi;
+  return { topic:'pe', type:'numeric', unit:'eV', answer:ek,
+    text:'Light of frequency ' + sci(f) + ' Hz shines on a ' + m[0] + ' surface (work function &phi; = ' + phi.toFixed(2) + ' eV). Calculate the maximum kinetic energy of the emitted photoelectrons, in eV.',
+    solution:'E<sub>k max</sub> = hf &minus; &phi; = (4.14 &times; 10<sup>&minus;15</sup> &times; ' + sci(f) + ') &minus; ' + phi.toFixed(2) + ' = ' + plain(HEV*f) + ' &minus; ' + phi.toFixed(2) + ' = ' + plain(ek) + ' eV' };
+},
+function(){ // threshold frequency
+  var m = pick([['sodium',2.36],['caesium',2.14],['potassium',2.30],['zinc',4.31],['aluminium',4.08]]);
+  var phi = m[1];
+  var f0 = phi/HEV;
+  return { topic:'pe', type:'numeric', unit:'Hz', answer:f0,
+    text:'The work function of ' + m[0] + ' is ' + phi.toFixed(2) + ' eV. Calculate the threshold frequency for photoelectric emission.',
+    solution:'f<sub>0</sub> = &phi;/h = ' + phi.toFixed(2) + ' / (4.14 &times; 10<sup>&minus;15</sup>) = ' + sci(f0) + ' Hz' };
+},
+function(){ // stopping voltage
+  var m = pick([['sodium',2.36],['caesium',2.14],['potassium',2.30]]);
+  var phi = m[1];
+  var f0 = phi/HEV;
+  var f = plain(f0 * (1.3 + Math.random()*0.7), 3);
+  var ek = HEV*f - phi;
+  return { topic:'pe', type:'numeric', unit:'V', answer:ek,
+    text:'Light of frequency ' + sci(f) + ' Hz shines on ' + m[0] + ' (&phi; = ' + phi.toFixed(2) + ' eV). Calculate the stopping voltage required to reduce the photocurrent to zero.',
+    solution:'E<sub>k max</sub> = hf &minus; &phi; = ' + plain(HEV*f) + ' &minus; ' + phi.toFixed(2) + ' = ' + plain(ek) + ' eV. Since eV<sub>0</sub> = E<sub>k max</sub>, the stopping voltage is V<sub>0</sub> = ' + plain(ek) + ' V.' };
+},
+function(){ // eV <-> J conversion
+  if (Math.random() < 0.5) {
+    var ev = ri(11,60)/10;
+    var J = ev*QE;
+    return { topic:'pe', type:'numeric', unit:'J', answer:J,
+      text:'Convert ' + ev.toFixed(1) + ' eV into joules.',
+      solution:ev.toFixed(1) + ' eV &times; 1.6 &times; 10<sup>&minus;19</sup> J/eV = ' + sci(J) + ' J' };
+  } else {
+    var J2 = ri(20,90)/10 * 1e-19;
+    var ev2 = J2/QE;
+    return { topic:'pe', type:'numeric', unit:'eV', answer:ev2,
+      text:'Convert ' + sci(J2) + ' J into electronvolts.',
+      solution:'(' + sci(J2) + ') / (1.6 &times; 10<sup>&minus;19</sup>) = ' + plain(ev2) + ' eV' };
+  }
+},
+function(){ // MC: intensity increase
+  return { topic:'pe', type:'mc',
+    text:'Monochromatic light above the threshold frequency shines on a metal, producing photoelectrons. The intensity of the light is doubled while its frequency is unchanged. What happens?',
+    choices: shuffle([
+      {text:'The photocurrent doubles but the maximum kinetic energy of the electrons is unchanged', correct:true},
+      {text:'Both the photocurrent and the maximum kinetic energy double', correct:false},
+      {text:'The maximum kinetic energy doubles but the photocurrent is unchanged', correct:false},
+      {text:'Nothing changes, since frequency determines everything', correct:false}
+    ]),
+    solution:'Doubling intensity doubles the number of photons per second, so twice as many electrons are ejected (double current). Each photon still carries E = hf, so E<sub>k max</sub> = hf &minus; &phi; is unchanged.' };
+},
+function(){ // MC: below threshold
+  return { topic:'pe', type:'mc',
+    text:'Light with a frequency below the threshold frequency of a metal is made extremely intense. What is observed?',
+    choices: shuffle([
+      {text:'No photoelectrons are emitted, no matter how intense the light', correct:true},
+      {text:'Electrons are emitted after a time delay while energy accumulates', correct:false},
+      {text:'A small photocurrent flows, proportional to intensity', correct:false},
+      {text:'Electrons are emitted with very low kinetic energy', correct:false}
+    ]),
+    solution:'Each electron absorbs one photon. If hf &lt; &phi;, no single photon has enough energy to free an electron, so none are emitted regardless of intensity. The absence of any time delay or accumulation is key evidence against the wave model.' };
+},
+function(){ // MC: wave model failure
+  var q = pick([
+    {ok:'The existence of a threshold frequency below which no electrons are emitted',
+     d:['The photocurrent increases with light intensity','Electrons are emitted from the metal surface','Brighter light ejects more electrons']},
+    {ok:'Electrons are emitted immediately, with no time delay, even in very dim light',
+     d:['The photocurrent increases with light intensity','More electrons are emitted when the light is brighter','Electrons are emitted from the metal surface']},
+    {ok:'The maximum kinetic energy of electrons depends on frequency, not intensity',
+     d:['The photocurrent increases with light intensity','Electrons are emitted from the metal surface','Brighter light produces a larger current']}
+  ]);
+  var ch = [{text:q.ok, correct:true}];
+  for (var i=0;i<q.d.length;i++) ch.push({text:q.d[i], correct:false});
+  return { topic:'pe', type:'mc',
+    text:'Which observation from the photoelectric effect CANNOT be explained by the wave model of light?',
+    choices: shuffle(ch),
+    solution:'The wave model predicts energy arrives continuously, so any frequency should eventually eject electrons, dim light should cause a delay, and intensity should set the electron energy. Instead: there is a threshold frequency, emission is immediate, and E<sub>k max</sub> depends only on frequency. Intensity affecting the current (number of electrons) is consistent with both models.' };
+},
+
+/* ===== photoelectric graphs ===== */
+function(){ // work function from x-intercept
+  var f0 = ri(45,110)/10 * 1e14;
+  var phi = HEV*f0;
+  return { topic:'graph', type:'numeric', unit:'eV', answer:phi,
+    text:'A graph of maximum photoelectron kinetic energy versus light frequency for a metal is a straight line crossing the frequency axis at ' + sci(f0) + ' Hz. Calculate the work function of the metal in eV.',
+    solution:'The x-intercept is the threshold frequency f<sub>0</sub>. &phi; = hf<sub>0</sub> = (4.14 &times; 10<sup>&minus;15</sup>) &times; (' + sci(f0) + ') = ' + plain(phi) + ' eV' };
+},
+function(){ // gradient = h from two points
+  var f0 = ri(45,80)/10 * 1e14;
+  var f1 = f0 + ri(10,25)/10*1e14;
+  var f2 = f1 + ri(15,30)/10*1e14;
+  var E1 = H*(f1-f0), E2 = H*(f2-f0);
+  return { topic:'graph', type:'numeric', unit:'J s', answer:H,
+    text:'On a graph of E<sub>k max</sub> (in joules) versus frequency, the line passes through the points (' + sci(f1) + ' Hz, ' + sci(E1) + ' J) and (' + sci(f2) + ' Hz, ' + sci(E2) + ' J). Calculate the gradient of the line.',
+    solution:'gradient = &Delta;E/&Delta;f = (' + sci(E2) + ' &minus; ' + sci(E1) + ') / (' + sci(f2) + ' &minus; ' + sci(f1) + ') = ' + sci(H) + ' J s. The gradient is Planck’s constant.' };
+},
+function(){ // y-intercept magnitude in J
+  var f0 = ri(45,110)/10 * 1e14;
+  var phi = H*f0;
+  return { topic:'graph', type:'numeric', unit:'J', answer:phi,
+    text:'For a certain metal, the E<sub>k max</sub> versus frequency line has an x-intercept (threshold frequency) of ' + sci(f0) + ' Hz. When extrapolated back, the line crosses the energy axis below zero. Calculate the magnitude of this y-intercept, in joules.',
+    solution:'E<sub>k max</sub> = hf &minus; &phi;, so the y-intercept is &minus;&phi;. |y-intercept| = &phi; = hf<sub>0</sub> = (6.63 &times; 10<sup>&minus;34</sup>) &times; (' + sci(f0) + ') = ' + sci(phi) + ' J' };
+},
+function(){ // MC: what gradient represents
+  var q = pick([
+    {t:'On a graph of E<sub>k max</sub> versus frequency for the photoelectric effect, the gradient of the line equals:',
+     ok:'Planck’s constant, h', d:['the work function, φ','the threshold frequency, f₀','the charge on the electron, e']},
+    {t:'On a graph of stopping voltage V₀ versus frequency, the gradient of the line equals:',
+     ok:'h/e', d:['h','φ','e/h']}
+  ]);
+  var ch = [{text:q.ok, correct:true}];
+  for (var i=0;i<q.d.length;i++) ch.push({text:q.d[i], correct:false});
+  return { topic:'graph', type:'mc', text:q.t, choices: shuffle(ch),
+    solution:'E<sub>k max</sub> = hf &minus; &phi; has gradient h. Dividing by e: V<sub>0</sub> = (h/e)f &minus; &phi;/e, so a V<sub>0</sub> vs f graph has gradient h/e. In both cases the x-intercept is f<sub>0</sub>.' };
+},
+function(){ // MC: different metal
+  return { topic:'graph', type:'mc',
+    text:'The photoelectric experiment is repeated with a metal of larger work function. Compared with the original E<sub>k max</sub> versus frequency line, the new line is:',
+    choices: shuffle([
+      {text:'Parallel to the original, with a higher threshold frequency', correct:true},
+      {text:'Steeper, with the same threshold frequency', correct:false},
+      {text:'Less steep, with a higher threshold frequency', correct:false},
+      {text:'Identical, since h is unchanged', correct:false}
+    ]),
+    solution:'The gradient is always h, so the lines are parallel. A larger &phi; shifts the x-intercept (f<sub>0</sub> = &phi;/h) to a higher frequency and the y-intercept (&minus;&phi;) further below zero.' };
+},
+
+/* ===== duality ===== */
+function(){ // MC: wave evidence
+  return { topic:'dual', type:'mc',
+    text:'Which observation provides evidence for the WAVE model of light?',
+    choices: shuffle([
+      {text:'The interference pattern in Young’s double slit experiment', correct:true},
+      {text:'The existence of a threshold frequency in the photoelectric effect', correct:false},
+      {text:'Immediate emission of photoelectrons in dim light', correct:false},
+      {text:'Eₖ max being independent of intensity', correct:false}
+    ]),
+    solution:'Interference and diffraction require superposition, a wave behaviour. The other three are photoelectric observations that support the particle (photon) model.' };
+},
+function(){ // MC: particle evidence
+  return { topic:'dual', type:'mc',
+    text:'Which observation provides evidence for the PARTICLE model of light?',
+    choices: shuffle([
+      {text:'The photoelectric effect, including the threshold frequency', correct:true},
+      {text:'Diffraction of light through a narrow slit', correct:false},
+      {text:'The double slit interference pattern', correct:false},
+      {text:'Light spreading out after passing an obstacle', correct:false}
+    ]),
+    solution:'The photoelectric effect (threshold frequency, no time delay, E<sub>k max</sub> set by frequency) can only be explained if light delivers energy in discrete photons of energy hf. The other options are wave behaviours.' };
+},
+function(){ // MC: single photon double slit
+  return { topic:'dual', type:'mc',
+    text:'In a double slit experiment, photons are sent through one at a time. After many photons have been detected, what is observed on the screen, and what does it show?',
+    choices: shuffle([
+      {text:'An interference pattern gradually builds up, showing that even single photons exhibit wave-like behaviour', correct:true},
+      {text:'Two bright bands form, one behind each slit, showing photons are particles', correct:false},
+      {text:'A single central band forms, since photons cannot interfere alone', correct:false},
+      {text:'A uniform glow forms across the screen with no structure', correct:false}
+    ]),
+    solution:'Each photon arrives at one point (particle-like detection), but the accumulated distribution of many photons forms the interference pattern (wave-like propagation). This is direct evidence of wave-particle duality.' };
+},
+function(){ // MC: production of EM waves / nature
+  var q = pick([
+    {t:'According to the electromagnetic wave model, light is produced by:',
+     ok:'accelerating electric charges', d:['charges moving at constant velocity','stationary charges','the collision of photons']},
+    {t:'Light is best described as which type of wave?',
+     ok:'A transverse electromagnetic wave', d:['A longitudinal electromagnetic wave','A transverse mechanical wave','A longitudinal mechanical wave']}
+  ]);
+  var ch = [{text:q.ok, correct:true}];
+  for (var i=0;i<q.d.length;i++) ch.push({text:q.d[i], correct:false});
+  return { topic:'dual', type:'mc', text:q.t, choices: shuffle(ch),
+    solution:'Light is a transverse electromagnetic wave, produced by the acceleration of electric charges. It needs no medium and travels at c in a vacuum.' };
+},
+function(){ // MC: which model for which phenomenon
+  return { topic:'dual', type:'mc',
+    text:'Which statement best summarises the modern view of light?',
+    choices: shuffle([
+      {text:'Light exhibits both wave-like behaviour (interference, diffraction) and particle-like behaviour (photoelectric effect); neither model alone explains everything', correct:true},
+      {text:'Light is purely a wave; the photoelectric effect is a measurement artefact', correct:false},
+      {text:'Light is purely a stream of particles; interference is caused by photons colliding', correct:false},
+      {text:'Light behaves as a wave at low frequencies and a particle at high frequencies only', correct:false}
+    ]),
+    solution:'Interference and diffraction demand a wave description, while the photoelectric effect demands photons. Light shows both behaviours; which one is observed depends on the experiment.' };
+},
+
+/* ===== matter waves (de Broglie) ===== */
+function(){ // de Broglie wavelength of electron from speed
+  var v = ri(10,80)/10 * 1e6;
+  var lam = H/(ME*v);
+  return { topic:'mw', type:'numeric', unit:'m', answer:lam,
+    text:'Calculate the de Broglie wavelength of an electron travelling at ' + sci(v) + ' m s⁻¹. (m<sub>e</sub> = 9.1 &times; 10<sup>&minus;31</sup> kg)',
+    solution:'p = mv = (9.1 &times; 10<sup>&minus;31</sup>) &times; (' + sci(v) + ') = ' + sci(ME*v) + ' kg m s<sup>&minus;1</sup>. &lambda; = h/p = (6.63 &times; 10<sup>&minus;34</sup>) / (' + sci(ME*v) + ') = ' + sci(lam) + ' m' };
+},
+function(){ // de Broglie wavelength from momentum
+  var p = ri(10,90)/10 * 1e-24;
+  var lam = H/p;
+  return { topic:'mw', type:'numeric', unit:'m', answer:lam,
+    text:'A particle has a momentum of ' + sci(p) + ' kg m s⁻¹. Calculate its de Broglie wavelength.',
+    solution:'&lambda; = h/p = (6.63 &times; 10<sup>&minus;34</sup>) / (' + sci(p) + ') = ' + sci(lam) + ' m' };
+},
+function(){ // photon momentum
+  var lamNm = ri(20,70)*10; var lam = lamNm*1e-9;
+  var p = H/lam;
+  return { topic:'mw', type:'numeric', unit:'kg m s⁻¹', answer:p,
+    text:'Calculate the momentum of a photon of wavelength ' + lamNm + ' nm.',
+    solution:'p = h/&lambda; = (6.63 &times; 10<sup>&minus;34</sup>) / (' + sci(lam) + ') = ' + sci(p) + ' kg m s<sup>&minus;1</sup>' };
+},
+function(){ // MC: same wavelength -> same momentum
+  return { topic:'mw', type:'mc',
+    text:'An electron and a photon have the same wavelength. Which quantity must they also share?',
+    choices: shuffle([
+      {text:'Momentum', correct:true},
+      {text:'Speed', correct:false},
+      {text:'Kinetic energy', correct:false},
+      {text:'Charge', correct:false}
+    ]),
+    solution:'For both matter and photons, &lambda; = h/p. Equal wavelengths therefore mean equal momenta. Their speeds and energies differ, since the photon moves at c and the relationship between energy and momentum is different for each.' };
+},
+function(){ // MC: electron diffraction evidence / macroscopic objects
+  var q = pick([
+    {t:'A beam of electrons passed through a thin crystal produces a pattern of rings similar to that produced by X-rays of the same wavelength. What does this show?',
+     ok:'Electrons exhibit wave-like behaviour, with a wavelength given by λ = h/p',
+     d:['Electrons are converted into X-rays inside the crystal','Electrons collide with atoms and scatter randomly','Electrons are charged, so they spiral in the crystal']},
+    {t:'Why does a thrown tennis ball show no observable diffraction, while an electron beam does?',
+     ok:'The ball’s de Broglie wavelength (about 10⁻³⁴ m) is vastly smaller than any gap, so λ/w is effectively zero',
+     d:['The ball moves too fast for diffraction to occur','Only charged particles can diffract','The ball’s wavelength is too large to fit through a gap']}
+  ]);
+  var ch = [{text:q.ok, correct:true}];
+  for (var i=0;i<q.d.length;i++) ch.push({text:q.d[i], correct:false});
+  return { topic:'mw', type:'mc', text:q.t, choices: shuffle(ch),
+    solution:'Electron diffraction is direct evidence for the wave nature of matter. Diffraction is only significant when &lambda;/w is comparable to 1; a macroscopic object’s momentum is so large that &lambda; = h/p is around 10<sup>&minus;34</sup> m, far too small for any observable spreading.' };
+},
+
+/* ===== atomic spectra & energy levels ===== */
+function(){ // photon energy from level difference
+  var E2 = ri(15,25)/10;
+  var E3 = E2 + ri(8,15)/10;
+  var E4 = E3 + ri(4,8)/10;
+  var tr = pick([
+    {from:'n = 3 (E = ' + E3.toFixed(1) + ' eV)', to:'n = 2 (E = ' + E2.toFixed(1) + ' eV)', dE: E3-E2, w:E3.toFixed(1) + ' &minus; ' + E2.toFixed(1)},
+    {from:'n = 4 (E = ' + E4.toFixed(1) + ' eV)', to:'n = 2 (E = ' + E2.toFixed(1) + ' eV)', dE: E4-E2, w:E4.toFixed(1) + ' &minus; ' + E2.toFixed(1)},
+    {from:'n = 4 (E = ' + E4.toFixed(1) + ' eV)', to:'n = 3 (E = ' + E3.toFixed(1) + ' eV)', dE: E4-E3, w:E4.toFixed(1) + ' &minus; ' + E3.toFixed(1)}
+  ]);
+  return { topic:'spec', type:'numeric', unit:'eV', answer:tr.dE,
+    text:'In an atom, energy levels are measured above the ground state (n = 1, E = 0 eV). An electron drops from ' + tr.from + ' to ' + tr.to + '. Calculate the energy of the emitted photon, in eV.',
+    solution:'E<sub>photon</sub> = &Delta;E = ' + tr.w + ' = ' + plain(tr.dE) + ' eV. The photon carries away exactly the energy difference between the two levels.' };
+},
+function(){ // wavelength of emitted photon
+  var dE = ri(15,45)/10;
+  var lam = HEV*C/dE;
+  return { topic:'spec', type:'numeric', unit:'nm', answer:lam*1e9,
+    text:'An electron transition in an atom releases a photon of energy ' + dE.toFixed(1) + ' eV. Calculate the wavelength of this photon, in nanometres.',
+    solution:'&lambda; = hc/E = (4.14 &times; 10<sup>&minus;15</sup> &times; 3.0 &times; 10<sup>8</sup>) / ' + dE.toFixed(1) + ' = ' + sci(lam) + ' m &asymp; ' + Math.round(lam*1e9) + ' nm' };
+},
+function(){ // energy difference from wavelength
+  var lamNm = ri(30,70)*10; var lam = lamNm*1e-9;
+  var dE = HEV*C/lam;
+  return { topic:'spec', type:'numeric', unit:'eV', answer:dE,
+    text:'An atom emits a spectral line at ' + lamNm + ' nm. Calculate the energy difference, in eV, between the two levels involved in this transition.',
+    solution:'&Delta;E = hc/&lambda; = (4.14 &times; 10<sup>&minus;15</sup> &times; 3.0 &times; 10<sup>8</sup>) / (' + sci(lam) + ') = ' + plain(dE) + ' eV' };
+},
+function(){ // MC: why discrete lines
+  return { topic:'spec', type:'mc',
+    text:'The emission spectrum of a gas consists of discrete coloured lines rather than a continuous spectrum. Why?',
+    choices: shuffle([
+      {text:'Electrons occupy quantised energy levels, so only photons with energies equal to specific level differences can be emitted', correct:true},
+      {text:'The gas atoms only absorb certain colours from the light source', correct:false},
+      {text:'The gas is too cold to emit all wavelengths', correct:false},
+      {text:'Electrons can have any energy, but only some photons escape the gas', correct:false}
+    ]),
+    solution:'Electron energies in an atom are quantised. A photon is emitted when an electron falls between two allowed levels, with E<sub>photon</sub> = &Delta;E = hf, so only specific frequencies (lines) appear.' };
+},
+function(){ // MC: absorption spectrum
+  return { topic:'spec', type:'mc',
+    text:'White light passes through a cool gas and dark lines appear in the otherwise continuous spectrum. Which statement explains this?',
+    choices: shuffle([
+      {text:'The gas absorbs only photons whose energy exactly matches a difference between its energy levels; these wavelengths are then missing from the transmitted beam', correct:true},
+      {text:'The gas reflects certain wavelengths back towards the source', correct:false},
+      {text:'The gas slows down certain wavelengths so they arrive later', correct:false},
+      {text:'The gas absorbs all photons below a threshold frequency', correct:false}
+    ]),
+    solution:'Absorption is the reverse of emission: a photon is absorbed only if its energy matches a level difference, promoting an electron to a higher level. The re-emitted light goes in all directions, leaving dark lines at those same wavelengths, matching the gas’s emission lines.' };
+},
+function(){ // MC: standing wave model of the atom
+  return { topic:'spec', type:'mc',
+    text:'How does the wave nature of the electron explain why atomic energy levels are quantised?',
+    choices: shuffle([
+      {text:'A stable orbit requires the electron’s de Broglie wave to form a standing wave, with a whole number of wavelengths fitting the orbit (nλ = 2πr)', correct:true},
+      {text:'Electrons repel each other into evenly spaced shells', correct:false},
+      {text:'The nucleus only attracts electrons at certain distances', correct:false},
+      {text:'Photons can only be emitted in whole-number amounts', correct:false}
+    ]),
+    solution:'Modelling the electron as a wave, only orbits where a whole number of de Broglie wavelengths fits the circumference (n&lambda; = 2&pi;r) form standing waves and are stable. Each allowed standing wave corresponds to a discrete energy level.' };
+},
+
+/* ===== special relativity ===== */
+function(){ // gamma factor
+  var k = pick([0.6, 0.8, 0.9, 0.95, 0.98, 0.99]);
+  var g = 1/Math.sqrt(1-k*k);
+  return { topic:'rel', type:'numeric', unit:'(no unit)', answer:g,
+    text:'Calculate the Lorentz factor &gamma; for an object travelling at ' + k + 'c.',
+    solution:'&gamma; = 1/&radic;(1 &minus; v&sup2;/c&sup2;) = 1/&radic;(1 &minus; ' + k + '&sup2;) = 1/&radic;(' + plain(1-k*k,4) + ') = ' + plain(g,4) };
+},
+function(){ // time dilation (muon)
+  var k = pick([0.9, 0.95, 0.98, 0.99]);
+  var g = 1/Math.sqrt(1-k*k);
+  var t0 = 2.2;
+  var t = g*t0;
+  return { topic:'rel', type:'numeric', unit:'μs', answer:t,
+    text:'A muon at rest has an average lifetime of 2.2 μs. Muons created in the upper atmosphere travel at ' + k + 'c relative to Earth. Calculate their average lifetime as measured by an observer on Earth, in μs.',
+    solution:'&gamma; = 1/&radic;(1 &minus; ' + k + '&sup2;) = ' + plain(g,4) + '. The 2.2 μs is proper time (measured in the muon’s frame), so t = t<sub>0</sub>&gamma; = 2.2 &times; ' + plain(g,4) + ' = ' + plain(t) + ' μs. This dilation is why so many muons reach the ground.' };
+},
+function(){ // length contraction
+  var k = pick([0.6, 0.8, 0.9, 0.95]);
+  var g = 1/Math.sqrt(1-k*k);
+  var L0 = ri(10,90);
+  var L = L0/g;
+  return { topic:'rel', type:'numeric', unit:'m', answer:L,
+    text:'A spacecraft has a proper length of ' + L0 + ' m. It flies past an observer at ' + k + 'c. What length does the observer measure, in metres?',
+    solution:'&gamma; = 1/&radic;(1 &minus; ' + k + '&sup2;) = ' + plain(g,4) + '. L = L<sub>0</sub>/&gamma; = ' + L0 + ' / ' + plain(g,4) + ' = ' + plain(L) + ' m. Lengths contract along the direction of motion.' };
+},
+function(){ // rest energy
+  var m = pick([
+    {name:'an electron', mass:ME, disp:'9.1 &times; 10<sup>&minus;31</sup> kg'},
+    {name:'a proton', mass:MP, disp:'1.67 &times; 10<sup>&minus;27</sup> kg'},
+    {name:'a particle of mass 3.0 &times; 10<sup>&minus;26</sup> kg', mass:3.0e-26, disp:'3.0 &times; 10<sup>&minus;26</sup> kg'}
+  ]);
+  var E0 = m.mass*C*C;
+  return { topic:'rel', type:'numeric', unit:'J', answer:E0,
+    text:'Calculate the rest energy of ' + m.name + '. (m = ' + m.disp + ')',
+    solution:'E<sub>0</sub> = mc&sup2; = (' + m.disp + ') &times; (3.0 &times; 10<sup>8</sup>)&sup2; = ' + sci(E0) + ' J' };
+},
+function(){ // relativistic kinetic energy or total energy
+  var k = pick([0.8, 0.9, 0.95, 0.98]);
+  var g = 1/Math.sqrt(1-k*k);
+  var wantK = pick([true,false]);
+  var E = wantK ? (g-1)*MP*C*C : g*MP*C*C;
+  return { topic:'rel', type:'numeric', unit:'J', answer:E,
+    text:'A proton (m = 1.67 &times; 10<sup>&minus;27</sup> kg) travels at ' + k + 'c. Calculate its ' + (wantK ? 'kinetic energy' : 'total energy') + ', in joules.',
+    solution:'&gamma; = 1/&radic;(1 &minus; ' + k + '&sup2;) = ' + plain(g,4) + '. ' + (wantK
+      ? 'E<sub>k</sub> = (&gamma; &minus; 1)mc&sup2; = ' + plain(g-1,4) + ' &times; (1.67 &times; 10<sup>&minus;27</sup>) &times; (3.0 &times; 10<sup>8</sup>)&sup2; = ' + sci(E) + ' J'
+      : 'E<sub>tot</sub> = &gamma;mc&sup2; = ' + plain(g,4) + ' &times; (1.67 &times; 10<sup>&minus;27</sup>) &times; (3.0 &times; 10<sup>8</sup>)&sup2; = ' + sci(E) + ' J') };
+},
+function(){ // MC: postulates
+  return { topic:'rel', type:'mc',
+    text:'Which of the following states the two postulates of Einstein’s special relativity?',
+    choices: shuffle([
+      {text:'The laws of physics are the same in all inertial frames, and the speed of light in a vacuum is the same for all observers regardless of motion', correct:true},
+      {text:'Time is absolute, and the speed of light depends on the motion of the source', correct:false},
+      {text:'The laws of physics are the same in all frames, including accelerating ones, and light needs a medium', correct:false},
+      {text:'Moving clocks run fast, and moving objects lengthen', correct:false}
+    ]),
+    solution:'Postulate 1: the laws of physics are identical in all inertial (non-accelerating) frames. Postulate 2: the speed of light in a vacuum, c, is measured to be the same by all observers, independent of the motion of the source or observer. Time dilation and length contraction follow from these.' };
+},
+function(){ // MC: proper time / proper length
+  var q = pick([
+    {t:'An astronaut travels to a distant star while her twin stays on Earth. Who measures the proper time for the journey?',
+     ok:'The astronaut, because both the start and end of the journey occur at her location',
+     d:['The twin on Earth, because Earth is at rest','Both measure proper time, since time is relative','Neither; proper time can only be measured by light']},
+    {t:'Which observer measures the proper length of a moving train?',
+     ok:'An observer at rest relative to the train',
+     d:['An observer standing on the platform','Whichever observer is moving faster','An observer moving at c']}
+  ]);
+  var ch = [{text:q.ok, correct:true}];
+  for (var i=0;i<q.d.length;i++) ch.push({text:q.d[i], correct:false});
+  return { topic:'rel', type:'mc', text:q.t, choices: shuffle(ch),
+    solution:'Proper time t<sub>0</sub> is measured by the observer for whom the two events occur at the same location. Proper length L<sub>0</sub> is measured in the frame where the object is at rest. All other inertial observers measure a dilated time (t = t<sub>0</sub>&gamma;) or a contracted length (L = L<sub>0</sub>/&gamma;).' };
+},
+function(){ // MC: Michelson-Morley
+  return { topic:'rel', type:'mc',
+    text:'The Michelson-Morley experiment attempted to detect Earth’s motion through the "aether". What was the result, and its significance?',
+    choices: shuffle([
+      {text:'No difference in the speed of light was detected in any direction, undermining the aether model and consistent with light needing no medium', correct:true},
+      {text:'Light was found to travel faster in the direction of Earth’s motion, confirming the aether', correct:false},
+      {text:'The experiment measured the aether wind speed as 30 km/s', correct:false},
+      {text:'Light was shown to be a longitudinal wave', correct:false}
+    ]),
+    solution:'The interferometer found no change in the speed of light along or across Earth’s direction of motion (a null result). This contradicted the aether model and supports the second postulate: c is the same for all observers, and light propagates without a medium.' };
+}
+];
+
+/* ---------- state ---------- */
+var state = {
+  current: null,
+  answered: false,
+  hintUsed: false,
+  streak: 0, best: 0, correct: 0, total: 0,
+  lastGen: -1,
+  history: []
+};
+
+/* ---------- DOM ---------- */
+function $(id){ return document.getElementById(id); }
+var elBadge = $('qbadge'), elQ = $('qtext'), elAns = $('answerArea'),
+    elHint = $('hintbox'), elFb = $('feedback'),
+    btnHint = $('btnHint'), btnSubmit = $('btnSubmit'), btnNext = $('btnNext'),
+    elRev = $('revList');
+
+function activeTopics(){
+  var boxes = document.querySelectorAll('.topics input');
+  var t = [];
+  boxes.forEach(function(b){ if (b.checked) t.push(b.getAttribute('data-topic')); });
+  return t;
+}
+
+function updateStats(){
+  $('stStreak').textContent = state.streak;
+  $('stBest').textContent = state.best;
+  $('stScore').textContent = state.correct + ' / ' + state.total;
+  $('stAcc').innerHTML = state.total ? Math.round(100*state.correct/state.total) + '%' : '&ndash;';
+}
+
+function newQuestion(){
+  var topics = activeTopics();
+  if (topics.length === 0) {
+    elBadge.textContent = 'No topic selected';
+    elQ.innerHTML = 'Tick at least one topic above to continue.';
+    elAns.innerHTML = '';
+    btnSubmit.style.display = 'none'; btnNext.style.display = 'none'; btnHint.style.display = 'none';
+    return;
+  }
+  var pool = [];
+  for (var i=0;i<GENS.length;i++) pool.push(i);
+  pool = pool.filter(function(i){ return true; });
+  var q = null, gi = -1, guard = 0;
+  while (guard++ < 60) {
+    gi = ri(0, GENS.length-1);
+    var cand = GENS[gi]();
+    if (topics.indexOf(cand.topic) === -1) continue;
+    if (gi === state.lastGen && guard < 40) continue;
+    q = cand; break;
+  }
+  if (!q) { // fallback: first matching generator
+    for (var k=0;k<GENS.length;k++){ var c2 = GENS[k](); if (topics.indexOf(c2.topic) !== -1){ q = c2; gi = k; break; } }
+  }
+  state.lastGen = gi;
+  state.current = q;
+  state.answered = false;
+  state.hintUsed = false;
+
+  elBadge.textContent = TOPIC_NAMES[q.topic];
+  elQ.innerHTML = q.text;
+  elHint.classList.remove('show');
+  elFb.classList.remove('show','good','bad');
+  elFb.innerHTML = '';
+  btnHint.style.display = '';
+  btnNext.style.display = 'none';
+
+  // hint content
+  var hh = '<h4>Relevant formulas</h4>';
+  HINTS[q.topic].forEach(function(f){ hh += '<div class="frm">' + f + '</div>'; });
+  hh += '<h4 style="margin-top:8px">Constants</h4><div class="frm">' + CONSTS + '</div>';
+  elHint.innerHTML = hh;
+
+  if (q.type === 'numeric') {
+    elAns.innerHTML = '<div class="answer-row">'
+      + '<input class="num-in" id="numIn" type="text" inputmode="text" autocomplete="off" placeholder="e.g. 3.2×10^-7">'
+      + '<button type="button" class="btn btn-ghost btn-exp" id="btnExp" title="Insert ×10^">&times;10<sup>n</sup></button>'
+      + '<span class="unit">' + q.unit + '</span></div>'
+      + '<div class="num-preview" id="numPrev"></div>';
+    btnSubmit.style.display = '';
+    var inp = $('numIn'), prev = $('numPrev');
+    var updPrev = function(){
+      var raw = inp.value;
+      if (!raw.trim()) { prev.innerHTML = ''; return; }
+      var v = parseNum(raw);
+      if (v === null) { prev.innerHTML = '<span class="prev-bad">unreadable entry</span>'; return; }
+      prev.innerHTML = '= ' + sciDisp(v) + (q.unit && q.unit !== '(no unit)' ? ' ' + q.unit : '');
+    };
+    inp.addEventListener('input', updPrev);
+    inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') submit(); });
+    $('btnExp').addEventListener('click', function(){
+      if (inp.disabled) return;
+      var st = inp.selectionStart === null ? inp.value.length : inp.selectionStart;
+      var en = inp.selectionEnd === null ? inp.value.length : inp.selectionEnd;
+      var ins = '×10^';
+      inp.value = inp.value.slice(0, st) + ins + inp.value.slice(en);
+      inp.focus();
+      inp.setSelectionRange(st + ins.length, st + ins.length);
+      updPrev();
+    });
+    inp.focus();
+  } else {
+    btnSubmit.style.display = 'none';
+    var html = '<div class="choices">';
+    q.choices.forEach(function(c, idx){
+      html += '<button type="button" class="choice" data-i="' + idx + '">' + String.fromCharCode(65+idx) + '. ' + c.text + '</button>';
+    });
+    html += '</div>';
+    elAns.innerHTML = html;
+    elAns.querySelectorAll('button.choice').forEach(function(b){
+      b.addEventListener('click', function(){ answerMC(parseInt(b.getAttribute('data-i'),10)); });
+    });
+  }
+}
+
+function parseNum(s){
+  if (typeof s !== 'string') return null;
+  s = s.trim().toLowerCase();
+  if (!s) return null;
+  s = s.replace(/\s+/g,'').replace(/,/g,'').replace(/−/g,'-').replace(/–/g,'-');
+  // superscript characters (in case of paste)
+  var sup = {'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁻':'-','⁺':'+'};
+  s = s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]/g, function(c){ return sup[c]; });
+  // calculator style: 3.2×10^-7, 3.2x10^-7, 3.2*10^-7, 3.2×10-7 is NOT accepted (ambiguous)
+  s = s.replace(/(×|x|\*)10\^/g,'e');
+  // bare power of ten: 10^-7  ->  1e-7
+  s = s.replace(/^10\^/,'1e');
+  // e^ typed by habit: 3.2e^-7
+  s = s.replace(/e\^/g,'e');
+  // trailing ×10^ with no exponent, or leftover ^, is invalid
+  if (/[\^×x*]/.test(s)) return null;
+  if (/e$/.test(s) || /e[+-]?$/.test(s)) return null;
+  var v = Number(s);
+  return isFinite(v) ? v : null;
+}
+
+function fmtAnswer(q){
+  return sci(q.answer) + (q.unit && q.unit !== '(no unit)' ? ' ' + q.unit : '');
+}
+
+function record(ok, userDisplay){
+  state.total++;
+  if (ok) { state.correct++; state.streak++; if (state.streak > state.best) state.best = state.streak; }
+  else state.streak = 0;
+  updateStats();
+  var q = state.current;
+  state.history.unshift({
+    n: state.total,
+    topic: TOPIC_NAMES[q.topic],
+    text: q.text,
+    ok: ok,
+    hintUsed: state.hintUsed,
+    user: userDisplay,
+    corr: q.type === 'numeric' ? fmtAnswer(q) : q.choices.filter(function(c){return c.correct;})[0].text,
+    soln: q.solution
+  });
+  renderReview();
+}
+
+function showFeedback(ok, extra){
+  elFb.className = 'feedback show ' + (ok ? 'good' : 'bad');
+  elFb.innerHTML = '<div class="verdict">' + (ok ? 'Correct' + (state.streak >= 3 ? '! Streak: ' + state.streak : '') : 'Incorrect') + '</div>'
+    + (extra || '')
+    + '<div class="soln"><strong>Solution:</strong> ' + state.current.soln0 + '</div>';
+}
+
+function finishQuestion(ok, extra){
+  state.answered = true;
+  btnSubmit.style.display = 'none';
+  btnNext.style.display = '';
+  state.current.soln0 = state.current.solution;
+  showFeedback(ok, extra);
+  btnNext.focus();
+}
+
+function submit(){
+  if (state.answered || !state.current || state.current.type !== 'numeric') return;
+  var raw = $('numIn').value;
+  var v = parseNum(raw);
+  if (v === null) {
+    elFb.className = 'feedback show bad';
+    elFb.innerHTML = '<div class="verdict">Could not read that number.</div>Use plain or scientific notation, e.g. 0.0045 or 4.5e-3.';
+    return;
+  }
+  var a = state.current.answer;
+  var ok;
+  if (a === 0) ok = Math.abs(v) < 1e-12;
+  else ok = Math.abs(v - a)/Math.abs(a) <= 0.025;
+  $('numIn').disabled = true;
+  record(ok, raw + (state.current.unit && state.current.unit !== '(no unit)' ? ' ' + state.current.unit : ''));
+  finishQuestion(ok, ok ? '' : 'Accepted answer: ' + fmtAnswer(state.current));
+}
+
+function answerMC(idx){
+  if (state.answered || !state.current || state.current.type !== 'mc') return;
+  var q = state.current;
+  var ok = !!q.choices[idx].correct;
+  var btns = elAns.querySelectorAll('button.choice');
+  btns.forEach(function(b, i){
+    b.disabled = true;
+    if (q.choices[i].correct) b.classList.add('correct');
+    else if (i === idx) b.classList.add('wrong');
+  });
+  record(ok, String.fromCharCode(65+idx) + '. ' + q.choices[idx].text);
+  finishQuestion(ok);
+}
+
+function renderReview(){
+  if (state.history.length === 0) return;
+  var html = '';
+  state.history.forEach(function(h){
+    html += '<div class="rev-item">'
+      + '<div class="rev-head">'
+      + '<span class="rev-mark ' + (h.ok?'ok':'no') + '">' + (h.ok ? '✓' : '✗') + '</span>'
+      + '<span class="rev-num">Q' + h.n + '</span>'
+      + '<span class="rev-topic">' + h.topic + '</span>'
+      + (h.hintUsed ? '<span class="rev-tag">hint used</span>' : '')
+      + '</div>'
+      + '<div class="rev-body">'
+      + '<div class="rev-q">' + h.text + '</div>'
+      + '<div class="rev-ans">Your answer: ' + h.user + (h.ok ? '' : ' &nbsp;|&nbsp; Correct: ' + h.corr) + '</div>'
+      + '<div><strong>Solution:</strong> ' + h.soln + '</div>'
+      + '</div></div>';
+  });
+  elRev.innerHTML = html;
+  elRev.querySelectorAll('.rev-item').forEach(function(item){
+    item.querySelector('.rev-head').addEventListener('click', function(){ item.classList.toggle('open'); });
+  });
+}
+
+/* ---------- events ---------- */
+btnHint.addEventListener('click', function(){
+  elHint.classList.toggle('show');
+  if (elHint.classList.contains('show')) state.hintUsed = true;
+});
+btnSubmit.addEventListener('click', submit);
+btnNext.addEventListener('click', newQuestion);
+document.querySelectorAll('.topics input').forEach(function(b){
+  b.addEventListener('change', function(){
+    if (!state.answered) newQuestion();
+  });
+});
+
+updateStats();
+newQuestion();
+})();
+</script>
+</body>
+</html>
