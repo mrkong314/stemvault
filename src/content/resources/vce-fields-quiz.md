@@ -1,5 +1,5 @@
 ---
-title: "VCE Physics — Fields Quiz"
+title: "VCE Physics - Fields Quiz"
 type: applet
 subject: Physics
 yearLevel: [11, 12]
