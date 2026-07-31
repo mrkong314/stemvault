@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pace Tools</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --accent-soft: #cde2fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --border: rgba(255,255,255,0.10);
+      --accent: #3987e5;
+      --accent-soft: #104281;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    padding: 24px 16px 48px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--ink-2); font-size: 14px; margin: 0 0 20px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  input, select {
+    font: inherit;
+    padding: 7px 9px;
+    border: 1px solid var(--grid);
+    border-radius: 6px;
+    background: var(--page);
+    color: var(--ink);
+    width: 110px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  select { width: auto; }
+  .out { margin-top: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .big { font-size: 26px; font-weight: 600; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .pill {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--grid); background: none; color: var(--ink-2); cursor: pointer;
+  }
+  .pill:hover { border-color: var(--accent); color: var(--accent); }
+  .err { color: #d03b3b; font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Pace Tools</h1>
+  <p class="sub">Pace converter, Riegel race predictor, and split generator.</p>
+
+  <!-- Pace converter -->
+  <div class="card">
+    <h2>Pace converter</h2>
+    <div class="row">
+      <div>
+        <label for="pc-pace">Pace (min:sec per km)</label>
+        <input id="pc-pace" value="4:30" inputmode="numeric">
+      </div>
+    </div>
+    <div class="pills">
+      <button class="pill" data-pace="3:30">3:30</button>
+      <button class="pill" data-pace="4:00">4:00</button>
+      <button class="pill" data-pace="4:30">4:30</button>
+      <button class="pill" data-pace="5:00">5:00</button>
+      <button class="pill" data-pace="5:30">5:30</button>
+      <button class="pill" data-pace="6:00">6:00</button>
+    </div>
+    <div class="out" id="pc-out"></div>
+  </div>
+
+  <!-- Race predictor -->
+  <div class="card">
+    <h2>Race predictor (Riegel)</h2>
+    <div class="row">
+      <div>
+        <label for="rp-dist">Recent race</label>
+        <select id="rp-dist">
+          <option value="1.5">1500 m</option>
+          <option value="3">3 km</option>
+          <option value="5" selected>5 km</option>
+          <option value="10">10 km</option>
+          <option value="21.0975">Half marathon</option>
+          <option value="42.195">Marathon</option>
+        </select>
+      </div>
+      <div>
+        <label for="rp-time">Time (h:mm:ss or mm:ss)</label>
+        <input id="rp-time" value="21:30">
+      </div>
+    </div>
+    <div class="out" id="rp-out"></div>
+    <p class="hint">Riegel formula, exponent 1.06. Predictions assume equivalent training for the target distance.</p>
+  </div>
+
+  <!-- Split generator -->
+  <div class="card">
+    <h2>Split generator</h2>
+    <div class="row">
+      <div>
+        <label for="sp-dist">Distance</label>
+        <select id="sp-dist">
+          <option value="5">5 km</option>
+          <option value="10" selected>10 km</option>
+          <option value="21.0975">Half marathon</option>
+          <option value="42.195">Marathon</option>
+        </select>
+      </div>
+      <div>
+        <label for="sp-time">Goal time</label>
+        <input id="sp-time" value="45:00">
+      </div>
+      <div>
+        <label for="sp-mode">Pacing</label>
+        <select id="sp-mode">
+          <option value="0">Even</option>
+          <option value="1">Negative (1%)</option>
+          <option value="2">Negative (2%)</option>
+        </select>
+      </div>
+    </div>
+    <div class="out" id="sp-out"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- parsing / formatting ----------
+  function parseTime(str) {
+    // Accepts h:mm:ss, mm:ss, or plain seconds/minutes number
+    if (!str) return null;
+    const parts = str.trim().split(":").map(s => s.trim());
+    if (parts.some(p => p === "" || isNaN(Number(p)))) return null;
+    const nums = parts.map(Number);
+    if (nums.some(n => n < 0)) return null;
+    let sec;
+    if (nums.length === 3) sec = nums[0] * 3600 + nums[1] * 60 + nums[2];
+    else if (nums.length === 2) sec = nums[0] * 60 + nums[1];
+    else if (nums.length === 1) sec = nums[0] * 60; // bare number = minutes
+    else return null;
+    return sec > 0 ? sec : null;
+  }
+
+  function fmtTime(sec) {
+    sec = Math.round(sec);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (h > 0) return h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    return m + ":" + String(s).padStart(2, "0");
+  }
+
+  function fmtPace(secPerKm) {
+    return fmtTime(secPerKm);
+  }
+
+  const MILE_KM = 1.609344;
+  const DIST_NAMES = [
+    [1.5, "1500 m"], [3, "3 km"], [5, "5 km"], [10, "10 km"],
+    [21.0975, "Half marathon"], [42.195, "Marathon"]
+  ];
+
+  // ---------- pace converter ----------
+  const pcPace = document.getElementById("pc-pace");
+  const pcOut = document.getElementById("pc-out");
+
+  function renderConverter() {
+    const sec = parseTime(pcPace.value);
+    if (!sec) { pcOut.innerHTML = '<p class="err">Enter a pace like 4:30</p>'; return; }
+    const kmh = 3600 / sec;
+    const perMile = sec * MILE_KM;
+    const rows = [
+      ["Per mile", fmtPace(perMile) + " /mi"],
+      ["Speed", kmh.toFixed(2) + " km/h"],
+      ["5 km", fmtTime(sec * 5)],
+      ["10 km", fmtTime(sec * 10)],
+      ["Half marathon", fmtTime(sec * 21.0975)],
+      ["Marathon", fmtTime(sec * 42.195)]
+    ];
+    pcOut.innerHTML = "<table><tbody>" +
+      rows.map(r => "<tr><td>" + r[0] + "</td><td class='num'>" + r[1] + "</td></tr>").join("") +
+      "</tbody></table>";
+  }
+
+  pcPace.addEventListener("input", renderConverter);
+  document.querySelectorAll(".pill").forEach(b => {
+    b.addEventListener("click", () => { pcPace.value = b.dataset.pace; renderConverter(); });
+  });
+
+  // ---------- race predictor ----------
+  const rpDist = document.getElementById("rp-dist");
+  const rpTime = document.getElementById("rp-time");
+  const rpOut = document.getElementById("rp-out");
+
+  function renderPredictor() {
+    const t1 = parseTime(rpTime.value);
+    const d1 = Number(rpDist.value);
+    if (!t1) { rpOut.innerHTML = '<p class="err">Enter a time like 21:30 or 1:38:00</p>'; return; }
+    const rows = DIST_NAMES
+      .filter(d => d[0] !== d1)
+      .map(d => {
+        const t2 = t1 * Math.pow(d[0] / d1, 1.06);
+        const pace = t2 / d[0];
+        return "<tr><td>" + d[1] + "</td><td class='num'>" + fmtTime(t2) +
+               "</td><td class='num'>" + fmtPace(pace) + " /km</td></tr>";
+      }).join("");
+    rpOut.innerHTML = "<table><thead><tr><th>Distance</th><th class='num'>Predicted</th><th class='num'>Pace</th></tr></thead><tbody>" + rows + "</tbody></table>";
+  }
+
+  rpDist.addEventListener("change", renderPredictor);
+  rpTime.addEventListener("input", renderPredictor);
+
+  // ---------- split generator ----------
+  const spDist = document.getElementById("sp-dist");
+  const spTime = document.getElementById("sp-time");
+  const spMode = document.getElementById("sp-mode");
+  const spOut = document.getElementById("sp-out");
+
+  function renderSplits() {
+    const total = parseTime(spTime.value);
+    const dist = Number(spDist.value);
+    if (!total) { spOut.innerHTML = '<p class="err">Enter a goal time like 45:00 or 1:35:00</p>'; return; }
+    const negPct = Number(spMode.value) / 100; // second half faster by this fraction of avg pace
+
+    const avgPace = total / dist;
+    const nFull = Math.floor(dist);
+    const remainder = dist - nFull;
+
+    // Linear pace ramp: pace(x) = avgPace * (1 + negPct/2) at start -> avgPace * (1 - negPct/2) at end.
+    // Integrate over each km so the splits sum exactly to the goal time.
+    function paceAt(x) { // x = fraction of race completed (0..1), returns sec/km at that point
+      return avgPace * (1 + negPct / 2 - negPct * x);
+    }
+    function segTime(a, b) { // time for segment from a km to b km
+      // integral of paceAt(x/dist) dx from a to b
+      const xa = a / dist, xb = b / dist;
+      const avgSeg = avgPace * (1 + negPct / 2 - negPct * (xa + xb) / 2);
+      return avgSeg * (b - a);
+    }
+
+    let rows = "";
+    let cum = 0;
+    for (let k = 1; k <= nFull; k++) {
+      const t = segTime(k - 1, k);
+      cum += t;
+      rows += "<tr><td>" + k + " km</td><td class='num'>" + fmtTime(t) +
+              "</td><td class='num'>" + fmtTime(cum) + "</td></tr>";
+    }
+    if (remainder > 0.001) {
+      const t = segTime(nFull, dist);
+      cum += t;
+      rows += "<tr><td>" + dist.toFixed(4).replace(/0+$/, "").replace(/\.$/, "") + " km</td><td class='num'>" +
+              fmtTime(t) + "</td><td class='num'>" + fmtTime(cum) + "</td></tr>";
+    }
+
+    const startPace = paceAt(0), endPace = paceAt(1);
+    const paceLine = negPct === 0
+      ? "Even pace: " + fmtPace(avgPace) + " /km"
+      : "Start " + fmtPace(startPace) + " /km, finish " + fmtPace(endPace) + " /km (avg " + fmtPace(avgPace) + ")";
+
+    spOut.innerHTML = "<div class='big'>" + paceLine + "</div>" +
+      "<table style='margin-top:10px'><thead><tr><th>Split</th><th class='num'>Split time</th><th class='num'>Cumulative</th></tr></thead><tbody>" +
+      rows + "</tbody></table>";
+  }
+
+  spDist.addEventListener("change", renderSplits);
+  spTime.addEventListener("input", renderSplits);
+  spMode.addEventListener("change", renderSplits);
+
+  renderConverter();
+  renderPredictor();
+  renderSplits();
+})();
+</script>
+</body>
+</html>
