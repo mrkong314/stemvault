@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ironman Calculator</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --swim: #2a78d6;    /* categorical slot 1 */
+    --bike: #eb6834;    /* slot 2 */
+    --run: #1baf7a;     /* slot 3 */
+    --trans: #898781;
+    --good: #0ca30c;
+    --critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --border: rgba(255,255,255,0.10);
+      --accent: #3987e5;
+      --swim: #3987e5;
+      --bike: #d95926;
+      --run: #199e70;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    padding: 24px 16px 48px;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--ink-2); font-size: 14px; margin: 0 0 16px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  input, select {
+    font: inherit;
+    padding: 7px 9px;
+    border: 1px solid var(--grid);
+    border-radius: 6px;
+    background: var(--page);
+    color: var(--ink);
+    width: 100px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  select { width: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .big { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .pill {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--grid); background: none; color: var(--ink-2); cursor: pointer;
+  }
+  .pill:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* headline bar */
+  .headline {
+    display: flex; flex-wrap: wrap; gap: 16px; align-items: baseline;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 16px;
+  }
+  .headline .k { font-size: 12px; color: var(--muted); }
+  .headline .v { font-size: 28px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .headline .mini { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  /* tabs */
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tab {
+    font: inherit; font-size: 13px; padding: 8px 14px; cursor: pointer;
+    border: 1px solid var(--grid); border-radius: 8px;
+    background: var(--surface); color: var(--ink-2);
+  }
+  .tab[aria-selected="true"] {
+    background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600;
+  }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* split bar */
+  .splitbar { display: flex; height: 26px; border-radius: 6px; overflow: hidden; gap: 2px; margin: 12px 0 6px; background: var(--page); }
+  .splitbar div { min-width: 2px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); }
+  .legend span::before { content: "●"; margin-right: 5px; }
+  .lg-swim::before { color: var(--swim); }
+  .lg-bike::before { color: var(--bike); }
+  .lg-run::before { color: var(--run); }
+  .lg-trans::before { color: var(--trans); }
+  .ok { color: var(--good); }
+  .fail { color: var(--critical); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ironman Calculator</h1>
+  <p class="sub">Plan a full race across swim, bike, run, transitions and nutrition. Pick the race distance, then work through the tabs.</p>
+
+  <!-- Rider / race -->
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="race">Race</label>
+        <select id="race">
+          <option value="sprint">Sprint (750 m / 20 km / 5 km)</option>
+          <option value="oly">Olympic (1.5 / 40 / 10)</option>
+          <option value="half">70.3 (1.9 / 90 / 21.1)</option>
+          <option value="full" selected>Ironman (3.8 / 180 / 42.2)</option>
+        </select>
+      </div>
+      <div>
+        <label for="rider">Rider (kg)</label>
+        <input id="rider" type="number" value="75" step="0.5">
+      </div>
+      <div>
+        <label for="bikekg">Bike + kit (kg)</label>
+        <input id="bikekg" type="number" value="9" step="0.5">
+      </div>
+      <div>
+        <label for="ftp">FTP (W)</label>
+        <input id="ftp" type="number" value="250" step="5">
+      </div>
+    </div>
+  </div>
+
+  <!-- Headline -->
+  <div class="headline">
+    <div>
+      <div class="k">Predicted finish</div>
+      <div class="v" id="hl-total">–</div>
+    </div>
+    <div class="mini" id="hl-splits"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-panel="p-swim">Swim</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="p-bike">Bike</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="p-run">Run</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="p-trans">Transitions</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="p-nutr">Nutrition</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="p-sum">Summary</button>
+  </div>
+
+  <!-- Swim -->
+  <div class="card panel active" id="p-swim">
+    <h2>Swim</h2>
+    <div class="row">
+      <div>
+        <label for="sw-pace">Pace per 100 m (m:ss)</label>
+        <input id="sw-pace" value="1:50">
+      </div>
+      <div>
+        <label for="sw-wet">Wetsuit</label>
+        <select id="sw-wet">
+          <option value="0">No</option>
+          <option value="2.5" selected>Yes (~2.5 s/100 m faster)</option>
+        </select>
+      </div>
+      <div>
+        <label for="sw-sight">Sighting / drafting</label>
+        <select id="sw-sight">
+          <option value="0">Good draft (+0%)</option>
+          <option value="2" selected>Typical (+2% distance)</option>
+          <option value="5">Poor sighting (+5% distance)</option>
+        </select>
+      </div>
+    </div>
+    <div class="pills">
+      <button class="pill" data-swpace="1:30">1:30</button>
+      <button class="pill" data-swpace="1:40">1:40</button>
+      <button class="pill" data-swpace="1:50">1:50</button>
+      <button class="pill" data-swpace="2:00">2:00</button>
+      <button class="pill" data-swpace="2:10">2:10</button>
+    </div>
+    <div class="hint" id="sw-out" style="font-size:14px;color:var(--ink)"></div>
+    <p class="hint">Use your current critical swim speed (CSS) pace, not pool PB pace. Open-water swimmers rarely swim the straight-line distance, hence the sighting allowance.</p>
+  </div>
+
+  <!-- Bike -->
+  <div class="card panel" id="p-bike">
+    <h2>Bike</h2>
+    <div class="row">
+      <div>
+        <label for="bk-if">Intensity (% of FTP)</label>
+        <input id="bk-if" type="number" value="70" step="1" min="40" max="100">
+      </div>
+      <div>
+        <label for="bk-pos">Position</label>
+        <select id="bk-pos">
+          <option value="0.32">Hoods (CdA 0.32)</option>
+          <option value="0.28">Drops (0.28)</option>
+          <option value="0.25" selected>Aero bars (0.25)</option>
+          <option value="0.22">Full TT setup (0.22)</option>
+        </select>
+      </div>
+      <div>
+        <label for="bk-grade">Avg gradient (%)</label>
+        <input id="bk-grade" type="number" value="0" step="0.1">
+      </div>
+      <div>
+        <label for="bk-elev">Course hilliness</label>
+        <select id="bk-elev">
+          <option value="1.00" selected>Flat</option>
+          <option value="1.03">Rolling (+3% time)</option>
+          <option value="1.06">Hilly (+6% time)</option>
+          <option value="1.10">Mountainous (+10% time)</option>
+        </select>
+      </div>
+    </div>
+    <div class="hint" id="bk-out" style="font-size:14px;color:var(--ink)"></div>
+    <p class="hint" id="bk-if-hint"></p>
+  </div>
+
+  <!-- Run -->
+  <div class="card panel" id="p-run">
+    <h2>Run</h2>
+    <div class="row">
+      <div>
+        <label for="rn-pace">Fresh open pace (min/km)</label>
+        <input id="rn-pace" value="5:00">
+      </div>
+      <div>
+        <label for="rn-adj">Triathlon slowdown (%)</label>
+        <input id="rn-adj" type="number" value="15" step="1" min="0" max="40">
+      </div>
+    </div>
+    <div class="pills">
+      <button class="pill" data-rnpace="4:15">4:15</button>
+      <button class="pill" data-rnpace="4:30">4:30</button>
+      <button class="pill" data-rnpace="4:45">4:45</button>
+      <button class="pill" data-rnpace="5:00">5:00</button>
+      <button class="pill" data-rnpace="5:30">5:30</button>
+      <button class="pill" data-rnpace="6:00">6:00</button>
+    </div>
+    <div class="hint" id="rn-out" style="font-size:14px;color:var(--ink)"></div>
+    <p class="hint" id="rn-hint"></p>
+  </div>
+
+  <!-- Transitions -->
+  <div class="card panel" id="p-trans">
+    <h2>Transitions</h2>
+    <div class="row">
+      <div>
+        <label for="t1">T1 swim &rarr; bike (m:ss)</label>
+        <input id="t1" value="5:00">
+      </div>
+      <div>
+        <label for="t2">T2 bike &rarr; run (m:ss)</label>
+        <input id="t2" value="4:00">
+      </div>
+    </div>
+    <div class="hint" id="tr-out" style="font-size:14px;color:var(--ink)"></div>
+    <p class="hint">Ironman transitions include long runs through change tents; 4-6 minutes each is normal. Short-course races are much quicker. Defaults update when you switch race.</p>
+  </div>
+
+  <!-- Nutrition -->
+  <div class="card panel" id="p-nutr">
+    <h2>Nutrition</h2>
+    <div class="row">
+      <div>
+        <label for="nu-cb">Bike carbs (g/h)</label>
+        <input id="nu-cb" type="number" value="90" step="5" min="0">
+      </div>
+      <div>
+        <label for="nu-cr">Run carbs (g/h)</label>
+        <input id="nu-cr" type="number" value="60" step="5" min="0">
+      </div>
+      <div>
+        <label for="nu-fl">Fluid (mL/h)</label>
+        <input id="nu-fl" type="number" value="750" step="50" min="0">
+      </div>
+      <div>
+        <label for="nu-na">Sodium (mg/h)</label>
+        <input id="nu-na" type="number" value="800" step="50" min="0">
+      </div>
+    </div>
+    <div class="hint" id="nu-out" style="margin-top:12px"></div>
+    <p class="hint">Typical race targets: 80-120 g/h carbs on the bike (gut-trained), 50-70 g/h on the run, 500-1000 mL/h fluid and 500-1200 mg/h sodium depending on heat and sweat rate. Practise the full plan in training. Not medical advice.</p>
+  </div>
+
+  <!-- Summary -->
+  <div class="card panel" id="p-sum">
+    <h2>Race summary</h2>
+    <div id="sum-table"></div>
+    <div class="splitbar" id="sum-bar" aria-hidden="true"></div>
+    <div class="legend">
+      <span class="lg-swim">Swim</span><span class="lg-bike">Bike</span>
+      <span class="lg-run">Run</span><span class="lg-trans">Transitions</span>
+    </div>
+    <div id="sum-cutoffs" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- constants ----------
+  const G = 9.81, RHO = 1.225, CRR = 0.004, DT_LOSS = 0.025;
+
+  const RACES = {
+    sprint: { name: "Sprint", swim: 750, bike: 20, run: 5, if: 90, adj: 5, t1: "1:30", t2: "1:00", cutoffs: null },
+    oly:    { name: "Olympic", swim: 1500, bike: 40, run: 10, if: 83, adj: 8, t1: "2:00", t2: "1:30", cutoffs: null },
+    half:   { name: "70.3", swim: 1900, bike: 90, run: 21.0975, if: 78, adj: 12, t1: "4:00", t2: "3:00",
+              cutoffs: { swim: 70 * 60, bikeElapsed: 5.5 * 3600, total: 8.5 * 3600 } },
+    full:   { name: "Ironman", swim: 3800, bike: 180, run: 42.195, if: 70, adj: 15, t1: "5:00", t2: "4:00",
+              cutoffs: { swim: 140 * 60, bikeElapsed: 10.5 * 3600, total: 17 * 3600 } }
+  };
+
+  // ---------- helpers ----------
+  function parseTime(str) {
+    if (!str) return null;
+    const parts = str.trim().split(":").map(s => s.trim());
+    if (parts.some(p => p === "" || isNaN(Number(p)))) return null;
+    const n = parts.map(Number);
+    if (n.some(x => x < 0)) return null;
+    let sec;
+    if (n.length === 3) sec = n[0] * 3600 + n[1] * 60 + n[2];
+    else if (n.length === 2) sec = n[0] * 60 + n[1];
+    else if (n.length === 1) sec = n[0] * 60;
+    else return null;
+    return sec > 0 ? sec : null;
+  }
+  function fmtTime(sec) {
+    sec = Math.round(sec);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (h > 0) return h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    return m + ":" + String(s).padStart(2, "0");
+  }
+  function fmtPace(secPerKm) { return fmtTime(secPerKm); }
+
+  function powerAt(v, mass, gradePct, cda) {
+    const th = Math.atan(gradePct / 100);
+    return ((CRR * mass * G * Math.cos(th) + mass * G * Math.sin(th) + 0.5 * RHO * cda * v * v) * v) / (1 - DT_LOSS);
+  }
+  function speedAt(P, mass, gradePct, cda) {
+    let lo = 0, hi = 40;
+    if (powerAt(hi, mass, gradePct, cda) < P) return hi;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      if (powerAt(mid, mass, gradePct, cda) < P) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+
+  // ---------- elements ----------
+  const $ = id => document.getElementById(id);
+  const elRace = $("race"), elRider = $("rider"), elBikeKg = $("bikekg"), elFtp = $("ftp");
+  const swPace = $("sw-pace"), swWet = $("sw-wet"), swSight = $("sw-sight"), swOut = $("sw-out");
+  const bkIf = $("bk-if"), bkPos = $("bk-pos"), bkGrade = $("bk-grade"), bkElev = $("bk-elev"),
+        bkOut = $("bk-out"), bkIfHint = $("bk-if-hint");
+  const rnPace = $("rn-pace"), rnAdj = $("rn-adj"), rnOut = $("rn-out"), rnHint = $("rn-hint");
+  const t1El = $("t1"), t2El = $("t2"), trOut = $("tr-out");
+  const nuCb = $("nu-cb"), nuCr = $("nu-cr"), nuFl = $("nu-fl"), nuNa = $("nu-na"), nuOut = $("nu-out");
+  const hlTotal = $("hl-total"), hlSplits = $("hl-splits");
+  const sumTable = $("sum-table"), sumBar = $("sum-bar"), sumCutoffs = $("sum-cutoffs");
+
+  // ---------- tabs ----------
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", "false"));
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      tab.setAttribute("aria-selected", "true");
+      $(tab.dataset.panel).classList.add("active");
+    });
+  });
+
+  // ---------- compute ----------
+  function compute() {
+    const race = RACES[elRace.value];
+    const rider = Number(elRider.value), bikeKg = Number(elBikeKg.value), ftp = Number(elFtp.value);
+    if (!(rider > 0) || !(bikeKg >= 0) || !(ftp > 0)) return null;
+    const mass = rider + bikeKg;
+
+    // swim
+    const basePace = parseTime(swPace.value); // sec per 100 m
+    if (!basePace) return null;
+    const pace100 = Math.max(30, basePace - Number(swWet.value));
+    const swimDist = race.swim * (1 + Number(swSight.value) / 100);
+    const swimSec = swimDist / 100 * pace100;
+
+    // bike
+    const iff = Number(bkIf.value) / 100;
+    const cda = Number(bkPos.value);
+    const grade = Number(bkGrade.value);
+    const hills = Number(bkElev.value);
+    if (!(iff > 0) || !isFinite(grade)) return null;
+    const P = ftp * iff;
+    const v = speedAt(P, mass, grade, cda);
+    const bikeSec = race.bike / (v * 3.6) * 3600 * hills;
+
+    // run
+    const openPace = parseTime(rnPace.value);
+    const adj = Number(rnAdj.value) / 100;
+    if (!openPace || !(adj >= 0)) return null;
+    const runPace = openPace * (1 + adj);
+    const runSec = runPace * race.run;
+
+    // transitions
+    const t1 = parseTime(t1El.value), t2 = parseTime(t2El.value);
+    if (!t1 || !t2) return null;
+
+    const total = swimSec + t1 + bikeSec + t2 + runSec;
+    return { race, rider, mass, ftp, pace100, swimDist, swimSec, P, iff, v, bikeSec, runPace, runSec, t1, t2, total };
+  }
+
+  // ---------- renderers ----------
+  function renderAll() {
+    const s = compute();
+    if (!s) { hlTotal.textContent = "–"; hlSplits.textContent = "check inputs"; return; }
+
+    hlTotal.textContent = fmtTime(s.total);
+    hlSplits.textContent = s.race.name + " · swim " + fmtTime(s.swimSec) + " · bike " + fmtTime(s.bikeSec) + " · run " + fmtTime(s.runSec);
+
+    swOut.innerHTML = "Swim split: <b>" + fmtTime(s.swimSec) + "</b> at " + fmtTime(s.pace100) +
+      "/100 m over " + Math.round(s.swimDist) + " m swum.";
+
+    bkOut.innerHTML = "Bike split: <b>" + fmtTime(s.bikeSec) + "</b> at " + Math.round(s.P) + " W (" +
+      Math.round(s.iff * 100) + "% FTP, " + (s.P / s.rider).toFixed(2) + " W/kg), avg " + (s.race.bike / (s.bikeSec / 3600)).toFixed(1) + " km/h.";
+    bkIfHint.textContent = "Suggested intensity for a " + s.race.name + " bike leg: about " + s.race.if +
+      "% of FTP. Going harder buys minutes on the bike and can cost you many more on the run.";
+
+    rnOut.innerHTML = "Run split: <b>" + fmtTime(s.runSec) + "</b> at " + fmtPace(s.runPace) + " /km.";
+    rnHint.textContent = "Typical slowdown vs an equivalent fresh race: ~" + s.race.adj +
+      "% for a well-paced " + s.race.name + ". A hot day or an over-cooked bike pushes this up fast.";
+
+    trOut.innerHTML = "Total transition time: <b>" + fmtTime(s.t1 + s.t2) + "</b>.";
+
+    renderNutrition(s);
+    renderSummary(s);
+  }
+
+  function renderNutrition(s) {
+    const cb = Number(nuCb.value), cr = Number(nuCr.value), fl = Number(nuFl.value), na = Number(nuNa.value);
+    if ([cb, cr, fl, na].some(x => !(x >= 0))) { nuOut.innerHTML = ""; return; }
+    const bikeH = s.bikeSec / 3600, runH = s.runSec / 3600;
+    const carbsBike = cb * bikeH, carbsRun = cr * runH;
+    const fluid = fl * (bikeH + runH);
+    const sodium = na * (bikeH + runH);
+    const gels = Math.ceil((carbsBike + carbsRun) / 25);
+    const bottles = fluid / 750;
+    nuOut.innerHTML =
+      "<table><thead><tr><th>Leg</th><th class='num'>Duration</th><th class='num'>Carbs</th><th class='num'>Fluid</th><th class='num'>Sodium</th></tr></thead><tbody>" +
+      "<tr><td>Bike</td><td class='num'>" + fmtTime(s.bikeSec) + "</td><td class='num'>" + Math.round(carbsBike) + " g</td><td class='num'>" + Math.round(fl * bikeH) + " mL</td><td class='num'>" + Math.round(na * bikeH) + " mg</td></tr>" +
+      "<tr><td>Run</td><td class='num'>" + fmtTime(s.runSec) + "</td><td class='num'>" + Math.round(carbsRun) + " g</td><td class='num'>" + Math.round(fl * runH) + " mL</td><td class='num'>" + Math.round(na * runH) + " mg</td></tr>" +
+      "<tr><td><b>Total</b></td><td class='num'>" + fmtTime(s.bikeSec + s.runSec) + "</td><td class='num'><b>" + Math.round(carbsBike + carbsRun) + " g</b></td><td class='num'><b>" + (fluid / 1000).toFixed(1) + " L</b></td><td class='num'><b>" + (sodium / 1000).toFixed(1) + " g</b></td></tr>" +
+      "</tbody></table>" +
+      "<p class='hint'>&asymp; " + gels + " standard 25 g gels (or equivalent in drink mix / chews) and about " +
+      bottles.toFixed(1) + " &times; 750 mL bottles across bike + run. Start fuelling in the first 20 minutes of the bike.</p>";
+  }
+
+  function renderSummary(s) {
+    const legs = [
+      ["Swim", s.swimSec], ["T1", s.t1], ["Bike", s.bikeSec], ["T2", s.t2], ["Run", s.runSec]
+    ];
+    let cum = 0;
+    let rows = legs.map(l => {
+      cum += l[1];
+      return "<tr><td>" + l[0] + "</td><td class='num'>" + fmtTime(l[1]) +
+        "</td><td class='num'>" + fmtTime(cum) + "</td><td class='num'>" +
+        (l[1] / s.total * 100).toFixed(0) + "%</td></tr>";
+    }).join("");
+    rows += "<tr><td><b>Finish</b></td><td class='num'></td><td class='num'><b>" + fmtTime(s.total) + "</b></td><td class='num'>100%</td></tr>";
+    sumTable.innerHTML = "<table><thead><tr><th>Leg</th><th class='num'>Split</th><th class='num'>Elapsed</th><th class='num'>% of day</th></tr></thead><tbody>" + rows + "</tbody></table>";
+
+    // split bar (transitions merged for visibility)
+    const segs = [
+      ["var(--swim)", s.swimSec], ["var(--trans)", s.t1],
+      ["var(--bike)", s.bikeSec], ["var(--trans)", s.t2], ["var(--run)", s.runSec]
+    ];
+    sumBar.innerHTML = segs.map(g =>
+      "<div style='background:" + g[0] + ";flex:" + (g[1] / s.total).toFixed(4) + "'></div>").join("");
+
+    // cutoffs
+    const c = s.race.cutoffs;
+    if (!c) {
+      sumCutoffs.innerHTML = "<p class='hint'>No standard cutoffs for this distance.</p>";
+    } else {
+      const swimEl = s.swimSec;
+      const bikeEl = s.swimSec + s.t1 + s.bikeSec;
+      const items = [
+        ["Swim cutoff " + fmtTime(c.swim), swimEl, c.swim],
+        ["Bike cutoff " + fmtTime(c.bikeElapsed) + " elapsed", bikeEl, c.bikeElapsed],
+        ["Finish cutoff " + fmtTime(c.total), s.total, c.total]
+      ];
+      sumCutoffs.innerHTML = "<table><thead><tr><th>Cutoff</th><th class='num'>Your elapsed</th><th class='num'>Margin</th></tr></thead><tbody>" +
+        items.map(it => {
+          const ok = it[1] <= it[2];
+          const margin = (ok ? "-" : "+") + fmtTime(Math.abs(it[2] - it[1]));
+          return "<tr><td>" + it[0] + "</td><td class='num'>" + fmtTime(it[1]) +
+            "</td><td class='num " + (ok ? "ok" : "fail") + "'>" + (ok ? "✓ " : "✗ ") + margin + "</td></tr>";
+        }).join("") + "</tbody></table>" +
+        "<p class='hint'>Standard Ironman-brand cutoffs; individual races vary, check your athlete guide.</p>";
+    }
+  }
+
+  // ---------- race change: update defaults ----------
+  elRace.addEventListener("change", () => {
+    const r = RACES[elRace.value];
+    bkIf.value = r.if;
+    rnAdj.value = r.adj;
+    t1El.value = r.t1;
+    t2El.value = r.t2;
+    renderAll();
+  });
+
+  // ---------- wiring ----------
+  [elRider, elBikeKg, elFtp, swPace, swWet, swSight, bkIf, bkPos, bkGrade, bkElev,
+   rnPace, rnAdj, t1El, t2El, nuCb, nuCr, nuFl, nuNa].forEach(el =>
+    el.addEventListener("input", renderAll));
+
+  document.querySelectorAll("[data-swpace]").forEach(b =>
+    b.addEventListener("click", () => { swPace.value = b.dataset.swpace; renderAll(); }));
+  document.querySelectorAll("[data-rnpace]").forEach(b =>
+    b.addEventListener("click", () => { rnPace.value = b.dataset.rnpace; renderAll(); }));
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
