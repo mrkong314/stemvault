@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bike Tools</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --border: rgba(255,255,255,0.10);
+      --accent: #3987e5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    padding: 24px 16px 48px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--ink-2); font-size: 14px; margin: 0 0 20px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  input, select {
+    font: inherit;
+    padding: 7px 9px;
+    border: 1px solid var(--grid);
+    border-radius: 6px;
+    background: var(--page);
+    color: var(--ink);
+    width: 100px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  select { width: auto; }
+  .out { margin-top: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .big { font-size: 26px; font-weight: 600; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .err { color: #d03b3b; font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Bike Tools</h1>
+  <p class="sub">Power-to-speed estimator, climb calculator, and gearing calculator.</p>
+
+  <!-- Power to speed -->
+  <div class="card">
+    <h2>Power &harr; speed</h2>
+    <div class="row">
+      <div>
+        <label for="ps-mode">Solve for</label>
+        <select id="ps-mode">
+          <option value="speed" selected>Speed from power</option>
+          <option value="power">Power from speed</option>
+        </select>
+      </div>
+      <div>
+        <label for="ps-val" id="ps-val-label">Power (W)</label>
+        <input id="ps-val" type="number" value="200" step="5">
+      </div>
+      <div>
+        <label for="ps-mass">Rider + bike (kg)</label>
+        <input id="ps-mass" type="number" value="83" step="0.5">
+      </div>
+      <div>
+        <label for="ps-grade">Gradient (%)</label>
+        <input id="ps-grade" type="number" value="0" step="0.5">
+      </div>
+      <div>
+        <label for="ps-pos">Position</label>
+        <select id="ps-pos">
+          <option value="0.40">Upright (CdA 0.40)</option>
+          <option value="0.32" selected>Hoods (0.32)</option>
+          <option value="0.28">Drops (0.28)</option>
+          <option value="0.25">Aero bars (0.25)</option>
+        </select>
+      </div>
+    </div>
+    <div class="out" id="ps-out"></div>
+    <p class="hint">Model: rolling resistance (Crr 0.004) + aero drag (air density 1.225 kg/m&sup3;) + gravity, with 2.5% drivetrain loss. Assumes still air and a steady effort.</p>
+  </div>
+
+  <!-- Climb calculator -->
+  <div class="card">
+    <h2>Climb calculator</h2>
+    <div class="row">
+      <div>
+        <label for="cl-dist">Length (km)</label>
+        <input id="cl-dist" type="number" value="5" step="0.1">
+      </div>
+      <div>
+        <label for="cl-grade">Avg gradient (%)</label>
+        <input id="cl-grade" type="number" value="7" step="0.1">
+      </div>
+      <div>
+        <label for="cl-power">Power (W)</label>
+        <input id="cl-power" type="number" value="250" step="5">
+      </div>
+      <div>
+        <label for="cl-rider">Rider (kg)</label>
+        <input id="cl-rider" type="number" value="75" step="0.5">
+      </div>
+      <div>
+        <label for="cl-bike">Bike + kit (kg)</label>
+        <input id="cl-bike" type="number" value="8" step="0.5">
+      </div>
+    </div>
+    <div class="out" id="cl-out"></div>
+    <p class="hint">Same physics model, climbing position (CdA 0.32). VAM is vertical metres climbed per hour.</p>
+  </div>
+
+  <!-- Gearing -->
+  <div class="card">
+    <h2>Gearing</h2>
+    <div class="row">
+      <div>
+        <label for="gr-ring">Chainring (T)</label>
+        <input id="gr-ring" type="number" value="50" step="1">
+      </div>
+      <div>
+        <label for="gr-cog">Cog (T)</label>
+        <input id="gr-cog" type="number" value="17" step="1">
+      </div>
+      <div>
+        <label for="gr-wheel">Wheel / tyre</label>
+        <select id="gr-wheel">
+          <option value="2.096">700 &times; 23c</option>
+          <option value="2.111" selected>700 &times; 25c</option>
+          <option value="2.136">700 &times; 28c</option>
+          <option value="2.155">700 &times; 32c</option>
+        </select>
+      </div>
+      <div>
+        <label for="gr-cad">Cadence (rpm)</label>
+        <input id="gr-cad" type="number" value="90" step="1">
+      </div>
+    </div>
+    <div class="out" id="gr-out"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const G = 9.81, RHO = 1.225, CRR = 0.004, DT_LOSS = 0.025;
+
+  function fmtTime(sec) {
+    sec = Math.round(sec);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (h > 0) return h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    return m + ":" + String(s).padStart(2, "0");
+  }
+
+  // Power required at the pedals to hold speed v (m/s)
+  function powerAt(v, mass, gradePct, cda) {
+    const theta = Math.atan(gradePct / 100);
+    const fRoll = CRR * mass * G * Math.cos(theta);
+    const fGrav = mass * G * Math.sin(theta);
+    const fAero = 0.5 * RHO * cda * v * v;
+    return ((fRoll + fGrav + fAero) * v) / (1 - DT_LOSS);
+  }
+
+  // Speed (m/s) sustained at pedal power P — bisection
+  function speedAt(P, mass, gradePct, cda) {
+    let lo = 0, hi = 40; // m/s
+    if (powerAt(hi, mass, gradePct, cda) < P) return hi;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      if (powerAt(mid, mass, gradePct, cda) < P) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+
+  // ---------- power <-> speed ----------
+  const psMode = document.getElementById("ps-mode");
+  const psVal = document.getElementById("ps-val");
+  const psValLabel = document.getElementById("ps-val-label");
+  const psMass = document.getElementById("ps-mass");
+  const psGrade = document.getElementById("ps-grade");
+  const psPos = document.getElementById("ps-pos");
+  const psOut = document.getElementById("ps-out");
+
+  function renderPS() {
+    const mass = Number(psMass.value);
+    const grade = Number(psGrade.value);
+    const cda = Number(psPos.value);
+    const val = Number(psVal.value);
+    if (!(mass > 0) || !isFinite(grade) || !(val > 0)) {
+      psOut.innerHTML = '<p class="err">Check the inputs.</p>'; return;
+    }
+    if (psMode.value === "speed") {
+      const v = speedAt(val, mass, grade, cda);
+      const kmh = v * 3.6;
+      psOut.innerHTML = "<div class='big'>" + kmh.toFixed(1) + " km/h</div>" +
+        "<p class='hint'>" + fmtTime(40000 / v) + " per 40 km at this speed.</p>";
+    } else {
+      const v = val / 3.6;
+      const P = powerAt(v, mass, grade, cda);
+      psOut.innerHTML = "<div class='big'>" + Math.round(P) + " W</div>" +
+        "<p class='hint'>" + (P / mass).toFixed(2) + " W/kg of total mass.</p>";
+    }
+  }
+
+  psMode.addEventListener("change", () => {
+    if (psMode.value === "speed") { psValLabel.textContent = "Power (W)"; psVal.value = 200; psVal.step = 5; }
+    else { psValLabel.textContent = "Speed (km/h)"; psVal.value = 32; psVal.step = 0.5; }
+    renderPS();
+  });
+  [psVal, psMass, psGrade, psPos].forEach(el => el.addEventListener("input", renderPS));
+
+  // ---------- climb ----------
+  const clDist = document.getElementById("cl-dist");
+  const clGrade = document.getElementById("cl-grade");
+  const clPower = document.getElementById("cl-power");
+  const clRider = document.getElementById("cl-rider");
+  const clBike = document.getElementById("cl-bike");
+  const clOut = document.getElementById("cl-out");
+
+  function renderClimb() {
+    const dist = Number(clDist.value);      // km
+    const grade = Number(clGrade.value);    // %
+    const P = Number(clPower.value);
+    const rider = Number(clRider.value);
+    const bike = Number(clBike.value);
+    if (!(dist > 0) || !isFinite(grade) || !(P > 0) || !(rider > 0) || !(bike >= 0)) {
+      clOut.innerHTML = '<p class="err">Check the inputs.</p>'; return;
+    }
+    const mass = rider + bike;
+    const v = speedAt(P, mass, grade, 0.32);
+    const timeSec = dist * 1000 / v;
+    const vertical = dist * 1000 * Math.sin(Math.atan(grade / 100));
+    const vam = vertical / (timeSec / 3600);
+    const rows = [
+      ["Time", fmtTime(timeSec)],
+      ["Speed", (v * 3.6).toFixed(1) + " km/h"],
+      ["W/kg (rider)", (P / rider).toFixed(2)],
+      ["Vertical gain", Math.round(vertical) + " m"],
+      ["VAM", Math.round(vam) + " m/h"]
+    ];
+    clOut.innerHTML = "<table><tbody>" +
+      rows.map(r => "<tr><td>" + r[0] + "</td><td class='num'>" + r[1] + "</td></tr>").join("") +
+      "</tbody></table>";
+  }
+
+  [clDist, clGrade, clPower, clRider, clBike].forEach(el => el.addEventListener("input", renderClimb));
+
+  // ---------- gearing ----------
+  const grRing = document.getElementById("gr-ring");
+  const grCog = document.getElementById("gr-cog");
+  const grWheel = document.getElementById("gr-wheel");
+  const grCad = document.getElementById("gr-cad");
+  const grOut = document.getElementById("gr-out");
+
+  function renderGear() {
+    const ring = Number(grRing.value);
+    const cog = Number(grCog.value);
+    const circ = Number(grWheel.value); // metres
+    const cad = Number(grCad.value);
+    if (!(ring > 0) || !(cog > 0) || !(cad > 0)) {
+      grOut.innerHTML = '<p class="err">Check the inputs.</p>'; return;
+    }
+    const ratio = ring / cog;
+    const mPerRev = ratio * circ;                       // development
+    const kmh = mPerRev * cad * 60 / 1000;
+    const gearInches = ratio * (circ / Math.PI) * 39.3701;
+
+    let cadRows = "";
+    for (const c of [70, 80, 90, 100, 110]) {
+      const s = mPerRev * c * 60 / 1000;
+      cadRows += "<tr><td>" + c + " rpm</td><td class='num'>" + s.toFixed(1) + " km/h</td></tr>";
+    }
+
+    grOut.innerHTML =
+      "<div class='big'>" + kmh.toFixed(1) + " km/h at " + cad + " rpm</div>" +
+      "<p class='hint'>Ratio " + ratio.toFixed(2) + " &middot; " + mPerRev.toFixed(2) + " m per pedal rev &middot; " +
+      gearInches.toFixed(0) + " gear inches</p>" +
+      "<table style='margin-top:8px'><thead><tr><th>Cadence</th><th class='num'>Speed</th></tr></thead><tbody>" +
+      cadRows + "</tbody></table>";
+  }
+
+  [grRing, grCog, grWheel, grCad].forEach(el => el.addEventListener("input", renderGear));
+
+  renderPS();
+  renderClimb();
+  renderGear();
+})();
+</script>
+</body>
+</html>
