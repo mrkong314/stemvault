@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pair Production — Interactive Applet</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --page:        #0d0d0d;
+    --surface:     #1a1a19;
+    --surface-2:   #232322;
+    --ink:         #ffffff;
+    --ink-2:       #c3c2b7;
+    --muted:       #898781;
+    --grid:        #2c2c2a;
+    --baseline:    #383835;
+    --border:      rgba(255,255,255,0.10);
+    --electron:    #3987e5;   /* categorical slot 1, dark */
+    --electron-lt: #86b6ef;
+    --positron:    #d95926;   /* categorical slot 2, dark */
+    --positron-lt: #f0a781;
+    --photon:      #199e70;   /* categorical slot 3, dark */
+    --good:        #0ca30c;
+    --critical:    #d03b3b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 24px;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; }
+  header h1 { font-size: 22px; font-weight: 650; letter-spacing: 0.2px; }
+  header p  { color: var(--ink-2); font-size: 14px; margin-top: 4px; max-width: 72ch; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 16px;
+    margin-top: 18px;
+  }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  canvas { display: block; width: 100%; height: auto; border-radius: 6px; background: #121211; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+  button {
+    font: inherit; font-size: 14px; font-weight: 600;
+    color: var(--ink); background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 16px; cursor: pointer;
+  }
+  button:hover { background: #2c2c2a; }
+  button.primary { background: var(--electron); border-color: transparent; }
+  button.primary:hover { background: #2a78d6; }
+  label.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-2); cursor: pointer; user-select: none; }
+  input[type="checkbox"] { accent-color: var(--electron); width: 15px; height: 15px; }
+
+  .sliderRow { margin-top: 6px; }
+  .sliderRow .lbl { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-2); margin-bottom: 4px; }
+  .sliderRow .val { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: var(--electron); }
+
+  h2 { font-size: 13px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+  .readout { display: grid; grid-template-columns: 1fr auto; row-gap: 7px; font-size: 14px; }
+  .readout dt { color: var(--ink-2); }
+  .readout dd { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+  .readout .sub dt, .readout .sub dd { font-size: 13px; }
+  .readout dd.e-  { color: var(--electron-lt); }
+  .readout dd.e\+ { color: var(--positron-lt); }
+  .divider { border: none; border-top: 1px solid var(--grid); margin: 12px 0; }
+
+  .status { margin-top: 12px; border-radius: 8px; padding: 9px 12px; font-size: 13.5px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; }
+  .status.ok   { background: rgba(12,163,12,0.12);  color: #7ed87e; }
+  .status.no   { background: rgba(208,59,59,0.14);  color: #eb8f8f; }
+  .status .icon { font-size: 14px; }
+
+  /* Energy budget bar */
+  .ebar-wrap { margin-top: 14px; }
+  .ebar-scale { position: relative; height: 30px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .ebar-seg { position: absolute; top: 0; height: 100%; }
+  .ebar-threshold { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink-2); }
+  .ebar-axis { position: relative; height: 16px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ebar-axis span { position: absolute; transform: translateX(-50%); }
+  .ebar-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; font-size: 12.5px; color: var(--ink-2); }
+  .ebar-legend .key { display: inline-flex; align-items: center; gap: 5px; }
+  .ebar-legend .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  details.theory { margin-top: 16px; }
+  details.theory summary { cursor: pointer; font-weight: 650; font-size: 15px; padding: 4px 0; color: var(--ink); }
+  details.theory .body { color: var(--ink-2); font-size: 14.5px; line-height: 1.65; margin-top: 8px; max-width: 78ch; }
+  details.theory .body p { margin-bottom: 10px; }
+  .eq {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; margin: 10px 0; font-size: 15px; color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif; font-style: italic;
+  }
+  .eq sub, .eq sup { font-style: normal; font-size: 11px; }
+  code.k { font-family: inherit; font-style: normal; color: var(--ink); }
+  footer { margin-top: 20px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Pair production</h1>
+    <p>A gamma-ray photon passing close to a nucleus can transform into an electron&ndash;positron pair,
+       provided its energy is at least the combined rest energy of the two particles: 2 &times; 0.511 MeV = 1.022 MeV.
+       Set the photon energy, fire, and watch the energy budget.</p>
+  </header>
+
+  <div class="layout">
+    <div class="panel">
+      <canvas id="sim" width="720" height="400"></canvas>
+      <div class="controls">
+        <button class="primary" id="fireBtn">Fire photon</button>
+        <button id="resetBtn">Reset</button>
+        <label class="toggle"><input type="checkbox" id="bField"> Magnetic field (into page)</label>
+        <label class="toggle"><input type="checkbox" id="loop" checked> Auto-repeat</label>
+        <label class="toggle" style="margin-left:auto;">Speed
+          <input type="range" id="animSpeed" min="0.25" max="2" step="0.25" value="1" style="width:90px;">
+        </label>
+      </div>
+
+      <div class="ebar-wrap">
+        <h2>Energy budget (0&ndash;10 MeV scale)</h2>
+        <div class="ebar-scale" id="ebar"></div>
+        <div class="ebar-axis" id="ebarAxis"></div>
+        <div class="ebar-legend">
+          <span class="key"><span class="swatch" style="background:var(--electron)"></span> e&#8722; rest energy</span>
+          <span class="key"><span class="swatch" style="background:var(--positron)"></span> e&#43; rest energy</span>
+          <span class="key"><span class="swatch" style="background:var(--electron-lt)"></span> e&#8722; kinetic</span>
+          <span class="key"><span class="swatch" style="background:var(--positron-lt)"></span> e&#43; kinetic</span>
+          <span class="key"><span class="swatch" style="background:var(--ink-2); width:2px; height:14px; border-radius:0;"></span> threshold 1.022 MeV</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Photon energy</h2>
+      <div class="sliderRow">
+        <div class="lbl"><span>E<sub>photon</sub></span><span class="val" id="Eval">2.500 MeV</span></div>
+        <input type="range" id="Eslider" min="0.20" max="10.00" step="0.002" value="2.50">
+      </div>
+      <div id="statusBox" class="status ok"><span class="icon">&#10003;</span><span id="statusTxt"></span></div>
+      <hr class="divider">
+      <h2>Photon</h2>
+      <dl class="readout">
+        <dt>Frequency&nbsp;f</dt><dd id="freq"></dd>
+        <dt>Wavelength&nbsp;&lambda;</dt><dd id="lam"></dd>
+      </dl>
+      <hr class="divider">
+      <h2>Pair produced</h2>
+      <dl class="readout">
+        <dt>Rest energy (pair)</dt><dd>1.022 MeV</dd>
+        <dt>Total kinetic energy</dt><dd id="keTot"></dd>
+        <dt class="sub" style="padding-left:10px;">KE each (equal share)</dt><dd class="sub" id="keEach"></dd>
+        <dt>Lorentz factor&nbsp;&gamma;</dt><dd id="gam"></dd>
+        <dt>Speed of each particle</dt><dd id="spd"></dd>
+      </dl>
+      <hr class="divider">
+      <p style="font-size:12.5px; color:var(--muted); line-height:1.5;">
+        Assumes the kinetic energy is shared equally and nuclear recoil energy is negligible
+        (the nucleus is thousands of times more massive than an electron).
+      </p>
+    </div>
+  </div>
+
+  <details class="theory">
+    <summary>The physics</summary>
+    <div class="body">
+      <p><strong style="color:var(--ink)">Mass&ndash;energy equivalence.</strong>
+        Pair production is a direct demonstration of <code class="k">E = mc&sup2;</code>: the photon's energy is converted into
+        the mass of two particles. Each electron or positron has rest energy
+        <code class="k">m<sub>e</sub>c&sup2; = 0.511 MeV</code>, so the photon must supply at least</p>
+      <div class="eq">E<sub>min</sub> = 2m<sub>e</sub>c&sup2; = 1.022 MeV &nbsp;&nbsp;(&lambda; &le; 1.21 pm)</div>
+      <p>Any energy above the threshold appears as kinetic energy of the pair:</p>
+      <div class="eq">E<sub>photon</sub> = 2m<sub>e</sub>c&sup2; + KE<sub>e&#8722;</sub> + KE<sub>e&#43;</sub></div>
+      <p><strong style="color:var(--ink)">Why the nucleus is needed.</strong>
+        A photon in empty space cannot become a pair, even above 1.022 MeV: energy and momentum cannot both
+        be conserved. The photon carries momentum <code class="k">p = E/c</code>, and a pair created from it alone could
+        never account for all of that momentum while also conserving energy. A nearby nucleus takes up the
+        excess momentum. Because it is so massive, it recoils with almost no kinetic energy, so effectively all
+        the photon's energy goes to the pair. (Watch the nucleus twitch in the animation.)</p>
+      <p><strong style="color:var(--ink)">Conservation of charge.</strong>
+        The photon is uncharged, so the pair must have zero net charge: one negative electron and one positive
+        positron (the electron's antiparticle) are always created together. Lepton number is also conserved
+        (+1 for the electron, &#8722;1 for the positron).</p>
+      <p><strong style="color:var(--ink)">Opposite curvature in a magnetic field.</strong>
+        Switch on the magnetic field (directed into the page) and the two tracks curve in opposite senses
+        because the charges are opposite, with radius <code class="k">r = p/(qB)</code>. Faster pairs (higher photon
+        energy) make straighter tracks. This is exactly how pairs appear in bubble-chamber photographs, and how
+        the positron was discovered (Anderson, 1932).</p>
+      <p><strong style="color:var(--ink)">The reverse process.</strong>
+        Annihilation is pair production run backwards: an electron and positron meet and become (at least) two
+        0.511 MeV photons emitted in opposite directions, the principle behind PET scanning.</p>
+    </div>
+  </details>
+
+  <footer>Constants: m<sub>e</sub>c&sup2; = 0.511 MeV &middot; h = 4.136 &times; 10<sup>&#8722;15</sup> eV&nbsp;s &middot; hc = 1.240 &times; 10<sup>&#8722;12</sup> MeV&nbsp;m. Not to scale; track curvature and angles are illustrative.</footer>
+</div>
+
+<script>
+(() => {
+  // ---------- Physics constants ----------
+  const ME = 0.511;                 // MeV, electron rest energy
+  const ETH = 2 * ME;               // 1.022 MeV threshold
+  const H_EVS = 4.135667696e-15;    // eV s
+  const HC_MEVM = 1.23984193e-12;   // MeV m
+
+  // ---------- DOM ----------
+  const $ = id => document.getElementById(id);
+  const canvas = $('sim'), ctx = canvas.getContext('2d');
+  const slider = $('Eslider');
+
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const C = {
+    electron: css('--electron'), electronLt: css('--electron-lt'),
+    positron: css('--positron'), positronLt: css('--positron-lt'),
+    photon: css('--photon'), ink: css('--ink'), ink2: css('--ink-2'),
+    muted: css('--muted'), grid: css('--grid')
+  };
+
+  // ---------- Derived quantities ----------
+  function compute(E) {
+    const above = E >= ETH - 1e-9;          // epsilon guards float rounding at exactly 1.022
+    const keTot = above ? Math.max(0, E - ETH) : 0;
+    const ke = keTot / 2;
+    const gamma = 1 + ke / ME;
+    const beta = Math.sqrt(Math.max(0, 1 - 1 / (gamma * gamma)));
+    const pc = Math.sqrt(Math.max(0, ke * ke + 2 * ke * ME)); // MeV, per particle
+    return {
+      E, above, keTot, ke, gamma, beta, pc,
+      freqHz: E * 1e6 / H_EVS,
+      lamM: HC_MEVM / E
+    };
+  }
+
+  function fmtSci(x, unit) {
+    const sup = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴',
+                  '5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻' };
+    const [m, e] = x.toExponential(2).split('e');
+    const expo = String(parseInt(e, 10)).split('').map(c => sup[c]).join('');
+    return `${m} × 10${expo} ${unit}`;
+  }
+
+  // ---------- Readouts + energy bar ----------
+  function updateReadouts() {
+    const q = compute(parseFloat(slider.value));
+    $('Eval').textContent = q.E.toFixed(3) + ' MeV';
+    $('freq').textContent = fmtSci(q.freqHz, 'Hz');
+    $('lam').textContent = (q.lamM * 1e12).toPrecision(3) + ' pm';
+
+    const box = $('statusBox'), txt = $('statusTxt');
+    if (q.above) {
+      box.className = 'status ok';
+      box.querySelector('.icon').innerHTML = '&#10003;';
+      txt.textContent = q.keTot < 1e-9
+        ? 'At threshold: pair created at rest'
+        : 'Above threshold: pair production possible';
+    } else {
+      box.className = 'status no';
+      box.querySelector('.icon').innerHTML = '&#10007;';
+      txt.textContent = 'Below 1.022 MeV: pair production impossible';
+    }
+
+    $('keTot').textContent = q.above ? q.keTot.toFixed(3) + ' MeV' : '—';
+    $('keEach').textContent = q.above ? q.ke.toFixed(3) + ' MeV' : '—';
+    $('gam').textContent = q.above ? q.gamma.toFixed(3) : '—';
+    $('spd').textContent = q.above ? (q.beta * 100).toFixed(1) + '% of c' : '—';
+
+    drawEbar(q);
+    return q;
+  }
+
+  function drawEbar(q) {
+    const bar = $('ebar');
+    const EMAX = 10;
+    const pct = x => (100 * x / EMAX) + '%';
+    let segs = '';
+    if (q.above) {
+      const parts = [
+        [0, ME, C.electron], [ME, ME, C.positron],
+        [ETH, q.ke, C.electronLt], [ETH + q.ke, q.ke, C.positronLt]
+      ];
+      for (const [x0, w, col] of parts) {
+        if (w < 0.05) continue;            // skip sub-pixel segments
+        segs += `<div class="ebar-seg" style="left:${pct(x0)};width:calc(${pct(w)} - 2px);background:${col};"></div>`;
+      }
+    } else {
+      segs += `<div class="ebar-seg" style="left:0;width:${pct(q.E)};background:${C.grid};"></div>`;
+    }
+    segs += `<div class="ebar-threshold" style="left:${pct(ETH)};"></div>`;
+    bar.innerHTML = segs;
+    const axis = $('ebarAxis');
+    if (!axis.dataset.built) {
+      axis.dataset.built = '1';
+      let a = '';
+      for (let m = 0; m <= 10; m += 2) a += `<span style="left:${pct(m)}">${m}</span>`;
+      a += `<span style="left:${pct(ETH)};color:${C.ink2};top:1px;">1.022</span>`;
+      axis.innerHTML = a;
+    }
+  }
+
+  // ---------- Simulation ----------
+  const W = canvas.width, H = canvas.height;
+  const NX = W * 0.55, NY = H * 0.5;       // nucleus position
+  const PHOTON_SPEED = 170;                 // px/s on screen (constant: photons always travel at c)
+
+  let state, q;
+
+  function newRun() {
+    q = compute(parseFloat(slider.value));
+    state = {
+      phase: 'photon',                      // photon -> flash -> pair/through -> done
+      px: -30, phaseOff: 0,
+      flashT: 0, doneT: 0, pairT: 0,
+      nucKick: 0,
+      particles: [],
+      msg: null
+    };
+  }
+
+  function spawnPair() {
+    // Screen speed proportional to beta; curvature radius proportional to momentum.
+    const spd = Math.max(6, q.beta * PHOTON_SPEED);
+    const halfAngle = Math.min(0.9, Math.max(0.12, 0.9 / q.gamma)); // narrower when relativistic
+    const omegaMag = q.pc > 1e-6 ? Math.min(6, 55 / (q.pc * 300)) * spd / 40 : 0;
+    state.particles = [
+      { chg: -1, x: NX, y: NY, ang: -halfAngle, spd, col: C.electron, trail: [] },
+      { chg: +1, x: NX, y: NY, ang: +halfAngle, spd, col: C.positron, trail: [] }
+    ].map(p => ({
+      ...p,
+      omega: omegaMag,
+      x: NX + Math.cos(p.ang) * 16,
+      y: NY + Math.sin(p.ang) * 16
+    }));
+  }
+
+  function step(dt) {
+    const s = state;
+    s.phaseOff += dt * 14;
+    if (s.phase === 'photon') {
+      s.px += PHOTON_SPEED * dt;
+      if (s.px >= NX - 14) {
+        if (q.above) {
+          s.phase = 'flash'; s.flashT = 0; s.nucKick = 1;
+          spawnPair();
+        } else {
+          s.phase = 'through';
+        }
+      }
+    } else if (s.phase === 'flash') {
+      s.flashT += dt;
+      if (s.flashT > 0.22) s.phase = 'pair';
+    } else if (s.phase === 'through') {
+      s.px += PHOTON_SPEED * dt;
+      if (s.px > W + 60) { s.phase = 'done'; s.doneT = 0; }
+    }
+    if (s.phase === 'pair') {
+      const useB = $('bField').checked;
+      s.pairT += dt;
+      const atRest = q.keTot < 1e-6;
+      for (const p of s.particles) {
+        if (atRest) continue;
+        if (useB && p.omega > 0) {
+          p.ang += -p.chg * p.omega * dt;          // opposite senses of curvature
+          p.spd = Math.max(5, p.spd - 6 * dt);     // ionisation energy loss: tracks spiral inward
+        }
+        p.x += Math.cos(p.ang) * p.spd * dt;
+        p.y += Math.sin(p.ang) * p.spd * dt;
+        p.trail.push([p.x, p.y]);
+        if (p.trail.length > 1200) p.trail.shift();
+      }
+      const allOut = atRest
+        ? s.pairT > 1.8
+        : s.particles.every(p => p.x < -40 || p.x > W + 40 || p.y < -40 || p.y > H + 40)
+          || s.pairT > 12
+          || (useB && s.particles.every(p => p.spd <= 5.01));
+      if (allOut) { s.phase = 'done'; s.doneT = 0; }
+    }
+    if (s.phase === 'done') {
+      s.doneT += dt;
+      if ($('loop').checked && s.doneT > 1.1) newRun();
+    }
+    s.nucKick = Math.max(0, s.nucKick - dt * 2.2);
+  }
+
+  // ---------- Drawing ----------
+  function drawNucleus(x, y) {
+    const r = 7;
+    const nucleons = [[0,0,1],[ -9,-5,0],[9,-5,1],[-9,5,1],[9,5,0],[0,-10,0],[0,10,1]];
+    for (const [dx, dy, isP] of nucleons) {
+      ctx.beginPath();
+      ctx.arc(x + dx, y + dy, r, 0, Math.PI * 2);
+      ctx.fillStyle = isP ? '#6e6c66' : '#4a4946';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      if (isP) {
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.font = '600 9px system-ui';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('+', x + dx, y + dy + 0.5);
+      }
+    }
+    ctx.fillStyle = C.muted;
+    ctx.font = '12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('nucleus', x, y + 32);
+  }
+
+  function drawPhoton(xHead, y, phase) {
+    const wl = Math.min(120, Math.max(12, 140 / q.E)); // shorter wavelength at higher E (illustrative)
+    const amp = 8, len = 130;
+    ctx.beginPath();
+    for (let d = 0; d <= len; d += 2) {
+      const x = xHead - len + d;
+      const yy = y + amp * Math.sin((2 * Math.PI * (d + phase * 8)) / wl);
+      d === 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+    }
+    ctx.strokeStyle = C.photon;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // arrowhead
+    ctx.beginPath();
+    ctx.moveTo(xHead + 10, y);
+    ctx.lineTo(xHead - 1, y - 5);
+    ctx.lineTo(xHead - 1, y + 5);
+    ctx.closePath();
+    ctx.fillStyle = C.photon;
+    ctx.fill();
+    ctx.fillStyle = C.photon;
+    ctx.font = 'italic 600 13px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('γ', xHead - len / 2, y - 16);
+  }
+
+  function drawParticle(p, sym) {
+    // trail
+    if (p.trail.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(p.trail[0][0], p.trail[0][1]);
+      for (const [x, y] of p.trail) ctx.lineTo(x, y);
+      ctx.strokeStyle = p.col;
+      ctx.globalAlpha = 0.45;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = p.col;
+    ctx.fill();
+    ctx.strokeStyle = '#121211';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 10px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(p.chg < 0 ? '−' : '+', p.x, p.y + 0.5);
+    ctx.font = '600 12px system-ui';
+    ctx.fillStyle = p.col;
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(sym, p.x, p.y - 13);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // B-field markers
+    if ($('bField').checked) {
+      ctx.fillStyle = 'rgba(255,255,255,0.16)';
+      ctx.font = '13px system-ui';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (let x = 40; x < W; x += 80)
+        for (let y = 36; y < H; y += 72)
+          ctx.fillText('⊗', x, y);
+      ctx.fillStyle = C.muted;
+      ctx.font = '12px system-ui';
+      ctx.textAlign = 'right';
+      ctx.fillText('B into page', W - 12, 20);
+    }
+
+    const kick = state.nucKick * 4;
+    drawNucleus(NX + kick, NY);
+
+    const s = state;
+    if (s.phase === 'photon') drawPhoton(s.px, NY, s.phaseOff);
+    if (s.phase === 'through') {
+      drawPhoton(s.px, NY, s.phaseOff);
+      ctx.fillStyle = C.ink2;
+      ctx.font = '600 13px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('E < 1.022 MeV — the photon cannot materialise a pair', W / 2, H - 18);
+    }
+    if (s.phase === 'flash') {
+      const t = s.flashT / 0.22;
+      ctx.beginPath();
+      ctx.arc(NX, NY, 6 + t * 26, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,255,255,${(1 - t) * 0.8})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+    if (s.phase === 'pair' || (s.phase === 'flash' && s.particles.length)) {
+      if (s.phase === 'pair') {
+        drawParticle(s.particles[0], 'e−');
+        drawParticle(s.particles[1], 'e+');
+        if (q.keTot < 1e-6) {
+          ctx.fillStyle = C.ink2;
+          ctx.font = '600 13px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText('Exactly at threshold: all the energy became mass — the pair has no kinetic energy', W / 2, H - 18);
+        }
+      }
+    }
+    if (s.phase === 'done' && !$('loop').checked) {
+      ctx.fillStyle = C.muted;
+      ctx.font = '13px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('Press "Fire photon" to run again', W / 2, H - 18);
+    }
+  }
+
+  // ---------- Main loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000) * parseFloat($('animSpeed').value);
+    last = now;
+    step(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Wiring ----------
+  slider.addEventListener('input', () => { updateReadouts(); });
+  slider.addEventListener('change', () => { newRun(); q = compute(parseFloat(slider.value)); });
+  $('fireBtn').addEventListener('click', newRun);
+  $('resetBtn').addEventListener('click', () => { slider.value = '2.50'; $('bField').checked = false; updateReadouts(); newRun(); });
+
+  updateReadouts();
+  newRun();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
