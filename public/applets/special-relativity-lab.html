@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Special Relativity Lab</title>
+<style>
+  :root{
+    --bg:#0a0d13;
+    --panel:#131822;
+    --panel2:#1b2231;
+    --line:#2a3347;
+    --fg:#e8ecf4;
+    --dim:#93a0b8;
+    --lab:#e8ecf4;
+    --moving:#4cc9f0;
+    --light:#ffd166;
+    --hot:#ef476f;
+    --cool:#06d6a0;
+    --violet:#b388ff;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;display:flex;flex-direction:column;overflow:hidden;
+  }
+  header{
+    flex:0 0 auto;border-bottom:1px solid var(--line);background:var(--panel);
+    display:flex;align-items:center;gap:24px;padding:10px 18px;flex-wrap:wrap;
+  }
+  h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.2px;white-space:nowrap;}
+  h1 span{color:var(--dim);font-weight:400;}
+  nav{display:flex;gap:6px;flex-wrap:wrap;}
+  nav button{
+    background:var(--panel2);color:var(--dim);border:1px solid var(--line);
+    padding:9px 16px;border-radius:8px;font-size:15px;cursor:pointer;font-weight:500;
+  }
+  nav button:hover{color:var(--fg);border-color:#3d4a63;}
+  nav button.on{background:var(--moving);color:#04121a;border-color:var(--moving);font-weight:600;}
+  main{flex:1 1 auto;position:relative;min-height:0;}
+  .tab{position:absolute;inset:0;display:none;}
+  .tab.on{display:flex;}
+  .stage{flex:1 1 auto;position:relative;min-width:0;}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  aside{
+    flex:0 0 310px;background:var(--panel);border-left:1px solid var(--line);
+    padding:16px 18px;overflow-y:auto;
+  }
+  aside h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);
+    margin:0 0 10px;font-weight:600;}
+  aside h2:not(:first-child){margin-top:22px;}
+  .ctl{margin-bottom:16px;}
+  .ctl label{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:14px;color:var(--dim);margin-bottom:6px;}
+  .ctl label b{color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;}
+  input[type=range]{width:100%;accent-color:var(--moving);height:22px;}
+  .seg{display:flex;gap:4px;flex-wrap:wrap;}
+  .seg button{flex:1 1 auto;background:var(--panel2);color:var(--dim);border:1px solid var(--line);
+    padding:8px 6px;border-radius:6px;font-size:13px;cursor:pointer;white-space:nowrap;}
+  .seg button.on{background:var(--moving);color:#04121a;border-color:var(--moving);font-weight:600;}
+  .chk{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--dim);
+    margin-bottom:9px;cursor:pointer;}
+  .chk input{width:17px;height:17px;accent-color:var(--moving);cursor:pointer;}
+  .read{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;
+    background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:11px 12px;
+    line-height:1.75;white-space:pre-wrap;color:var(--fg);}
+  .note{font-size:13px;color:var(--dim);line-height:1.55;margin-top:14px;}
+  .key{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);margin-bottom:6px;}
+  .sw{width:14px;height:14px;border-radius:3px;flex:0 0 auto;}
+  button.act{width:100%;background:var(--panel2);color:var(--fg);border:1px solid var(--line);
+    padding:9px;border-radius:7px;font-size:14px;cursor:pointer;}
+  button.act:hover{border-color:var(--moving);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Special Relativity Lab <span>&nbsp;classroom demonstrations</span></h1>
+  <nav>
+    <button data-tab="terrell" class="on">1 · Terrell–Penrose</button>
+    <button data-tab="mink">2 · Spacetime diagram</button>
+    <button data-tab="stars">3 · Starfield flight</button>
+    <button data-tab="clock">4 · Light clock</button>
+  </nav>
+  <div style="font-size:12.5px;color:#5f6b81;white-space:nowrap;">keys 1–4 tabs · ← → β · shift for coarse · space play</div>
+</header>
+
+<main>
+
+  <!-- ============ TAB 1 ============ -->
+  <section class="tab on" id="tab-terrell">
+    <div class="stage"><canvas id="cvT"></canvas></div>
+    <aside>
+      <h2>Motion</h2>
+      <div class="ctl">
+        <label>speed &beta; = v/c <b id="tBetaV">0.900</b></label>
+        <input type="range" id="tBeta" min="0" max="0.995" step="0.005" value="0.9">
+      </div>
+      <label class="chk"><input type="checkbox" id="tSweep"> sweep &beta; automatically</label>
+
+      <h2>Object</h2>
+      <div class="seg" id="tObj">
+        <button data-v="cube" class="on">Cube</button>
+        <button data-v="sphere">Sphere</button>
+        <button data-v="row">Row of cubes</button>
+      </div>
+
+      <h2>Camera</h2>
+      <div class="ctl">
+        <label>azimuth <b id="tAzV">0&deg;</b></label>
+        <input type="range" id="tAz" min="-70" max="70" step="1" value="0">
+      </div>
+      <div class="ctl">
+        <label>elevation <b id="tElV">15&deg;</b></label>
+        <input type="range" id="tEl" min="-70" max="70" step="1" value="15">
+      </div>
+      <label class="chk"><input type="checkbox" id="tOutline" checked> rest-shape outline</label>
+
+      <h2>Readout</h2>
+      <div class="read" id="tRead"></div>
+
+      <h2>Faces</h2>
+      <div class="key"><span class="sw" style="background:#ef476f"></span>trailing face (&minus;x)</div>
+      <div class="key"><span class="sw" style="background:#06d6a0"></span>leading face (+x)</div>
+      <div class="key"><span class="sw" style="background:#4cc9f0"></span>face toward camera</div>
+
+      <div class="note">Left panel: the naive picture, everything Lorentz&#8209;contracted along x at one instant of lab time. Right panel: what a distant camera actually records, because light from the far side of the object left earlier than light from the near side. The recorded image is identical to the <i>undeformed</i> object rigidly rotated by arcsin&nbsp;&beta;. A sphere therefore always photographs as a circle, never as an ellipse.</div>
+    </aside>
+  </section>
+
+  <!-- ============ TAB 2 ============ -->
+  <section class="tab" id="tab-mink">
+    <div class="stage"><canvas id="cvM"></canvas></div>
+    <aside>
+      <h2>Scenario</h2>
+      <div class="seg" id="mScene">
+        <button data-v="events" class="on">Events</button>
+        <button data-v="pole">Pole &amp; barn</button>
+        <button data-v="twins">Twins</button>
+      </div>
+
+      <h2>Boost</h2>
+      <div class="ctl">
+        <label>&beta; of primed frame <b id="mBetaV">0.600</b></label>
+        <input type="range" id="mBeta" min="-0.95" max="0.95" step="0.01" value="0.6">
+      </div>
+
+      <h2>Display</h2>
+      <label class="chk"><input type="checkbox" id="mGrid" checked> primed coordinate grid</label>
+      <label class="chk"><input type="checkbox" id="mSim" checked> lines of simultaneity</label>
+      <label class="chk"><input type="checkbox" id="mSig" checked> light signals (twins)</label>
+
+      <h2>Readout</h2>
+      <div class="read" id="mRead"></div>
+
+      <div class="note" id="mNote"></div>
+    </aside>
+  </section>
+
+  <!-- ============ TAB 3 ============ -->
+  <section class="tab" id="tab-stars">
+    <div class="stage"><canvas id="cvS"></canvas></div>
+    <aside>
+      <h2>Flight</h2>
+      <div class="ctl">
+        <label>speed &beta; = v/c <b id="sBetaV">0.900</b></label>
+        <input type="range" id="sBeta" min="0" max="0.999" step="0.001" value="0.9">
+      </div>
+      <label class="chk"><input type="checkbox" id="sSweep"> sweep &beta; automatically</label>
+
+      <h2>Effects</h2>
+      <label class="chk"><input type="checkbox" id="sAb" checked> aberration (star bunching)</label>
+      <label class="chk"><input type="checkbox" id="sDop" checked> Doppler colour shift</label>
+      <label class="chk"><input type="checkbox" id="sBri" checked> headlight brightening</label>
+      <label class="chk"><input type="checkbox" id="sRing" checked> mark the 90&deg; ring</label>
+
+      <h2>Field of view</h2>
+      <div class="ctl">
+        <label>horizontal FOV <b id="sFovV">90&deg;</b></label>
+        <input type="range" id="sFov" min="30" max="140" step="1" value="90">
+      </div>
+
+      <h2>Readout</h2>
+      <div class="read" id="sRead"></div>
+
+      <button class="act" id="sReseed">new star field</button>
+
+      <div class="note">You are flying toward the centre of the screen. Stars ahead crowd into a shrinking cone, blue&#8209;shift and brighten; the sky behind you drains away to a dim red. The cyan ring marks stars that sit exactly 90&deg; to your side when you are at rest, so watch how far forward the whole ring sweeps.</div>
+    </aside>
+  </section>
+
+  <!-- ============ TAB 4 ============ -->
+  <section class="tab" id="tab-clock">
+    <div class="stage"><canvas id="cvC"></canvas></div>
+    <aside>
+      <h2>Motion</h2>
+      <div class="ctl">
+        <label>&beta; of clock B <b id="cBetaV">0.800</b></label>
+        <input type="range" id="cBeta" min="0" max="0.99" step="0.01" value="0.8">
+      </div>
+
+      <h2>Watch from</h2>
+      <div class="seg" id="cFrame">
+        <button data-v="lab" class="on">Frame of A</button>
+        <button data-v="mov">Frame of B</button>
+      </div>
+
+      <h2>Animation</h2>
+      <div class="ctl">
+        <label>playback rate <b id="cRateV">1.0&times;</b></label>
+        <input type="range" id="cRate" min="0.1" max="3" step="0.1" value="1">
+      </div>
+      <label class="chk"><input type="checkbox" id="cPlay" checked> running</label>
+      <label class="chk"><input type="checkbox" id="cTrail" checked> show photon path</label>
+      <button class="act" id="cReset">reset clocks</button>
+
+      <h2>Readout</h2>
+      <div class="read" id="cRead"></div>
+
+      <div class="note">Both clocks are identical: one photon bouncing between two mirrors, one tick per round trip. Switch the viewing frame and the roles swap exactly. Neither clock is really slow; each frame measures the other as slow, because "how many ticks so far" depends on which events that frame calls simultaneous. The twin paradox resolution lives in tab 2 — only the traveller changes frames, and that is what breaks the symmetry.</div>
+    </aside>
+  </section>
+
+</main>
+
+<script>
+"use strict";
+/* ============================ shared helpers ============================ */
+const $ = s => document.querySelector(s);
+const clamp = (v,a,b) => v<a?a:(v>b?b:v);
+const gam = b => 1/Math.sqrt(1-b*b);
+const DEG = Math.PI/180;
+
+function fit(cv){
+  const dpr = window.devicePixelRatio || 1;
+  const r = cv.getBoundingClientRect();
+  const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+  if(cv.width !== w*dpr || cv.height !== h*dpr){ cv.width = w*dpr; cv.height = h*dpr; }
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx, w, h};
+}
+function norm(v){ const m = Math.hypot(v[0],v[1],v[2])||1; return [v[0]/m,v[1]/m,v[2]/m]; }
+function cross(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+function dot(a,b){ return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+
+function panelLabel(ctx,x,y,text,sub,colour){
+  ctx.save();
+  ctx.font = '600 17px -apple-system,Segoe UI,Roboto,sans-serif';
+  ctx.fillStyle = colour||'#e8ecf4';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(text,x,y);
+  if(sub){
+    ctx.font = '400 13.5px -apple-system,Segoe UI,Roboto,sans-serif';
+    ctx.fillStyle = '#93a0b8';
+    ctx.fillText(sub,x,y+23);
+  }
+  ctx.restore();
+}
+
+/* tabs */
+let active = 'terrell';
+document.querySelectorAll('nav button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+    active = b.dataset.tab;
+    $('#tab-'+active).classList.add('on');
+  });
+});
+function segment(rootSel, onPick){
+  const root = $(rootSel);
+  root.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    root.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); onPick(b.dataset.v);
+  });
+}
+
+/* ======================================================================= */
+/* ==================== 1. TERRELL–PENROSE VIEWER ======================== */
+/* ======================================================================= */
+const T = { beta:0.9, obj:'cube', az:0, el:15, outline:true, sweep:false, phase:0 };
+
+/* --- mesh builders: quads with outward winding --- */
+function cubeQuads(cx, s, cols){
+  const h = s/2, N = 3, q = [];
+  // face definitions: origin corner, edge u, edge v, colour  (u x v = outward)
+  const F = [
+    { o:[ h,-h,-h], u:[0,1,0], v:[0,0,1], c:cols.px },  // +x leading
+    { o:[-h,-h,-h], u:[0,0,1], v:[0,1,0], c:cols.nx },  // -x trailing
+    { o:[-h, h,-h], u:[0,0,1], v:[1,0,0], c:cols.py },  // +y top
+    { o:[-h,-h,-h], u:[1,0,0], v:[0,0,1], c:cols.ny },  // -y bottom
+    { o:[-h,-h, h], u:[1,0,0], v:[0,1,0], c:cols.pz },  // +z toward camera
+    { o:[-h,-h,-h], u:[0,1,0], v:[1,0,0], c:cols.nz }   // -z away
+  ];
+  for(const f of F){
+    for(let i=0;i<N;i++) for(let j=0;j<N;j++){
+      const a=i/N, b=(i+1)/N, c=j/N, d=(j+1)/N;
+      const P=(p,t)=>[cx+f.o[0]+f.u[0]*s*p+f.v[0]*s*t,
+                         f.o[1]+f.u[1]*s*p+f.v[1]*s*t,
+                         f.o[2]+f.u[2]*s*p+f.v[2]*s*t];
+      const shade = ((i+j)%2) ? 1 : 0.82;
+      q.push({v:[P(a,c),P(b,c),P(b,d),P(a,d)], c:f.c, k:shade});
+    }
+  }
+  return q;
+}
+function sphereQuads(R, c1, c2){
+  const NLat=16, NLon=28, q=[];
+  for(let i=0;i<NLat;i++){
+    const t0=Math.PI*i/NLat, t1=Math.PI*(i+1)/NLat;
+    for(let j=0;j<NLon;j++){
+      const p0=2*Math.PI*j/NLon, p1=2*Math.PI*(j+1)/NLon;
+      const P=(t,p)=>[R*Math.sin(t)*Math.sin(p), R*Math.cos(t), R*Math.sin(t)*Math.cos(p)];
+      // winding chosen so that u x v points outward
+      q.push({v:[P(t0,p0),P(t1,p0),P(t1,p1),P(t0,p1)], c:((i+j)%2)?c1:c2, k:1});
+    }
+  }
+  return q;
+}
+const CUBE_COLS = { px:[6,214,160], nx:[239,71,111], py:[255,209,102], ny:[150,120,200], pz:[76,201,240], nz:[110,125,150] };
+
+function buildMesh(kind){
+  if(kind==='cube')   return cubeQuads(0,1.5,CUBE_COLS);
+  if(kind==='sphere') return sphereQuads(0.9,[236,240,248],[70,95,140]);
+  let q=[];
+  for(const cx of [-2.0,0,2.0]) q = q.concat(cubeQuads(cx,1.3,CUBE_COLS));
+  return q;
+}
+let tMesh = buildMesh('cube');
+
+function aberrate(d, beta){
+  const g = gam(beta), den = 1 - beta*d[0];
+  return norm([ (d[0]-beta)/den, d[1]/(g*den), d[2]/(g*den) ]);
+}
+
+function renderMesh(ctx, quads, dir, xScale, cx, cy, S){
+  const d = dir;
+  let up = [0,1,0];
+  if(Math.abs(dot(up,d))>0.999) up=[1,0,0];
+  const R = norm(cross(up,d));
+  const U = cross(d,R);
+  const L = norm([0.35,0.55,0.75]);
+  const items = [];
+  for(const q of quads){
+    const P=[], W=[];
+    for(const p of q.v){
+      const w=[p[0]*xScale,p[1],p[2]];
+      W.push(w);
+      P.push([cx + dot(w,R)*S, cy - dot(w,U)*S, dot(w,d)]);
+    }
+    // screen winding: cull back faces
+    const ax=P[1][0]-P[0][0], ay=P[1][1]-P[0][1];
+    const bx=P[2][0]-P[0][0], by=P[2][1]-P[0][1];
+    if(ax*by-ay*bx > 0) continue;
+    const e1=[W[1][0]-W[0][0],W[1][1]-W[0][1],W[1][2]-W[0][2]];
+    const e2=[W[2][0]-W[0][0],W[2][1]-W[0][1],W[2][2]-W[0][2]];
+    const n = norm(cross(e1,e2));
+    const sh = (0.42 + 0.58*Math.max(0,dot(n,L))) * q.k;
+    items.push({P, c:q.c, sh, z:(P[0][2]+P[1][2]+P[2][2]+P[3][2])/4});
+  }
+  items.sort((a,b)=>a.z-b.z);
+  for(const it of items){
+    ctx.beginPath();
+    ctx.moveTo(it.P[0][0],it.P[0][1]);
+    for(let i=1;i<4;i++) ctx.lineTo(it.P[i][0],it.P[i][1]);
+    ctx.closePath();
+    ctx.fillStyle = `rgb(${Math.round(it.c[0]*it.sh)},${Math.round(it.c[1]*it.sh)},${Math.round(it.c[2]*it.sh)})`;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.30)'; ctx.lineWidth = 0.6; ctx.stroke();
+  }
+}
+
+function meshSilhouette(ctx, quads, dir, cx, cy, S){
+  // faint dashed outline of the object at rest, same camera
+  const d = dir;
+  let up=[0,1,0]; if(Math.abs(dot(up,d))>0.999) up=[1,0,0];
+  const R = norm(cross(up,d)), U = cross(d,R);
+  let minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;
+  for(const q of quads) for(const p of q.v){
+    const X = cx + dot(p,R)*S, Y = cy - dot(p,U)*S;
+    minx=Math.min(minx,X); maxx=Math.max(maxx,X);
+    miny=Math.min(miny,Y); maxy=Math.max(maxy,Y);
+  }
+  ctx.save();
+  ctx.setLineDash([5,5]); ctx.strokeStyle='rgba(147,160,184,0.45)'; ctx.lineWidth=1.2;
+  ctx.strokeRect(minx,miny,maxx-minx,maxy-miny);
+  ctx.restore();
+}
+
+function drawTerrell(){
+  const {ctx,w,h} = fit($('#cvT'));
+  ctx.clearRect(0,0,w,h);
+  const b = T.beta, g = gam(b);
+  const az = T.az*DEG, el = T.el*DEG;
+  const dLab = norm([Math.sin(az)*Math.cos(el), Math.sin(el), Math.cos(az)*Math.cos(el)]);
+  const dRest = aberrate(dLab, b);
+  const S = Math.min(w/2, h) * 0.20;
+
+  // divider
+  ctx.strokeStyle='#2a3347'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(w/2,0); ctx.lineTo(w/2,h); ctx.stroke();
+
+  const cyA = h*0.55, cyB = h*0.55;
+  const cxA = w*0.25, cxB = w*0.75;
+
+  // motion arrow
+  function arrow(cx,cy){
+    ctx.save();
+    ctx.strokeStyle='rgba(147,160,184,0.55)'; ctx.fillStyle='rgba(147,160,184,0.55)';
+    ctx.lineWidth=2;
+    const y = cy + S*2.0, L=S*1.5;
+    ctx.beginPath(); ctx.moveTo(cx-L/2,y); ctx.lineTo(cx+L/2,y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+L/2,y); ctx.lineTo(cx+L/2-10,y-6); ctx.lineTo(cx+L/2-10,y+6); ctx.closePath(); ctx.fill();
+    ctx.font='400 13px -apple-system,Segoe UI,Roboto,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('v', cx, y+22);
+    ctx.restore();
+  }
+
+  if(T.outline){ meshSilhouette(ctx, tMesh, dLab, cxA, cyA, S); meshSilhouette(ctx, tMesh, dLab, cxB, cyB, S); }
+  renderMesh(ctx, tMesh, dLab,  1/g, cxA, cyA, S);
+  renderMesh(ctx, tMesh, dRest, 1,   cxB, cyB, S);
+  arrow(cxA,cyA); arrow(cxB,cyB);
+
+  panelLabel(ctx, 22, 20, 'Lorentz-contracted shape', 'all points at one instant of lab time', '#93a0b8');
+  panelLabel(ctx, w/2+22, 20, 'What the camera photographs', 'light-travel time included', '#4cc9f0');
+
+  const theta = Math.asin(clamp(b,0,1))/DEG;
+  $('#tRead').textContent =
+    `beta   ${b.toFixed(3)}\n`+
+    `gamma  ${g.toFixed(4)}\n`+
+    `1/gamma ${(1/g).toFixed(4)}\n`+
+    `apparent rotation\n  arcsin(beta) = ${theta.toFixed(1)} deg`;
+}
+
+$('#tBeta').addEventListener('input',e=>{ T.beta=+e.target.value; $('#tBetaV').textContent=T.beta.toFixed(3); });
+$('#tAz').addEventListener('input',e=>{ T.az=+e.target.value; $('#tAzV').textContent=T.az+'°'; });
+$('#tEl').addEventListener('input',e=>{ T.el=+e.target.value; $('#tElV').textContent=T.el+'°'; });
+$('#tOutline').addEventListener('change',e=>{ T.outline=e.target.checked; });
+$('#tSweep').addEventListener('change',e=>{ T.sweep=e.target.checked; });
+segment('#tObj', v=>{ T.obj=v; tMesh=buildMesh(v); });
+
+/* ======================================================================= */
+/* ==================== 2. MINKOWSKI DIAGRAM ============================= */
+/* ======================================================================= */
+const M = {
+  beta:0.6, scene:'events', grid:true, sim:true, sig:true,
+  events:[{x:-2.0,t:1.0},{x:2.5,t:2.2}],
+  drag:-1, geo:null
+};
+/* each scenario gets its own window on spacetime: centre + half-range */
+function mView(){
+  if(M.scene==='twins') return {x0:1.0, t0:5.0, R:6.0};
+  if(M.scene==='pole'){
+    const bb = Math.max(0.05,Math.abs(M.beta));
+    const tOut = (4 - 5/gam(bb))/bb;
+    return {x0:0.0, t0:tOut/2, R:3.6};
+  }
+  return {x0:0, t0:0, R:6.2};
+}
+function mMap(w,h){
+  const V = mView();
+  const S = Math.min(w,h)*0.46/V.R;
+  const hx = (w/2)/S, ht = (h/2)/S;
+  return { S, V,
+           X:x=>w/2+(x-V.x0)*S, Y:t=>h/2-(t-V.t0)*S,
+           xmin:V.x0-hx, xmax:V.x0+hx, tmin:V.t0-ht, tmax:V.t0+ht,
+           iX:px=>(px-w/2)/S+V.x0, iT:py=>(h/2-py)/S+V.t0 };
+}
+function lineW(ctx,m,x1,t1,x2,t2){ ctx.moveTo(m.X(x1),m.Y(t1)); ctx.lineTo(m.X(x2),m.Y(t2)); }
+
+function drawMink(){
+  const {ctx,w,h} = fit($('#cvM'));
+  ctx.clearRect(0,0,w,h);
+  const m = mMap(w,h), b = M.beta, g = gam(b);
+
+  const X0=m.xmin, X1=m.xmax, T0=m.tmin, T1=m.tmax;
+
+  // lab grid
+  ctx.strokeStyle='rgba(42,51,71,0.9)'; ctx.lineWidth=1;
+  ctx.beginPath();
+  for(let i=Math.ceil(X0);i<=Math.floor(X1);i++) lineW(ctx,m,i,T0,i,T1);
+  for(let i=Math.ceil(T0);i<=Math.floor(T1);i++) lineW(ctx,m,X0,i,X1,i);
+  ctx.stroke();
+
+  // primed grid
+  if(M.grid && Math.abs(b)<0.999){
+    ctx.strokeStyle='rgba(76,201,240,0.20)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    for(let k=-26;k<=26;k++){
+      lineW(ctx,m,X0, b*X0+k/g, X1, b*X1+k/g);      // constant t'
+      lineW(ctx,m, b*T0+k/g, T0, b*T1+k/g, T1);     // constant x'
+    }
+    ctx.stroke();
+  }
+
+  // light cone through the origin
+  ctx.strokeStyle='rgba(255,209,102,0.5)'; ctx.lineWidth=1.6; ctx.setLineDash([7,6]);
+  ctx.beginPath(); lineW(ctx,m,T0,T0,T1,T1); lineW(ctx,m,-T0,T0,-T1,T1); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // lab axes
+  ctx.strokeStyle='#e8ecf4'; ctx.lineWidth=2;
+  ctx.beginPath(); lineW(ctx,m,X0,0,X1,0); lineW(ctx,m,0,T0,0,T1); ctx.stroke();
+  ctx.font='600 14px ui-monospace,Menlo,monospace'; ctx.fillStyle='#e8ecf4';
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  ctx.fillText('x', m.X(X1)-10, m.Y(0)-14);
+  ctx.textAlign='left'; ctx.fillText('ct', m.X(0)+9, m.Y(T1)+16);
+
+  // primed axes
+  ctx.strokeStyle='#4cc9f0'; ctx.lineWidth=2.2;
+  ctx.beginPath();
+  lineW(ctx,m,X0, b*X0, X1, b*X1);                  // x' axis
+  if(Math.abs(b)>1e-6) lineW(ctx,m, b*T0, T0, b*T1, T1); else lineW(ctx,m,0,T0,0,T1);
+  ctx.stroke();
+  ctx.fillStyle='#4cc9f0'; ctx.textAlign='right';
+  ctx.fillText("x'", m.X(X1)-10, m.Y(b*X1)-14);
+  ctx.textAlign='left'; ctx.fillText("ct'", m.X(b*T1)+11, m.Y(T1)+16);
+
+  if(M.scene==='events') sceneEvents(ctx,m,b,g);
+  else if(M.scene==='pole') scenePole(ctx,m,b,g);
+  else sceneTwins(ctx,m,b,g);
+}
+
+function dotAt(ctx,m,x,t,col,label){
+  ctx.beginPath(); ctx.arc(m.X(x),m.Y(t),8,0,7); ctx.fillStyle=col; ctx.fill();
+  ctx.strokeStyle='#0a0d13'; ctx.lineWidth=2; ctx.stroke();
+  if(label){
+    ctx.font='600 14px -apple-system,Segoe UI,Roboto,sans-serif';
+    ctx.fillStyle=col; ctx.textAlign='left'; ctx.textBaseline='bottom';
+    ctx.fillText(label, m.X(x)+12, m.Y(t)-8);
+  }
+}
+
+function sceneEvents(ctx,m,b,g){
+  const E = M.events;
+  if(M.sim){
+    ctx.save(); ctx.setLineDash([4,5]); ctx.lineWidth=1.4;
+    for(const e of E){
+      ctx.strokeStyle='rgba(76,201,240,0.55)';
+      ctx.beginPath();
+      lineW(ctx,m,m.xmin, e.t + b*(m.xmin - e.x), m.xmax, e.t + b*(m.xmax - e.x));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  dotAt(ctx,m,E[0].x,E[0].t,'#ef476f','A');
+  dotAt(ctx,m,E[1].x,E[1].t,'#06d6a0','B');
+
+  const p = e => [g*(e.x-b*e.t), g*(e.t-b*e.x)];
+  const A=p(E[0]), B=p(E[1]);
+  const dx=E[1].x-E[0].x, dt=E[1].t-E[0].t;
+  const s2 = dt*dt - dx*dx;
+  const kind = s2>1e-9?'timelike':(s2<-1e-9?'spacelike':'lightlike');
+  let extra='';
+  if(kind==='spacelike'){
+    const bf = dt/dx;
+    extra = `\norder flips at\n  beta = ${bf.toFixed(3)}`;
+  }
+  $('#mRead').textContent =
+    `        x      ct\n`+
+    `A  ${E[0].x.toFixed(2).padStart(6)} ${E[0].t.toFixed(2).padStart(7)}\n`+
+    `B  ${E[1].x.toFixed(2).padStart(6)} ${E[1].t.toFixed(2).padStart(7)}\n`+
+    `        x'     ct'\n`+
+    `A  ${A[0].toFixed(2).padStart(6)} ${A[1].toFixed(2).padStart(7)}\n`+
+    `B  ${B[0].toFixed(2).padStart(6)} ${B[1].toFixed(2).padStart(7)}\n`+
+    `gamma ${g.toFixed(3)}\n`+
+    `interval ${kind}\n  s^2 = ${s2.toFixed(2)}`+extra;
+  $('#mNote').innerHTML = 'Drag either event. The dashed cyan lines are the primed frame’s "now". For a spacelike pair the time order reverses once &beta; passes &Delta;ct/&Delta;x, so "which happened first" has no frame-independent answer. For a timelike pair no boost can reorder them, which is what protects causality.';
+}
+
+function scenePole(ctx,m,b,g){
+  const BARN = 4.0, POLE = 5.0;
+  const bb = Math.max(0.05, Math.abs(b));
+  const Lc = POLE/gam(bb);                 // contracted pole length in lab
+  const x0 = -BARN/2, x1 = BARN/2;         // barn doors in lab
+  const T0=m.tmin, T1=m.tmax;
+  // barn strip
+  ctx.fillStyle='rgba(147,160,184,0.10)';
+  ctx.fillRect(m.X(x0), m.Y(T1), (x1-x0)*m.S, (T1-T0)*m.S);
+  ctx.strokeStyle='#93a0b8'; ctx.lineWidth=2.4;
+  ctx.beginPath(); lineW(ctx,m,x0,T0,x0,T1); lineW(ctx,m,x1,T0,x1,T1); ctx.stroke();
+
+  // pole: rear end at x0 when ct = 0
+  const rear = t => x0 + bb*t;
+  const front = t => x0 + Lc + bb*t;
+  ctx.fillStyle='rgba(239,71,111,0.16)';
+  ctx.beginPath();
+  ctx.moveTo(m.X(rear(T0)),m.Y(T0)); ctx.lineTo(m.X(rear(T1)),m.Y(T1));
+  ctx.lineTo(m.X(front(T1)),m.Y(T1)); ctx.lineTo(m.X(front(T0)),m.Y(T0)); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#ef476f'; ctx.lineWidth=2.4;
+  ctx.beginPath(); lineW(ctx,m,rear(T0),T0,rear(T1),T1); lineW(ctx,m,front(T0),T0,front(T1),T1); ctx.stroke();
+
+  // key events
+  const tIn  = 0;                    // rear end enters near door  (x0)
+  const tOut = (x1 - x0 - Lc)/bb;    // front end reaches far door (x1)
+  dotAt(ctx,m,x0,tIn,'#ffd166','R enters');
+  dotAt(ctx,m,x1,tOut,'#06d6a0','F exits');
+
+  if(M.sim){
+    ctx.save(); ctx.lineWidth=1.6;
+    // barn frame "now" through the midpoint of the two door events
+    const tm=(tIn+tOut)/2;
+    ctx.setLineDash([4,5]); ctx.strokeStyle='rgba(232,236,244,0.75)';
+    ctx.beginPath(); lineW(ctx,m,m.xmin,tm,m.xmax,tm); ctx.stroke();
+    // pole frame "now" through each event
+    ctx.strokeStyle='rgba(76,201,240,0.8)';
+    for(const [ex,et] of [[x0,tIn],[x1,tOut]]){
+      ctx.beginPath();
+      lineW(ctx,m,m.xmin, et + bb*(m.xmin-ex), m.xmax, et + bb*(m.xmax-ex));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  $('#mRead').textContent =
+    `barn rest length   ${BARN.toFixed(2)}\n`+
+    `pole rest length   ${POLE.toFixed(2)}\n`+
+    `beta ${bb.toFixed(3)}   gamma ${gam(bb).toFixed(3)}\n\n`+
+    `in the barn frame\n  pole = ${Lc.toFixed(2)}  ${Lc<BARN-0.005?'FITS':(Lc<BARN+0.005?'exactly fits':'too long')}\n\n`+
+    `in the pole frame\n  barn = ${(BARN/gam(bb)).toFixed(2)}  pole = ${POLE.toFixed(2)}\n  never fits\n\n`+
+    `door events separated by\n  ct  = ${(tOut-tIn).toFixed(2)} (barn)\n  ct' = ${(gam(bb)*((tOut-tIn)-bb*(x1-x0))).toFixed(2)} (pole)`;
+  $('#mNote').innerHTML = 'The white dashed line is the barn’s "now": both ends of the pole sit inside once &beta; &gt; 0.6. The cyan lines are the pole’s "now" through the same two door events, and they are clearly different lines. Both frames are right; they simply disagree about which pairs of events count as simultaneous.';
+}
+
+function sceneTwins(ctx,m,b,g){
+  const bb = clamp(Math.abs(b),0.05,0.95);
+  const gg = gam(bb);
+  const Tturn = 5.0, Ttot = 2*Tturn;      // lab time
+  const xTurn = bb*Tturn;
+  const tauT = Ttot/gg;                    // traveller proper time
+
+  // home worldline
+  ctx.strokeStyle='#e8ecf4'; ctx.lineWidth=3;
+  ctx.beginPath(); lineW(ctx,m,0,0,0,Ttot); ctx.stroke();
+  // traveller worldline
+  ctx.strokeStyle='#ef476f'; ctx.lineWidth=3;
+  ctx.beginPath(); lineW(ctx,m,0,0,xTurn,Tturn); lineW(ctx,m,xTurn,Tturn,0,Ttot); ctx.stroke();
+
+  // proper-time ticks
+  ctx.fillStyle='#e8ecf4';
+  for(let k=1;k<Ttot;k++){ ctx.beginPath(); ctx.arc(m.X(0),m.Y(k),3.4,0,7); ctx.fill(); }
+  ctx.fillStyle='#ef476f';
+  const nT = Math.floor(tauT);
+  for(let k=1;k<=nT;k++){
+    const tl = k*gg;                       // lab time of traveller's k-th tick
+    const x  = tl<=Tturn ? bb*tl : xTurn - bb*(tl-Tturn);
+    if(tl<Ttot){ ctx.beginPath(); ctx.arc(m.X(x),m.Y(tl),3.8,0,7); ctx.fill(); }
+  }
+
+  // light signals, one per unit of the emitter's proper time
+  if(M.sig){
+    ctx.lineWidth=1.2;
+    // home -> traveller (rightward light rays)
+    ctx.strokeStyle='rgba(255,209,102,0.55)';
+    ctx.beginPath();
+    for(let k=1;k<Ttot;k++){
+      // rightward ray from (0,k) until it meets the traveller, then stop
+      const tHit = k<=Tturn*(1-bb) ? k/(1-bb) : (k + 2*bb*Tturn)/(1+bb);
+      const xHit = tHit<=Tturn ? bb*tHit : xTurn - bb*(tHit-Tturn);
+      lineW(ctx,m,0,k,xHit,tHit);
+    }
+    ctx.stroke();
+    // traveller -> home (leftward rays from traveller's ticks)
+    ctx.strokeStyle='rgba(6,214,160,0.6)';
+    ctx.beginPath();
+    for(let k=1;k<=nT;k++){
+      const tl=k*gg; if(tl>=Ttot) continue;
+      const x = tl<=Tturn ? bb*tl : xTurn - bb*(tl-Tturn);
+      lineW(ctx,m,x,tl,0,tl+x);
+    }
+    ctx.stroke();
+  }
+
+  if(M.sim){
+    ctx.save(); ctx.setLineDash([4,5]); ctx.lineWidth=1.6;
+    ctx.strokeStyle='rgba(76,201,240,0.85)';
+    const XA=m.xmin, XB=m.xmax;
+    // outbound "now" just before turnaround
+    ctx.beginPath(); lineW(ctx,m,XA, Tturn + bb*(XA-xTurn), XB, Tturn + bb*(XB-xTurn)); ctx.stroke();
+    // inbound "now" just after turnaround
+    ctx.beginPath(); lineW(ctx,m,XA, Tturn - bb*(XA-xTurn), XB, Tturn - bb*(XB-xTurn)); ctx.stroke();
+    ctx.restore();
+    // highlight the skipped interval on the home worldline
+    const t1 = Tturn - bb*xTurn, t2 = Tturn + bb*xTurn;
+    ctx.strokeStyle='rgba(179,136,255,0.9)'; ctx.lineWidth=7;
+    ctx.beginPath(); lineW(ctx,m,0,t1,0,t2); ctx.stroke();
+  }
+  dotAt(ctx,m,xTurn,Tturn,'#ffd166','turnaround');
+
+  const kOut = Math.sqrt((1-bb)/(1+bb));
+  $('#mRead').textContent =
+    `beta ${bb.toFixed(3)}   gamma ${gg.toFixed(3)}\n\n`+
+    `home ages   ${Ttot.toFixed(2)}\n`+
+    `traveller   ${tauT.toFixed(2)}\n`+
+    `difference  ${(Ttot-tauT).toFixed(2)}\n\n`+
+    `Doppler factor\n  receding  ${kOut.toFixed(3)}\n  approaching ${(1/kOut).toFixed(3)}\n\n`+
+    `home's clock skipped\n  ${(2*bb*bb*Tturn).toFixed(2)} at turnaround\n\n`+
+    `signals received\n  by traveller ${Math.floor(Ttot)}\n  by home      ${nT}`;
+  $('#mNote').innerHTML = 'Amber rays are signals sent once per year by the home twin, green rays once per year by the traveller. Each twin ends up receiving exactly as many signals as the other twin aged, so nobody disputes the outcome. The asymmetry is in the timing: the traveller sees slow signals for exactly half the trip and fast ones for the other half, while the home twin sees slow ones for far longer than fast ones. The violet segment is the stretch of home’s life the traveller’s "now" jumps across at turnaround.';
+}
+
+/* interaction */
+(function(){
+  const cv = $('#cvM');
+  function world(ev){
+    const r = cv.getBoundingClientRect();
+    const m = mMap(r.width, r.height);
+    return [m.iX(ev.clientX-r.left), m.iT(ev.clientY-r.top)];
+  }
+  cv.addEventListener('pointerdown', ev=>{
+    if(M.scene!=='events') return;
+    const [x,t] = world(ev);
+    let best=-1, bd=0.6;
+    M.events.forEach((e,i)=>{ const d=Math.hypot(e.x-x,e.t-t); if(d<bd){bd=d;best=i;} });
+    if(best>=0){ M.drag=best; try{cv.setPointerCapture(ev.pointerId);}catch(_){} }
+  });
+  cv.addEventListener('pointermove', ev=>{
+    if(M.drag<0) return;
+    const [x,t] = world(ev);
+    M.events[M.drag] = {x:clamp(x,-6,6), t:clamp(t,-6,6)};
+  });
+  cv.addEventListener('pointerup', ()=>{ M.drag=-1; });
+  cv.addEventListener('pointercancel', ()=>{ M.drag=-1; });
+})();
+
+$('#mBeta').addEventListener('input',e=>{ M.beta=+e.target.value; $('#mBetaV').textContent=M.beta.toFixed(3); });
+$('#mGrid').addEventListener('change',e=>{ M.grid=e.target.checked; });
+$('#mSim').addEventListener('change',e=>{ M.sim=e.target.checked; });
+$('#mSig').addEventListener('change',e=>{ M.sig=e.target.checked; });
+segment('#mScene', v=>{
+  M.scene=v;
+  // each scenario reads best at a different speed; nudge only if the current one is unhelpful
+  let want = null;
+  if(v==='pole'  && Math.abs(M.beta)<0.72) want = 0.85;
+  if(v==='twins' && Math.abs(M.beta)<0.40) want = 0.60;
+  if(want!==null){ M.beta = want; $('#mBeta').value = want; $('#mBetaV').textContent = want.toFixed(3); }
+});
+
+/* ======================================================================= */
+/* ==================== 3. RELATIVISTIC STARFIELD ======================== */
+/* ======================================================================= */
+const S = { beta:0.9, fov:90, ab:true, dop:true, bri:true, ring:true, sweep:false, phase:0, stars:[], ringStars:[] };
+
+function seedStars(){
+  S.stars = [];
+  for(let i=0;i<2600;i++){
+    const u = Math.random()*2-1, ph = Math.random()*2*Math.PI, s = Math.sqrt(1-u*u);
+    S.stars.push({ n:[s*Math.cos(ph), s*Math.sin(ph), u],
+                   T: 2600 + Math.pow(Math.random(),1.8)*11000,
+                   L: 0.10 + Math.pow(Math.random(),3.2)*1.6 });
+  }
+  S.ringStars = [];
+  for(let i=0;i<72;i++){
+    const a = 2*Math.PI*i/72;
+    S.ringStars.push({ n:[Math.cos(a), Math.sin(a), 0] });
+  }
+}
+seedStars();
+
+function tempColour(K){
+  const t = clamp(K,1000,40000)/100;
+  let r,g,bl;
+  if(t<=66){ r=255; g=99.4708025861*Math.log(t)-161.1195681661; }
+  else { r=329.698727446*Math.pow(t-60,-0.1332047592); g=288.1221695283*Math.pow(t-60,-0.0755148492); }
+  if(t>=66) bl=255; else if(t<=19) bl=0; else bl=138.5177312231*Math.log(t-10)-305.0447927307;
+  return [clamp(r,0,255), clamp(g,0,255), clamp(bl,0,255)];
+}
+
+function drawStars(){
+  const {ctx,w,h} = fit($('#cvS'));
+  ctx.fillStyle='#04060b'; ctx.fillRect(0,0,w,h);
+  const b = S.beta, g = gam(b);
+  const f = (w/2)/Math.tan(S.fov*DEG/2);
+  const cx=w/2, cy=h/2;
+
+  function aberr(n){
+    if(!S.ab) return n;
+    const den = 1 + b*n[2];
+    return [ n[0]/(g*den), n[1]/(g*den), (n[2]+b)/den ];
+  }
+
+  ctx.globalCompositeOperation='lighter';
+  for(const st of S.stars){
+    const n = st.n;
+    const np = aberr(n);
+    if(np[2] <= 0.02) continue;
+    const X = cx + f*np[0]/np[2], Y = cy - f*np[1]/np[2];
+    if(X<-40||X>w+40||Y<-40||Y>h+40) continue;
+    const delta = g*(1 + b*n[2]);
+    const col = tempColour(S.dop ? st.T*delta : st.T);
+    const flux = st.L * (S.bri ? Math.pow(delta,4) : 1);
+    const mag = Math.log10(1 + flux*12);
+    const rad = clamp(0.45 + 1.05*mag, 0.35, 7);
+    const alp = clamp(0.10 + 0.62*mag, 0.05, 1);
+    ctx.beginPath(); ctx.arc(X,Y,rad,0,7);
+    ctx.fillStyle = `rgba(${col[0]|0},${col[1]|0},${col[2]|0},${alp.toFixed(3)})`;
+    ctx.fill();
+    if(rad>2.6){
+      ctx.beginPath(); ctx.arc(X,Y,rad*2.6,0,7);
+      ctx.fillStyle = `rgba(${col[0]|0},${col[1]|0},${col[2]|0},${(alp*0.10).toFixed(3)})`;
+      ctx.fill();
+    }
+  }
+  ctx.globalCompositeOperation='source-over';
+
+  if(S.ring){
+    ctx.strokeStyle='rgba(76,201,240,0.85)'; ctx.lineWidth=1.6;
+    let first=true; ctx.beginPath();
+    for(let i=0;i<=72;i++){
+      const st = S.ringStars[i%72];
+      const np = aberr(st.n);
+      if(np[2]<=0.02){ first=true; continue; }
+      const X = cx + f*np[0]/np[2], Y = cy - f*np[1]/np[2];
+      if(first){ ctx.moveTo(X,Y); first=false; } else ctx.lineTo(X,Y);
+    }
+    ctx.stroke();
+  }
+
+  // crosshair
+  ctx.strokeStyle='rgba(232,236,244,0.28)'; ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(cx-14,cy); ctx.lineTo(cx-5,cy); ctx.moveTo(cx+5,cy); ctx.lineTo(cx+14,cy);
+  ctx.moveTo(cx,cy-14); ctx.lineTo(cx,cy-5); ctx.moveTo(cx,cy+5); ctx.lineTo(cx,cy+14);
+  ctx.stroke();
+
+  panelLabel(ctx,22,20,'Forward view at β = '+b.toFixed(3),'aberration, Doppler shift and headlight effect','#4cc9f0');
+
+  // the n_z = 0 ring lands at arccos(beta); half the whole sky sits inside it
+  const ringAng = Math.acos(clamp(b,0,0.999999))/DEG;
+  $('#sRead').textContent =
+    `beta   ${b.toFixed(3)}\n`+
+    `gamma  ${g.toFixed(3)}\n\n`+
+    `90 deg ring seen at\n  ${ringAng.toFixed(1)} deg from ahead\n`+
+    `so half of the entire\nsky fits in that cone\n\n`+
+    `blueshift dead ahead\n  x${(g*(1+b)).toFixed(2)}\n`+
+    `redshift dead astern\n  x${(g*(1-b)).toFixed(3)}\n\n`+
+    `brightness ahead\n  x${Math.pow(g*(1+b),4).toFixed(1)}`;
+}
+
+$('#sBeta').addEventListener('input',e=>{ S.beta=+e.target.value; $('#sBetaV').textContent=S.beta.toFixed(3); });
+$('#sFov').addEventListener('input',e=>{ S.fov=+e.target.value; $('#sFovV').textContent=S.fov+'°'; });
+$('#sAb').addEventListener('change',e=>{ S.ab=e.target.checked; });
+$('#sDop').addEventListener('change',e=>{ S.dop=e.target.checked; });
+$('#sBri').addEventListener('change',e=>{ S.bri=e.target.checked; });
+$('#sRing').addEventListener('change',e=>{ S.ring=e.target.checked; });
+$('#sSweep').addEventListener('change',e=>{ S.sweep=e.target.checked; });
+$('#sReseed').addEventListener('click',()=>{ seedStars(); });
+
+/* ======================================================================= */
+/* ==================== 4. LIGHT CLOCK =================================== */
+/* ======================================================================= */
+const C = { beta:0.8, frame:'lab', play:true, rate:1, trail:true, T:0 };
+$('#cReset').addEventListener('click',()=>{ C.T=0; });
+
+function clockVelocities(){
+  const b = C.beta;
+  if(C.frame==='lab') return {uA:0, uB:b};
+  return {uA:-b, uB:0};
+}
+
+function drawClock(dt){
+  const {ctx,w,h} = fit($('#cvC'));
+  ctx.clearRect(0,0,w,h);
+  const {uA,uB} = clockVelocities();
+  if(C.play) C.T += dt*C.rate*1.1;
+
+  const L = 1;                       // mirror separation, c = 1
+  const worldW = 10;                 // visible span in light-units
+  const S0 = w/worldW;
+  const laneH = h/2;
+
+  // reset when either clock leaves the field
+  const span = Math.max(Math.abs(uA),Math.abs(uB))*C.T;
+  if(span > 4.6) C.T = 0;
+
+  function drawOne(u, y0, name, colour){
+    const gu = gam(u);
+    const period = 2*L*gu;
+    const ticks = Math.floor(C.T/period);
+    const tau = C.T/gu;
+    const x = 5 + u*C.T;             // world x of the clock centre
+    const px = x*S0;
+    const H = Math.min(laneH*0.46, 150);           // pixel height of the clock
+    const yb = y0 + laneH*0.72, yt = yb - H;
+    const halfW = H*0.34;
+
+    // photon path trace
+    if(C.trail && Math.abs(u)>1e-9){
+      ctx.save();
+      ctx.strokeStyle='rgba(255,209,102,0.22)'; ctx.lineWidth=1.2;
+      ctx.beginPath();
+      const nSeg = Math.ceil(C.T/(L*gu));
+      for(let k=0;k<=nSeg;k++){
+        const tk = k*L*gu;
+        if(tk>C.T+1e-9) break;
+        const xk = (5 + u*tk)*S0, yk = (k%2===0)? yb : yt;
+        if(k===0) ctx.moveTo(xk,yk); else ctx.lineTo(xk,yk);
+      }
+      // current position
+      const tau2 = C.T % (2*L*gu);
+      const up = tau2 < L*gu;
+      const yy = up ? yb - (tau2/gu)*(H/L) : yt + ((tau2-L*gu)/gu)*(H/L);
+      ctx.lineTo(px, yy);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // mirrors
+    ctx.strokeStyle=colour; ctx.lineWidth=6; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(px-halfW,yb); ctx.lineTo(px+halfW,yb);
+                     ctx.moveTo(px-halfW,yt); ctx.lineTo(px+halfW,yt); ctx.stroke();
+    ctx.lineCap='butt';
+    ctx.strokeStyle='rgba(147,160,184,0.30)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(px,yb); ctx.lineTo(px,yt); ctx.stroke();
+
+    // photon
+    const tau2 = C.T % (2*L*gu);
+    const up = tau2 < L*gu;
+    const yy = up ? yb - (tau2/gu)*(H/L) : yt + ((tau2-L*gu)/gu)*(H/L);
+    ctx.beginPath(); ctx.arc(px,yy,6.5,0,7); ctx.fillStyle='#ffd166'; ctx.fill();
+    ctx.beginPath(); ctx.arc(px,yy,15,0,7); ctx.fillStyle='rgba(255,209,102,0.16)'; ctx.fill();
+
+    // velocity arrow
+    if(Math.abs(u)>1e-9){
+      ctx.save(); ctx.strokeStyle=colour; ctx.fillStyle=colour; ctx.lineWidth=2; ctx.globalAlpha=0.75;
+      const ay = yb+26, dir = Math.sign(u), aL=46;
+      ctx.beginPath(); ctx.moveTo(px,ay); ctx.lineTo(px+dir*aL,ay); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px+dir*aL,ay); ctx.lineTo(px+dir*(aL-10),ay-5.5);
+      ctx.lineTo(px+dir*(aL-10),ay+5.5); ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+
+    // labels
+    ctx.font='600 17px -apple-system,Segoe UI,Roboto,sans-serif';
+    ctx.fillStyle=colour; ctx.textAlign='left'; ctx.textBaseline='top';
+    ctx.fillText(name, 22, y0+16);
+    ctx.font='400 14px -apple-system,Segoe UI,Roboto,sans-serif';
+    ctx.fillStyle='#93a0b8';
+    ctx.fillText(Math.abs(u)<1e-9 ? 'at rest in this frame'
+                                  : `moving at β = ${Math.abs(u).toFixed(3)}`, 22, y0+39);
+    ctx.font='600 30px ui-monospace,Menlo,monospace';
+    ctx.fillStyle='#e8ecf4'; ctx.textAlign='right';
+    ctx.fillText(String(ticks), w-24, y0+16);
+    ctx.font='400 13px -apple-system,Segoe UI,Roboto,sans-serif';
+    ctx.fillStyle='#93a0b8';
+    ctx.fillText('ticks', w-24, y0+52);
+    return {ticks, tau, gu};
+  }
+
+  ctx.strokeStyle='#2a3347'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,laneH); ctx.lineTo(w,laneH); ctx.stroke();
+
+  const A = drawOne(uA, 0,      'Clock A', '#e8ecf4');
+  const B = drawOne(uB, laneH,  'Clock B', '#4cc9f0');
+
+  const gview = gam(C.beta);
+  $('#cRead').textContent =
+    `beta  ${C.beta.toFixed(3)}\n`+
+    `gamma ${gview.toFixed(4)}\n\n`+
+    `frame time  ${C.T.toFixed(2)}\n\n`+
+    `A ticks ${A.ticks}   proper t ${A.tau.toFixed(2)}\n`+
+    `B ticks ${B.ticks}   proper t ${B.tau.toFixed(2)}\n\n`+
+    (C.frame==='lab'
+      ? `B runs slow by\n  gamma = ${gview.toFixed(4)}`
+      : `A runs slow by\n  gamma = ${gview.toFixed(4)}`);
+}
+
+$('#cBeta').addEventListener('input',e=>{ C.beta=+e.target.value; $('#cBetaV').textContent=C.beta.toFixed(3); C.T=0; });
+$('#cRate').addEventListener('input',e=>{ C.rate=+e.target.value; $('#cRateV').textContent=C.rate.toFixed(1)+'×'; });
+$('#cPlay').addEventListener('change',e=>{ C.play=e.target.checked; });
+$('#cTrail').addEventListener('change',e=>{ C.trail=e.target.checked; });
+segment('#cFrame', v=>{ C.frame=v; C.T=0; });
+
+/* ======================================================================= */
+/* ==================== keyboard shortcuts for projection ================ */
+/* ======================================================================= */
+const BETA_CTL = { terrell:'#tBeta', mink:'#mBeta', stars:'#sBeta', clock:'#cBeta' };
+document.addEventListener('keydown', ev=>{
+  if(ev.target.tagName==='INPUT') return;
+  const k = ev.key;
+  if(k>='1' && k<='4'){ document.querySelector(`nav button[data-tab="${['terrell','mink','stars','clock'][+k-1]}"]`).click(); return; }
+  if(k==='ArrowLeft' || k==='ArrowRight'){
+    const el = $(BETA_CTL[active]); if(!el) return;
+    const step = (+el.step||0.01) * (ev.shiftKey?10:1) * (k==='ArrowRight'?1:-1);
+    el.value = clamp(+el.value + step, +el.min, +el.max);
+    el.dispatchEvent(new Event('input'));
+    ev.preventDefault(); return;
+  }
+  if(k===' '){
+    if(active==='clock'){ const c=$('#cPlay'); c.checked=!c.checked; c.dispatchEvent(new Event('change')); }
+    else if(active==='terrell'){ const c=$('#tSweep'); c.checked=!c.checked; c.dispatchEvent(new Event('change')); }
+    else if(active==='stars'){ const c=$('#sSweep'); c.checked=!c.checked; c.dispatchEvent(new Event('change')); }
+    ev.preventDefault();
+  }
+});
+
+/* ======================================================================= */
+/* ============================ main loop ================================ */
+/* ======================================================================= */
+let last = 0;
+function loop(ts){
+  const dt = Math.min(0.05, (ts-last)/1000 || 0); last = ts;
+  if(active==='terrell'){
+    if(T.sweep){
+      T.phase += dt*0.35;
+      T.beta = 0.995*(0.5-0.5*Math.cos(T.phase));
+      $('#tBeta').value = T.beta; $('#tBetaV').textContent = T.beta.toFixed(3);
+    }
+    drawTerrell();
+  } else if(active==='mink'){
+    drawMink();
+  } else if(active==='stars'){
+    if(S.sweep){
+      S.phase += dt*0.30;
+      S.beta = 0.999*(0.5-0.5*Math.cos(S.phase));
+      $('#sBeta').value = S.beta; $('#sBetaV').textContent = S.beta.toFixed(3);
+    }
+    drawStars();
+  } else {
+    drawClock(dt);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
