@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relativity Room — Length Contraction &amp; Time Dilation</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:rgba(13,17,26,0.85); --line:#26303f;
+    --text:#dce3ee; --dim:#8fa0b8; --accent:#5eb8ff; --warn:#ffb454; --ok:#7fd1a8;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%; overflow:hidden; background:var(--bg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--text);}
+  #scene{position:fixed; inset:0; display:block; cursor:grab;}
+  #scene.dragging{cursor:grabbing;}
+  .panel{position:fixed; background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; padding:14px 16px; backdrop-filter:blur(6px); user-select:none;}
+  #readout{top:14px; left:14px; width:262px;}
+  #readout h1{font-size:13px; font-weight:600; color:var(--dim); letter-spacing:0.04em;
+    text-transform:uppercase; margin-bottom:8px;}
+  .gRow{display:flex; align-items:baseline; gap:10px; margin-bottom:10px;}
+  #gammaVal{font-size:34px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--accent);}
+  #vVal{font-size:15px; color:var(--dim); font-variant-numeric:tabular-nums;}
+  .lbl{font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;}
+  #barOuter{position:relative; height:16px; border:1px solid var(--line); border-radius:4px;
+    background:rgba(94,184,255,0.08); overflow:hidden; margin-bottom:4px;}
+  #barInner{position:absolute; inset:0; width:100%; background:rgba(94,184,255,0.45);
+    border-right:2px solid var(--accent); transition:width 0.08s linear;}
+  #lenVal{font-size:13px; font-variant-numeric:tabular-nums; margin-bottom:12px;}
+  .clockRow{display:flex; justify-content:space-between; align-items:baseline;
+    font-variant-numeric:tabular-nums; margin-bottom:3px; font-size:14px;}
+  .clockRow .who{color:var(--dim); font-size:12px;}
+  #tYou{color:var(--ok); font-size:18px; font-weight:600;}
+  #tRoom{color:var(--warn); font-size:18px; font-weight:600;}
+  #rateNote{font-size:11px; color:var(--dim); margin-top:2px;}
+  #controls{top:14px; right:14px; display:flex; flex-direction:column; gap:8px; padding:12px;}
+  button{background:#1a2230; border:1px solid var(--line); color:var(--text); border-radius:7px;
+    padding:7px 12px; font-size:13px; cursor:pointer; font-family:inherit;}
+  button:hover{border-color:var(--accent);}
+  button.active{border-color:var(--accent); color:var(--accent);}
+  #bottom{left:50%; bottom:16px; transform:translateX(-50%); width:min(680px,92vw); padding:14px 18px;}
+  #sliderRow{display:flex; align-items:center; gap:12px;}
+  #sliderRow .tag{font-size:13px; color:var(--dim); white-space:nowrap;}
+  #beta{flex:1; accent-color:var(--accent); height:22px; cursor:pointer;}
+  #betaVal{font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; min-width:64px; text-align:right;}
+  #presets{display:flex; gap:6px; margin-top:9px; flex-wrap:wrap;}
+  #presets button{padding:4px 10px; font-size:12px;}
+  #foot{margin-top:9px; font-size:11px; color:var(--dim); line-height:1.45;}
+  #err{position:fixed; inset:0; display:none; place-items:center; text-align:center;
+    padding:40px; color:var(--dim); font-size:14px;}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="err">Could not load the 3D library (three.js from cdnjs). Check your connection and reload.</div>
+
+<div class="panel" id="readout">
+  <h1>Your reference frame</h1>
+  <div class="gRow"><span id="gammaVal">1.00</span><span>&gamma;</span><span id="vVal">v = 0.000c</span></div>
+  <div class="lbl">Room segment length (along motion)</div>
+  <div id="barOuter"><div id="barInner"></div></div>
+  <div id="lenVal">20.0 m &rarr; 20.0 m</div>
+  <div class="lbl">Time dilation</div>
+  <div class="clockRow"><span class="who">Your clock</span><span id="tYou">0.0 s</span></div>
+  <div class="clockRow"><span class="who">Room clocks</span><span id="tRoom">0.0 s</span></div>
+  <div id="rateNote">room clocks running at 100%</div>
+</div>
+
+<div class="panel" id="controls">
+  <button id="btnPause">Pause motion</button>
+  <button id="btnGhost" class="active">Rest-frame ghost: on</button>
+  <button id="btnTerrell">Terrell view: off</button>
+  <button id="btnAberr">Aberration: off</button>
+  <button id="btnDoppler">Doppler shift: off</button>
+  <button id="btnSimul">Clock offsets: off</button>
+  <button id="btnReset">Reset clocks</button>
+</div>
+
+<div class="panel" id="bottom">
+  <div id="sliderRow">
+    <span class="tag">v / c</span>
+    <input type="range" id="beta" min="0" max="0.995" step="0.001" value="0">
+    <span id="betaVal">0.000</span>
+  </div>
+  <div id="presets">
+    <button data-b="0">rest</button>
+    <button data-b="0.5">0.5c</button>
+    <button data-b="0.866">0.866c (&gamma;=2)</button>
+    <button data-b="0.968">0.968c (&gamma;=4)</button>
+    <button data-b="0.995">0.995c (&gamma;=10)</button>
+  </div>
+  <div id="foot">Floor markers: bold stripe every 5 m, thin line every 1 m; numerals count rest-frame metres, resetting every 100 m — watch them bunch up.
+  Default is the geometric view (lengths as <em>measured</em> in your frame); drag to look around. Toggles: <em>Aberration</em> warps light-arrival directions only;
+  <em>Terrell view</em> is the full photon-arrival picture, light delay + aberration (bays ahead stretch away, boxes appear rotated) — it supersedes Aberration when on;
+  <em>Doppler</em> tints by red/blueshift with mild beaming; <em>Clock offsets</em> shows relativity of simultaneity (leading clocks lag by &beta;&Delta;z&prime;/c).
+  Sim light speed c = 10 m/s so the effects are visible at walking pace. The cyan ghost always shows rest-frame geometry, unwarped.</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  if (typeof THREE === 'undefined'){ document.getElementById('err').style.display='grid'; return; }
+
+  var SEG = 20, N = 25, W = 6, H = 3.2;   // bay rest length, bay count, width, height (m)
+  var PERIOD = SEG * 5;                    // floor-marker numbering resets every 100 m (5 bays)
+  var VIS_SPEED = 10;                      // world m/s at beta = 1; also the sim's light speed c = 10 m/s
+
+  var beta = 0, gamma = 1, paused = false, showGhost = true;
+  var showTerrell = false, showAberr = false, showDoppler = false, showSimul = false;
+  var restOffset = 7.3, ghostOffset = 7.3, tYou = 0, tRoom = 0;
+
+  var canvas = document.getElementById('scene');
+  var renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true});
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0e14);
+  scene.fog = new THREE.Fog(0x28334f, 4, 160);
+
+  var camera = new THREE.PerspectiveCamera(70, 1, 0.05, 20000);
+  camera.position.set(0, 1.6, 0);
+  camera.rotation.order = 'YXZ';
+
+  scene.add(new THREE.HemisphereLight(0x93a7cc, 0x1f241c, 1.0));
+  var dir = new THREE.DirectionalLight(0xafc2ef, 0.55);   // moonlight
+  dir.position.set(-4, 12, 3);
+  scene.add(dir);
+
+  // ---------- textures ----------
+  // pavement for one 20 m bay: thin line every 1 m, bold painted stripe every 5 m,
+  // numerals count metres walked, continuing across bays and resetting every 100 m.
+  // startVal is the count at this bay's entry stripe (bays are traversed high-z to low-z).
+  function makePathTex(startVal){
+    var cw = 1024, ch = 4096, ppm = ch / SEG;         // canvas y == bay-local z * ppm
+    var c = document.createElement('canvas'); c.width = cw; c.height = ch;
+    var g = c.getContext('2d');
+    g.fillStyle = '#282b31'; g.fillRect(0, 0, cw, ch);
+    for (var i = 0; i < 6000; i++){                   // asphalt speckle
+      g.fillStyle = 'rgba(' + (Math.random() < 0.5 ? '255,255,255' : '0,0,0') + ',' + (0.03 + Math.random()*0.05) + ')';
+      g.fillRect(Math.random()*cw, Math.random()*ch, 1 + Math.random()*2, 1 + Math.random()*2);
+    }
+    g.fillStyle = 'rgba(185,194,212,0.55)';           // edge lines
+    g.fillRect(26, 0, 14, ch); g.fillRect(cw - 40, 0, 14, ch);
+    for (var z = 1; z < SEG; z++){                    // 1 m minor lines
+      if (z % 5 === 0) continue;
+      g.fillStyle = 'rgba(255,255,255,0.15)';
+      g.fillRect(50, z*ppm - 3, cw - 100, 6);
+    }
+    [0, 5, 10, 15, 20].forEach(function(z){           // 5 m painted stripes (0 and 20 are half-stripes joining across bays)
+      g.fillStyle = '#d8b64e';
+      g.fillRect(30, z*ppm - 31, cw - 60, 62);
+    });
+    g.font = 'bold 340px system-ui, sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    [[18.8, 0], [13.8, 5], [8.8, 10], [3.8, 15]].forEach(function(m){
+      var y = m[0]*ppm, label = String((startVal + m[1]) % PERIOD);
+      g.lineWidth = 14; g.strokeStyle = '#14161c';
+      g.strokeText(label, 700, y);
+      g.fillStyle = 'rgba(235,240,250,0.92)';
+      g.fillText(label, 700, y);
+    });
+    var t = new THREE.CanvasTexture(c);
+    t.anisotropy = 16;
+    return t;
+  }
+  // variant v = bayIndex % 5; bays are walked in decreasing index order, so v=4 starts at 0 m
+  var matPathV = [];
+  for (var pv = 0; pv < 5; pv++){
+    matPathV.push(new THREE.MeshLambertMaterial({map: makePathTex((4 - pv) * SEG)}));
+  }
+
+  function makeGroundTex(){
+    var c = document.createElement('canvas'); c.width = c.height = 256;
+    var g = c.getContext('2d');
+    g.fillStyle = '#171c15'; g.fillRect(0, 0, 256, 256);
+    var cols = ['#1d241a', '#131810', '#20281d', '#242b1c'];
+    for (var i = 0; i < 320; i++){
+      g.fillStyle = cols[i % 4];
+      g.fillRect(Math.random()*256, Math.random()*256, 2 + Math.random()*4, 2 + Math.random()*4);
+    }
+    var t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    return t;
+  }
+  var groundTex = makeGroundTex();
+
+  function makeSkyTex(){
+    var c = document.createElement('canvas'); c.width = 2048; c.height = 1024;
+    var g = c.getContext('2d');
+    var grad = g.createLinearGradient(0, 0, 0, 1024);  // y=0 zenith, y=512 horizon
+    grad.addColorStop(0.00, '#0a101f');
+    grad.addColorStop(0.30, '#0d1526');
+    grad.addColorStop(0.46, '#1f2c4a');
+    grad.addColorStop(0.50, '#31426b');
+    grad.addColorStop(0.53, '#26314e');
+    grad.addColorStop(0.60, '#141924');
+    grad.addColorStop(1.00, '#0a0c12');
+    g.fillStyle = grad; g.fillRect(0, 0, 2048, 1024);
+    for (var i = 0; i < 900; i++){                     // stars above the horizon
+      var a = 0.25 + Math.random()*0.7, r = Math.random() < 0.92 ? 0.7 : 1.4;
+      g.fillStyle = 'rgba(226,234,248,' + a + ')';
+      g.beginPath(); g.arc(Math.random()*2048, Math.random()*460, r, 0, 7); g.fill();
+    }
+    var halo = g.createRadialGradient(1440, 220, 6, 1440, 220, 110);
+    halo.addColorStop(0, 'rgba(200,214,245,0.55)'); halo.addColorStop(1, 'rgba(200,214,245,0)');
+    g.fillStyle = halo; g.fillRect(1330, 110, 220, 220);
+    g.fillStyle = '#e6ebf7';
+    g.beginPath(); g.arc(1440, 220, 22, 0, 7); g.fill();
+    return new THREE.CanvasTexture(c);
+  }
+  var sky = new THREE.Mesh(
+    new THREE.SphereGeometry(280, 48, 32),
+    new THREE.MeshBasicMaterial({map: makeSkyTex(), side: THREE.BackSide, fog: false, depthWrite: false})
+  );
+  sky.renderOrder = -1;                    // background: never occludes the (possibly warp-stretched) scene
+  scene.add(sky);
+
+  function makeLabel(){
+    var c = document.createElement('canvas'); c.width = 2048; c.height = 64;
+    var g = c.getContext('2d');
+    g.strokeStyle = '#7fa7d8'; g.fillStyle = '#a8c4e8'; g.lineWidth = 5;
+    var y = 32, m = 26;
+    g.beginPath(); g.moveTo(m, y); g.lineTo(2048 - m, y); g.stroke();
+    // arrowheads + end bars
+    [[m, 1],[2048 - m, -1]].forEach(function(e){
+      var x = e[0], s = e[1];
+      g.beginPath(); g.moveTo(x, y - 20); g.lineTo(x, y + 20); g.stroke();
+      g.beginPath(); g.moveTo(x + s*26, y - 12); g.lineTo(x, y); g.lineTo(x + s*26, y + 12); g.stroke();
+    });
+    g.font = '600 40px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    var txt = '20 m in the room’s rest frame';
+    var w = g.measureText(txt).width;
+    g.fillStyle = '#141a26'; g.fillRect(1024 - w/2 - 24, 4, w + 48, 56);
+    g.fillStyle = '#a8c4e8'; g.fillText(txt, 1024, y);
+    var t = new THREE.CanvasTexture(c); t.anisotropy = 8;
+    return t;
+  }
+  var labelTex = makeLabel();
+
+  function makeClockFace(){
+    var c = document.createElement('canvas'); c.width = c.height = 256;
+    var g = c.getContext('2d');
+    g.fillStyle = '#e9edf5';
+    g.beginPath(); g.arc(128,128,124,0,7); g.fill();
+    g.strokeStyle = '#39415a'; g.lineWidth = 8;
+    g.beginPath(); g.arc(128,128,120,0,7); g.stroke();
+    g.strokeStyle = '#222838';
+    for (var i = 0; i < 12; i++){
+      var a = i * Math.PI/6;
+      g.lineWidth = (i % 3 === 0) ? 8 : 4;
+      g.beginPath();
+      g.moveTo(128 + Math.sin(a)*100, 128 - Math.cos(a)*100);
+      g.lineTo(128 + Math.sin(a)*114, 128 - Math.cos(a)*114);
+      g.stroke();
+    }
+    return new THREE.CanvasTexture(c);
+  }
+  var clockTex = makeClockFace();
+
+  // ---------- materials ----------
+  // solids are DoubleSide: the optical warp can bring physically-back faces into view (Terrell)
+  var DS = THREE.DoubleSide;
+  var matGround= new THREE.MeshLambertMaterial({map: groundTex});
+  var matStone = new THREE.MeshLambertMaterial({color: 0x39404f, side: DS});
+  var matCol   = new THREE.MeshLambertMaterial({color: 0x4a5162, side: DS});
+  var matLamp  = new THREE.MeshBasicMaterial({color: 0xffd9a0});
+  var matCrateA= new THREE.MeshLambertMaterial({color: 0x4a5a80, side: DS});
+  var matWood  = new THREE.MeshLambertMaterial({color: 0x6b543c, side: DS});
+  var matTrunk = new THREE.MeshLambertMaterial({color: 0x4b4036, side: DS});
+  var matLeaf  = new THREE.MeshLambertMaterial({color: 0x24382a, side: DS});
+  var matFace  = new THREE.MeshBasicMaterial({map: clockTex, side: DS});
+  var matHand  = new THREE.MeshBasicMaterial({color: 0x1a1f2b, side: DS});
+  var matLabel = new THREE.MeshBasicMaterial({map: labelTex, transparent: true, side: DS});
+
+  // ---------- relativistic optics (shader injection) ----------
+  // Per-vertex apparent-position transform in the camera frame. The scene moves at
+  // v = beta*c (+z), c = VIS_SPEED. Solving |r + v*t_e| = -c*t_e for the emission
+  // event gives the apparent position p = (r.x, r.y, gamma^2*(r.z - beta*D)),
+  // D = sqrt(beta^2 r.z^2 + (1-beta^2)|r|^2). This is light-delay + contraction:
+  // Terrell rotation and aberration both fall out of it. "Aberration only" keeps
+  // each vertex's measured distance and warps direction only.
+  var U = {
+    uBeta:   {value: 0},
+    uMode:   {value: 0},                       // 0 geometric, 1 aberration only, 2 full light-delay
+    uDopp:   {value: 0},
+    uCamPos: {value: new THREE.Vector3(0, 1.6, 0)}
+  };
+  function projSnippet(dirOnly){
+    return [
+      'vec4 wpos4 = modelMatrix * vec4( transformed, 1.0 );',
+      'vec3 rel = wpos4.xyz - uCamPos;',
+      'vec3 rel2 = rel;',
+      'float bb = uBeta;',
+      'if (uMode > 0.5 && bb > 1e-4) {',
+      '  float rz = rel.z;',
+      '  float D = sqrt(bb*bb*rz*rz + (1.0-bb*bb)*dot(rel,rel));',
+      '  vec3 papp = vec3(rel.xy, (rz - bb*D)/(1.0-bb*bb));',
+      dirOnly ? '  rel2 = normalize(papp) * length(rel);'
+              : '  rel2 = (uMode > 1.5) ? papp : normalize(papp) * length(rel);',
+      '}',
+      '{ float gg = 1.0/sqrt(1.0-bb*bb); vDopp = 1.0/(gg*(1.0 + bb*normalize(rel2).z)); }',
+      'vec4 mvPosition = viewMatrix * vec4( uCamPos + rel2, 1.0 );',
+      'gl_Position = projectionMatrix * mvPosition;'
+    ].join('\n');
+  }
+  var FRAG_DOPP = [
+    '',
+    'if (uDopp > 0.5) {',
+    '  float d = vDopp;',
+    '  float t = clamp((d - 1.0)*1.6, -1.0, 1.0);',
+    '  vec3 tint = (t < 0.0) ? mix(vec3(1.0), vec3(1.6, 0.55, 0.25), -t)',
+    '                        : mix(vec3(1.0), vec3(0.45, 0.65, 1.9), t);',
+    '  gl_FragColor.rgb *= tint * clamp(pow(d, 1.2), 0.25, 2.5);',
+    '}'
+  ].join('\n');
+  function patchMat(mat, dirOnly){
+    mat.onBeforeCompile = function(sh){
+      sh.uniforms.uBeta = U.uBeta; sh.uniforms.uMode = U.uMode;
+      sh.uniforms.uDopp = U.uDopp; sh.uniforms.uCamPos = U.uCamPos;
+      sh.vertexShader = 'uniform float uBeta;\nuniform float uMode;\nuniform vec3 uCamPos;\nvarying float vDopp;\n' +
+        sh.vertexShader.replace('#include <project_vertex>', projSnippet(dirOnly));
+      sh.fragmentShader = 'uniform float uDopp;\nvarying float vDopp;\n' +
+        sh.fragmentShader.replace('#include <fog_fragment>', '#include <fog_fragment>' + FRAG_DOPP);
+    };
+    mat.customProgramCacheKey = function(){ return dirOnly ? 'rrDir' : 'rrFull'; };
+  }
+  matPathV.forEach(function(m){ patchMat(m, false); });
+  [matGround, matStone, matCol, matLamp, matCrateA, matWood,
+   matTrunk, matLeaf, matFace, matHand, matLabel].forEach(function(m){ patchMat(m, false); });
+  patchMat(sky.material, true);              // celestial sphere: aberrate directions, keep dome radius
+
+  var hands = [];
+
+  // one 20 m bay of the open-air walkway, spanning local z in [0, SEG]
+  function buildSegment(){
+    var seg = new THREE.Group();
+
+    // marked pavement (tessellated along z so the per-vertex optical warp bends it smoothly)
+    var path = new THREE.Mesh(new THREE.PlaneGeometry(W, SEG, 1, 40), matPathV[0]);
+    path.name = 'pathMesh';
+    path.rotation.x = -Math.PI/2; path.position.set(0, 0, SEG/2); seg.add(path);
+
+    // ground either side (at rest with the walkway, so it contracts too)
+    [-1, 1].forEach(function(sx){
+      var gnd = new THREE.Mesh(new THREE.PlaneGeometry(44, SEG, 6, 40), matGround);
+      groundTex.repeat.set(44, SEG);
+      gnd.rotation.x = -Math.PI/2;
+      gnd.position.set(sx*(W/2 + 22), -0.02, SEG/2);
+      seg.add(gnd);
+    });
+
+    // low parapet walls
+    [-1, 1].forEach(function(sx){
+      var par = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.9, SEG, 1, 1, 40), matStone);
+      par.position.set(sx*(W/2 + 0.225), 0.45, SEG/2);
+      seg.add(par);
+    });
+
+    // lamp pillars every 5 m, both sides
+    var colGeo = new THREE.BoxGeometry(0.26, 2.3, 0.26);
+    var lampGeo = new THREE.SphereGeometry(0.11, 12, 8);
+    [0, 5, 10, 15].forEach(function(z){
+      [-1, 1].forEach(function(sx){
+        var col = new THREE.Mesh(colGeo, matCol);
+        col.position.set(sx*(W/2 + 0.45), 1.15, z);
+        seg.add(col);
+        var lamp = new THREE.Mesh(lampGeo, matLamp);
+        lamp.position.set(sx*(W/2 + 0.45), 2.42, z);
+        seg.add(lamp);
+      });
+    });
+
+    // benches and a crate (at rest in the walkway frame — they contract too)
+    [[ 2.30, 3.0], [-2.30, 13.0]].forEach(function(b){
+      var bench = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.45, 0.5), matWood);
+      bench.position.set(b[0], 0.225, b[1]); seg.add(bench);
+    });
+    var crate = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), matCrateA);
+    crate.position.set(-2.35, 0.4, 8); seg.add(crate);
+
+    // trees on the surrounding ground
+    var trunkGeo = new THREE.CylinderGeometry(0.13, 0.18, 1.3, 8);
+    var leafGeo = new THREE.ConeGeometry(1.3, 2.8, 8);
+    [[-8, 6, 1.0], [10, 14, 1.3], [-13, 17, 0.9], [14, 3, 1.05]].forEach(function(t){
+      var tr = new THREE.Mesh(trunkGeo, matTrunk);
+      tr.scale.setScalar(t[2]); tr.position.set(t[0], 0.65*t[2], t[1]); seg.add(tr);
+      var lf = new THREE.Mesh(leafGeo, matLeaf);
+      lf.scale.setScalar(t[2]); lf.position.set(t[0], (1.3 + 1.4)*t[2], t[1]); seg.add(lf);
+    });
+
+    // rest-length label on the inner face of the left parapet
+    var lab = new THREE.Mesh(new THREE.PlaneGeometry(SEG - 1, (SEG - 1) * 64/2048, 32, 1), matLabel);
+    lab.rotation.y = Math.PI/2; lab.position.set(-(W/2 + 0.09), 0.5, SEG/2); seg.add(lab);
+
+    // station clock on a signboard at mid-bay, right side
+    var board = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.85, 0.85), matStone);
+    board.position.set(W/2 + 0.42, 1.95, 10); seg.add(board);
+    var ck = new THREE.Group();
+    ck.position.set(W/2 + 0.38, 1.95, 10); ck.rotation.y = -Math.PI/2;
+    var face = new THREE.Mesh(new THREE.CircleGeometry(0.36, 40), matFace); ck.add(face);
+    var pivot = new THREE.Group(); pivot.position.z = 0.012; pivot.name = 'handPivot';
+    var hand = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.28, 0.012), matHand);
+    hand.position.y = 0.12; pivot.add(hand);
+    ck.add(pivot); hands.push(pivot);
+    seg.add(ck);
+
+    return seg;
+  }
+
+  var roomGroup = new THREE.Group();
+  var proto = buildSegment();
+  for (var i = 0; i < N; i++){
+    var s = (i === 0) ? proto : proto.clone();
+    s.position.z = i * SEG;
+    var variant = i % 5;
+    s.traverse(function(o){ if (o.name === 'pathMesh') o.material = matPathV[variant]; });
+    roomGroup.add(s);
+    if (i > 0){
+      s.traverse(function(o){ if (o.name === 'handPivot') hands.push(o); });
+    }
+  }
+  scene.add(roomGroup);
+
+  // rest-frame ghost: wireframe segment boxes at scale 1
+  var ghostGroup = new THREE.Group();
+  var ghostMat = new THREE.LineBasicMaterial({color: 0x3ec6ff, transparent: true, opacity: 0.35});
+  var ghostEdges = new THREE.EdgesGeometry(new THREE.BoxGeometry(W, 2.4, SEG));
+  for (var j = 0; j < N; j++){
+    var gl = new THREE.LineSegments(ghostEdges, ghostMat);
+    gl.position.set(0, 1.2, j*SEG + SEG/2);
+    ghostGroup.add(gl);
+  }
+  scene.add(ghostGroup);
+
+  // ---------- physics / HUD ----------
+  var el = function(id){ return document.getElementById(id); };
+  var slider = el('beta');
+
+  function setBeta(b){
+    beta = Math.max(0, Math.min(0.995, b));
+    gamma = 1 / Math.sqrt(1 - beta*beta);
+    slider.value = beta;
+    el('betaVal').textContent = beta.toFixed(3);
+    el('gammaVal').textContent = gamma.toFixed(gamma < 10 ? 2 : 1);
+    el('vVal').textContent = 'v = ' + beta.toFixed(3) + 'c';
+    el('barInner').style.width = (100/gamma) + '%';
+    el('lenVal').innerHTML = '20.0 m &rarr; ' + (SEG/gamma).toFixed(1) + ' m';
+    el('rateNote').textContent = 'room clocks running at ' + (100/gamma).toFixed(gamma > 5 ? 1 : 0) + '%';
+  }
+  slider.addEventListener('input', function(){ setBeta(parseFloat(slider.value)); });
+  document.querySelectorAll('#presets button').forEach(function(b){
+    b.addEventListener('click', function(){ setBeta(parseFloat(b.dataset.b)); });
+  });
+
+  el('btnPause').addEventListener('click', function(){
+    paused = !paused;
+    el('btnPause').textContent = paused ? 'Resume motion' : 'Pause motion';
+    el('btnPause').classList.toggle('active', paused);
+  });
+  el('btnGhost').addEventListener('click', function(){
+    showGhost = !showGhost;
+    el('btnGhost').textContent = 'Rest-frame ghost: ' + (showGhost ? 'on' : 'off');
+    el('btnGhost').classList.toggle('active', showGhost);
+  });
+  function bindToggle(id, label, setter){
+    el(id).addEventListener('click', function(){
+      var on = setter();
+      el(id).textContent = label + ': ' + (on ? 'on' : 'off');
+      el(id).classList.toggle('active', on);
+    });
+  }
+  bindToggle('btnTerrell', 'Terrell view', function(){ showTerrell = !showTerrell; return showTerrell; });
+  bindToggle('btnAberr', 'Aberration', function(){ showAberr = !showAberr; return showAberr; });
+  bindToggle('btnDoppler', 'Doppler shift', function(){ showDoppler = !showDoppler; return showDoppler; });
+  bindToggle('btnSimul', 'Clock offsets', function(){ showSimul = !showSimul; return showSimul; });
+  el('btnReset').addEventListener('click', function(){ tYou = 0; tRoom = 0; });
+
+  // ---------- mouse look ----------
+  var yaw = 0, pitch = 0, dragging = false, px = 0, py = 0;
+  canvas.addEventListener('pointerdown', function(e){
+    dragging = true; px = e.clientX; py = e.clientY;
+    canvas.classList.add('dragging'); canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', function(e){
+    if (!dragging) return;
+    yaw   -= (e.clientX - px) * 0.0032;
+    pitch -= (e.clientY - py) * 0.0032;
+    yaw = Math.max(-2.4, Math.min(2.4, yaw));
+    pitch = Math.max(-1.1, Math.min(1.1, pitch));
+    px = e.clientX; py = e.clientY;
+  });
+  canvas.addEventListener('pointerup', function(){ dragging = false; canvas.classList.remove('dragging'); });
+
+  // ---------- loop ----------
+  function resize(){
+    var w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w/h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize); resize();
+
+  var clk = new THREE.Clock();
+  function frame(){
+    requestAnimationFrame(frame);
+    var dt = Math.min(0.05, clk.getDelta());
+    var s = 1/gamma;
+    if (!paused){
+      // room passes at the same world speed regardless of gamma; offsets kept in rest-frame metres
+      restOffset  = (restOffset  + beta * VIS_SPEED * dt / s) % PERIOD;
+      ghostOffset = (ghostOffset + beta * VIS_SPEED * dt)     % SEG;
+      tYou += dt;
+      tRoom += dt / gamma;
+    }
+    var total = N * SEG * s;
+    roomGroup.scale.z = s;
+    roomGroup.position.z = -total/2 + restOffset * s;
+    ghostGroup.visible = showGhost;
+    ghostGroup.position.z = -(N*SEG)/2 + ghostOffset;
+
+    // optics uniforms
+    var mode = showTerrell ? 2 : (showAberr ? 1 : 0);
+    U.uBeta.value = beta; U.uMode.value = mode; U.uDopp.value = showDoppler ? 1 : 0;
+
+    var fogFar = Math.max(16, Math.min(160, total * 0.55));
+    if (mode === 2 && beta > 0) fogFar = Math.min(60000, fogFar / (1 - beta));  // light-delay stretches apparent distances ahead
+    scene.fog.far = fogFar;
+    scene.fog.near = fogFar * 0.12;
+
+    // scene clocks: 1 revolution per 12 s of walkway time. With clock offsets on,
+    // each clock reads gamma*(t - beta*z/c): leading clocks lag (relativity of simultaneity)
+    for (var i = 0; i < hands.length; i++){
+      var tau;
+      if (showSimul && beta > 0){
+        var zi = roomGroup.position.z + (i*SEG + 10) * s;   // clock's current measured position
+        tau = gamma * (tYou - beta * zi / VIS_SPEED);
+      } else {
+        tau = tRoom;
+      }
+      hands[i].rotation.z = -(tau / 12) * Math.PI * 2;
+    }
+
+    camera.rotation.y = yaw;
+    camera.rotation.x = pitch;
+
+    el('tYou').textContent = tYou.toFixed(1) + ' s';
+    el('tRoom').textContent = tRoom.toFixed(1) + ' s';
+
+    renderer.render(scene, camera);
+  }
+  window.__rr = {scene: scene, camera: camera, roomGroup: roomGroup, ghostGroup: ghostGroup, THREE: THREE};
+  setBeta(0);
+  frame();
+})();
+</script>
+</body>
+</html>
