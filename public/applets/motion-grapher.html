@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion Grapher — Turtle on a Track</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --muted:          #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-x:       #2a78d6;   /* position */
+    --series-v:       #eb6834;   /* velocity */
+    --series-a:       #1baf7a;   /* acceleration */
+    --turtle-shell:   #008300;
+    --accent-wash:    rgba(42,120,214,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --muted:          #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-x:       #3987e5;
+      --series-v:       #d95926;
+      --series-a:       #199e70;
+      --turtle-shell:   #008300;
+      --accent-wash:    rgba(57,135,229,0.12);
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted:          #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-x:       #3987e5;
+    --series-v:       #d95926;
+    --series-a:       #199e70;
+    --turtle-shell:   #008300;
+    --accent-wash:    rgba(57,135,229,0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body.viz-root {
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 12px 16px 40px; }
+
+  header h1 { font-size: 18px; margin: 4px 0 2px; }
+  header p.sub { margin: 0 0 10px; color: var(--text-secondary); font-size: 13px; }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
+    padding: 8px 0 10px;
+  }
+  .controls .group { display: flex; gap: 6px; align-items: center; }
+  .controls label.small { color: var(--text-secondary); font-size: 13px; }
+
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface-1); }
+  .seg button {
+    border: 0; background: transparent; color: var(--text-secondary);
+    padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button.active { color: var(--text-primary); font-weight: 600; background: var(--accent-wash); }
+  .seg button .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+
+  button.btn, select, input[type="number"] {
+    font: inherit; font-size: 13px;
+    background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 10px;
+  }
+  button.btn { cursor: pointer; }
+  button.btn.primary { font-weight: 600; }
+  input[type="number"] { width: 64px; padding: 5px 6px; }
+  .ic { display: none; }
+  .ic.show { display: flex; gap: 6px; align-items: center; }
+
+  .toggles { display: flex; gap: 12px; align-items: center; }
+  .toggles label { color: var(--text-secondary); font-size: 13px; display: flex; gap: 5px; align-items: center; cursor: pointer; }
+
+  /* sticky readout + scrub bar */
+  .dashbar {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 6px 8px 2px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  /* vertical turtle strip beside the position graph */
+  .xrow { display: flex; align-items: stretch; gap: 2px; }
+  .xrow svg { width: 96px; height: 168px; flex: none; display: block; }
+  .panel .xrow canvas { width: auto; flex: 1; min-width: 0; }
+  /* keep the v and a plots time-aligned with the x plot (strip width + gap) */
+  #panel-v canvas, #panel-a canvas { width: calc(100% - 98px); margin-left: 98px; }
+
+  .readout {
+    display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline;
+    padding: 2px 6px 6px; font-size: 13px; color: var(--text-secondary);
+  }
+  .readout b { color: var(--text-primary); font-variant-numeric: tabular-nums; font-weight: 600; }
+  .readout .chip { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+
+  .timebar { display: flex; gap: 10px; align-items: center; padding: 0 6px 8px; }
+  .timebar input[type="range"] { flex: 1; accent-color: var(--series-x); }
+
+  .panel {
+    background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 8px 10px 6px; margin-bottom: 10px;
+    position: relative;
+  }
+  .panel.active { outline: 2px solid var(--pcol, var(--series-x)); outline-offset: -2px; }
+  .panel h3 { margin: 0 0 2px; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .panel h3 .hint { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 8px; }
+  .panel canvas { display: block; width: 100%; height: 168px; touch-action: none; }
+  .panel.active canvas { cursor: crosshair; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 20;
+    background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+    padding: 6px 9px; font-size: 12px; line-height: 1.5;
+    display: none; font-variant-numeric: tabular-nums;
+  }
+  .tooltip .row { display: flex; gap: 8px; justify-content: space-between; }
+  .tooltip .chip { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+
+  footer.note { color: var(--muted); font-size: 12px; padding: 4px 6px; }
+</style>
+</head>
+<body class="viz-root">
+<div class="wrap">
+  <header>
+    <h1>Motion Grapher</h1>
+    <p class="sub">Draw on one graph — the other two are worked out for you, and the turtle acts it out. Time runs 0–10&nbsp;s.</p>
+  </header>
+
+  <div class="controls">
+    <div class="group">
+      <label class="small">Draw on</label>
+      <div class="seg" id="modeSeg">
+        <button data-mode="x"><span class="dot" style="background:var(--series-x)"></span>Position</button>
+        <button data-mode="v"><span class="dot" style="background:var(--series-v)"></span>Velocity</button>
+        <button data-mode="a"><span class="dot" style="background:var(--series-a)"></span>Acceleration</button>
+      </div>
+    </div>
+    <div class="group">
+      <label class="small">Tool</label>
+      <div class="seg" id="toolSeg">
+        <button data-tool="free" class="active">Freehand</button>
+        <button data-tool="line">Line</button>
+        <button data-tool="quad">Quad b&#233;zier</button>
+        <button data-tool="cubic">Cubic b&#233;zier</button>
+      </div>
+    </div>
+    <div class="group ic" id="x0Group">
+      <label class="small" for="x0">x&#8320; (m)</label>
+      <input type="number" id="x0" value="0" step="0.5">
+    </div>
+    <div class="group ic" id="v0Group">
+      <label class="small" for="v0">v&#8320; (m/s)</label>
+      <input type="number" id="v0" value="0" step="0.5">
+    </div>
+    <div class="group">
+      <label class="small" for="preset">Preset</label>
+      <select id="preset">
+        <option value="">— choose —</option>
+        <option value="const">Constant velocity</option>
+        <option value="speedup">Speeding up</option>
+        <option value="slowdown">Slowing down, then stopped</option>
+        <option value="turnaround">Out and back (turn around)</option>
+      </select>
+    </div>
+    <div class="group">
+      <button class="btn primary" id="playBtn">&#9654; Play</button>
+      <button class="btn" id="rewindBtn" title="Back to t = 0">&#8676; Rewind</button>
+      <button class="btn" id="clearBtn" title="Flatten the drawn graph to zero">Clear drawing</button>
+      <select id="speed" title="Playback speed">
+        <option value="0.25">0.25&times;</option>
+        <option value="0.5">0.5&times;</option>
+        <option value="1" selected>1&times;</option>
+        <option value="2">2&times;</option>
+      </select>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="vecToggle" checked> v &amp; a arrows</label>
+      <label><input type="checkbox" id="strobeToggle"> motion diagram</label>
+    </div>
+  </div>
+
+  <div class="dashbar">
+    <div class="readout">
+      <span>t = <b id="rT">0.00</b> s</span>
+      <span><span class="chip" style="background:var(--series-x)"></span>x = <b id="rX">0.00</b> m</span>
+      <span><span class="chip" style="background:var(--series-v)"></span>v = <b id="rV">0.00</b> m/s</span>
+      <span><span class="chip" style="background:var(--series-a)"></span>a = <b id="rA">0.00</b> m/s&#178;</span>
+    </div>
+    <div class="timebar">
+      <span class="small" style="color:var(--muted);font-size:12px">t</span>
+      <input type="range" id="scrub" min="0" max="10" step="0.01" value="0">
+    </div>
+  </div>
+
+  <div class="panel" id="panel-x" style="--pcol:var(--series-x)">
+    <h3>Position x (m) <span class="hint" data-hint></span></h3>
+    <div class="xrow">
+      <svg id="vtrack"></svg>
+      <canvas></canvas>
+    </div>
+  </div>
+  <div class="panel" id="panel-v" style="--pcol:var(--series-v)">
+    <h3>Velocity v (m/s) <span class="hint" data-hint></span></h3>
+    <canvas></canvas>
+  </div>
+  <div class="panel" id="panel-a" style="--pcol:var(--series-a)">
+    <h3>Acceleration a (m/s&#178;) <span class="hint" data-hint></span></h3>
+    <canvas></canvas>
+  </div>
+
+  <footer class="note">Freehand curves are lightly smoothed before differentiating, so derived graphs stay readable. Drawn-graph scales are fixed; derived graphs rescale to fit. Shape tools: drag to place, then adjust the handles (hollow = control points); click elsewhere to start the next shape, Esc cancels the current one.</footer>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- model ----------
+  const T = 10, N = 241, dt = T / (N - 1);
+  const times = Array.from({length: N}, (_, i) => i * dt);
+
+  let mode = 'x';                 // which graph is drawn: 'x' | 'v' | 'a'
+  let drawn = new Float64Array(N);// raw drawn samples for the active graph
+  let x0 = 0, v0 = 0;
+  let xs = new Float64Array(N), vs = new Float64Array(N), as = new Float64Array(N);
+
+  let tCur = 0, playing = false, speed = 1;
+  let hover = null;               // {t, panelKey, clientX, clientY}
+  let needsRedraw = true;
+
+  const DEFAULT_RANGE = { x: 10, v: 5, a: 4 };   // fixed range when drawn
+  const panels = {
+    x: { key: 'x', el: document.getElementById('panel-x'), colorVar: '--series-x', range: 10, unit: 'm' },
+    v: { key: 'v', el: document.getElementById('panel-v'), colorVar: '--series-v', range: 5,  unit: 'm/s' },
+    a: { key: 'a', el: document.getElementById('panel-a'), colorVar: '--series-a', range: 4,  unit: 'm/s²' },
+  };
+  for (const p of Object.values(panels)) {
+    p.canvas = p.el.querySelector('canvas');
+    p.ctx = p.canvas.getContext('2d');
+    p.hintEl = p.el.querySelector('[data-hint]');
+  }
+  const M = { left: 46, right: 12, top: 10, bottom: 6, bottomLabeled: 24 };
+
+  // ---------- maths ----------
+  function smooth(src, radius, passes) {
+    // moving average with linear-extrapolated padding, so slopes at the
+    // window edges are preserved (no spurious a-t dips at t=0 / t=T)
+    const n = src.length;
+    let a = Float64Array.from(src);
+    let b = new Float64Array(n);
+    for (let p = 0; p < passes; p++) {
+      const r = Math.min(radius, n - 1);
+      const sL = (a[r] - a[0]) / r, sR = (a[n-1] - a[n-1-r]) / r;
+      for (let i = 0; i < n; i++) {
+        let s = 0;
+        for (let j = -radius; j <= radius; j++) {
+          const k = i + j;
+          s += k < 0 ? a[0] + sL * k
+             : k >= n ? a[n-1] + sR * (k - (n-1))
+             : a[k];
+        }
+        b[i] = s / (2 * radius + 1);
+      }
+      [a, b] = [b, a];
+    }
+    return a;
+  }
+  function smoothstepFn(u) { return u * u * (3 - 2 * u); }
+  function blendJoin(arr, ib, W = 10) {
+    // soften the jump between arr[ib-1] and arr[ib] into a smoothstep ramp,
+    // preserving the slopes on both sides (no-op if already continuous)
+    if (ib <= 0 || ib >= N) return;
+    const J = arr[ib] - arr[ib-1];
+    if (Math.abs(J) < 1e-9) return;
+    const lo = Math.max(0, ib - W), hi = Math.min(N - 1, ib + W - 1);
+    for (let k = lo; k <= hi; k++) {
+      const u = clamp((k - (ib - W) + 0.5) / (2 * W), 0, 1);
+      arr[k] += J * (smoothstepFn(u) - (k >= ib ? 1 : 0));
+    }
+  }
+  function deriv(src) {
+    const d = new Float64Array(src.length);
+    for (let i = 1; i < src.length - 1; i++) d[i] = (src[i+1] - src[i-1]) / (2*dt);
+    d[0] = (src[1] - src[0]) / dt;
+    d[src.length-1] = (src[src.length-1] - src[src.length-2]) / dt;
+    return d;
+  }
+  function integ(src, c0) {
+    const out = new Float64Array(src.length);
+    out[0] = c0;
+    for (let i = 1; i < src.length; i++)
+      out[i] = out[i-1] + 0.5 * (src[i] + src[i-1]) * dt;
+    return out;
+  }
+  function niceCeil(v) {
+    if (v <= 0) return 1;
+    const e = Math.floor(Math.log10(v));
+    const b = v / 10**e;
+    for (const c of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (b <= c) return c * 10**e;
+    return 10 * 10**e;
+  }
+  function robustMaxAbs(arr) {
+    // 98th-percentile |value|: a one-sample spike (freehand jump) can't blow
+    // out the axis; the spike itself just clips at the panel edge
+    const s = Array.from(arr, Math.abs).sort((a, b) => a - b);
+    return s[Math.floor(0.98 * (s.length - 1))];
+  }
+
+  function recompute() {
+    if (mode === 'x') {
+      xs = smooth(drawn, 2, 2);
+      vs = smooth(deriv(xs), 3, 3);
+      as = smooth(deriv(vs), 3, 3);
+    } else if (mode === 'v') {
+      vs = smooth(drawn, 2, 2);
+      xs = integ(vs, x0);
+      as = smooth(deriv(vs), 3, 3);
+    } else {
+      as = smooth(drawn, 2, 2);
+      vs = integ(as, v0);
+      xs = integ(vs, x0);
+    }
+    panels.x.data = xs; panels.v.data = vs; panels.a.data = as;
+    for (const p of Object.values(panels)) {
+      p.range = (p.key === mode)
+        ? DEFAULT_RANGE[p.key]
+        : Math.max(DEFAULT_RANGE[p.key], niceCeil(robustMaxAbs(p.data) * 1.05));
+    }
+    needsRedraw = true;
+  }
+
+  function sampleAt(arr, t) {
+    const f = Math.min(Math.max(t, 0), T) / dt;
+    const i = Math.min(Math.floor(f), N - 2);
+    const u = f - i;
+    return arr[i] * (1 - u) + arr[i+1] * u;
+  }
+
+  // ---------- css color access ----------
+  function cssVar(name) {
+    return getComputedStyle(document.body).getPropertyValue(name).trim();
+  }
+
+  // ---------- canvas drawing ----------
+  function sizeCanvas(p) {
+    const dpr = window.devicePixelRatio || 1;
+    const r = p.canvas.getBoundingClientRect();
+    const w = Math.round(r.width), h = Math.round(r.height);
+    if (p.canvas.width !== w * dpr || p.canvas.height !== h * dpr) {
+      p.canvas.width = w * dpr; p.canvas.height = h * dpr;
+    }
+    p.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    p.cssW = w; p.cssH = h;
+  }
+
+  function drawPanel(p, labeled) {
+    sizeCanvas(p);
+    const ctx = p.ctx, W = p.cssW, H = p.cssH;
+    const mb = labeled ? M.bottomLabeled : M.bottom;
+    const pw = W - M.left - M.right, ph = H - M.top - mb;
+    const tx = t => M.left + (t / T) * pw;
+    const ty = v => M.top + ph/2 - (v / p.range) * (ph/2);
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = '12px system-ui, -apple-system, "Segoe UI", sans-serif';
+
+    // grid: vertical each 1 s, horizontal at half-range steps
+    ctx.strokeStyle = cssVar('--grid'); ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let s = 0; s <= T; s++) { const x = tx(s) + 0.5|0; ctx.moveTo(tx(s), M.top); ctx.lineTo(tx(s), M.top + ph); }
+    for (let k = -2; k <= 2; k++) {
+      if (k === 0) continue;
+      const y = ty(k * p.range / 2);
+      ctx.moveTo(M.left, y); ctx.lineTo(M.left + pw, y);
+    }
+    ctx.stroke();
+
+    // zero baseline
+    ctx.strokeStyle = cssVar('--baseline'); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(M.left, ty(0)); ctx.lineTo(M.left + pw, ty(0)); ctx.stroke();
+
+    // y tick labels
+    ctx.fillStyle = cssVar('--muted');
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let k = -2; k <= 2; k++) {
+      const v = k * p.range / 2;
+      ctx.fillText(fmt(v), M.left - 6, ty(v));
+    }
+    // time tick labels on the labeled (bottom) panel
+    if (labeled) {
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (let s = 0; s <= T; s += 2) ctx.fillText(s === T ? '10 s' : s, tx(s), M.top + ph + 5);
+    }
+
+    // the curve
+    const col = cssVar(p.colorVar);
+    ctx.strokeStyle = col; ctx.lineWidth = 2;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const x = tx(times[i]), y = ty(clamp(p.data[i], -p.range, p.range));
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+
+    // pending shape: control polygon + handles (active panel only)
+    if (pending && p.key === mode) {
+      const q = pending.pts.map(pt => ({ x: tx(pt.t), y: ty(clamp(pt.v, -p.range, p.range)) }));
+      if (q.length > 2) {
+        ctx.strokeStyle = cssVar('--muted'); ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        q.forEach((pt, i) => i ? ctx.lineTo(pt.x, pt.y) : ctx.moveTo(pt.x, pt.y));
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      q.forEach((pt, i) => {
+        const isEnd = i === 0 || i === q.length - 1;
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = isEnd ? col : cssVar('--surface-1'); ctx.fill();
+        ctx.lineWidth = 2; ctx.strokeStyle = col; ctx.stroke();
+      });
+    }
+
+    // hover crosshair (synced across panels)
+    if (hover) {
+      ctx.strokeStyle = cssVar('--baseline'); ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(tx(hover.t), M.top); ctx.lineTo(tx(hover.t), M.top + ph); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // dashed link from the turtle strip across to the playhead dot (x panel only)
+    if (p.key === 'x') {
+      const yNow = ty(clamp(sampleAt(p.data, tCur), -p.range, p.range));
+      ctx.strokeStyle = cssVar('--baseline'); ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(0, yNow); ctx.lineTo(tx(tCur), yNow); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // playhead + dot with surface ring
+    ctx.strokeStyle = cssVar('--muted'); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(tx(tCur), M.top); ctx.lineTo(tx(tCur), M.top + ph); ctx.stroke();
+    const pv = clamp(sampleAt(p.data, tCur), -p.range, p.range);
+    ctx.beginPath(); ctx.arc(tx(tCur), ty(pv), 5.5, 0, Math.PI * 2);
+    ctx.fillStyle = cssVar('--surface-1'); ctx.fill();
+    ctx.beginPath(); ctx.arc(tx(tCur), ty(pv), 4, 0, Math.PI * 2);
+    ctx.fillStyle = col; ctx.fill();
+
+    p.tx = tx; p.ty = ty; p.pw = pw; p.ph = ph; p.mb = mb;
+  }
+
+  function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
+  function fmt(v) {
+    const a = Math.abs(v);
+    return (a >= 10 || Number.isInteger(v)) ? String(Math.round(v * 10) / 10) : v.toFixed(1);
+  }
+
+  // ---------- vertical turtle strip (beside the position graph) ----------
+  const svg = document.getElementById('vtrack');
+  const NS = 'http://www.w3.org/2000/svg';
+  const VW = 96;
+  function el(name, attrs, parent) {
+    const e = document.createElementNS(NS, name);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(e);
+    return e;
+  }
+  // static structure
+  const gTicks   = el('g', {});
+  const axisLine = el('line', { stroke: 'var(--baseline)', 'stroke-width': 2 });
+  const gStrobe  = el('g', {});
+  const dropLine = el('line', { stroke: 'var(--baseline)', 'stroke-width': 1, 'stroke-dasharray': '3 3' });
+  const gArrows  = el('g', {});
+  const vArrowLine = el('line', { stroke: 'var(--series-v)', 'stroke-width': 3, 'stroke-linecap': 'round' }, gArrows);
+  const vArrowHead = el('polygon', { fill: 'var(--series-v)' }, gArrows);
+  const vArrowLbl  = el('text', { fill: 'var(--series-v)', 'font-size': 12, 'font-weight': 600 }, gArrows);
+  const aArrowLine = el('line', { stroke: 'var(--series-a)', 'stroke-width': 3, 'stroke-linecap': 'round' }, gArrows);
+  const aArrowHead = el('polygon', { fill: 'var(--series-a)' }, gArrows);
+  const aArrowLbl  = el('text', { fill: 'var(--series-a)', 'font-size': 12, 'font-weight': 600 }, gArrows);
+  const gTurtle  = el('g', {});
+  const gTurtleBody = el('g', {}, gTurtle);
+  (function buildTurtle(g) {
+    const leg = (x, y) => el('ellipse', { cx: x, cy: y, rx: 5, ry: 3.4, fill: 'var(--turtle-shell)', opacity: 0.85,
+      transform: `rotate(${y < 0 ? -35 : 35} ${x} ${y})` }, g);
+    leg(-9, -10); leg(9, -10); leg(-9, 10); leg(9, 10);
+    el('polygon', { points: '-16,0 -22,-4 -22,4', fill: 'var(--turtle-shell)', opacity: 0.85 }, g); // tail
+    el('circle',  { cx: 19, cy: 0, r: 6, fill: 'var(--turtle-shell)', opacity: 0.9 }, g);          // head
+    el('circle',  { cx: 21, cy: -2.4, r: 1.2, fill: 'var(--surface-1)' }, g);                      // eye
+    el('ellipse', { cx: 0, cy: 0, rx: 16, ry: 12, fill: 'var(--turtle-shell)' }, g);               // shell
+    el('ellipse', { cx: 0, cy: 0, rx: 10.5, ry: 7.5, fill: 'none', stroke: 'var(--surface-1)', 'stroke-width': 1.4, opacity: 0.7 }, g);
+    el('line', { x1: -10.5, y1: 0, x2: 10.5, y2: 0, stroke: 'var(--surface-1)', 'stroke-width': 1.2, opacity: 0.7 }, g);
+    el('line', { x1: -5, y1: -6.7, x2: -5, y2: 6.7, stroke: 'var(--surface-1)', 'stroke-width': 1.2, opacity: 0.7 }, g);
+    el('line', { x1: 5,  y1: -6.7, x2: 5,  y2: 6.7, stroke: 'var(--surface-1)', 'stroke-width': 1.2, opacity: 0.7 }, g);
+  })(gTurtleBody);
+
+  let turtleFacing = 1; // 1 = +x (up the strip), -1 = -x (down)
+  const TURTLE_X = 52, AXIS_X = VW - 8, STROBE_X = 78, VARROW_X = 10, AARROW_X = 26;
+
+  function drawArrowV(line, head, lbl, x, yBase, lenPix, text) {
+    // lenPix > 0 points up (towards +x on the graph scale)
+    const show = Math.abs(lenPix) > 3;
+    line.setAttribute('visibility', show ? 'visible' : 'hidden');
+    head.setAttribute('visibility', show ? 'visible' : 'hidden');
+    lbl.setAttribute('visibility', show ? 'visible' : 'hidden');
+    if (!show) return;
+    const s = Math.sign(lenPix);
+    const y2 = yBase - lenPix;
+    line.setAttribute('x1', x); line.setAttribute('y1', yBase);
+    line.setAttribute('x2', x); line.setAttribute('y2', y2 + s * 8);
+    head.setAttribute('points', `${x},${y2} ${x-5},${y2 + s*10} ${x+5},${y2 + s*10}`);
+    lbl.textContent = text;
+    lbl.setAttribute('x', x);
+    lbl.setAttribute('y', s > 0 ? y2 - 4 : y2 + 14);
+    lbl.setAttribute('text-anchor', 'middle');
+  }
+
+  function drawVTrack() {
+    const p = panels.x;
+    if (!p.ty) return;                       // first graph render not done yet
+    const H = p.cssH || 168;
+    svg.setAttribute('viewBox', `0 0 ${VW} ${H}`);
+    const R = p.range, ty = p.ty;            // shared scale with the x-t graph
+
+    axisLine.setAttribute('x1', AXIS_X); axisLine.setAttribute('y1', ty(R));
+    axisLine.setAttribute('x2', AXIS_X); axisLine.setAttribute('y2', ty(-R));
+
+    // ticks aligned with the graph's horizontal gridlines
+    gTicks.replaceChildren();
+    for (let k = -2; k <= 2; k++) {
+      const y = ty(k * R / 2);
+      el('line', { x1: AXIS_X - 4, y1: y, x2: AXIS_X + 4, y2: y, stroke: 'var(--baseline)', 'stroke-width': 1.5 }, gTicks);
+    }
+
+    // strobe motion diagram (vertical)
+    gStrobe.replaceChildren();
+    if (strobeToggle.checked) {
+      for (let ts = 0; ts <= tCur + 1e-9; ts += 0.5) {
+        const y = ty(clamp(sampleAt(xs, ts), -R, R));
+        el('circle', { cx: STROBE_X, cy: y, r: 3.2, fill: 'var(--muted)', opacity: 0.8 }, gStrobe);
+      }
+    }
+
+    // turtle mirrors the current position on the vertical axis
+    const xNow = clamp(sampleAt(xs, tCur), -R, R);
+    const vNow = sampleAt(vs, tCur);
+    const aNow = sampleAt(as, tCur);
+    if (vNow > 0.05) turtleFacing = 1; else if (vNow < -0.05) turtleFacing = -1;
+    const yNow = ty(xNow);
+    gTurtle.setAttribute('transform', `translate(${TURTLE_X} ${yNow})`);
+    gTurtleBody.setAttribute('transform', `rotate(${turtleFacing > 0 ? -90 : 90}) scale(0.75)`);
+
+    // dashed link from turtle across to the graph edge at the same height
+    dropLine.setAttribute('x1', TURTLE_X + 14); dropLine.setAttribute('y1', yNow);
+    dropLine.setAttribute('x2', VW);            dropLine.setAttribute('y2', yNow);
+
+    // arrows (vertical, anchored at the turtle's height)
+    const showVec = vecToggle.checked;
+    gArrows.setAttribute('visibility', showVec ? 'visible' : 'hidden');
+    if (showVec) {
+      const cap = H / 2 - 14;
+      const vPix = clamp((vNow / panels.v.range) * cap, -cap, cap);
+      const aPix = clamp((aNow / panels.a.range) * cap, -cap, cap);
+      drawArrowV(vArrowLine, vArrowHead, vArrowLbl, VARROW_X, yNow, vPix, 'v');
+      drawArrowV(aArrowLine, aArrowHead, aArrowLbl, AARROW_X, yNow, aPix, 'a');
+    }
+  }
+
+  // ---------- readouts / tooltip ----------
+  const rT = document.getElementById('rT'), rX = document.getElementById('rX'),
+        rV = document.getElementById('rV'), rA = document.getElementById('rA');
+  const scrub = document.getElementById('scrub');
+  const tooltip = document.getElementById('tooltip');
+
+  function updateReadout() {
+    rT.textContent = tCur.toFixed(2);
+    rX.textContent = sampleAt(xs, tCur).toFixed(2);
+    rV.textContent = sampleAt(vs, tCur).toFixed(2);
+    rA.textContent = sampleAt(as, tCur).toFixed(2);
+    scrub.value = tCur;
+  }
+
+  function updateTooltip() {
+    if (!hover) { tooltip.style.display = 'none'; return; }
+    const t = hover.t;
+    tooltip.innerHTML =
+      `<div class="row"><span>t</span><b>${t.toFixed(2)} s</b></div>` +
+      `<div class="row"><span><span class="chip" style="background:var(--series-x)"></span>x</span><b>${sampleAt(xs,t).toFixed(2)} m</b></div>` +
+      `<div class="row"><span><span class="chip" style="background:var(--series-v)"></span>v</span><b>${sampleAt(vs,t).toFixed(2)} m/s</b></div>` +
+      `<div class="row"><span><span class="chip" style="background:var(--series-a)"></span>a</span><b>${sampleAt(as,t).toFixed(2)} m/s&#178;</b></div>`;
+    tooltip.style.display = 'block';
+    const pad = 14;
+    let lx = hover.clientX + pad, ly = hover.clientY + pad;
+    const r = tooltip.getBoundingClientRect();
+    if (lx + r.width > window.innerWidth - 8) lx = hover.clientX - r.width - pad;
+    if (ly + r.height > window.innerHeight - 8) ly = hover.clientY - r.height - pad;
+    tooltip.style.left = lx + 'px'; tooltip.style.top = ly + 'px';
+  }
+
+  // ---------- drawing interaction ----------
+  let drawingPointer = null, lastIdx = null;
+  let strokeMin = null, strokeMax = null;
+  let tool = 'free';
+  let pending = null;      // {type:'line'|'quad'|'cubic', pts:[{t,v}], snapshot, fresh}
+  let dragHandle = null;   // index into pending.pts while dragging
+
+  const toolSeg = document.getElementById('toolSeg');
+  const TOOL_HINTS = {
+    free:  'draw here',
+    line:  'drag to place a line',
+    quad:  'drag start to end, then shape with the hollow handle',
+    cubic: 'drag start to end, then shape with the hollow handles',
+  };
+  function updateHints() {
+    for (const p of Object.values(panels))
+      p.hintEl.textContent = (p.key === mode) ? TOOL_HINTS[tool] : 'derived';
+  }
+  function setTool(tl) {
+    commitPending();
+    tool = tl;
+    for (const b of toolSeg.querySelectorAll('button'))
+      b.classList.toggle('active', b.dataset.tool === tl);
+    updateHints();
+  }
+  toolSeg.addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-tool]');
+    if (b) setTool(b.dataset.tool);
+  });
+
+  function evalPending(u) {
+    const q = pending.pts;
+    const lerp = (A, B, s) => ({ t: A.t + (B.t - A.t) * s, v: A.v + (B.v - A.v) * s });
+    if (pending.type === 'line') return lerp(q[0], q[1], u);
+    if (pending.type === 'quad') {
+      const a = lerp(q[0], q[1], u), b = lerp(q[1], q[2], u);
+      return lerp(a, b, u);
+    }
+    const a = lerp(q[0], q[1], u), b = lerp(q[1], q[2], u), c = lerp(q[2], q[3], u);
+    const d = lerp(a, b, u), e = lerp(b, c, u);
+    return lerp(d, e, u);
+  }
+
+  function applyPending() {
+    // restore pre-shape baseline, then stamp the curve over its t-range
+    drawn.set(pending.snapshot);
+    const R = DEFAULT_RANGE[mode];
+    const vals = new Float64Array(N), hit = new Uint8Array(N);
+    const S = 400;
+    for (let s = 0; s <= S; s++) {
+      const pt = evalPending(s / S);
+      const i = clamp(Math.round(pt.t / dt), 0, N - 1);
+      vals[i] = clamp(pt.v, -R, R); hit[i] = 1;
+    }
+    let prev = -1;
+    for (let i = 0; i < N; i++) {
+      if (!hit[i]) continue;
+      if (prev >= 0 && i - prev > 1)
+        for (let k = prev + 1; k < i; k++) {
+          const u = (k - prev) / (i - prev);
+          vals[k] = vals[prev] * (1 - u) + vals[i] * u; hit[k] = 1;
+        }
+      prev = i;
+    }
+    for (let i = 0; i < N; i++) if (hit[i]) drawn[i] = vals[i];
+    let imin = -1, imax = -1;
+    for (let i = 0; i < N; i++) if (hit[i]) { if (imin < 0) imin = i; imax = i; }
+    if (imin >= 0) { blendJoin(drawn, imin); blendJoin(drawn, imax + 1); }
+    recompute();
+  }
+  function autoControls() {
+    const q = pending.pts;
+    if (pending.type === 'quad') {
+      q[1] = { t: (q[0].t + q[2].t) / 2, v: (q[0].v + q[2].v) / 2 };
+    } else if (pending.type === 'cubic') {
+      q[1] = { t: q[0].t + (q[3].t - q[0].t) / 3, v: q[0].v + (q[3].v - q[0].v) / 3 };
+      q[2] = { t: q[0].t + 2 * (q[3].t - q[0].t) / 3, v: q[0].v + 2 * (q[3].v - q[0].v) / 3 };
+    }
+  }
+  function commitPending() {
+    if (pending) { pending = null; dragHandle = null; needsRedraw = true; }
+  }
+  function cancelPending() {
+    if (pending) { drawn.set(pending.snapshot); pending = null; dragHandle = null; recompute(); }
+  }
+  window.addEventListener('keydown', ev => { if (ev.key === 'Escape') cancelPending(); });
+
+  function panelPos(p, ev) {
+    const r = p.canvas.getBoundingClientRect();
+    const t = clamp(((ev.clientX - r.left) - M.left) / p.pw * T, 0, T);
+    const val = clamp((p.ty ? (M.top + p.ph/2 - (ev.clientY - r.top)) / (p.ph/2) * p.range : 0), -p.range, p.range);
+    return { t, val };
+  }
+
+  function hitHandle(p, ev) {
+    const r = p.canvas.getBoundingClientRect();
+    const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    for (let i = 0; i < pending.pts.length; i++) {
+      const q = pending.pts[i];
+      const hx = p.tx(q.t), hy = p.ty(clamp(q.v, -p.range, p.range));
+      if ((mx - hx) ** 2 + (my - hy) ** 2 <= 144) return i;   // 12 px radius
+    }
+    return null;
+  }
+
+  for (const p of Object.values(panels)) {
+    p.canvas.addEventListener('pointerdown', ev => {
+      if (p.key !== mode) return;
+      p.canvas.setPointerCapture(ev.pointerId);
+      if (pending) {
+        const h = hitHandle(p, ev);
+        if (h !== null) { dragHandle = h; ev.preventDefault(); return; }
+        commitPending();
+      }
+      if (tool === 'free') {
+        drawingPointer = ev.pointerId;
+        lastIdx = null;
+        strokeMin = null; strokeMax = null;
+        applyDraw(p, ev);
+      } else {
+        const pos = panelPos(p, ev);
+        const P = { t: pos.t, v: pos.val };
+        const npts = tool === 'line' ? 2 : tool === 'quad' ? 3 : 4;
+        pending = {
+          type: tool,
+          pts: Array.from({ length: npts }, () => ({ ...P })),
+          snapshot: Float64Array.from(drawn),
+          fresh: true,
+        };
+        dragHandle = npts - 1;
+        applyPending();
+      }
+      ev.preventDefault();
+    });
+    p.canvas.addEventListener('pointermove', ev => {
+      if (drawingPointer === ev.pointerId && p.key === mode) {
+        applyDraw(p, ev);
+      } else if (dragHandle !== null && pending && p.key === mode && ev.buttons) {
+        const pos = panelPos(p, ev);
+        pending.pts[dragHandle] = { t: pos.t, v: pos.val };
+        if (pending.fresh) autoControls();
+        applyPending();
+      }
+      const { t } = panelPos(p, ev);
+      hover = { t, panelKey: p.key, clientX: ev.clientX, clientY: ev.clientY };
+      needsRedraw = true;
+    });
+    const endDraw = ev => {
+      if (drawingPointer === ev.pointerId) {
+        drawingPointer = null; lastIdx = null;
+        if (strokeMin !== null) { blendJoin(drawn, strokeMin); blendJoin(drawn, strokeMax + 1); }
+        strokeMin = null; strokeMax = null;
+        recompute();
+      }
+      if (dragHandle !== null) {
+        dragHandle = null;
+        if (pending) pending.fresh = false;
+        needsRedraw = true;
+      }
+    };
+    p.canvas.addEventListener('pointerup', endDraw);
+    p.canvas.addEventListener('pointercancel', endDraw);
+    p.canvas.addEventListener('pointerleave', () => { if (drawingPointer === null && dragHandle === null) { hover = null; needsRedraw = true; } });
+  }
+
+  function applyDraw(p, ev) {
+    const { t, val } = panelPos(p, ev);
+    const idx = clamp(Math.round(t / dt), 0, N - 1);
+    if (lastIdx === null) {
+      drawn[idx] = val;
+    } else {
+      const from = Math.min(lastIdx, idx), to = Math.max(lastIdx, idx);
+      const v0d = drawn[lastIdx], v1d = val;
+      for (let i = from; i <= to; i++) {
+        const u = (to === from) ? 1 : (lastIdx < idx ? (i - from) / (to - from) : 1 - (i - from) / (to - from));
+        drawn[i] = v0d * (1 - u) + v1d * u;
+      }
+      drawn[idx] = val;
+    }
+    strokeMin = strokeMin === null ? idx : Math.min(strokeMin, idx);
+    strokeMax = strokeMax === null ? idx : Math.max(strokeMax, idx);
+    lastIdx = idx;
+    recompute();
+  }
+
+  // ---------- mode switching ----------
+  const modeSeg = document.getElementById('modeSeg');
+  const x0Group = document.getElementById('x0Group'), v0Group = document.getElementById('v0Group');
+  const x0Input = document.getElementById('x0'), v0Input = document.getElementById('v0');
+
+  function setMode(m, { adopt = true } = {}) {
+    commitPending();
+    if (adopt) {
+      // carry the current motion over: the new panel's derived curve becomes editable
+      const src = m === 'x' ? xs : m === 'v' ? vs : as;
+      const R = DEFAULT_RANGE[m];
+      for (let i = 0; i < N; i++) drawn[i] = clamp(src[i], -R, R);
+      x0 = xs[0]; v0 = vs[0];
+      x0Input.value = (Math.round(x0 * 10) / 10);
+      v0Input.value = (Math.round(v0 * 10) / 10);
+    }
+    mode = m;
+    for (const b of modeSeg.querySelectorAll('button'))
+      b.classList.toggle('active', b.dataset.mode === m);
+    for (const p of Object.values(panels))
+      p.el.classList.toggle('active', p.key === m);
+    updateHints();
+    x0Group.classList.toggle('show', m !== 'x');
+    v0Group.classList.toggle('show', m === 'a');
+    recompute();
+  }
+  modeSeg.addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-mode]');
+    if (b) setMode(b.dataset.mode);
+  });
+  x0Input.addEventListener('input', () => { x0 = parseFloat(x0Input.value) || 0; recompute(); });
+  v0Input.addEventListener('input', () => { v0 = parseFloat(v0Input.value) || 0; recompute(); });
+
+  // ---------- presets ----------
+  const presetSel = document.getElementById('preset');
+  const PRESETS = {
+    const:      { mode: 'v', x0: -8, v0: 0, f: t => 1.6 },
+    speedup:    { mode: 'a', x0: -9, v0: 0, f: t => 0.35 },
+    slowdown:   { mode: 'v', x0: -8, v0: 0, f: t => t < 6 ? 3 * (1 - t / 6) : 0 },
+    turnaround: { mode: 'x', x0: 0,  v0: 0, f: t => 0.36 * (t - 5) ** 2 - 8 },
+  };
+  presetSel.addEventListener('change', () => {
+    const p = PRESETS[presetSel.value];
+    if (!p) return;
+    pending = null; dragHandle = null;
+    x0 = p.x0; v0 = p.v0;
+    x0Input.value = p.x0; v0Input.value = p.v0;
+    setMode(p.mode, { adopt: false });
+    const R = DEFAULT_RANGE[p.mode];
+    for (let i = 0; i < N; i++) drawn[i] = clamp(p.f(times[i]), -R, R);
+    recompute();
+    tCur = 0; setPlaying(true);
+    presetSel.value = '';
+  });
+
+  // ---------- playback ----------
+  const playBtn = document.getElementById('playBtn');
+  const rewindBtn = document.getElementById('rewindBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const speedSel = document.getElementById('speed');
+  const vecToggle = document.getElementById('vecToggle');
+  const strobeToggle = document.getElementById('strobeToggle');
+
+  function setPlaying(on) {
+    playing = on;
+    playBtn.innerHTML = on ? '&#10074;&#10074; Pause' : '&#9654; Play';
+    needsRedraw = true;
+  }
+  playBtn.addEventListener('click', () => {
+    if (!playing && tCur >= T - 1e-6) tCur = 0;
+    setPlaying(!playing);
+  });
+  rewindBtn.addEventListener('click', () => { tCur = 0; needsRedraw = true; });
+  clearBtn.addEventListener('click', () => { pending = null; dragHandle = null; drawn.fill(0); recompute(); });
+  speedSel.addEventListener('change', () => { speed = parseFloat(speedSel.value); });
+  scrub.addEventListener('input', () => { setPlaying(false); tCur = parseFloat(scrub.value); needsRedraw = true; });
+  vecToggle.addEventListener('change', () => { needsRedraw = true; });
+  strobeToggle.addEventListener('change', () => { needsRedraw = true; });
+
+  // ---------- main loop ----------
+  let lastTs = null;
+  function frame(ts) {
+    if (lastTs === null) lastTs = ts;
+    const elapsed = (ts - lastTs) / 1000;
+    lastTs = ts;
+    if (playing) {
+      tCur += elapsed * speed;
+      if (tCur >= T) { tCur = T; setPlaying(false); }
+      needsRedraw = true;
+    }
+    if (needsRedraw) {
+      needsRedraw = false;
+      drawPanel(panels.x, false);
+      drawPanel(panels.v, false);
+      drawPanel(panels.a, true);
+      drawVTrack();
+      updateReadout();
+      updateTooltip();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', () => { needsRedraw = true; });
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { needsRedraw = true; });
+  }
+
+  // ---------- init ----------
+  setMode('x', { adopt: false });
+  recompute();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
