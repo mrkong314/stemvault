@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brownian Motion Simulator</title>
+<style>
+  :root {
+    --primary: #2563EB;
+    --primary-dark: #1D4ED8;
+    --accent: #EF4444;
+    --grey-bg: #F1F5F9;
+    --header-bg: #1E293B;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--grey-bg);
+    color: #000;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--header-bg);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    font-size: 26px;
+    letter-spacing: 0.2px;
+  }
+  header .subtitle {
+    font-size: 13px;
+    opacity: 0.85;
+  }
+  .layout {
+    display: flex;
+    gap: 16px;
+    padding: 16px 24px;
+    flex: 1;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .sim-panel {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    padding: 12px;
+    flex: 1 1 620px;
+    min-width: 320px;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid #d9dadb;
+    border-radius: 4px;
+    background: #fff;
+  }
+  .readouts {
+    display: flex;
+    gap: 24px;
+    padding: 10px 4px 2px;
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .readouts .label { color: #555; }
+  .readouts .value {
+    font-weight: bold;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .controls {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    padding: 18px;
+    width: 300px;
+    flex: 0 0 300px;
+  }
+  .controls h2 {
+    font-size: 15px;
+    color: var(--primary);
+    margin-bottom: 14px;
+    font-weight: bold;
+  }
+  .control-group { margin-bottom: 16px; }
+  .control-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 5px;
+  }
+  .control-group label span.val {
+    font-weight: bold;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--primary);
+  }
+  .toggles { margin: 14px 0; border-top: 1px solid #e4e5e6; padding-top: 14px; }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    margin-bottom: 9px;
+    cursor: pointer;
+  }
+  .toggle-row input { accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer; }
+  .buttons { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid #e4e5e6; padding-top: 14px; }
+  button {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: var(--primary);
+    color: #fff;
+  }
+  button:hover { background: var(--primary-dark); }
+  button.secondary {
+    background: #fff;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+  }
+  button.secondary:hover { background: #EFF6FF; }
+  .explain {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    margin: 0 24px 20px;
+    padding: 0;
+    overflow: hidden;
+  }
+  .explain summary {
+    cursor: pointer;
+    padding: 12px 18px;
+    font-weight: bold;
+    font-size: 14px;
+    color: var(--primary);
+    list-style-position: inside;
+  }
+  .explain .body {
+    padding: 0 18px 16px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    max-width: 900px;
+  }
+  .explain .body p { margin-bottom: 9px; }
+  .explain .body .key { color: var(--accent); font-weight: bold; }
+  footer {
+    padding: 8px 24px 14px;
+    font-size: 11px;
+    color: #666;
+  }
+  @media (max-width: 760px) {
+    .controls { width: 100%; flex: 1 1 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Brownian Motion</h1>
+  <div class="subtitle">kinetic theory of matter &middot; interactive simulation</div>
+</header>
+
+<div class="layout">
+  <div class="sim-panel">
+    <canvas id="sim" width="880" height="560"></canvas>
+    <div class="readouts">
+      <div><span class="label">Time: </span><span class="value" id="roTime">0.0 s</span></div>
+      <div><span class="label">Displacement from start: </span><span class="value" id="roDisp">0 px</span></div>
+      <div><span class="label">Grain collisions: </span><span class="value" id="roColl">0</span></div>
+      <div><span class="label">Mean molecule speed: </span><span class="value" id="roSpeed">0</span></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <h2>Controls</h2>
+
+    <div class="control-group">
+      <label>Temperature <span class="val" id="vTemp">300 K</span></label>
+      <input type="range" id="temp" min="50" max="900" step="10" value="300">
+    </div>
+
+    <div class="control-group">
+      <label>Number of molecules <span class="val" id="vCount">400</span></label>
+      <input type="range" id="count" min="50" max="1000" step="25" value="400">
+    </div>
+
+    <div class="control-group">
+      <label>Grain radius <span class="val" id="vGrain">36 px</span></label>
+      <input type="range" id="grain" min="14" max="70" step="2" value="36">
+    </div>
+
+    <div class="toggles">
+      <label class="toggle-row"><input type="checkbox" id="showMol" checked> Show molecules</label>
+      <label class="toggle-row"><input type="checkbox" id="showTrace" checked> Trace the grain's path</label>
+      <label class="toggle-row"><input type="checkbox" id="slowMo"> Slow motion (&frac14; speed)</label>
+    </div>
+
+    <div class="buttons">
+      <button id="btnPause">Pause</button>
+      <button id="btnReset" class="secondary">Reset</button>
+      <button id="btnClear" class="secondary">Clear trace</button>
+    </div>
+  </div>
+</div>
+
+<details class="explain">
+  <summary>What is going on here?</summary>
+  <div class="body">
+    <p>The large particle represents a <span class="key">pollen grain</span> suspended in water, as first observed by Robert Brown in 1827. It is being struck constantly and from all directions by water molecules that are far too small to see under a microscope.</p>
+    <p>At any instant the bombardment is not perfectly balanced: slightly more molecules hit one side than the other. These <span class="key">random, unbalanced collisions</span> make the grain jiggle along an erratic, unpredictable path. Untick <em>Show molecules</em> to see exactly what Brown saw &mdash; a grain moving for no visible reason.</p>
+    <p>Try raising the temperature. The molecules move faster (average kinetic energy is proportional to absolute temperature), so they strike the grain harder and more often, and the jiggling becomes more violent. Try a smaller grain: fewer collisions per instant means poorer averaging, so the imbalance is proportionally larger and the motion is more pronounced.</p>
+    <p>Einstein's 1905 analysis of this motion, confirmed experimentally by Perrin, provided decisive evidence that matter really is made of molecules in ceaseless random motion.</p>
+  </div>
+</details>
+
+<footer>Molecule sizes and speeds are not to scale.</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var canvas = document.getElementById('sim');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+
+  // ---------- parameters ----------
+  var T = 300;             // kelvin (display value; physics uses relative scale)
+  var T_REF = 300;
+  var BASE_SPEED = 130;    // px/s rms component speed at T_REF
+  var MOL_R = 2.5;         // molecule draw/physics radius, px
+  var MOL_M = 1;           // molecule mass (arbitrary units)
+  var DT = 1 / 120;        // fixed physics step, s
+
+  var molecules = [];
+  var grain = { x: W / 2, y: H / 2, vx: 0, vy: 0, r: 36, m: 0 };
+  var trace = [];
+  var TRACE_MAX = 4000;
+  var startX, startY;
+  var simTime = 0;
+  var collisions = 0;
+  var paused = false;
+
+  function grainMass(r) { return (r * r) / 9; }  // r=36 -> m=144, ~144x molecule
+
+  // Gaussian via Box-Muller
+  var spare = null;
+  function gauss() {
+    if (spare !== null) { var s = spare; spare = null; return s; }
+    var u, v, w;
+    do { u = Math.random() * 2 - 1; v = Math.random() * 2 - 1; w = u * u + v * v; }
+    while (w >= 1 || w === 0);
+    var f = Math.sqrt(-2 * Math.log(w) / w);
+    spare = v * f;
+    return u * f;
+  }
+
+  function speedScale() { return Math.sqrt(T / T_REF); }
+
+  function makeMolecule() {
+    var m, tries = 0;
+    do {
+      m = { x: MOL_R + Math.random() * (W - 2 * MOL_R),
+            y: MOL_R + Math.random() * (H - 2 * MOL_R),
+            vx: gauss() * BASE_SPEED * speedScale(),
+            vy: gauss() * BASE_SPEED * speedScale() };
+      tries++;
+    } while (tries < 50 && dist2(m.x, m.y, grain.x, grain.y) < sq(grain.r + MOL_R + 2));
+    return m;
+  }
+
+  function sq(a) { return a * a; }
+  function dist2(ax, ay, bx, by) { return sq(ax - bx) + sq(ay - by); }
+
+  function setCount(n) {
+    while (molecules.length > n) molecules.pop();
+    while (molecules.length < n) molecules.push(makeMolecule());
+  }
+
+  function setTemperature(newT) {
+    var f = Math.sqrt(newT / T);
+    for (var i = 0; i < molecules.length; i++) {
+      molecules[i].vx *= f;
+      molecules[i].vy *= f;
+    }
+    T = newT;
+  }
+
+  function reset() {
+    grain.r = parseInt(el.grain.value, 10);
+    grain.m = grainMass(grain.r);
+    grain.x = W / 2; grain.y = H / 2;
+    grain.vx = 0; grain.vy = 0;
+    startX = grain.x; startY = grain.y;
+    trace = [];
+    simTime = 0;
+    collisions = 0;
+    molecules = [];
+    setCount(parseInt(el.count.value, 10));
+  }
+
+  // ---------- physics ----------
+  function step(dt) {
+    var i, m;
+    var gr = grain.r;
+
+    grain.x += grain.vx * dt;
+    grain.y += grain.vy * dt;
+
+    // grain-wall
+    if (grain.x < gr) { grain.x = gr; grain.vx = Math.abs(grain.vx); }
+    if (grain.x > W - gr) { grain.x = W - gr; grain.vx = -Math.abs(grain.vx); }
+    if (grain.y < gr) { grain.y = gr; grain.vy = Math.abs(grain.vy); }
+    if (grain.y > H - gr) { grain.y = H - gr; grain.vy = -Math.abs(grain.vy); }
+
+    var rSum = gr + MOL_R;
+    var rSum2 = rSum * rSum;
+
+    for (i = 0; i < molecules.length; i++) {
+      m = molecules[i];
+      m.x += m.vx * dt;
+      m.y += m.vy * dt;
+
+      // molecule-wall (specular)
+      if (m.x < MOL_R) { m.x = MOL_R; m.vx = Math.abs(m.vx); }
+      else if (m.x > W - MOL_R) { m.x = W - MOL_R; m.vx = -Math.abs(m.vx); }
+      if (m.y < MOL_R) { m.y = MOL_R; m.vy = Math.abs(m.vy); }
+      else if (m.y > H - MOL_R) { m.y = H - MOL_R; m.vy = -Math.abs(m.vy); }
+
+      // molecule-grain elastic collision
+      var dx = m.x - grain.x, dy = m.y - grain.y;
+      var d2 = dx * dx + dy * dy;
+      if (d2 < rSum2 && d2 > 1e-9) {
+        var d = Math.sqrt(d2);
+        var nx = dx / d, ny = dy / d;
+
+        // relative velocity along normal
+        var rvx = m.vx - grain.vx, rvy = m.vy - grain.vy;
+        var relN = rvx * nx + rvy * ny;
+        if (relN < 0) {  // approaching
+          var j = -2 * relN / (1 / MOL_M + 1 / grain.m);
+          m.vx += (j / MOL_M) * nx;
+          m.vy += (j / MOL_M) * ny;
+          grain.vx -= (j / grain.m) * nx;
+          grain.vy -= (j / grain.m) * ny;
+          collisions++;
+        }
+        // positional separation (push molecule out)
+        var overlap = rSum - d;
+        m.x += nx * overlap;
+        m.y += ny * overlap;
+      }
+    }
+    simTime += dt;
+  }
+
+  // ---------- rendering ----------
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // trace
+    if (el.showTrace.checked && trace.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(trace[0], trace[1]);
+      for (var t = 2; t < trace.length; t += 2) ctx.lineTo(trace[t], trace[t + 1]);
+      ctx.strokeStyle = '#EF4444';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      // start marker
+      ctx.beginPath();
+      ctx.arc(trace[0], trace[1], 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#EF4444';
+      ctx.fill();
+    }
+
+    // molecules
+    if (el.showMol.checked) {
+      ctx.fillStyle = '#93C5FD';
+      ctx.beginPath();
+      for (var i = 0; i < molecules.length; i++) {
+        var m = molecules[i];
+        ctx.moveTo(m.x + MOL_R, m.y);
+        ctx.arc(m.x, m.y, MOL_R, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    }
+
+    // grain
+    ctx.beginPath();
+    ctx.arc(grain.x, grain.y, grain.r, 0, Math.PI * 2);
+    ctx.fillStyle = '#2563EB';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(grain.x - grain.r * 0.28, grain.y - grain.r * 0.28, grain.r * 0.45, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fill();
+  }
+
+  function updateReadouts() {
+    el.roTime.textContent = simTime.toFixed(1) + ' s';
+    var disp = Math.sqrt(dist2(grain.x, grain.y, startX, startY));
+    el.roDisp.textContent = Math.round(disp) + ' px';
+    el.roColl.textContent = collisions.toLocaleString();
+    var sum = 0;
+    for (var i = 0; i < molecules.length; i++) {
+      sum += Math.sqrt(sq(molecules[i].vx) + sq(molecules[i].vy));
+    }
+    var mean = molecules.length ? sum / molecules.length : 0;
+    el.roSpeed.textContent = Math.round(mean) + ' px/s';
+  }
+
+  // ---------- main loop ----------
+  var last = null;
+  var accum = 0;
+  var frame = 0;
+
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (last === null) { last = ts; return; }
+    var real = Math.min((ts - last) / 1000, 0.1);
+    last = ts;
+    if (paused) { draw(); return; }
+
+    var rate = el.slowMo.checked ? 0.25 : 1;
+    accum += real * rate;
+    var steps = 0;
+    while (accum >= DT && steps < 12) {
+      step(DT);
+      accum -= DT;
+      steps++;
+      trace.push(grain.x, grain.y);
+      if (trace.length > TRACE_MAX * 2) trace.splice(0, trace.length - TRACE_MAX * 2);
+    }
+    if (accum > DT) accum = DT;  // drop backlog if the tab lagged
+    draw();
+    frame++;
+    if (frame % 10 === 0) updateReadouts();
+  }
+
+  // ---------- wiring ----------
+  var el = {
+    temp: document.getElementById('temp'),
+    count: document.getElementById('count'),
+    grain: document.getElementById('grain'),
+    vTemp: document.getElementById('vTemp'),
+    vCount: document.getElementById('vCount'),
+    vGrain: document.getElementById('vGrain'),
+    showMol: document.getElementById('showMol'),
+    showTrace: document.getElementById('showTrace'),
+    slowMo: document.getElementById('slowMo'),
+    btnPause: document.getElementById('btnPause'),
+    btnReset: document.getElementById('btnReset'),
+    btnClear: document.getElementById('btnClear'),
+    roTime: document.getElementById('roTime'),
+    roDisp: document.getElementById('roDisp'),
+    roColl: document.getElementById('roColl'),
+    roSpeed: document.getElementById('roSpeed')
+  };
+
+  el.temp.addEventListener('input', function () {
+    var v = parseInt(this.value, 10);
+    el.vTemp.textContent = v + ' K';
+    setTemperature(v);
+  });
+
+  el.count.addEventListener('input', function () {
+    var v = parseInt(this.value, 10);
+    el.vCount.textContent = v;
+    setCount(v);
+  });
+
+  el.grain.addEventListener('input', function () {
+    var v = parseInt(this.value, 10);
+    el.vGrain.textContent = v + ' px';
+    var keep = grain.m > 0 ? { vx: grain.vx, vy: grain.vy } : null;
+    grain.r = v;
+    grain.m = grainMass(v);
+    if (keep) { grain.vx = keep.vx; grain.vy = keep.vy; }
+    // keep grain inside walls after resize
+    grain.x = Math.min(Math.max(grain.x, v), W - v);
+    grain.y = Math.min(Math.max(grain.y, v), H - v);
+  });
+
+  el.btnPause.addEventListener('click', function () {
+    paused = !paused;
+    this.textContent = paused ? 'Resume' : 'Pause';
+  });
+
+  el.btnReset.addEventListener('click', function () {
+    reset();
+    paused = false;
+    el.btnPause.textContent = 'Pause';
+  });
+
+  el.btnClear.addEventListener('click', function () {
+    trace = [];
+    startX = grain.x;
+    startY = grain.y;
+  });
+
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>
