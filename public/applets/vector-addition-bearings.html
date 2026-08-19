@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vector Addition by Components (Relative Bearings)</title>
+<style>
+  :root {
+    --colA: #2563eb;
+    --colAlight: #93b8f5;
+    --colB: #d97706;
+    --colBlight: #f0c584;
+    --colR: #059669;
+    --colRlight: #7fd4b5;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --bg: #f3f4f6;
+    --card: #ffffff;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  header {
+    padding: 14px 22px 10px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0; font-size: 1.15rem; font-weight: 650; }
+  header p { margin: 3px 0 0; font-size: 0.83rem; color: var(--muted); }
+  .wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px 22px 28px;
+    align-items: flex-start;
+    max-width: 1340px;
+    margin: 0 auto;
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .controls { flex: 1 1 300px; min-width: 290px; max-width: 360px; }
+  .canvasbox { flex: 0 1 auto; padding: 10px; }
+  .working { flex: 1 1 300px; min-width: 300px; max-width: 400px; font-size: 0.86rem; }
+  canvas { display: block; border-radius: 6px; }
+
+  .vecblock { border-left: 4px solid var(--colA); padding: 6px 10px 8px; margin-bottom: 12px; background: #fafbfc; border-radius: 0 6px 6px 0; }
+  .vecblock.b { border-left-color: var(--colB); }
+  .vecblock h3 { margin: 0 0 6px; font-size: 0.9rem; }
+  .row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+  .row label { font-size: 0.8rem; color: var(--muted); width: 78px; flex-shrink: 0; }
+  .row input[type=range] { flex: 1; }
+  .row input[type=number] {
+    width: 62px; padding: 3px 5px; font-size: 0.85rem;
+    border: 1px solid var(--border); border-radius: 5px;
+  }
+  .row select {
+    padding: 3px 5px; font-size: 0.85rem;
+    border: 1px solid var(--border); border-radius: 5px; background: #fff;
+  }
+  .bearingline { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+  .bearingline b { color: var(--ink); }
+
+  .toggles { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .toggles label { display: flex; align-items: center; gap: 7px; font-size: 0.85rem; margin: 6px 0; cursor: pointer; }
+
+  .working h2 { margin: 0 0 8px; font-size: 0.95rem; }
+  .step { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--border); }
+  .step:last-child { border-bottom: none; margin-bottom: 0; }
+  .step h4 { margin: 0 0 5px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .mathline { font-family: Georgia, "Times New Roman", serif; font-size: 0.92rem; margin: 3px 0; }
+  .mathline.a { color: var(--colA); }
+  .mathline.b { color: var(--colB); }
+  .mathline.r { color: var(--colR); }
+  .result-box {
+    background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 7px;
+    padding: 8px 10px; margin-top: 6px;
+    font-family: Georgia, "Times New Roman", serif; font-size: 0.98rem; color: #065f46;
+  }
+  .note { font-size: 0.78rem; color: var(--muted); margin-top: 8px; }
+  sub { font-size: 0.72em; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Vector Addition by Components</h1>
+  <p>Resolve each vector into horizontal (E&#8211;W) and vertical (N&#8211;S) components, add the components, then recombine. Bearings are relative bearings, e.g. N30&deg;E.</p>
+</header>
+
+<div class="wrap">
+
+  <div class="panel controls">
+    <div class="vecblock">
+      <h3 style="color:var(--colA)">Vector A</h3>
+      <div class="row">
+        <label>Magnitude</label>
+        <input type="range" id="aMag" min="1" max="20" step="0.5" value="8">
+        <input type="number" id="aMagN" min="1" max="20" step="0.5" value="8">
+      </div>
+      <div class="row">
+        <label>Bearing</label>
+        <select id="aNS"><option>N</option><option>S</option></select>
+        <input type="range" id="aAng" min="0" max="90" step="1" value="30" style="flex:1">
+        <input type="number" id="aAngN" min="0" max="90" step="1" value="30" style="width:52px">
+        <select id="aEW"><option>E</option><option>W</option></select>
+      </div>
+      <div class="bearingline">A = <b id="aLabel"></b></div>
+    </div>
+
+    <div class="vecblock b">
+      <h3 style="color:var(--colB)">Vector B</h3>
+      <div class="row">
+        <label>Magnitude</label>
+        <input type="range" id="bMag" min="1" max="20" step="0.5" value="6">
+        <input type="number" id="bMagN" min="1" max="20" step="0.5" value="6">
+      </div>
+      <div class="row">
+        <label>Bearing</label>
+        <select id="bNS"><option>N</option><option>S</option></select>
+        <input type="range" id="bAng" min="0" max="90" step="1" value="60" style="flex:1">
+        <input type="number" id="bAngN" min="0" max="90" step="1" value="60" style="width:52px">
+        <select id="bEW"><option>E</option><option>W</option></select>
+      </div>
+      <div class="bearingline">B = <b id="bLabel"></b></div>
+    </div>
+
+    <div class="toggles">
+      <label><input type="checkbox" id="showComps" checked> Show components of A and B</label>
+      <label><input type="checkbox" id="showRes" checked> Show resultant R = A + B</label>
+      <label><input type="checkbox" id="showResComps"> Show components of R</label>
+      <label><input type="checkbox" id="showWork" checked> Show worked solution</label>
+    </div>
+    <p class="note">Sign convention: east and north are positive. Vectors are drawn tip to tail (B starts at the tip of A). Magnitudes are in arbitrary units.</p>
+  </div>
+
+  <div class="panel canvasbox">
+    <canvas id="cv" width="560" height="560"></canvas>
+  </div>
+
+  <div class="panel working" id="workPanel">
+    <h2>Worked solution</h2>
+    <div id="workBody"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var DPR = window.devicePixelRatio || 1;
+  var CSS_W = 560, CSS_H = 560;
+  cv.width = CSS_W * DPR; cv.height = CSS_H * DPR;
+  cv.style.width = CSS_W + 'px'; cv.style.height = CSS_H + 'px';
+
+  var COL = {
+    A: '#2563eb', Alight: '#93b8f5',
+    B: '#d97706', Blight: '#f0c584',
+    R: '#059669', Rlight: '#7fd4b5',
+    grid: '#e8eaee', axis: '#9ca3af', ink: '#374151'
+  };
+
+  function el(id){ return document.getElementById(id); }
+
+  // Link each slider with its number box
+  function link(rangeId, numId){
+    var r = el(rangeId), n = el(numId);
+    r.addEventListener('input', function(){ n.value = r.value; update(); });
+    n.addEventListener('input', function(){
+      var v = parseFloat(n.value);
+      if (!isNaN(v)) { r.value = Math.min(Math.max(v, parseFloat(r.min)), parseFloat(r.max)); update(); }
+    });
+  }
+  link('aMag','aMagN'); link('aAng','aAngN');
+  link('bMag','bMagN'); link('bAng','bAngN');
+  ['aNS','aEW','bNS','bEW','showComps','showRes','showResComps','showWork'].forEach(function(id){
+    el(id).addEventListener('change', update);
+  });
+
+  function readVec(prefix){
+    var m = parseFloat(el(prefix+'Mag').value);
+    var ang = parseFloat(el(prefix+'Ang').value);
+    var ns = el(prefix+'NS').value;
+    var ew = el(prefix+'EW').value;
+    var rad = ang * Math.PI / 180;
+    return {
+      m: m, ang: ang, ns: ns, ew: ew,
+      x: m * Math.sin(rad) * (ew === 'E' ? 1 : -1),
+      y: m * Math.cos(rad) * (ns === 'N' ? 1 : -1)
+    };
+  }
+
+  function bearingStr(v){
+    return v.ns + v.ang + '°' + v.ew;
+  }
+
+  function fmt(x, dp){
+    dp = (dp === undefined) ? 2 : dp;
+    var s = x.toFixed(dp);
+    if (s === '-' + (0).toFixed(dp)) s = (0).toFixed(dp);
+    return s;
+  }
+  function signed(x){ return (x >= 0 ? '+' : '−') + fmt(Math.abs(x)); }
+
+  function resultantBearing(x, y){
+    var EPS = 1e-9;
+    var R = Math.hypot(x, y);
+    if (R < EPS) return { text: 'zero vector', short: '—' };
+    if (Math.abs(x) < 1e-6) return { text: 'due ' + (y > 0 ? 'north' : 'south'), short: 'due ' + (y > 0 ? 'N' : 'S') };
+    if (Math.abs(y) < 1e-6) return { text: 'due ' + (x > 0 ? 'east' : 'west'), short: 'due ' + (x > 0 ? 'E' : 'W') };
+    var th = Math.atan(Math.abs(x) / Math.abs(y)) * 180 / Math.PI;
+    var s = (y > 0 ? 'N' : 'S') + th.toFixed(1) + '°' + (x > 0 ? 'E' : 'W');
+    return { text: s, short: s, theta: th };
+  }
+
+  // ---------- drawing helpers ----------
+  var scale = 1, ox = 0, oy = 0; // world -> screen
+
+  function sx(x){ return ox + x * scale; }
+  function sy(y){ return oy - y * scale; }
+
+  function arrow(x1, y1, x2, y2, color, width, dashed){
+    var X1 = sx(x1), Y1 = sy(y1), X2 = sx(x2), Y2 = sy(y2);
+    var dx = X2 - X1, dy = Y2 - Y1;
+    var len = Math.hypot(dx, dy);
+    if (len < 2) return;
+    ctx.save();
+    ctx.strokeStyle = color; ctx.fillStyle = color;
+    ctx.lineWidth = width;
+    if (dashed) ctx.setLineDash([6, 5]);
+    var head = Math.min(11, len * 0.35);
+    var ux = dx / len, uy = dy / len;
+    // shorten line so it does not poke through the head
+    var LX2 = X2 - ux * head * 0.8, LY2 = Y2 - uy * head * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(X1, Y1); ctx.lineTo(LX2, LY2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(X2, Y2);
+    ctx.lineTo(X2 - ux * head - uy * head * 0.45, Y2 - uy * head + ux * head * 0.45);
+    ctx.lineTo(X2 - ux * head + uy * head * 0.45, Y2 - uy * head - ux * head * 0.45);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  function labelAt(x, y, text, color, offX, offY){
+    ctx.save();
+    ctx.font = '600 13px -apple-system, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = color;
+    var w = ctx.measureText(text).width;
+    var X = sx(x) + offX, Y = sy(y) + offY;
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.fillRect(X - w/2 - 3, Y - 10, w + 6, 15);
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, X, Y - 2);
+    ctx.restore();
+  }
+
+  function angleArc(tailX, tailY, v, color){
+    if (v.m < 0.1 || v.ang === 0) return;
+    var X = sx(tailX), Y = sy(tailY);
+    var phi = Math.atan2(-v.y, v.x);          // screen angle of the vector
+    var ref = (v.ns === 'N') ? -Math.PI/2 : Math.PI/2;  // screen angle of N or S axis
+    var anticlockwise = phi < ref;
+    var r = 30;
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = 1.3;
+    // reference axis stub (dotted, along N or S)
+    ctx.setLineDash([2,3]);
+    ctx.beginPath();
+    ctx.moveTo(X, Y);
+    ctx.lineTo(X + Math.cos(ref) * (r + 12), Y + Math.sin(ref) * (r + 12));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(X, Y, r, ref, phi, anticlockwise);
+    ctx.stroke();
+    // angle label at mid-arc
+    var mid = (ref + phi) / 2;
+    ctx.font = '11px -apple-system, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(v.ang + '°', X + Math.cos(mid) * (r + 11), Y + Math.sin(mid) * (r + 11));
+    ctx.restore();
+  }
+
+  function niceStep(extent){
+    var steps = [0.5, 1, 2, 5, 10, 20];
+    for (var i = 0; i < steps.length; i++){
+      if (extent / steps[i] <= 7) return steps[i];
+    }
+    return 20;
+  }
+
+  function draw(A, B){
+    var showComps = el('showComps').checked;
+    var showRes = el('showRes').checked;
+    var showResComps = el('showResComps').checked;
+
+    var Rx = A.x + B.x, Ry = A.y + B.y;
+    var pts = [[0,0],[A.x,A.y],[A.x+B.x,A.y+B.y],[A.x,0],[A.x+B.x,A.y],[Rx,0]];
+    var extent = 1;
+    pts.forEach(function(p){
+      extent = Math.max(extent, Math.abs(p[0]), Math.abs(p[1]));
+    });
+    var half = CSS_W / 2;
+    scale = (half - 55) / extent;
+    ox = half; oy = half;
+
+    ctx.save();
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, CSS_W, CSS_H);
+    ctx.fillStyle = '#fdfdfe';
+    ctx.fillRect(0, 0, CSS_W, CSS_H);
+
+    // grid
+    var step = niceStep(extent);
+    var maxWorld = half / scale;
+    ctx.strokeStyle = COL.grid; ctx.lineWidth = 1;
+    for (var g = step; g <= maxWorld; g += step){
+      [[g,0],[-g,0]].forEach(function(p){
+        ctx.beginPath(); ctx.moveTo(sx(p[0]), 0); ctx.lineTo(sx(p[0]), CSS_H); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, sy(p[0])); ctx.lineTo(CSS_W, sy(p[0])); ctx.stroke();
+      });
+    }
+
+    // axes + compass labels
+    ctx.strokeStyle = COL.axis; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(CSS_W, oy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, CSS_H); ctx.stroke();
+    ctx.font = '600 13px -apple-system, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = COL.ink;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('N', ox + 12, 12);
+    ctx.fillText('S', ox + 12, CSS_H - 12);
+    ctx.fillText('E', CSS_W - 12, oy - 12);
+    ctx.fillText('W', 12, oy - 12);
+    ctx.font = '11px -apple-system, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = '#9ca3af';
+    ctx.textAlign = 'left';
+    ctx.fillText('grid: ' + step + ' unit' + (step === 1 ? '' : 's'), 10, CSS_H - 10);
+
+    var tipA = { x: A.x, y: A.y };
+    var tipR = { x: Rx, y: Ry };
+
+    // components (dashed): horizontal first, then vertical
+    if (showComps){
+      if (Math.abs(A.x) > 0.02){
+        arrow(0, 0, A.x, 0, COL.Alight, 2, true);
+        labelAt(A.x/2, 0, 'Ax', COL.A, 0, 14);
+      }
+      if (Math.abs(A.y) > 0.02){
+        arrow(A.x, 0, A.x, A.y, COL.Alight, 2, true);
+        labelAt(A.x, A.y/2, 'Ay', COL.A, A.x >= 0 ? 18 : -18, 0);
+      }
+      if (Math.abs(B.x) > 0.02){
+        arrow(tipA.x, tipA.y, tipA.x + B.x, tipA.y, COL.Blight, 2, true);
+        labelAt(tipA.x + B.x/2, tipA.y, 'Bx', COL.B, 0, 14);
+      }
+      if (Math.abs(B.y) > 0.02){
+        arrow(tipA.x + B.x, tipA.y, tipA.x + B.x, tipA.y + B.y, COL.Blight, 2, true);
+        labelAt(tipA.x + B.x, tipA.y + B.y/2, 'By', COL.B, B.x + A.x >= 0 ? 18 : -18, 0);
+      }
+    }
+
+    // resultant components (dashed, from origin)
+    if (showResComps && showRes){
+      if (Math.abs(Rx) > 0.02){
+        arrow(0, 0, Rx, 0, COL.Rlight, 2.4, true);
+        labelAt(Rx/2, 0, 'Rx', COL.R, 0, -12);
+      }
+      if (Math.abs(Ry) > 0.02){
+        arrow(Rx, 0, Rx, Ry, COL.Rlight, 2.4, true);
+        labelAt(Rx, Ry/2, 'Ry', COL.R, Rx >= 0 ? -18 : 18, 0);
+      }
+    }
+
+    // main vectors
+    arrow(0, 0, A.x, A.y, COL.A, 3, false);
+    labelAt(A.x * 0.55, A.y * 0.55, 'A', COL.A, -14, -8);
+    arrow(tipA.x, tipA.y, tipA.x + B.x, tipA.y + B.y, COL.B, 3, false);
+    labelAt(tipA.x + B.x * 0.55, tipA.y + B.y * 0.55, 'B', COL.B, 14, -8);
+
+    if (showRes && Math.hypot(Rx, Ry) > 0.02){
+      arrow(0, 0, Rx, Ry, COL.R, 3.4, false);
+      labelAt(Rx * 0.72, Ry * 0.72, 'R', COL.R, 16, 10);
+    }
+
+    // bearing angle arcs at the tails
+    angleArc(0, 0, A, COL.A);
+    angleArc(tipA.x, tipA.y, B, COL.B);
+
+    ctx.restore();
+  }
+
+  // ---------- worked solution ----------
+  function compLine(name, v, axis){
+    // axis: 'x' or 'y'
+    var fn = (axis === 'x') ? 'sin' : 'cos';
+    var val = (axis === 'x') ? v.x : v.y;
+    var dir = (axis === 'x') ? (val >= 0 ? 'east' : 'west') : (val >= 0 ? 'north' : 'south');
+    var mag = Math.abs(val);
+    var sub = axis;
+    return '<div class="mathline ' + name.toLowerCase() + '">' +
+      name + '<sub>' + sub + '</sub> = ' + fmt(v.m,1) + ' ' + fn + ' ' + v.ang + '° = ' +
+      fmt(mag) + ' units ' + dir + '  →  ' + signed(val) +
+      '</div>';
+  }
+
+  function buildWorking(A, B){
+    var Rx = A.x + B.x, Ry = A.y + B.y;
+    var R = Math.hypot(Rx, Ry);
+    var brg = resultantBearing(Rx, Ry);
+    var h = '';
+
+    h += '<div class="step"><h4>Step 1 &mdash; Resolve A (' + fmt(A.m,1) + ' units, ' + bearingStr(A) + ')</h4>';
+    h += compLine('A', A, 'x');
+    h += compLine('A', A, 'y');
+    h += '</div>';
+
+    h += '<div class="step"><h4>Step 2 &mdash; Resolve B (' + fmt(B.m,1) + ' units, ' + bearingStr(B) + ')</h4>';
+    h += compLine('B', B, 'x');
+    h += compLine('B', B, 'y');
+    h += '</div>';
+
+    h += '<div class="step"><h4>Step 3 &mdash; Add the components</h4>';
+    h += '<div class="mathline r">R<sub>x</sub> = (' + signed(A.x) + ') + (' + signed(B.x) + ') = ' + signed(Rx) +
+         (Math.abs(Rx) > 1e-6 ? ' &nbsp;(' + fmt(Math.abs(Rx)) + ' ' + (Rx > 0 ? 'east' : 'west') + ')' : '') + '</div>';
+    h += '<div class="mathline r">R<sub>y</sub> = (' + signed(A.y) + ') + (' + signed(B.y) + ') = ' + signed(Ry) +
+         (Math.abs(Ry) > 1e-6 ? ' &nbsp;(' + fmt(Math.abs(Ry)) + ' ' + (Ry > 0 ? 'north' : 'south') + ')' : '') + '</div>';
+    h += '</div>';
+
+    h += '<div class="step"><h4>Step 4 &mdash; Recombine</h4>';
+    h += '<div class="mathline r">|R| = √(R<sub>x</sub>² + R<sub>y</sub>²) = √(' +
+         fmt(Math.abs(Rx)) + '² + ' + fmt(Math.abs(Ry)) + '²) = ' + fmt(R) + ' units</div>';
+    if (brg.theta !== undefined){
+      h += '<div class="mathline r">θ = tan⁻¹(|R<sub>x</sub>| / |R<sub>y</sub>|) = tan⁻¹(' +
+           fmt(Math.abs(Rx)) + ' / ' + fmt(Math.abs(Ry)) + ') = ' + brg.theta.toFixed(1) + '°</div>';
+      h += '<div class="mathline r">θ is measured from ' + (Ry > 0 ? 'north' : 'south') +
+           ', towards the ' + (Rx > 0 ? 'east' : 'west') + '</div>';
+    } else if (R > 1e-6){
+      h += '<div class="mathline r">One component is zero, so R points ' + brg.text + '.</div>';
+    }
+    h += '<div class="result-box">R = ' + fmt(R) + ' units, ' + brg.short + '</div>';
+    h += '</div>';
+
+    return h;
+  }
+
+  function update(){
+    var A = readVec('a');
+    var B = readVec('b');
+    el('aLabel').textContent = fmt(A.m,1) + ' units, ' + bearingStr(A);
+    el('bLabel').textContent = fmt(B.m,1) + ' units, ' + bearingStr(B);
+    draw(A, B);
+    var wp = el('workPanel');
+    if (el('showWork').checked){
+      wp.style.display = '';
+      el('workBody').innerHTML = buildWorking(A, B);
+    } else {
+      wp.style.display = 'none';
+    }
+  }
+
+  update();
+})();
+</script>
+</body>
+</html>
