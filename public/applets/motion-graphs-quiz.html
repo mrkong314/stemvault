@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion Graphs Quiz</title>
+<style>
+  :root{
+    --ink:#1f2430;
+    --muted:#6b7280;
+    --faint:#9ca3af;
+    --line:#2563eb;
+    --line-soft:#93c5fd;
+    --band:rgba(245,158,11,0.16);
+    --band-edge:#d97706;
+    --grid:#e8eaee;
+    --axis:#454b57;
+    --surface:#ffffff;
+    --page:#f4f5f7;
+    --border:#dde0e5;
+    --correct:#15803d;
+    --correct-bg:#ecfdf5;
+    --wrong:#b91c1c;
+    --wrong-bg:#fef2f2;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--page);
+    color:var(--ink);
+    line-height:1.45;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:24px 16px 48px;}
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:14px;}
+  header h1{font-size:22px;margin:0;font-weight:700;}
+  header .sub{color:var(--muted);font-size:14px;}
+  .statbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .stat{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:8px 16px;min-width:110px;
+  }
+  .stat .label{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);}
+  .stat .value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .stat.streak .value{color:var(--line);}
+  .modes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .chip{
+    border:1px solid var(--border);background:var(--surface);color:var(--muted);
+    border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;font-family:inherit;
+  }
+  .chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px;
+  }
+  .qmeta{font-size:12px;color:var(--faint);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+  .prompt{font-size:16px;font-weight:600;margin-bottom:14px;}
+  .graphwrap{display:flex;justify-content:center;margin-bottom:16px;}
+  .graphwrap svg{max-width:100%;height:auto;}
+  .options{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .options.textopts{grid-template-columns:1fr;}
+  @media(max-width:560px){.options{grid-template-columns:1fr;}}
+  .opt{
+    border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface);
+    padding:10px 12px;text-align:left;cursor:pointer;font-size:14.5px;color:var(--ink);
+    display:flex;align-items:center;gap:10px;font-family:inherit;transition:border-color .1s,background .1s;
+  }
+  .opt:hover:not(:disabled){border-color:var(--line);}
+  .opt:disabled{cursor:default;}
+  .opt .key{
+    flex:none;width:22px;height:22px;border-radius:6px;border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);
+    font-weight:600;
+  }
+  .opt.graphopt{flex-direction:column;align-items:center;gap:6px;padding:8px;}
+  .opt.graphopt .key{align-self:flex-start;}
+  .opt.correct{border-color:var(--correct);background:var(--correct-bg);}
+  .opt.correct .key{border-color:var(--correct);color:var(--correct);}
+  .opt.wrong{border-color:var(--wrong);background:var(--wrong-bg);}
+  .opt.wrong .key{border-color:var(--wrong);color:var(--wrong);}
+  .feedback{
+    display:none;margin-top:14px;border-radius:var(--radius);padding:12px 14px;font-size:14px;
+  }
+  .feedback.show{display:block;}
+  .feedback.good{background:var(--correct-bg);border:1px solid #a7d9bd;}
+  .feedback.bad{background:var(--wrong-bg);border:1px solid #efc1c1;}
+  .feedback .verdict{font-weight:700;margin-bottom:4px;}
+  .feedback.good .verdict{color:var(--correct);}
+  .feedback.bad .verdict{color:var(--wrong);}
+  .feedback .expl{color:var(--ink);}
+  .nextrow{margin-top:14px;display:none;justify-content:flex-end;}
+  .nextrow.show{display:flex;}
+  .nextbtn{
+    background:var(--ink);color:#fff;border:none;border-radius:var(--radius);
+    padding:10px 22px;font-size:14.5px;font-weight:600;cursor:pointer;font-family:inherit;
+  }
+  .nextbtn:hover{background:#333a49;}
+  footer{margin-top:14px;color:var(--faint);font-size:12px;text-align:center;}
+  .kbd{border:1px solid var(--border);border-radius:4px;padding:0 4px;background:var(--surface);font-family:inherit;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Motion Graphs Quiz</h1>
+    <span class="sub">VCE Unit 2 Physics &middot; unlimited questions</span>
+  </header>
+
+  <div class="statbar">
+    <div class="stat streak"><div class="label">Streak</div><div class="value" id="streakVal">0</div></div>
+    <div class="stat"><div class="label">Best streak</div><div class="value" id="bestVal">0</div></div>
+    <div class="stat"><div class="label">Score</div><div class="value" id="scoreVal">0 / 0</div></div>
+  </div>
+
+  <div class="modes" id="modes">
+    <button class="chip active" data-mode="all">All questions</button>
+    <button class="chip" data-mode="interp">Interpretation</button>
+    <button class="chip" data-mode="numeric">Numerical</button>
+    <button class="chip" data-mode="match">Graph matching</button>
+  </div>
+
+  <div class="card">
+    <div class="qmeta" id="qmeta"></div>
+    <div class="prompt" id="prompt"></div>
+    <div class="graphwrap" id="graphwrap"></div>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback">
+      <div class="verdict" id="verdict"></div>
+      <div class="expl" id="expl"></div>
+    </div>
+    <div class="nextrow" id="nextrow">
+      <button class="nextbtn" id="nextbtn">Next question</button>
+    </div>
+  </div>
+
+  <footer>Keys <span class="kbd">1</span>&ndash;<span class="kbd">4</span> to answer, <span class="kbd">Enter</span> for next question.</footer>
+</div>
+
+<script>
+"use strict";
+/* ---------------- utilities ---------------- */
+function ri(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function fmt(n){
+  const r=Math.round(n*100)/100;
+  return (Object.is(r,-0)?0:r).toString();
+}
+const UPS2="m/s²"; // m/s^2
+
+/* ---------------- graph model ----------------
+   Line graph spec:  {kind:'line', yLabel, pts:[{t,y},...], highlight:[t0,t1]|null}
+   Step graph spec:  {kind:'step', yLabel, segs:[{t0,t1,y},...], highlight:null}
+------------------------------------------------ */
+
+function niceStep(range){
+  const target=range/4;
+  const steps=[0.5,1,2,4,5,10,20];
+  for(const s of steps){if(s>=target)return s;}
+  return 50;
+}
+
+function renderGraph(spec,opts){
+  opts=opts||{};
+  const mini=!!opts.mini;
+  const W=mini?200:520, H=mini?132:300;
+  const m={l:mini?30:46, r:mini?8:16, t:mini?14:16, b:mini?20:34};
+  const iw=W-m.l-m.r, ih=H-m.t-m.b;
+
+  let tMax=0, yVals=[0];
+  if(spec.kind==='line'){
+    for(const p of spec.pts){tMax=Math.max(tMax,p.t);yVals.push(p.y);}
+  }else{
+    for(const s of spec.segs){tMax=Math.max(tMax,s.t1);yVals.push(s.y);}
+  }
+  let yMin=Math.min.apply(null,yVals), yMax=Math.max.apply(null,yVals);
+  if(yMax===yMin){yMax=yMin+1;}
+  const pad=(yMax-yMin)*0.15||1;
+  yMin=Math.min(0,yMin)-(yMin<0?pad:0.0001);
+  yMax=Math.max(0,yMax)+(yMax>0?pad:0.0001);
+
+  const X=t=>m.l+(t/tMax)*iw;
+  const Y=y=>m.t+ih-((y-yMin)/(yMax-yMin))*ih;
+
+  const NS="http://www.w3.org/2000/svg";
+  const svg=document.createElementNS(NS,"svg");
+  svg.setAttribute("viewBox","0 0 "+W+" "+H);
+  svg.setAttribute("width",W);
+  svg.setAttribute("height",H);
+  svg.setAttribute("role","img");
+
+  function el(name,attrs){
+    const e=document.createElementNS(NS,name);
+    for(const k in attrs)e.setAttribute(k,attrs[k]);
+    svg.appendChild(e);
+    return e;
+  }
+  function txt(x,y,s,attrs){
+    const e=el("text",Object.assign({x:x,y:y,fill:"#6b7280","font-size":mini?9:12,
+      "font-family":"inherit"},attrs||{}));
+    e.textContent=s;
+    return e;
+  }
+
+  // highlight band
+  if(spec.highlight){
+    el("rect",{x:X(spec.highlight[0]),y:m.t,width:X(spec.highlight[1])-X(spec.highlight[0]),
+      height:ih,fill:"var(--band)"});
+  }
+
+  // grid + ticks
+  const tStep=tMax>8?2:1;
+  for(let t=0;t<=tMax+0.001;t+=tStep){
+    el("line",{x1:X(t),y1:m.t,x2:X(t),y2:m.t+ih,stroke:"var(--grid)","stroke-width":1});
+    if(!mini||t%2===0)txt(X(t),m.t+ih+(mini?12:16),fmt(t),{"text-anchor":"middle"});
+  }
+  const yStep=niceStep(yMax-yMin);
+  const yStart=Math.ceil(yMin/yStep)*yStep;
+  for(let y=yStart;y<=yMax+0.001;y+=yStep){
+    if(Math.abs(y)<1e-9)continue;
+    el("line",{x1:m.l,y1:Y(y),x2:m.l+iw,y2:Y(y),stroke:"var(--grid)","stroke-width":1});
+    txt(m.l-(mini?4:8),Y(y)+4,fmt(y),{"text-anchor":"end"});
+  }
+
+  // axes: y-axis at t=0, x-axis at y=0
+  el("line",{x1:m.l,y1:m.t,x2:m.l,y2:m.t+ih,stroke:"var(--axis)","stroke-width":1.5});
+  el("line",{x1:m.l,y1:Y(0),x2:m.l+iw,y2:Y(0),stroke:"var(--axis)","stroke-width":1.5});
+  txt(m.l-(mini?4:8),Y(0)+4,"0",{"text-anchor":"end"});
+
+  // axis labels
+  txt(m.l+(mini?2:6),m.t-(mini?4:-2),spec.yLabel,{"text-anchor":"start","font-weight":600,fill:"#454b57"});
+  if(!mini)txt(m.l+iw,m.t+ih+30,"t (s)",{"text-anchor":"end","font-weight":600,fill:"#454b57"});
+
+  // highlight band edges
+  if(spec.highlight){
+    for(const t of spec.highlight){
+      el("line",{x1:X(t),y1:m.t,x2:X(t),y2:m.t+ih,stroke:"var(--band-edge)","stroke-width":1,
+        "stroke-dasharray":"4 3"});
+    }
+  }
+
+  // data
+  if(spec.kind==='line'){
+    const ptsStr=spec.pts.map(p=>X(p.t)+","+Y(p.y)).join(" ");
+    el("polyline",{points:ptsStr,fill:"none",stroke:"var(--line)","stroke-width":mini?2:2.5,
+      "stroke-linejoin":"round","stroke-linecap":"round"});
+  }else{
+    let prev=null;
+    for(const s of spec.segs){
+      if(prev!==null&&prev!==s.y){
+        el("line",{x1:X(s.t0),y1:Y(prev),x2:X(s.t0),y2:Y(s.y),stroke:"var(--line-soft)",
+          "stroke-width":mini?1.5:2,"stroke-dasharray":"3 3"});
+      }
+      el("line",{x1:X(s.t0),y1:Y(s.y),x2:X(s.t1),y2:Y(s.y),stroke:"var(--line)",
+        "stroke-width":mini?2:2.5,"stroke-linecap":"round"});
+      prev=s.y;
+    }
+  }
+  return svg;
+}
+
+/* ---------------- graph builders ---------------- */
+
+// x-t graph from a list of segment velocities; returns {pts, segs}
+function buildXT(vels,durs){
+  durs=durs||vels.map(()=>pick([2,3,4]));
+  let t=0,x=0;
+  const pts=[{t:0,y:0}];
+  const segs=[];
+  for(let i=0;i<vels.length;i++){
+    const t0=t,x0=x;
+    t+=durs[i];x+=vels[i]*durs[i];
+    pts.push({t:t,y:x});
+    segs.push({t0:t0,t1:t,x0:x0,x1:x,v:vels[i]});
+  }
+  return {pts:pts,segs:segs};
+}
+
+// v-t graph from breakpoint velocities; returns {pts, segs}
+function buildVT(vBreaks,durs){
+  let t=0;
+  const pts=[{t:0,y:vBreaks[0]}];
+  const segs=[];
+  for(let i=0;i<durs.length;i++){
+    const t0=t,v0=vBreaks[i],v1=vBreaks[i+1];
+    t+=durs[i];
+    pts.push({t:t,y:v1});
+    segs.push({t0:t0,t1:t,v0:v0,v1:v1,a:(v1-v0)/durs[i]});
+  }
+  return {pts:pts,segs:segs};
+}
+
+// random v-t breakpoints avoiding sign changes within a segment
+function randomVBreaks(n,valueSet){
+  const set=valueSet||[-6,-4,-2,0,2,4,6];
+  const out=[pick(set)];
+  for(let i=1;i<=n;i++){
+    let cands=set.filter(v=>{
+      const prev=out[i-1];
+      if(v*prev<0)return false;            // no sign crossing mid-segment
+      return true;
+    });
+    // avoid three identical values in a row
+    if(i>=2&&out[i-1]===out[i-2])cands=cands.filter(v=>v!==out[i-1]);
+    if(cands.length===0)cands=[0];
+    out.push(pick(cands));
+  }
+  return out;
+}
+
+/* ---------------- motion classification ---------------- */
+const MOTION_LABELS={
+  'cv+':"Constant velocity in the positive direction",
+  'cv-':"Constant velocity in the negative direction",
+  'rest':"At rest",
+  'su+':"Speeding up while moving in the positive direction",
+  'sd+':"Slowing down while moving in the positive direction",
+  'su-':"Speeding up while moving in the negative direction",
+  'sd-':"Slowing down while moving in the negative direction"
+};
+function classifyVT(v0,v1){
+  if(v0===v1)return v0===0?'rest':(v0>0?'cv+':'cv-');
+  if(v0>=0&&v1>=0)return v1>v0?'su+':'sd+';
+  return v1<v0?'su-':'sd-';
+}
+
+/* ---------------- option assembly ---------------- */
+function textOptions(correctText,distractorPool,n){
+  n=n||4;
+  const pool=shuffle(distractorPool.filter(d=>d!==correctText));
+  const opts=[{text:correctText,correct:true}];
+  for(let i=0;i<n-1&&i<pool.length;i++)opts.push({text:pool[i],correct:false});
+  return shuffle(opts);
+}
+function valueOptions(correct,rawDistractors,unit){
+  const seen=new Set([fmt(correct)]);
+  const ds=[];
+  for(const d of rawDistractors){
+    const k=fmt(d);
+    if(!seen.has(k)){seen.add(k);ds.push(d);}
+    if(ds.length===3)break;
+  }
+  let bump=1;
+  while(ds.length<3){
+    const cand=correct+bump*(correct>=0?1:-1)*2;
+    const k=fmt(cand);
+    if(!seen.has(k)){seen.add(k);ds.push(cand);}
+    bump++;
+  }
+  const opts=[{text:fmt(correct)+" "+unit,correct:true}]
+    .concat(ds.map(d=>({text:fmt(d)+" "+unit,correct:false})));
+  return shuffle(opts);
+}
+
+/* ---------------- question generators ---------------- */
+
+// 1. interpret x-t segment
+function genInterpXT(){
+  const vels=[];
+  const vset=[-4,-3,-2,0,2,3,4];
+  for(let i=0;i<3;i++){
+    let cands=vset.filter(v=>i===0||v!==vels[i-1]);
+    vels.push(pick(cands));
+  }
+  const g=buildXT(vels);
+  const idx=ri(0,2);
+  const seg=g.segs[idx];
+  const key=seg.v===0?'rest':(seg.v>0?'cv+':'cv-');
+  const pool=[MOTION_LABELS['cv+'],MOTION_LABELS['cv-'],MOTION_LABELS['rest'],
+    MOTION_LABELS['su+'],MOTION_LABELS['sd+']];
+  const dirWord=seg.v>0?"positive":"negative";
+  const expl=seg.v===0
+    ?"The graph is horizontal in the highlighted section, so the position is not changing: the object is at rest. The gradient of an x–t graph is the velocity, and here it is zero."
+    :"The gradient of an x–t graph gives the velocity. In the highlighted section the gradient is constant and "+dirWord+" ("+fmt(seg.v)+" m/s), so the object moves in the "+dirWord+" direction at constant velocity. A straight line can never represent acceleration on an x–t graph.";
+  return {
+    kind:"Interpretation · position–time",
+    prompt:"The position–time graph below shows the motion of an object. Which statement best describes the motion during the highlighted section (t = "+fmt(seg.t0)+" s to t = "+fmt(seg.t1)+" s)?",
+    graph:{kind:'line',yLabel:"x (m)",pts:g.pts,highlight:[seg.t0,seg.t1]},
+    options:textOptions(MOTION_LABELS[key],pool),
+    explanation:expl
+  };
+}
+
+// 2. interpret v-t segment
+function genInterpVT(){
+  const durs=[pick([2,3,4]),pick([2,3,4]),pick([2,3,4])];
+  const vb=randomVBreaks(3);
+  const g=buildVT(vb,durs);
+  const idx=ri(0,2);
+  const seg=g.segs[idx];
+  const key=classifyVT(seg.v0,seg.v1);
+  const pool=Object.values(MOTION_LABELS);
+  let expl;
+  if(key==='rest')expl="The velocity is zero for the whole highlighted section, so the object is at rest.";
+  else if(key==='cv+'||key==='cv-')expl="The velocity is constant at "+fmt(seg.v0)+" m/s over the highlighted section. The sign of the velocity gives the direction of motion.";
+  else{
+    const speeding=(key==='su+'||key==='su-');
+    expl="Over the highlighted section the velocity changes from "+fmt(seg.v0)+" m/s to "+fmt(seg.v1)+" m/s. The magnitude of the velocity (the speed) is "+(speeding?"increasing":"decreasing")+", and the sign of the velocity tells you the object is moving in the "+((seg.v0+seg.v1)>=0?"positive":"negative")+" direction. Speeding up or slowing down depends on whether velocity and acceleration have the same sign, not on the sign of the acceleration alone.";
+  }
+  return {
+    kind:"Interpretation · velocity–time",
+    prompt:"The velocity–time graph below shows the motion of an object. Which statement best describes the motion during the highlighted section (t = "+fmt(seg.t0)+" s to t = "+fmt(seg.t1)+" s)?",
+    graph:{kind:'line',yLabel:"v (m/s)",pts:g.pts,highlight:[seg.t0,seg.t1]},
+    options:textOptions(MOTION_LABELS[key],pool),
+    explanation:expl
+  };
+}
+
+// 3. gradient of x-t = velocity
+function genGradXT(){
+  const vset=[-4,-3,-2,2,3,4];
+  const vels=[];
+  for(let i=0;i<3;i++){
+    let cands=[-4,-3,-2,0,2,3,4].filter(v=>i===0||v!==vels[i-1]);
+    vels.push(pick(cands));
+  }
+  let idx=ri(0,2);
+  if(vels[idx]===0){vels[idx]=pick(vset);}
+  const g=buildXT(vels);
+  const seg=g.segs[idx];
+  const v=seg.v, dx=seg.x1-seg.x0, dt=seg.t1-seg.t0;
+  const expl="Velocity is the gradient of the position–time graph: v = Δx/Δt = ("+fmt(seg.x1)+" − "+fmt(seg.x0)+") m ÷ ("+fmt(seg.t1)+" − "+fmt(seg.t0)+") s = "+fmt(dx)+"/"+fmt(dt)+" = "+fmt(v)+" m/s.";
+  return {
+    kind:"Numerical · gradient of x–t",
+    prompt:"Using the position–time graph below, what is the velocity of the object during the highlighted section (t = "+fmt(seg.t0)+" s to t = "+fmt(seg.t1)+" s)?",
+    graph:{kind:'line',yLabel:"x (m)",pts:g.pts,highlight:[seg.t0,seg.t1]},
+    options:valueOptions(v,[-v,dx,dx/seg.t1,v*2],"m/s"),
+    explanation:expl
+  };
+}
+
+// 4. gradient of v-t = acceleration
+function genGradVT(){
+  const durs=[pick([2,4]),pick([2,4]),pick([2,4])];
+  let vb,g,idx,seg,tries=0;
+  do{
+    vb=randomVBreaks(3);
+    g=buildVT(vb,durs);
+    const sloped=g.segs.map((s,i)=>i).filter(i=>g.segs[i].a!==0);
+    idx=sloped.length?pick(sloped):0;
+    seg=g.segs[idx];
+    tries++;
+  }while(seg.a===0&&tries<20);
+  if(seg.a===0){ // force a slope
+    vb=[0,4,4,0];g=buildVT(vb,durs);idx=0;seg=g.segs[0];
+  }
+  const a=seg.a, dv=seg.v1-seg.v0, dt=seg.t1-seg.t0;
+  const expl="Acceleration is the gradient of the velocity–time graph: a = Δv/Δt = ("+fmt(seg.v1)+" − "+fmt(seg.v0)+") m/s ÷ ("+fmt(seg.t1)+" − "+fmt(seg.t0)+") s = "+fmt(dv)+"/"+fmt(dt)+" = "+fmt(a)+" "+UPS2+".";
+  return {
+    kind:"Numerical · gradient of v–t",
+    prompt:"Using the velocity–time graph below, what is the acceleration of the object during the highlighted section (t = "+fmt(seg.t0)+" s to t = "+fmt(seg.t1)+" s)?",
+    graph:{kind:'line',yLabel:"v (m/s)",pts:g.pts,highlight:[seg.t0,seg.t1]},
+    options:valueOptions(a,[-a,dv,dv/seg.t1,a*2],UPS2),
+    explanation:expl
+  };
+}
+
+// 5. area under v-t = displacement / distance
+function genAreaVT(){
+  const durs=[pick([2,4]),pick([2,4]),pick([2,4])];
+  const vb=randomVBreaks(3,[-6,-4,-2,0,2,4,6]);
+  const g=buildVT(vb,durs);
+  let disp=0,dist=0;
+  const areaBits=[];
+  for(const s of g.segs){
+    const A=(s.v0+s.v1)/2*(s.t1-s.t0);
+    disp+=A;dist+=Math.abs(A);
+    areaBits.push(fmt(A));
+  }
+  const askDistance=(dist!==Math.abs(disp))&&Math.random()<0.5;
+  const T=g.segs[2].t1;
+  const correct=askDistance?dist:disp;
+  const distractors=askDistance
+    ?[disp,-dist,dist+ (g.segs[0].t1)]
+    :[dist,-disp,disp+(g.segs[0].t1)];
+  const expl=(askDistance
+    ?"Distance is found from the total area between the v–t graph and the time axis, counting every part as positive. "
+    :"Displacement is the signed area under the v–t graph: area above the axis is positive, below is negative. ")
+    +"Segment areas (each a trapezium, ½(v₁+v₂)Δt): "+areaBits.join(" m, ")+" m. "
+    +(askDistance
+      ?"Adding magnitudes gives "+fmt(dist)+" m."
+      :"Adding with signs gives "+fmt(disp)+" m.");
+  return {
+    kind:"Numerical · area under v–t",
+    prompt:"Using the velocity–time graph below, what is the "+(askDistance?"distance travelled":"displacement")+" of the object between t = 0 and t = "+fmt(T)+" s?",
+    graph:{kind:'line',yLabel:"v (m/s)",pts:g.pts,highlight:null},
+    options:valueOptions(correct,distractors,"m"),
+    explanation:expl
+  };
+}
+
+/* ---- matching helpers ---- */
+function stepKey(segs){return segs.map(s=>fmt(s.y)).join("|");}
+function makeStepSpec(vels,durs,yLabel){
+  let t=0;
+  const segs=vels.map((v,i)=>{const t0=t;t+=durs[i];return{t0:t0,t1:t,y:v};});
+  return {kind:'step',yLabel:yLabel,segs:segs};
+}
+function distinctStepVariants(vels,poolSet){
+  // returns 3 distractor level-lists distinct from vels and each other
+  const target=vels.join("|");
+  const out=[];
+  const candidates=[
+    vels.map(v=>-v),
+    shuffle(vels),
+    vels.map(v=>Math.abs(v)===0?pick(poolSet.filter(x=>x!==0)):Math.abs(v)),
+    shuffle(vels).map(v=>-v),
+    vels.map(v=>v===0?pick(poolSet.filter(x=>x!==0)):0)
+  ];
+  const seen=new Set([target]);
+  for(const c of candidates){
+    const k=c.join("|");
+    if(!seen.has(k)){seen.add(k);out.push(c);}
+    if(out.length===3)break;
+  }
+  while(out.length<3){
+    const c=vels.map(()=>pick(poolSet));
+    const k=c.join("|");
+    if(!seen.has(k)){seen.add(k);out.push(c);}
+  }
+  return out;
+}
+
+// 6. match x-t to v-t
+function genMatchXTtoVT(){
+  const vset=[-4,-2,0,2,4];
+  let vels;
+  do{
+    vels=[pick(vset),pick(vset),pick(vset)];
+  }while(vels[0]===vels[1]||vels[1]===vels[2]);
+  const durs=[3,3,3];
+  const g=buildXT(vels,durs);
+  const correctSpec=makeStepSpec(vels,durs,"v (m/s)");
+  const distractorLists=distinctStepVariants(vels,vset);
+  const opts=shuffle(
+    [{graph:correctSpec,correct:true}]
+    .concat(distractorLists.map(l=>({graph:makeStepSpec(l,durs,"v (m/s)"),correct:false})))
+  );
+  return {
+    kind:"Graph matching · x–t → v–t",
+    prompt:"The position–time graph below shows the motion of an object. Which velocity–time graph matches this motion?",
+    graph:{kind:'line',yLabel:"x (m)",pts:g.pts,highlight:null},
+    options:opts,
+    explanation:"Velocity is the gradient of the x–t graph. Reading the gradients segment by segment: "+vels.map(v=>fmt(v)+" m/s").join(", ")+". The matching v–t graph steps between exactly those values at the same times."
+  };
+}
+
+// 7. match v-t to a-t
+function genMatchVTtoAT(){
+  const durs=[2,4,2];
+  let vb,g,slopes;
+  do{
+    vb=randomVBreaks(3,[-4,0,4,8]);
+    g=buildVT(vb,durs);
+    slopes=g.segs.map(s=>s.a);
+  }while(slopes[0]===slopes[1]&&slopes[1]===slopes[2]);
+  const correctSpec=makeStepSpec(slopes,durs,"a ("+UPS2+")");
+  const slopeSet=[-2,-1,0,1,2];
+  const distractorLists=distinctStepVariants(slopes,slopeSet);
+  const opts=shuffle(
+    [{graph:correctSpec,correct:true}]
+    .concat(distractorLists.map(l=>({graph:makeStepSpec(l,durs,"a ("+UPS2+")"),correct:false})))
+  );
+  return {
+    kind:"Graph matching · v–t → a–t",
+    prompt:"The velocity–time graph below shows the motion of an object. Which acceleration–time graph matches this motion?",
+    graph:{kind:'line',yLabel:"v (m/s)",pts:g.pts,highlight:null},
+    options:opts,
+    explanation:"Acceleration is the gradient of the v–t graph. Reading the gradients segment by segment: "+slopes.map(a=>fmt(a)+" "+UPS2).join(", ")+". The matching a–t graph steps between exactly those values at the same times."
+  };
+}
+
+// 8. description to x-t graph
+const DESC_PATTERNS=[
+  {vels:[3,0,-3],text:"The object moves away from its starting point at a steady speed, remains stationary for a time, then returns to its starting point at the same speed."},
+  {vels:[0,3,0],text:"The object is initially at rest, then moves in the positive direction at constant speed, then stops and remains stationary."},
+  {vels:[-3,0,3],text:"The object moves in the negative direction at constant speed, stops for a time, then moves in the positive direction at constant speed."},
+  {vels:[3,3,0],text:"The object immediately moves in the positive direction at constant speed, then stops in the final section and remains there."},
+  {vels:[-3,-3,0],text:"The object moves in the negative direction at constant speed for two thirds of the time, then stops and remains stationary."},
+  {vels:[1,3,0],text:"The object moves slowly in the positive direction, then continues in the same direction at a faster constant speed, then stops."}
+];
+function genDescToGraph(){
+  const chosen=shuffle(DESC_PATTERNS).slice(0,4);
+  const target=chosen[ri(0,3)];
+  const durs=[3,3,3];
+  const opts=shuffle(chosen.map(p=>({
+    graph:{kind:'line',yLabel:"x (m)",pts:buildXT(p.vels,durs).pts,highlight:null},
+    correct:p===target
+  })));
+  return {
+    kind:"Graph matching · description → x–t",
+    prompt:"Which position–time graph matches this description? “"+target.text+"”",
+    graph:null,
+    options:opts,
+    explanation:"On an x–t graph, the gradient is the velocity: an upward slope means motion in the positive direction, a downward slope motion in the negative direction, and a horizontal line means the object is stationary. Match each phrase of the description to the gradient of each section in turn."
+  };
+}
+
+/* ---------------- quiz engine ---------------- */
+const GENS={
+  interp:[genInterpXT,genInterpVT],
+  numeric:[genGradXT,genGradVT,genAreaVT],
+  match:[genMatchXTtoVT,genMatchVTtoAT,genDescToGraph]
+};
+GENS.all=GENS.interp.concat(GENS.numeric,GENS.match);
+
+const state={mode:"all",streak:0,best:0,correct:0,attempted:0,answered:false,q:null,lastKind:null};
+
+function validQuestion(q){
+  if(!q.options||q.options.length!==4)return false;
+  if(q.options.filter(o=>o.correct).length!==1)return false;
+  const keys=q.options.map(o=>o.text!==undefined?("t:"+o.text):("g:"+stepKey(o.graph.segs||o.graph.pts.map(p=>({y:p.y})))));
+  return new Set(keys).size===4;
+}
+
+function makeQuestion(){
+  for(let i=0;i<40;i++){
+    const gen=pick(GENS[state.mode]);
+    if(GENS[state.mode].length>1&&gen.name===state.lastKind&&Math.random()<0.6)continue;
+    const q=gen();
+    if(validQuestion(q)){state.lastKind=gen.name;return q;}
+  }
+  return genInterpXT(); // safe fallback
+}
+
+const $=id=>document.getElementById(id);
+
+function updateStats(){
+  $("streakVal").textContent=state.streak;
+  $("bestVal").textContent=state.best;
+  $("scoreVal").textContent=state.correct+" / "+state.attempted;
+}
+
+function showQuestion(){
+  state.q=makeQuestion();
+  state.answered=false;
+  $("qmeta").textContent=state.q.kind;
+  $("prompt").textContent=state.q.prompt;
+  const gw=$("graphwrap");
+  gw.innerHTML="";
+  if(state.q.graph)gw.appendChild(renderGraph(state.q.graph));
+  const box=$("options");
+  box.innerHTML="";
+  const graphOpts=state.q.options.some(o=>o.graph);
+  box.classList.toggle("textopts",!graphOpts);
+  state.q.options.forEach((o,i)=>{
+    const b=document.createElement("button");
+    b.className="opt"+(o.graph?" graphopt":"");
+    b.type="button";
+    const key=document.createElement("span");
+    key.className="key";
+    key.textContent=(i+1);
+    b.appendChild(key);
+    if(o.graph){
+      b.appendChild(renderGraph(o.graph,{mini:true}));
+    }else{
+      const s=document.createElement("span");
+      s.textContent=o.text;
+      b.appendChild(s);
+    }
+    b.addEventListener("click",()=>answer(i));
+    box.appendChild(b);
+  });
+  $("feedback").className="feedback";
+  $("nextrow").className="nextrow";
+}
+
+function answer(i){
+  if(state.answered)return;
+  state.answered=true;
+  const q=state.q;
+  const buttons=$("options").querySelectorAll(".opt");
+  buttons.forEach((b,j)=>{
+    b.disabled=true;
+    if(q.options[j].correct)b.classList.add("correct");
+    else if(j===i)b.classList.add("wrong");
+  });
+  const good=q.options[i].correct;
+  state.attempted++;
+  if(good){
+    state.correct++;
+    state.streak++;
+    if(state.streak>state.best)state.best=state.streak;
+  }else{
+    state.streak=0;
+  }
+  updateStats();
+  const fb=$("feedback");
+  fb.className="feedback show "+(good?"good":"bad");
+  $("verdict").textContent=good
+    ?(state.streak>=5?"Correct — streak of "+state.streak+"!":"Correct")
+    :"Not quite";
+  $("expl").textContent=q.explanation;
+  $("nextrow").className="nextrow show";
+  $("nextbtn").focus();
+}
+
+document.addEventListener("keydown",e=>{
+  if(e.key>="1"&&e.key<="4"&&!state.answered){
+    const i=parseInt(e.key,10)-1;
+    if(state.q&&i<state.q.options.length)answer(i);
+  }else if((e.key==="Enter"||e.key===" ")&&state.answered){
+    e.preventDefault();
+    showQuestion();
+  }
+});
+$("nextbtn").addEventListener("click",showQuestion);
+
+$("modes").addEventListener("click",e=>{
+  const chip=e.target.closest(".chip");
+  if(!chip)return;
+  state.mode=chip.dataset.mode;
+  state.lastKind=null;
+  document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("active",c===chip));
+  showQuestion();
+});
+
+// test hook
+window.__quiz={makeQuestion:makeQuestion,validQuestion:validQuestion,GENS:GENS,state:state,answer:answer,next:showQuestion};
+
+updateStats();
+showQuestion();
+</script>
+</body>
+</html>
