@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chemical Change Quiz</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --ink: #1f2933;
+    --muted: #5f6b76;
+    --accent: #1f5fa8;
+    --yes: #1f7a3f;
+    --no: #b3402a;
+    --inc: #8a6d1f;
+    --correct-bg: #e8f5ec;
+    --correct-border: #2e8b57;
+    --wrong-bg: #fbecea;
+    --wrong-border: #c05540;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  .app { width: 100%; max-width: 640px; }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  h1 { font-size: 1.35rem; font-weight: 600; }
+  header p.sub { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+  .stats { display: flex; gap: 10px; }
+  .stat {
+    background: var(--card);
+    border: 1px solid #dde3e8;
+    border-radius: 10px;
+    padding: 8px 14px;
+    text-align: center;
+    min-width: 78px;
+  }
+  .stat .label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .stat .value { font-size: 1.3rem; font-weight: 700; line-height: 1.2; }
+  .stat.streak .value { color: var(--accent); }
+  .card {
+    background: var(--card);
+    border: 1px solid #dde3e8;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(15, 30, 45, 0.06);
+  }
+  .qnum { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .scenario { font-size: 1.08rem; line-height: 1.55; min-height: 84px; }
+  .prompt { margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
+  .answers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 18px; }
+  @media (max-width: 480px) { .answers { grid-template-columns: 1fr; } }
+  button.ans {
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 14px 8px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    color: #fff;
+    transition: transform 0.08s ease, opacity 0.15s ease;
+  }
+  button.ans:hover:not(:disabled) { transform: translateY(-1px); }
+  button.ans:disabled { cursor: default; opacity: 0.55; }
+  button.ans.yes { background: var(--yes); }
+  button.ans.no { background: var(--no); }
+  button.ans.inc { background: var(--inc); }
+  button.ans.picked-correct { opacity: 1; border-color: #14532d; box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.35); }
+  button.ans.picked-wrong { opacity: 1; border-color: #7f1d1d; box-shadow: 0 0 0 3px rgba(192, 85, 64, 0.35); }
+  button.ans.reveal-correct { opacity: 1; border-color: #14532d; }
+  .feedback {
+    margin-top: 18px;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    display: none;
+  }
+  .feedback.correct { display: block; background: var(--correct-bg); border: 1px solid var(--correct-border); }
+  .feedback.wrong { display: block; background: var(--wrong-bg); border: 1px solid var(--wrong-border); }
+  .feedback .verdict { font-weight: 700; margin-bottom: 4px; }
+  .controls { margin-top: 18px; display: flex; justify-content: space-between; align-items: center; }
+  button.next {
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 10px 22px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    visibility: hidden;
+  }
+  button.next.show { visibility: visible; }
+  button.next:hover { background: #17497f; }
+  .accuracy { font-size: 0.82rem; color: var(--muted); }
+  footer { margin-top: 14px; font-size: 0.78rem; color: var(--muted); text-align: center; line-height: 1.5; }
+  .streak-pop { animation: pop 0.25s ease; }
+  @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.25); } 100% { transform: scale(1); } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Chemical or Not?</h1>
+      <p class="sub">Does the observation show a chemical change has occurred?</p>
+    </div>
+    <div class="stats">
+      <div class="stat streak"><div class="label">Streak</div><div class="value" id="streak">0</div></div>
+      <div class="stat"><div class="label">Best</div><div class="value" id="best">0</div></div>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="qnum" id="qnum">Question 1</div>
+    <div class="scenario" id="scenario"></div>
+    <div class="prompt">Has a chemical change definitely occurred?</div>
+    <div class="answers">
+      <button class="ans yes" id="btn-yes" onclick="answer('yes')">Yes</button>
+      <button class="ans no" id="btn-no" onclick="answer('no')">No</button>
+      <button class="ans inc" id="btn-inc" onclick="answer('inc')">Inconclusive</button>
+    </div>
+    <div class="feedback" id="feedback">
+      <div class="verdict" id="verdict"></div>
+      <div id="explanation"></div>
+    </div>
+    <div class="controls">
+      <div class="accuracy" id="accuracy"></div>
+      <button class="next" id="next" onclick="nextQuestion()">Next question &rarr;</button>
+    </div>
+  </div>
+
+  <footer>
+    Yes = the evidence proves a new substance formed &middot; No = only a physical change &middot; Inconclusive = the observation alone cannot decide.<br>
+    Keyboard: <strong>Y</strong> / <strong>N</strong> / <strong>I</strong>, then <strong>Enter</strong> or <strong>Space</strong> for next.
+  </footer>
+</div>
+
+<script>
+// Question bank.
+// answer: 'yes' = definitely chemical, 'no' = physical change only, 'inc' = observation alone is inconclusive.
+const QUESTIONS = [
+  // ---- YES: definite chemical change ----
+  { text: "A shiny iron nail is left outside for weeks and becomes coated in flaky orange-brown rust that cannot be polished back to shiny metal.", answer: "yes",
+    why: "Rust (iron oxide) is a new substance with different properties from iron. The change is not reversible by simple means." },
+  { text: "A piece of magnesium ribbon is held in a Bunsen flame. It burns with a brilliant white light and leaves behind a crumbly white powder.", answer: "yes",
+    why: "Light emission plus a completely new substance (magnesium oxide, a white powder unlike the shiny metal) confirms a chemical change." },
+  { text: "Hydrochloric acid is added to marble chips. The mixture fizzes, and the gas produced turns limewater cloudy.", answer: "yes",
+    why: "The gas was identified as carbon dioxide by the limewater test, so a new substance was definitely produced." },
+  { text: "Two clear colourless solutions are mixed. A bright yellow solid immediately forms and settles, and it cannot be dissolved back by stirring.", answer: "yes",
+    why: "An insoluble precipitate forming from two solutions is a new substance, so a chemical change has occurred." },
+  { text: "A slice of apple left on the bench turns brown. The brown layer stays brown even after rinsing and cooling.", answer: "yes",
+    why: "Enzymatic browning produces new coloured compounds. The colour change is permanent and comes from new substances forming." },
+  { text: "Bread dough containing yeast and sugar is left in a warm place. It slowly inflates with gas even though nothing was boiling or fizzing when mixed.", answer: "yes",
+    why: "Yeast ferments sugar, producing carbon dioxide. The gas is a new substance that was not simply dissolved or trapped beforehand." },
+  { text: "Grey zinc granules are dropped into blue copper sulfate solution. The blue colour fades and a red-brown coating grows on the zinc.", answer: "yes",
+    why: "The colour loss and the new red-brown solid (copper metal) show new substances forming: a displacement reaction." },
+  { text: "A firework explodes with light, heat, sound, and coloured flames, leaving behind smoke and ash that are nothing like the original powder.", answer: "yes",
+    why: "Energy release plus completely new products (smoke, ash, gases) is definitive evidence of chemical change." },
+  { text: "An egg is fried. The clear runny egg white turns white and solid, and no amount of cooling makes it runny again.", answer: "yes",
+    why: "Cooking permanently changes the proteins (denaturation and new bonds). The change is irreversible, indicating new substances." },
+  { text: "Silver-grey sodium is dropped into water. It fizzes violently, skates across the surface, and the water afterwards turns universal indicator purple.", answer: "yes",
+    why: "Gas production plus a confirmed new substance in solution (an alkali, shown by the indicator) proves a chemical change." },
+  { text: "A candle wick burns. The wax near the top disappears over time and soot collects on a glass held above the flame.", answer: "yes",
+    why: "Burning wax produces new substances (carbon dioxide, water vapour, and soot). Combustion is always a chemical change." },
+  { text: "Hydrogen peroxide is poured onto a cut potato. It froths, and a glowing splint held in the froth relights.", answer: "yes",
+    why: "The relighting splint identifies the gas as oxygen, a new substance released by decomposition of hydrogen peroxide." },
+  { text: "Green copper carbonate powder is heated strongly. It turns black, loses mass, and the gas given off turns limewater cloudy.", answer: "yes",
+    why: "A permanent colour change, mass loss, and an identified gas (carbon dioxide) together prove decomposition into new substances." },
+  { text: "Milk left out of the fridge for days smells sour and has formed lumpy curds that do not dissolve when stirred or warmed.", answer: "yes",
+    why: "The new smell and the permanent curds come from new substances (lactic acid and denatured proteins) forming." },
+  { text: "Steel wool is sealed in a jar of moist air on a balance. Over a week it darkens and the reading shows it has gained mass.", answer: "yes",
+    why: "The iron combined with oxygen from the air, gaining mass and forming a new substance (iron oxide)." },
+  { text: "Vinegar is poured onto bicarbonate of soda. It fizzes rapidly, the mixture gets colder, and the collected gas extinguishes a burning splint.", answer: "yes",
+    why: "The gas was tested and behaves like carbon dioxide, confirming a new substance formed. The temperature change supports this." },
+  { text: "A glow stick is snapped. Two liquids inside mix and it begins to glow steadily for hours without being plugged in or heated.", answer: "yes",
+    why: "Light produced from mixing two substances (chemiluminescence) means new substances are forming and releasing energy as light." },
+  { text: "A copper roof that started shiny and orange-brown slowly develops a dull green coating over many years that cannot be wiped off.", answer: "yes",
+    why: "The green patina is a new compound formed as copper reacts with air and moisture, so it is a chemical change." },
+
+  // ---- NO: physical change only ----
+  { text: "An ice cube is left in a warm room and turns into a puddle of water. Putting the puddle in the freezer turns it back into ice.", answer: "no",
+    why: "Melting and freezing are changes of state. The substance is still water throughout, so it is a physical change." },
+  { text: "Table salt is stirred into warm water until it disappears. When the water is left to evaporate, the same salt crystals are recovered.", answer: "no",
+    why: "Dissolving is a physical change. The salt can be recovered unchanged, so no new substance formed." },
+  { text: "A sheet of paper is torn into small pieces.", answer: "no",
+    why: "Tearing changes size and shape only. Every piece is still paper, so it is a physical change." },
+  { text: "A blacksmith hammers a hot iron bar into a flat blade shape, then lets it cool.", answer: "no",
+    why: "Reshaping metal changes its form, not its identity. It is still iron, so the change is physical." },
+  { text: "Water in a kettle boils, producing large amounts of bubbles and steam. The steam condenses back into water droplets on a cold window.", answer: "no",
+    why: "Boiling bubbles are water vapour, not a new gas. The steam condenses back to water, so this is a change of state only." },
+  { text: "Sugar crystals are ground into a fine powder with a mortar and pestle. The powder tastes exactly the same as the crystals.", answer: "no",
+    why: "Grinding reduces particle size only. The substance is still sugar, so it is a physical change." },
+  { text: "Wax from a candle is melted gently in a warm water bath, poured into a star-shaped mould, and sets into a star shape.", answer: "no",
+    why: "Melting and solidifying wax are changes of state and shape. It remains wax, so no chemical change occurred." },
+  { text: "A wet towel hung on a line becomes dry over the afternoon. On a humid day, water droplets later form on the cold metal line.", answer: "no",
+    why: "Evaporation and condensation are changes of state. The water is unchanged as a substance." },
+  { text: "Iron filings are mixed thoroughly with yellow sulfur powder at room temperature, then a magnet is used to pull all the iron filings back out.", answer: "no",
+    why: "Simply mixing (without heating) makes a mixture, not a compound. Both substances are recovered unchanged, so it is physical." },
+  { text: "A balloon is placed in a freezer and shrinks. Back at room temperature it expands to its original size.", answer: "no",
+    why: "The air contracted and expanded with temperature. No new substance formed; it is a reversible physical change." },
+  { text: "Solid air freshener blocks slowly shrink over weeks, and their scent fills the room, but no liquid ever appears.", answer: "no",
+    why: "Sublimation (solid straight to gas) is a change of state. The substance spreading through the air is still the same substance." },
+  { text: "Blue food dye is stirred into a glass of water, turning the whole glass evenly blue.", answer: "no",
+    why: "The colour change here is just mixing and dilution of a coloured substance, not the formation of a new substance." },
+  { text: "A chocolate bar left on a car dashboard turns soft and loses its shape. In the fridge it hardens again and still tastes like chocolate.", answer: "no",
+    why: "Melting and re-solidifying chocolate is a change of state. It remains chocolate, so the change is physical." },
+  { text: "Copper wire is stretched and drawn through a die into a much thinner wire.", answer: "no",
+    why: "Drawing wire changes its dimensions only. It is still copper metal, so it is a physical change." },
+  { text: "Fizzy drink is poured into a glass and bubbles stream out of the liquid, even though the drink was never heated and nothing was added.", answer: "no",
+    why: "The carbon dioxide was already dissolved in the drink under pressure. It is coming out of solution, not being newly made." },
+  { text: "Sand is separated from a sand-and-water mixture by pouring it through filter paper.", answer: "no",
+    why: "Filtration is a separation technique. Both the sand and the water are unchanged substances." },
+
+  // ---- INCONCLUSIVE: the observation alone cannot decide ----
+  { text: "Bubbles appear in a beaker of liquid sitting on a hot plate.", answer: "inc",
+    why: "Bubbles could be a gas being produced by a reaction, or simply the liquid boiling. Without knowing the temperature or testing the gas, you cannot tell." },
+  { text: "A thermometer in a beaker shows the temperature rising after two substances are combined.", answer: "inc",
+    why: "Temperature can rise from an exothermic reaction, but also from physical processes like dissolving (e.g. NaOH in water). The observation alone cannot decide." },
+  { text: "A solid disappears when added to a liquid and stirred.", answer: "inc",
+    why: "The solid may simply have dissolved (physical), or it may have reacted with the liquid. You would need to try recovering it or test the products." },
+  { text: "A liquid in an open dish has completely disappeared by the next morning.", answer: "inc",
+    why: "It may have evaporated (physical), or it could have reacted or decomposed. Without more information you cannot tell which." },
+  { text: "A student mixes two substances and notices the mixture changes colour slightly.", answer: "inc",
+    why: "Colour change can signal a new substance, but it can also come from simple mixing or dilution of coloured substances. Alone, it is not proof." },
+  { text: "Two solutions are mixed and the beaker feels colder afterwards.", answer: "inc",
+    why: "Endothermic reactions absorb heat, but so do some physical processes, like dissolving ammonium nitrate or ice melting. Temperature change alone is not proof." },
+  { text: "A white solid is heated in a test tube and a clear liquid appears near the mouth of the tube.", answer: "inc",
+    why: "The liquid could be the solid melting or water driven off physically (e.g. from a hydrated salt), or a decomposition product. Further tests are needed." },
+  { text: "Smoke or mist is seen rising from a container of liquid.", answer: "inc",
+    why: "White mist can be condensation or evaporation (physical), while smoke can indicate burning (chemical). Without more detail you cannot decide." },
+  { text: "After stirring a powder into water, the mixture looks cloudy.", answer: "inc",
+    why: "Cloudiness could be an insoluble powder in suspension (physical) or a newly formed precipitate (chemical). You would need to know what was mixed." },
+  { text: "A gas is released when a solid is warmed gently.", answer: "inc",
+    why: "The gas could be a trapped or dissolved gas escaping, water vapour, or a genuine decomposition product. The gas would need to be identified." },
+  { text: "A metal object left in a drawer looks duller than it did a year ago.", answer: "inc",
+    why: "It might be tarnish (a chemical change) or just a layer of dust and fingerprints (physical). Cleaning it or examining the surface would tell you more." },
+  { text: "A student reports that a mixture 'looks different' after heating but recorded no other observations.", answer: "inc",
+    why: "'Looks different' is not specific evidence. Without details (colour, state, gas tests, mass), no conclusion can be drawn." },
+  { text: "A sealed packet of powder feels warm after being squeezed and shaken.", answer: "inc",
+    why: "Heat packs can work chemically (iron oxidising) or physically (crystallisation of a supersaturated solution). Warmth alone cannot distinguish them." },
+  { text: "The mass of an open beaker's contents has decreased after an experiment.", answer: "inc",
+    why: "Mass loss could mean a gas escaped from a reaction, or simply that liquid evaporated. In an open container, mass change alone is not conclusive." },
+  { text: "A liquid changes from colourless to pale yellow after standing in sunlight for a week.", answer: "inc",
+    why: "Light can drive chemical decomposition, but the colour could also come from dissolved dust or impurities. The observation needs follow-up tests." },
+  { text: "A strong smell is noticed when two liquids are poured together.", answer: "inc",
+    why: "A new smell can indicate a new substance, but the smell might belong to one of the original liquids now evaporating faster. Not conclusive on its own." }
+];
+
+// State (in-memory only)
+let order = [];
+let orderPos = 0;
+let qCount = 0;
+let streak = 0;
+let best = 0;
+let correctTotal = 0;
+let answeredTotal = 0;
+let current = null;
+let locked = false;
+
+const LABELS = { yes: "Yes", no: "No", inc: "Inconclusive" };
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function reshuffle() {
+  const prev = current;
+  order = shuffle(QUESTIONS.map((_, i) => i));
+  // Avoid immediate repeat across reshuffle boundary
+  if (prev && QUESTIONS[order[0]] === prev && order.length > 1) {
+    [order[0], order[1]] = [order[1], order[0]];
+  }
+  orderPos = 0;
+}
+
+function nextQuestion() {
+  if (orderPos >= order.length) reshuffle();
+  current = QUESTIONS[order[orderPos++]];
+  qCount++;
+  locked = false;
+
+  document.getElementById("qnum").textContent = "Question " + qCount;
+  document.getElementById("scenario").textContent = current.text;
+  const fb = document.getElementById("feedback");
+  fb.className = "feedback";
+  document.getElementById("next").classList.remove("show");
+
+  ["yes", "no", "inc"].forEach(k => {
+    const b = document.getElementById("btn-" + k);
+    b.disabled = false;
+    b.classList.remove("picked-correct", "picked-wrong", "reveal-correct");
+  });
+}
+
+function answer(choice) {
+  if (locked || !current) return;
+  locked = true;
+  answeredTotal++;
+
+  const correct = choice === current.answer;
+  const pickedBtn = document.getElementById("btn-" + choice);
+  const correctBtn = document.getElementById("btn-" + current.answer);
+
+  ["yes", "no", "inc"].forEach(k => document.getElementById("btn-" + k).disabled = true);
+
+  if (correct) {
+    correctTotal++;
+    streak++;
+    if (streak > best) best = streak;
+    pickedBtn.classList.add("picked-correct");
+  } else {
+    streak = 0;
+    pickedBtn.classList.add("picked-wrong");
+    correctBtn.classList.add("reveal-correct");
+  }
+
+  const streakEl = document.getElementById("streak");
+  streakEl.textContent = streak;
+  streakEl.classList.remove("streak-pop");
+  void streakEl.offsetWidth;
+  streakEl.classList.add("streak-pop");
+  document.getElementById("best").textContent = best;
+
+  const fb = document.getElementById("feedback");
+  fb.className = "feedback " + (correct ? "correct" : "wrong");
+  document.getElementById("verdict").textContent = correct
+    ? "Correct — " + LABELS[current.answer]
+    : "Not quite — the answer is " + LABELS[current.answer];
+  document.getElementById("explanation").textContent = current.why;
+
+  const pct = Math.round((correctTotal / answeredTotal) * 100);
+  document.getElementById("accuracy").textContent = correctTotal + " / " + answeredTotal + " correct (" + pct + "%)";
+
+  document.getElementById("next").classList.add("show");
+}
+
+document.addEventListener("keydown", (e) => {
+  const k = e.key.toLowerCase();
+  if (!locked) {
+    if (k === "y") answer("yes");
+    else if (k === "n") answer("no");
+    else if (k === "i") answer("inc");
+  } else if (k === "enter" || k === " ") {
+    e.preventDefault();
+    nextQuestion();
+  }
+});
+
+nextQuestion();
+</script>
+</body>
+</html>
