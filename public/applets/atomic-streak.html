@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Atomic Streak</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#F2F6F7; --surface:#FFFFFF; --surface2:#E9F0F2; --ink:#17262E; --muted:#5C6E79;
+  --accent:#0E7C86; --accent-ink:#0A5A62; --p1:#0E7C86; --p2:#B45E22;
+  --good:#1B7F4B; --good-bg:#E2F2E9; --bad:#BE3D3D; --bad-bg:#F7E7E7;
+  --streak:#D98A0F; --line:#D8E2E6; --focus:#0E7C86;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F171C; --surface:#182229; --surface2:#1F2C34; --ink:#E7EEF1; --muted:#92A5AF;
+    --accent:#46B8C2; --accent-ink:#7BD0D8; --p1:#46B8C2; --p2:#D98A50;
+    --good:#46BE7D; --good-bg:#173226; --bad:#E26B6B; --bad-bg:#361E1E;
+    --streak:#F0A937; --line:#26343D; --focus:#46B8C2;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F171C; --surface:#182229; --surface2:#1F2C34; --ink:#E7EEF1; --muted:#92A5AF;
+  --accent:#46B8C2; --accent-ink:#7BD0D8; --p1:#46B8C2; --p2:#D98A50;
+  --good:#46BE7D; --good-bg:#173226; --bad:#E26B6B; --bad-bg:#361E1E;
+  --streak:#F0A937; --line:#26343D; --focus:#46B8C2;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Atkinson Hyperlegible", Verdana, sans-serif;
+  font-size:17px; line-height:1.55;
+  min-height:100vh;
+}
+.wrap{max-width:740px; margin:0 auto; padding:20px 16px 56px}
+header{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px}
+.wordmark{font-family:"Bricolage Grotesque", "Trebuchet MS", sans-serif; font-weight:800; font-size:1.9rem; letter-spacing:-0.01em; line-height:1.1}
+.wordmark small{display:block; font-family:"Atkinson Hyperlegible", sans-serif; font-weight:400; font-size:.85rem; color:var(--muted); letter-spacing:0}
+.stats{display:flex; gap:8px}
+.stat{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:6px 12px; text-align:center; min-width:74px}
+.stat .n{font-family:"IBM Plex Mono", monospace; font-weight:600; font-size:1.25rem; font-variant-numeric:tabular-nums; line-height:1.2}
+.stat .l{font-size:.68rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
+.stat.on-fire .n{color:var(--streak)}
+.flame{display:inline-block; vertical-align:-2px; margin-right:2px; opacity:.25}
+.on-fire .flame{opacity:1}
+.topics{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:14px}
+.topics .row{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.topics .hint{font-size:.78rem; color:var(--muted); margin-top:6px}
+.chip{
+  font-family:inherit; font-size:.82rem; padding:5px 11px; border-radius:999px;
+  border:1px solid var(--line); background:var(--surface2); color:var(--ink); cursor:pointer;
+}
+.chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--bg); font-weight:700}
+.chip.mixed[aria-pressed="true"]{background:var(--ink); border-color:var(--ink)}
+.chip:focus-visible, button:focus-visible, input:focus-visible{outline:2px solid var(--focus); outline-offset:2px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:22px 22px 18px}
+.eyebrow{font-size:.72rem; text-transform:uppercase; letter-spacing:.12em; color:var(--accent-ink); font-weight:700; margin-bottom:8px}
+.qtext{font-family:"Bricolage Grotesque", "Trebuchet MS", sans-serif; font-weight:700; font-size:1.28rem; line-height:1.35; text-wrap:balance; margin:0 0 16px}
+.qtext sub{font-size:.7em}
+.diagram{display:flex; justify-content:center; margin:0 0 16px}
+.diagram svg{max-width:100%; height:auto; background:var(--surface2); border-radius:10px}
+.nuclide{display:inline-flex; align-items:center; gap:4px; font-family:"IBM Plex Mono", monospace; background:var(--surface2); border:1px solid var(--line); border-radius:8px; padding:6px 12px; margin:0 4px}
+.nuclide .stack{display:inline-flex; flex-direction:column; text-align:right; font-size:.78em; line-height:1.25; font-variant-numeric:tabular-nums}
+.nuclide .sym{font-size:1.35em; font-weight:600}
+.opts{display:grid; gap:8px; margin-bottom:8px}
+@media(min-width:520px){.opts.cols2{grid-template-columns:1fr 1fr}}
+.opt{
+  font-family:inherit; font-size:1rem; text-align:left; padding:11px 14px; border-radius:10px;
+  border:1px solid var(--line); background:var(--surface2); color:var(--ink); cursor:pointer; line-height:1.4;
+}
+.opt .key{font-family:"IBM Plex Mono", monospace; font-size:.75rem; color:var(--muted); margin-right:8px}
+.opt:not(:disabled):hover{border-color:var(--accent)}
+.opt.correct{background:var(--good-bg); border-color:var(--good); color:var(--ink); font-weight:700}
+.opt.wrong{background:var(--bad-bg); border-color:var(--bad)}
+.opt:disabled{cursor:default; opacity:.92}
+.freeform{display:flex; gap:8px; margin-bottom:8px}
+.freeform input{
+  flex:1; font-family:"IBM Plex Mono", monospace; font-size:1.05rem; padding:10px 14px;
+  border-radius:10px; border:1px solid var(--line); background:var(--surface2); color:var(--ink); min-width:0;
+}
+.btn{
+  font-family:"Bricolage Grotesque", "Trebuchet MS", sans-serif; font-weight:700; font-size:.95rem;
+  padding:10px 20px; border-radius:10px; border:none; background:var(--accent); color:var(--bg); cursor:pointer;
+}
+.btn.secondary{background:var(--surface2); color:var(--ink); border:1px solid var(--line)}
+.feedback{border-radius:10px; padding:12px 14px; margin:10px 0 12px; display:none}
+.feedback.show{display:block}
+.feedback.good{background:var(--good-bg); border:1px solid var(--good)}
+.feedback.bad{background:var(--bad-bg); border:1px solid var(--bad)}
+.feedback .verdict{font-family:"Bricolage Grotesque", sans-serif; font-weight:800; margin-bottom:2px}
+.feedback.good .verdict{color:var(--good)}
+.feedback.bad .verdict{color:var(--bad)}
+.feedback .exp{font-size:.93rem}
+.feedback .exp sub{font-size:.7em}
+.cardfoot{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:6px}
+.session{font-size:.8rem; color:var(--muted); font-variant-numeric:tabular-nums}
+.milestone{font-size:.85rem; color:var(--streak); font-weight:700; display:none}
+.milestone.show{display:inline}
+@media (prefers-reduced-motion: no-preference){
+  .card.pop{animation:pop .18s ease-out}
+  @keyframes pop{from{transform:translateY(4px); opacity:.6}to{transform:none; opacity:1}}
+}
+footer{margin-top:16px; font-size:.78rem; color:var(--muted)}
+/* periodic table */
+.ptable{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-top:16px}
+.ptable .head{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap}
+.ptable h2{font-family:"Bricolage Grotesque", "Trebuchet MS", sans-serif; font-weight:700; font-size:1.05rem; margin:0}
+.pt-scroll{overflow-x:auto; margin-top:12px; padding-bottom:4px}
+.pt-grid{display:grid; grid-template-columns:repeat(18, minmax(38px,1fr)); grid-template-rows:repeat(7,auto) 8px auto auto; gap:3px; min-width:740px}
+.pt-tile{border:1px solid var(--line); border-radius:5px; background:var(--surface2); padding:2px 1px 3px; text-align:center; line-height:1.1; min-height:44px; display:flex; flex-direction:column; justify-content:center}
+.pt-tile .z{display:block; font-family:"IBM Plex Mono", monospace; font-size:.5rem; color:var(--muted); font-variant-numeric:tabular-nums}
+.pt-tile .s{display:block; font-weight:700; font-size:.78rem}
+.pt-tile .a{display:block; font-family:"IBM Plex Mono", monospace; font-size:.48rem; color:var(--muted); font-variant-numeric:tabular-nums}
+.pt-tile.core{border:1.5px solid var(--accent)}
+.pt-tile.marker{background:var(--surface); color:var(--muted); font-size:.55rem; font-family:"IBM Plex Mono", monospace}
+.pt-legend{display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; font-size:.75rem; color:var(--muted)}
+.pt-legend .sw{display:inline-block; width:12px; height:12px; border-radius:3px; border:1.5px solid var(--accent); background:var(--surface2); vertical-align:-2px; margin-right:5px}
+.ptable.hidden .pt-scroll, .ptable.hidden .pt-legend{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="wordmark">Atomic Streak
+    <small>Year 8 Chemistry revision, unlimited questions</small>
+  </div>
+  <div class="stats">
+    <div class="stat" id="streakStat">
+      <div class="n"><span class="flame"><svg width="13" height="16" viewBox="0 0 13 16" aria-hidden="true"><path d="M6.5 0C7.5 3 11 4.5 11 9a4.5 4.5 0 0 1-9 0C2 6.5 3.5 5.5 4 3.5 5 4.5 5.5 5.5 5.5 7 6.8 5.8 6.9 2.5 6.5 0Z" fill="var(--streak)"/></svg></span><span id="streakN">0</span></div>
+      <div class="l">Streak</div>
+    </div>
+    <div class="stat"><div class="n" id="bestN">0</div><div class="l">Best</div></div>
+    <div class="stat"><div class="n" id="scoreN">0/0</div><div class="l">Correct</div></div>
+  </div>
+</header>
+
+<div class="topics">
+  <div class="row" id="topicRow">
+    <button class="chip mixed" id="mixedChip" aria-pressed="true">Mixed (all topics)</button>
+  </div>
+  <div class="hint">Mixed draws from every topic. Or pick one or more topics to revise.</div>
+</div>
+
+<div class="card" id="card">
+  <div class="eyebrow" id="eyebrow"></div>
+  <p class="qtext" id="qtext"></p>
+  <div class="diagram" id="diagram" style="display:none"></div>
+  <div class="opts" id="opts"></div>
+  <div class="freeform" id="freeform" style="display:none">
+    <input id="answerInput" autocomplete="off" spellcheck="false" aria-label="Your answer">
+    <button class="btn" id="submitBtn">Check</button>
+  </div>
+  <div class="feedback" id="feedback">
+    <div class="verdict" id="verdict"></div>
+    <div class="exp" id="explanation"></div>
+  </div>
+  <div class="cardfoot">
+    <span class="session" id="sessionInfo"></span>
+    <span class="milestone" id="milestone"></span>
+    <button class="btn" id="nextBtn" style="display:none">Next question</button>
+  </div>
+</div>
+
+<section class="ptable" id="ptSection">
+  <div class="head">
+    <h2>Periodic table reference</h2>
+    <button class="btn secondary" id="ptToggle">Hide periodic table</button>
+  </div>
+  <div class="pt-scroll"><div class="pt-grid" id="ptGrid"></div></div>
+  <div class="pt-legend">
+    <span><span class="sw"></span>First 20 elements (learn these)</span>
+    <span>Tiles show atomic number, symbol, and relative atomic mass. Masses in brackets are for unstable elements.</span>
+  </div>
+</section>
+
+<footer>Covers states of matter, atomic structure, the periodic table, electron shells, elements/compounds/mixtures, chemical formulae, and physical &amp; chemical change. Keyboard: 1-4 to answer, Enter for next.</footer>
+</div>
+
+<script>
+"use strict";
+/* ---------- utilities ---------- */
+const rnd = n => Math.floor(Math.random()*n);
+const pick = a => a[rnd(a.length)];
+function shuffle(a){a=a.slice(); for(let i=a.length-1;i>0;i--){const j=rnd(i+1); [a[i],a[j]]=[a[j],a[i]];} return a;}
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+
+/* ---------- data ---------- */
+const ELEMENTS = [
+ ["Hydrogen","H",1,1,1,1,"non-metal"],["Helium","He",2,4,18,1,"non-metal"],
+ ["Lithium","Li",3,7,1,2,"metal"],["Beryllium","Be",4,9,2,2,"metal"],
+ ["Boron","B",5,11,13,2,"metalloid"],["Carbon","C",6,12,14,2,"non-metal"],
+ ["Nitrogen","N",7,14,15,2,"non-metal"],["Oxygen","O",8,16,16,2,"non-metal"],
+ ["Fluorine","F",9,19,17,2,"non-metal"],["Neon","Ne",10,20,18,2,"non-metal"],
+ ["Sodium","Na",11,23,1,3,"metal"],["Magnesium","Mg",12,24,2,3,"metal"],
+ ["Aluminium","Al",13,27,13,3,"metal"],["Silicon","Si",14,28,14,3,"metalloid"],
+ ["Phosphorus","P",15,31,15,3,"non-metal"],["Sulphur","S",16,32,16,3,"non-metal"],
+ ["Chlorine","Cl",17,35,17,3,"non-metal"],["Argon","Ar",18,40,18,3,"non-metal"],
+ ["Potassium","K",19,39,1,4,"metal"],["Calcium","Ca",20,40,2,4,"metal"],
+].map(e=>({name:e[0],sym:e[1],z:e[2],m:e[3],g:e[4],p:e[5],type:e[6]}));
+
+function config(z){const caps=[2,8,8,2]; const out=[]; let left=z;
+  for(const c of caps){ if(left<=0)break; const put=Math.min(c,left); out.push(put); left-=put;}
+  return out;}
+const cfgStr = z => config(z).join(",");
+
+const FORMULAS = [
+ {html:"H<sub>2</sub>O", name:"water", parts:[["hydrogen",2],["oxygen",1]]},
+ {html:"CO<sub>2</sub>", name:"carbon dioxide", parts:[["carbon",1],["oxygen",2]]},
+ {html:"NH<sub>3</sub>", name:"ammonia", parts:[["nitrogen",1],["hydrogen",3]]},
+ {html:"NaCl", name:"sodium chloride", parts:[["sodium",1],["chlorine",1]]},
+ {html:"CH<sub>4</sub>", name:"methane", parts:[["carbon",1],["hydrogen",4]]},
+ {html:"C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>", name:"glucose", parts:[["carbon",6],["hydrogen",12],["oxygen",6]]},
+ {html:"H<sub>2</sub>SO<sub>4</sub>", name:"sulphuric acid", parts:[["hydrogen",2],["sulphur",1],["oxygen",4]]},
+ {html:"Al<sub>2</sub>O<sub>3</sub>", name:"aluminium oxide", parts:[["aluminium",2],["oxygen",3]]},
+ {html:"NaOH", name:"sodium hydroxide", parts:[["sodium",1],["oxygen",1],["hydrogen",1]]},
+ {html:"CuSO<sub>4</sub>", name:"copper sulphate", parts:[["copper",1],["sulphur",1],["oxygen",4]]},
+ {html:"KCl", name:"potassium chloride", parts:[["potassium",1],["chlorine",1]]},
+ {html:"H<sub>2</sub>O<sub>2</sub>", name:"hydrogen peroxide", parts:[["hydrogen",2],["oxygen",2]]},
+ {html:"MgCl<sub>2</sub>", name:"magnesium chloride", parts:[["magnesium",1],["chlorine",2]]},
+ {html:"O<sub>2</sub>", name:"oxygen gas", parts:[["oxygen",2]]},
+];
+
+function nuclideHTML(m,z,sym){
+  return '<span class="nuclide"><span class="stack"><span>'+m+'</span><span>'+z+'</span></span><span class="sym">'+sym+'</span></span>';
+}
+
+/* ---------- question builders ---------- */
+function mc(topic,q,correct,wrongs,exp,extra){
+  const opts=shuffle([{t:correct,ok:true}].concat(wrongs.map(w=>({t:w,ok:false}))));
+  return Object.assign({topic, sig:q, q, kind:"mc",
+    opts:opts.map(o=>o.t), ans:opts.findIndex(o=>o.ok), exp}, extra||{});
+}
+function numQ(topic,q,answer,exp,extra){
+  return Object.assign({topic, sig:q, q, kind:"input",
+    check:v=>parseInt(v.trim(),10)===answer, ansText:String(answer), exp,
+    placeholder:"number"}, extra||{});
+}
+
+/* ---------- particle diagrams (SVG) ---------- */
+function scatterCells(n){
+  const cells=[]; for(let r=0;r<2;r++)for(let c=0;c<4;c++)cells.push([44+c*60+rnd(14)-7, 42+r*58+rnd(14)-7]);
+  return shuffle(cells).slice(0,n);
+}
+function svgWrap(inner){return '<svg width="280" height="150" viewBox="0 0 280 150" role="img" aria-label="Particle diagram">'+inner+'</svg>';}
+function atomC(x,y,r,col){return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" style="fill:var(--'+col+')" opacity="0.9"/>';}
+function singleAtoms(cells,col){return cells.map(c=>atomC(c[0],c[1],11,col)).join("");}
+function diatomic(cells,col){return cells.map(c=>atomC(c[0]-8,c[1],10,col)+atomC(c[0]+8,c[1],10,col)).join("");}
+function compoundMol(cells,colA,colB){
+  return cells.map(c=>atomC(c[0],c[1],11,colA)+atomC(c[0]-13,c[1]+9,7,colB)+atomC(c[0]+13,c[1]+9,7,colB)).join("");
+}
+const DIAGRAMS = [
+ {kind:"element-atoms", make:()=>svgWrap(singleAtoms(scatterCells(7),"p1")),
+  epm:"Element", pure:true,
+  why:"every particle is the same single type of atom"},
+ {kind:"element-mol", make:()=>svgWrap(diatomic(scatterCells(5),"p1")),
+  epm:"Element", pure:true,
+  why:"the molecules each contain only one type of atom"},
+ {kind:"compound", make:()=>svgWrap(compoundMol(scatterCells(4),"p1","p2")),
+  epm:"Compound", pure:true,
+  why:"every molecule contains two different types of atom bonded together, and all the molecules are identical"},
+ {kind:"mixture-elements", make:()=>{const cells=scatterCells(8);
+   return svgWrap(singleAtoms(cells.slice(0,4),"p1")+singleAtoms(cells.slice(4),"p2"));},
+  epm:"Mixture", pure:false,
+  why:"there are two different substances present and they are not bonded together"},
+ {kind:"mixture-elem-comp", make:()=>{const cells=scatterCells(6);
+   return svgWrap(diatomic(cells.slice(0,3),"p2")+compoundMol(cells.slice(3),"p1","p2"));},
+  epm:"Mixture", pure:false,
+  why:"two different pure substances (an element and a compound) are present but not bonded to each other"},
+];
+
+/* ---------- static banks ---------- */
+const BANKS = {
+states: [
+ ()=>mc("states","In a solid, the particles are&hellip;",
+   "tightly packed and vibrate about a fixed point",
+   ["touching but able to slide over each other","spread far apart and moving freely","not touching and filling the whole container"],
+   "Solid particles are tightly packed together, cannot move past each other, and vibrate about a fixed point."),
+ ()=>mc("states","In a liquid, the particles are&hellip;",
+   "touching each other but able to slide past each other",
+   ["locked in fixed positions","far apart and moving freely through all the space","unable to move at all"],
+   "Liquid particles touch but can slide over one another, which is why liquids flow."),
+ ()=>mc("states","In a gas, the particles are&hellip;",
+   "spread out, not touching, and moving freely through the whole space",
+   ["vibrating about fixed positions","touching and sliding over each other","packed tightly in rows"],
+   "Gas particles move freely, are not touching, and take up the entire space available."),
+ ()=>mc("states","Which state of matter has particles with the most energy?",
+   "Gas",["Solid","Liquid","They all have the same energy"],
+   "Gas particles have the most kinetic energy and move around freely."),
+ ()=>mc("states","Which state of matter cannot be compressed?",
+   "Solid",["Gas","All states compress equally","None of them"],
+   "In a solid the particles are already tightly packed together, so it cannot be compressed."),
+ ()=>mc("states","In which state do particles only vibrate about a fixed point?",
+   "Solid",["Liquid","Gas","Plasma"],
+   "Solid particles are held in place and vibrate about a fixed point."),
+ ()=>mc("states","What happens to the energy of particles when a substance is heated?",
+   "They gain kinetic energy and move more",
+   ["They lose energy and slow down","Nothing changes","They stop vibrating"],
+   "Heating gives particles more kinetic energy, so they move or vibrate faster."),
+],
+atom: [
+ ()=>mc("atom","What charge does a proton have?","Positive (+)",["Negative (−)","No charge","It depends on the element"],
+   "Protons carry a positive charge and sit in the nucleus."),
+ ()=>mc("atom","What charge does an electron have?","Negative (−)",["Positive (+)","No charge","Double positive"],
+   "Electrons carry a negative charge and orbit the nucleus in shells."),
+ ()=>mc("atom","What charge does a neutron have?","No charge (neutral)",["Positive (+)","Negative (−)","Slightly negative"],
+   "Neutrons have no charge: they are neutral, and are found in the nucleus."),
+ ()=>mc("atom","Where are protons and neutrons found in an atom?","In the nucleus",["In the electron shells","Orbiting the nucleus","Spread evenly through the atom"],
+   "The nucleus at the centre of the atom contains the protons and neutrons."),
+ ()=>mc("atom","Where are electrons found in an atom?","In shells around the nucleus",["Inside the nucleus","Between the protons","Attached to the neutrons"],
+   "Electrons exist in shells (energy levels) around the nucleus."),
+ ()=>mc("atom","Atoms are best described as&hellip;","the smallest particles present in all elements",
+   ["large particles found only in metals","particles that only exist in gases","pieces of molecules with a charge"],
+   "Atoms are the building blocks of matter: the smallest particles present in all elements."),
+ ()=>mc("atom","Which two particles have almost all of the atom's mass?","Protons and neutrons",["Electrons and protons","Electrons and neutrons","Electrons only"],
+   "Protons and neutrons in the nucleus account for nearly all the mass; electrons are far lighter."),
+ ()=>mc("atom","How many known elements are there?","118",["92","20","200"],
+   "There are 118 known elements; about 92 occur naturally and the rest are made by scientists."),
+ ()=>mc("atom","Roughly how many elements occur naturally?","About 92",["All 118","About 50","About 110"],
+   "Approximately 92 elements occur naturally; the others are short-lived and made by scientists."),
+ ()=>mc("atom","An element is a substance made from&hellip;","only one type of atom",
+   ["two or more types of atom","atoms and molecules mixed together","particles with no protons"],
+   "Elements are substances made from only one type of atom."),
+],
+changes: [
+ ()=>mc("changes","A physical change is a change where&hellip;","no new substance is produced",
+   ["a new substance is always formed","atoms are destroyed","chemical bonds always break and re-form into new products"],
+   "In a physical change no new substance is produced, and it is often (not always) reversible."),
+ ()=>mc("changes","A chemical change is a change where&hellip;","new substances are formed",
+   ["only the shape changes","the substance changes state","particles spread out"],
+   "In a chemical change the bonds of the reactants are rearranged to form new substances (products)."),
+ ()=>mc("changes","Chemical changes are usually&hellip;","difficult to reverse",
+   ["easy to reverse","only possible in liquids","not real changes"],
+   "Chemical reactions are difficult to reverse, unlike many physical changes."),
+ ()=>mc("changes","What happens to a substance when it expands?","Its particles gain kinetic energy and spread out, so volume increases",
+   ["Its particles get bigger","New particles are created","Its particles disappear"],
+   "When heated, particles gain kinetic energy and spread out, so the substance's volume increases. The particles themselves do not change size."),
+ ()=>mc("changes","What happens when a substance contracts?","Its particles have less kinetic energy and the volume decreases",
+   ["Its particles shrink","A new substance forms","Its mass decreases"],
+   "When cooled, particles have less kinetic energy and move closer together, so the volume decreases."),
+ ()=>mc("changes","If a gas is heated inside a rigid (fixed-size) container, what happens?","The pressure increases",
+   ["The container expands","The gas turns to liquid","Nothing happens"],
+   "In a rigid container the gas cannot expand, so the pressure increases. In a flexible container, the container expands instead."),
+ ()=>mc("changes","Dissolving is best described as&hellip;","a physical change that forms a mixture (a solution)",
+   ["a chemical change forming a new substance","a change of state","a reaction producing gas"],
+   "Dissolving is a physical change. The solute particles spread through the solvent but no new substance forms."),
+ ()=>mc("changes","What is diffusion?","The movement of particles from high concentration to low concentration",
+   ["Particles moving from low to high concentration","A solid dissolving in acid","A chemical reaction between two gases"],
+   "Diffusion is the movement of particles from a high concentration to a low concentration. It happens in liquids and gases without stirring."),
+ ()=>mc("changes","A change of state (e.g. ice melting) is&hellip;","a physical change, because no new substance forms",
+   ["a chemical change, because the substance looks different","a chemical change, because energy is involved","not a change at all"],
+   "Changes of state are physical changes: the substance is still the same, just in a different state."),
+],
+reactions: [
+ ()=>mc("reactions","Which of these is evidence that a chemical reaction has occurred?","A precipitate (insoluble solid) forms in a solution",
+   ["A substance melts","A solid is crushed into powder","Water evaporates"],
+   "Signs of chemical change: colour change, a precipitate forming, gas release, and energy being produced or absorbed."),
+ ()=>mc("reactions","Which of these is NOT evidence of a chemical change?","Ice melting into water",
+   ["A colour change","Gas being released","Heat and light being produced"],
+   "Melting is a change of state, a physical change. The others are indicators of a chemical reaction."),
+ ()=>mc("reactions","In a word equation, the reactants are written&hellip;","on the left of the arrow",
+   ["on the right of the arrow","below the arrow","in brackets"],
+   "Reactants → products: reactants on the left, then the arrow, then the new substances (products) on the right."),
+ ()=>mc("reactions","magnesium + oxygen → ?","magnesium oxide",["magnesium hydroxide","oxygen magnesium","magnesium chloride"],
+   "Burning magnesium in oxygen produces the compound magnesium oxide."),
+ ()=>mc("reactions","magnesium + hydrochloric acid → magnesium chloride + ?","hydrogen",["oxygen","water","carbon dioxide"],
+   "Magnesium reacts with hydrochloric acid to produce magnesium chloride and hydrogen gas."),
+ ()=>mc("reactions","calcium carbonate + hydrochloric acid → calcium chloride + water + ?","carbon dioxide",["hydrogen","oxygen","chlorine"],
+   "This reaction produces calcium chloride, water, and carbon dioxide gas."),
+ ()=>mc("reactions","hydrogen + oxygen → ?","water",["hydrogen peroxide","air","carbon dioxide"],
+   "When hydrogen gas reacts with oxygen, water is made."),
+ ()=>mc("reactions","In photosynthesis: carbon dioxide + water → glucose + ?","oxygen",["nitrogen","carbon","methane"],
+   "Photosynthesis: carbon dioxide + water → glucose + oxygen."),
+ ()=>mc("reactions","iron + water + oxygen → ?","hydrated iron oxide (rust)",["iron chloride","iron hydroxide gas","carbon dioxide"],
+   "Rusting: iron reacts with water and oxygen to form hydrated iron oxide, the flaky substance we call rust."),
+ ()=>mc("reactions","What is corrosion?","A chemical reaction where metals react with substances in the air or water",
+   ["A physical change where metal wears away by rubbing","Metal melting in the sun","A metal dissolving in pure water only"],
+   "Corrosion is a chemical reaction of metals with substances in air or water; it makes metals lose useful properties. Rusting is corrosion of iron."),
+ ()=>mc("reactions","Which conditions make iron rust FASTER?","Near the ocean, where salt speeds up the reaction",
+   ["In a dry desert","At low temperatures","When coated in oil"],
+   "Salt in seawater, certain industrial chemicals, and higher temperatures all speed up rusting."),
+ ()=>mc("reactions","Which of these SLOWS or prevents rusting?","Galvanising (coating the iron with zinc)",
+   ["Keeping the metal warm and wet","Adding salt","Leaving it near the ocean"],
+   "Rusting is prevented by surface coatings (paint, plastic, oil) or galvanising, which coats the iron with zinc. Dry and cold conditions also slow it."),
+ ()=>mc("reactions","What is the rate of a reaction?","A measure of how quickly reactants turn into products",
+   ["The amount of product made","The temperature of the reaction","The number of reactants"],
+   "Rate of reaction = how quickly the reactants turn into the products. Rusting is slow; combustion is fast."),
+ ()=>mc("reactions","A combustion reaction is&hellip;","a fuel reacting with oxygen, releasing heat",
+   ["a metal reacting with water","any reaction that absorbs heat","a solid dissolving quickly"],
+   "Combustion (burning) is a fuel reacting with oxygen to produce heat, usually forming carbon dioxide and water. It is a fast reaction."),
+ ()=>mc("reactions","methane + oxygen → carbon dioxide + ?","water",["hydrogen","soot","methane oxide"],
+   "Combustion of a fossil fuel: fuel + oxygen → carbon dioxide + water."),
+ ()=>mc("reactions","butane + oxygen → ? + water","carbon dioxide",["carbon monoxide only","butane oxide","hydrogen"],
+   "Like other fuels: butane + oxygen → carbon dioxide + water."),
+ ()=>mc("reactions","Which of these are the three main fossil fuels?","Coal, oil and natural gas",
+   ["Coal, wood and sunlight","Oil, uranium and wind","Petrol, diesel and hydrogen"],
+   "The three main fossil fuels are coal, oil and natural gas, formed from the remains of living things over a long time."),
+ ()=>mc("reactions","Compared with rusting, combustion has&hellip;","a much faster rate of reaction",
+   ["a much slower rate of reaction","exactly the same rate","no rate at all"],
+   "Combustion is usually fast; rusting is slow and can take years."),
+],
+metals: [
+ ()=>mc("metals","What does <em>lustre</em> mean?","Shininess",["The ability to be bent into shape","The ability to conduct electricity","The temperature at which a solid melts"],
+   "Lustre means shininess, a typical property of metals."),
+ ()=>mc("metals","What does <em>malleability</em> mean?","The ability to be bent or flattened into different shapes",
+   ["Shininess","The ability to be drawn into a wire","The ability to transfer heat"],
+   "Malleability is the ability of a substance to be bent or flattened into different shapes."),
+ ()=>mc("metals","What does <em>ductility</em> mean?","The ability to be drawn into a wire",
+   ["The ability to be flattened into sheets","Shininess","The ability to melt easily"],
+   "Ductility is the ability of a substance to be drawn into a wire."),
+ ()=>mc("metals","What does <em>conductivity</em> mean?","The ability to transfer electricity or heat",
+   ["The ability to resist electricity","Shininess","The ability to be compressed"],
+   "Conductivity is the ability of a substance to transfer electricity or heat."),
+ ()=>mc("metals","What is a melting point?","The temperature at which a solid becomes a liquid",
+   ["The temperature at which a liquid becomes a gas","The hottest a substance can get","The temperature at which a gas condenses"],
+   "Melting point is the temperature at which a solid melts into a liquid."),
+ ()=>mc("metals","Which set of properties best describes a typical metal?","Shiny, malleable, ductile, good conductor, high melting point",
+   ["Dull, brittle, poor conductor, low melting point","Shiny, brittle, poor conductor","Dull, malleable, good insulator"],
+   "Typical metals are lustrous (shiny), malleable, ductile, conduct electricity and heat, and have high melting points."),
+ ()=>mc("metals","Which set of properties best describes a typical non-metal?","Dull, brittle, poor conductor, low melting point",
+   ["Shiny, malleable, good conductor","Shiny, ductile, high melting point","Magnetic, malleable, good conductor"],
+   "Typical non-metals are dull, brittle (not malleable or ductile), poor conductors, with low melting points."),
+ ()=>mc("metals","Which metal is a liquid at room temperature?","Mercury",["Iron","Sodium","Aluminium"],
+   "Mercury is the metal that is liquid at room temperature."),
+ ()=>mc("metals","Which non-metal is a liquid at room temperature?","Bromine",["Chlorine","Sulphur","Iodine"],
+   "Bromine is the non-metal that is liquid at room temperature."),
+ ()=>mc("metals","Where are metals found on the periodic table?","On the left side and in the centre",
+   ["Only in the top right","Only in the bottom row","Scattered randomly"],
+   "Metals sit on the left and centre of the periodic table; non-metals are on the right; metalloids sit along the zig-zag line between them."),
+ ()=>mc("metals","A metalloid is an element that&hellip;","has some properties of metals and some of non-metals",
+   ["is a mixture of a metal and a non-metal","is always a liquid","conducts nothing at all"],
+   "Metalloids (like boron and silicon) sit between metals and non-metals on the periodic table and share properties of both."),
+],
+classify: [
+ ()=>mc("classify","What is an atom?","The smallest possible piece of any substance; it makes up all matter",
+   ["Two or more particles joined by bonds","A substance made of two elements","A mixture of particles"],
+   "An atom is the smallest possible piece of any substance; atoms make up all matter."),
+ ()=>mc("classify","What is a particle?","A single unit of matter; it could be an atom or a molecule",
+   ["Only a single atom","Only a charged atom","A substance made of two elements"],
+   "A particle is a single unit of matter: it could be an atom or a molecule."),
+ ()=>mc("classify","What is a molecule?","Two or more atoms joined together by bonds",
+   ["A single atom on its own","Any substance that is shiny","Two substances mixed but not bonded"],
+   "A molecule is two or more atoms joined together by bonds, e.g. water (H<sub>2</sub>O) or fluorine (F<sub>2</sub>)."),
+ ()=>mc("classify","What is a compound?","A substance made of two or more different elements joined together by chemical bonds",
+   ["A substance made of one type of atom","Two substances mixed together without bonds","A single atom with extra neutrons"],
+   "A compound contains two or more different elements chemically bonded together, e.g. water or carbon monoxide."),
+ ()=>mc("classify","What is a mixture?","Two or more pure substances that are NOT bonded together",
+   ["Atoms joined by bonds","One type of molecule only","A substance made of one element"],
+   "A mixture is made of two or more pure substances (elements or compounds) that are not bonded together, e.g. salt water, or air."),
+ ()=>mc("classify","What is a pure substance?","A substance made up of only one type of atom, molecule or compound",
+   ["Any substance that looks clean","A substance containing several different particles","Only substances found in nature"],
+   "A pure substance contains only one type of particle, e.g. carbon dioxide, or hydrogen."),
+ ()=>mc("classify","Can a substance be both an element and a molecule?","Yes: some elements exist as molecules, like O<sub>2</sub>",
+   ["No, elements are never molecules","Only metals can","Only compounds are molecules"],
+   "Yes. Elements can exist as single atoms or as molecules; oxygen gas (O<sub>2</sub>) is an element AND a molecule."),
+ ()=>mc("classify","Which of these is a mixture?","Salt water",["Pure water","Carbon dioxide","Oxygen gas"],
+   "Salt water is a mixture of two pure substances (salt and water) that are not bonded together. Air is another example."),
+ ()=>mc("classify","Which of these is a compound?","Carbon monoxide",["Helium","Chlorine gas","Air"],
+   "Carbon monoxide contains two different elements (carbon and oxygen) bonded together, so it is a compound. Air is a mixture."),
+],
+ptable: [
+ ()=>mc("ptable","The periodic table lists the elements in order of&hellip;","atomic number",
+   ["mass number","alphabetical order","the date they were discovered"],
+   "Elements are arranged in order of their atomic number (number of protons)."),
+ ()=>mc("ptable","The vertical columns of the periodic table are called&hellip;","groups",
+   ["periods","rows","shells"],
+   "Vertical columns are groups, numbered 1 to 18."),
+ ()=>mc("ptable","The horizontal rows of the periodic table are called&hellip;","periods",
+   ["groups","columns","families"],
+   "Horizontal rows are periods, numbered 1 to 7."),
+ ()=>mc("ptable","Elements in the same GROUP have&hellip;","the same number of electrons in their outer shell",
+   ["the same number of shells","the same mass number","the same number of neutrons"],
+   "Same group = same number of outer-shell electrons, which gives them similar chemical properties."),
+ ()=>mc("ptable","Elements in the same PERIOD have&hellip;","the same number of electron shells",
+   ["the same number of outer-shell electrons","identical properties","the same atomic number"],
+   "Same period = same number of electron shells."),
+ ()=>mc("ptable","On a periodic table tile, the smaller number above the symbol is&hellip;","the atomic number (number of protons)",
+   ["the mass number","the number of neutrons","the group number"],
+   "The atomic number = the number of protons. The other number is the relative atomic mass, which is similar to the mass number but not always whole."),
+ ()=>mc("ptable","Why is relative atomic mass often not a whole number?","It is an average, so it is only similar to the mass number of the atoms",
+   ["Scientists measure it badly","Atoms can have half protons","It includes the electrons' charge"],
+   "Relative atomic mass is similar to the mass number for atoms of the element but not always a whole number."),
+ ()=>mc("ptable","Elements in the same group have similar&hellip;","chemical properties",
+   ["numbers of neutrons","colours","mass numbers"],
+   "Because they share the same number of outer-shell electrons, elements in a group have similar chemical properties."),
+],
+shells: [
+ ()=>mc("shells","Where do electrons exist in an atom?","In shells around the nucleus",
+   ["Inside the nucleus","Randomly anywhere in the atom","Between protons and neutrons"],
+   "Electrons exist in areas around the nucleus called electron shells, numbered 1, 2, 3… from the nucleus outwards."),
+ ()=>numQ("shells","Using the 2n<sup>2</sup> rule, how many electrons can shell #1 hold?",2,
+   "Shell 1: 2 × 1² = 2 electrons."),
+ ()=>numQ("shells","Using the 2n<sup>2</sup> rule, how many electrons can shell #2 hold?",8,
+   "Shell 2: 2 × 2² = 8 electrons."),
+ ()=>mc("shells","Which shell fills with electrons first?","The shell closest to the nucleus (shell 1)",
+   ["The outermost shell","Shell 2","They all fill at the same time"],
+   "The first shell (closest to the nucleus) fills first, then the second, and so on."),
+ ()=>mc("shells","In a neutral atom, the number of electrons equals&hellip;","the number of protons (the atomic number)",
+   ["the number of neutrons","the mass number","the group number times two"],
+   "Number of electrons = number of protons = atomic number for a neutral atom."),
+],
+numbers: [
+ ()=>mc("numbers","What is the atomic number of an element?","The number of protons in an atom",
+   ["The number of neutrons","The number of protons plus neutrons","The number of shells"],
+   "Atomic number = number of protons. No two elements have the same atomic number."),
+ ()=>mc("numbers","What is the mass number of an atom?","The number of protons plus the number of neutrons",
+   ["The number of protons only","The number of electrons","The weight in grams"],
+   "Mass number = protons + neutrons. So neutrons = mass number − atomic number."),
+ ()=>mc("numbers","Can two different elements have the same atomic number?","No, every element has a unique atomic number",
+   ["Yes, if they have the same mass","Yes, metals often share one","Only in group 18"],
+   "All atoms of an element share the same atomic number, and no two elements share it. (Two elements CAN share a mass number.)"),
+ ()=>mc("numbers","In a nuclide symbol, where is the mass number written?","At the top, before the symbol",
+   ["At the bottom, before the symbol","After the symbol","Underneath the element name"],
+   "Nuclide symbols show the mass number at the top and the atomic number at the bottom, next to the element's symbol."),
+],
+formulae: [
+ ()=>mc("formulae","In a chemical formula, what does a capital letter tell you?","A new element's symbol begins",
+   ["The substance is a metal","The atom is large","The formula is finished"],
+   "Every element symbol begins with a capital letter; a capital letter always means a new element."),
+ ()=>mc("formulae","In a chemical formula, what does the small number after a symbol mean?","How many atoms of that element are present",
+   ["The charge of the atom","The atomic number","How heavy the atom is"],
+   "The subscript number counts the atoms of that element. No number means one atom."),
+ ()=>mc("formulae","If an element's symbol has NO number after it, how many atoms are present?","One",["Zero","Two","It cannot be known"],
+   "No number after a symbol means exactly one atom of that element."),
+],
+};
+
+/* ---------- procedural generators ---------- */
+const GEN = {
+numbers: [
+ ()=>{const e=pick(ELEMENTS);
+   return numQ("numbers",esc(e.name)+" has an atomic number of "+e.z+" and a mass number of "+e.m+". How many <strong>neutrons</strong> does it have?",
+     e.m-e.z,"Neutrons = mass number − atomic number = "+e.m+" − "+e.z+" = "+(e.m-e.z)+".");},
+ ()=>{const e=pick(ELEMENTS);
+   return numQ("numbers",esc(e.name)+" has an atomic number of "+e.z+" and a mass number of "+e.m+". How many <strong>protons</strong> does it have?",
+     e.z,"Number of protons = atomic number = "+e.z+".");},
+ ()=>{const e=pick(ELEMENTS);
+   return numQ("numbers","An atom of "+esc(e.name.toLowerCase())+" has "+e.z+" protons and "+(e.m-e.z)+" neutrons. What is its <strong>mass number</strong>?",
+     e.m,"Mass number = protons + neutrons = "+e.z+" + "+(e.m-e.z)+" = "+e.m+".");},
+ ()=>{const e=pick(ELEMENTS);
+   return numQ("numbers","A neutral atom of "+esc(e.name.toLowerCase())+" has "+e.z+" protons. How many <strong>electrons</strong> does it have?",
+     e.z,"In a neutral atom, electrons = protons = "+e.z+".");},
+ ()=>{const e=pick(ELEMENTS); const what=pick(["protons","neutrons","electrons"]);
+   const ans = what==="neutrons"? e.m-e.z : e.z;
+   const q="Look at this nuclide symbol: "+nuclideHTML(e.m,e.z,e.sym)+" How many <strong>"+what+"</strong> does this atom have?";
+   return numQ("numbers",q,ans,
+     "Top number = mass number ("+e.m+"), bottom = atomic number ("+e.z+"). Protons = "+e.z+", electrons = "+e.z+", neutrons = "+e.m+" − "+e.z+" = "+(e.m-e.z)+".");},
+ ()=>{const e=pick(ELEMENTS);
+   const wrong=shuffle(ELEMENTS.filter(x=>x!==e)).slice(0,3).map(x=>nuclideHTML(x.m,x.z,x.sym));
+   return mc("numbers","An atom of "+esc(e.name.toLowerCase())+" ("+e.sym+") has "+e.z+" protons and "+(e.m-e.z)+" neutrons. Which is its correct nuclide symbol?",
+     nuclideHTML(e.m,e.z,e.sym),wrong,
+     "Mass number ("+e.z+" + "+(e.m-e.z)+" = "+e.m+") goes on top; atomic number ("+e.z+") on the bottom.",{cols2:true});},
+],
+ptable: [
+ ()=>{const e=pick(ELEMENTS);
+   const wrong=shuffle(ELEMENTS.filter(x=>x!==e)).slice(0,3).map(x=>x.sym);
+   return mc("ptable","What is the chemical symbol for <strong>"+esc(e.name.toLowerCase())+"</strong>?",e.sym,wrong,
+     "The symbol for "+e.name.toLowerCase()+" is "+e.sym+".",{cols2:true});},
+ ()=>{const e=pick(ELEMENTS);
+   const wrong=shuffle(ELEMENTS.filter(x=>x!==e)).slice(0,3).map(x=>x.name);
+   return mc("ptable","Which element has the symbol <strong>"+e.sym+"</strong>?",e.name,wrong,
+     e.sym+" is the symbol for "+e.name.toLowerCase()+".",{cols2:true});},
+ ()=>{const e=pick(ELEMENTS);
+   return numQ("ptable","What is the <strong>atomic number</strong> of "+esc(e.name.toLowerCase())+" ("+e.sym+")?",e.z,
+     e.name+" is element number "+e.z+": it has "+e.z+" protons.");},
+ ()=>{const e=pick(ELEMENTS);
+   return numQ("ptable","Which <strong>group</strong> of the periodic table is "+esc(e.name.toLowerCase())+" ("+e.sym+") in?",e.g,
+     e.name+" is in group "+e.g+" (its atoms have "+config(e.z)[config(e.z).length-1]+" outer-shell electron"+(config(e.z)[config(e.z).length-1]===1?"":"s")+").");},
+ ()=>{const e=pick(ELEMENTS);
+   return numQ("ptable","Which <strong>period</strong> of the periodic table is "+esc(e.name.toLowerCase())+" ("+e.sym+") in?",e.p,
+     e.name+" is in period "+e.p+": its atoms have "+e.p+" electron shell"+(e.p===1?"":"s")+".");},
+ ()=>{const e=pick(ELEMENTS);
+   const wrong=shuffle(ELEMENTS.filter(x=>x!==e)).slice(0,3).map(x=>x.name);
+   return mc("ptable","Element who am I? <em>“I am in period "+e.p+", group "+e.g+".”</em>",e.name,wrong,
+     "Period "+e.p+" (row) and group "+e.g+" (column) locate "+e.name.toLowerCase()+" on the periodic table.",{cols2:true});},
+ ()=>{const e=pick(ELEMENTS);
+   const wrong=shuffle(ELEMENTS.filter(x=>x!==e)).slice(0,3).map(x=>x.name);
+   return mc("ptable","Element who am I? <em>“I have "+e.z+" electrons.”</em>",e.name,wrong,
+     "A neutral atom with "+e.z+" electrons has "+e.z+" protons, so its atomic number is "+e.z+". That is "+e.name.toLowerCase()+".",{cols2:true});},
+],
+shells: [
+ ()=>{const e=pick(ELEMENTS.filter(x=>x.z>=3));
+   const ans=cfgStr(e.z);
+   return {topic:"shells", sig:"cfg"+e.z,
+     q:"Write the electron shell configuration for an atom of <strong>"+esc(e.name.toLowerCase())+"</strong> (atomic number "+e.z+"). Use commas, e.g. 2,8,1",
+     kind:"input", placeholder:"e.g. 2,8,1",
+     check:v=>v.replace(/[\s.]/g,"").replace(/;/g,",")===ans,
+     ansText:ans,
+     exp:e.name+" has "+e.z+" electrons. Shells fill from the nucleus outwards (2, then 8, then 8…), giving "+ans+"."};},
+ ()=>{const e=pick(ELEMENTS.filter(x=>x.z>=3));
+   const c=config(e.z);
+   return numQ("shells","How many electrons are in the <strong>outer shell</strong> of a "+esc(e.name.toLowerCase())+" atom (electron configuration "+c.join(",")+")?",
+     c[c.length-1],"The last number in the configuration "+c.join(",")+" is the outer shell: "+c[c.length-1]+" electron"+(c[c.length-1]===1?"":"s")+".");},
+ ()=>{const e=pick(ELEMENTS.filter(x=>x.z>=2));
+   const wrong=shuffle(ELEMENTS.filter(x=>x!==e&&x.z>=2)).slice(0,3).map(x=>x.name);
+   return mc("shells","Which element has the electron configuration <strong>"+cfgStr(e.z)+"</strong>?",e.name,wrong,
+     "Adding the shells: "+cfgStr(e.z).replace(/,/g," + ")+" = "+e.z+" electrons, so the atomic number is "+e.z+". That is "+e.name.toLowerCase()+".",{cols2:true});},
+ ()=>{const e=pick(ELEMENTS.filter(x=>x.z>=3));
+   return numQ("shells","How many electron <strong>shells</strong> are occupied in an atom of "+esc(e.name.toLowerCase())+" (atomic number "+e.z+")?",
+     config(e.z).length,"Its configuration is "+cfgStr(e.z)+", which uses "+config(e.z).length+" shells. (That's why it sits in period "+e.p+".)");},
+],
+metals: [
+ ()=>{const e=pick(ELEMENTS);
+   const correct=e.type==="metal"?"Metal":e.type==="metalloid"?"Metalloid":"Non-metal";
+   const opts=["Metal","Non-metal","Metalloid"].filter(o=>o!==correct);
+   return mc("metals","Is <strong>"+esc(e.name.toLowerCase())+"</strong> ("+e.sym+") a metal, non-metal or metalloid?",correct,opts,
+     e.name+" is a "+e.type+"."+(e.type==="metalloid"?" Metalloids like boron and silicon sit on the zig-zag line and have properties of both metals and non-metals.":""));},
+],
+formulae: [
+ ()=>{const f=pick(FORMULAS); const part=pick(f.parts);
+   return numQ("formulae","How many atoms of <strong>"+part[0]+"</strong> are in "+f.html+" ("+f.name+")?",part[1],
+     "In "+f.html+": "+f.parts.map(p=>p[1]+" × "+p[0]).join(", ")+". No number after a symbol means one atom.");},
+ ()=>{const f=pick(FORMULAS.filter(x=>x.parts.length>1));
+   const total=f.parts.reduce((s,p)=>s+p[1],0);
+   return numQ("formulae","How many atoms are there <strong>in total</strong> in one particle of "+f.html+" ("+f.name+")?",total,
+     f.parts.map(p=>p[1]+" "+p[0]).join(" + ")+" = "+total+" atoms.");},
+ ()=>{const f=pick(FORMULAS.filter(x=>x.parts.length>1));
+   const g=(a,b)=>b?g(b,a%b):a;
+   const div=f.parts.reduce((s,p)=>g(s,p[1]),f.parts[0][1]);
+   const ratio=f.parts.map(p=>p[1]/div).join(":");
+   const names=f.parts.map(p=>p[0]).join(" : ");
+   const wrongSet=new Set();
+   const revRatio=f.parts.map(p=>p[1]/div).reverse().join(":");
+   const raw=f.parts.map(p=>p[1]).join(":");
+   if(revRatio!==ratio)wrongSet.add(revRatio);
+   if(raw!==ratio)wrongSet.add(raw);
+   wrongSet.add(f.parts.map(()=>1).join(":")===ratio ? f.parts.map((p,i)=>i+1).join(":") : f.parts.map(()=>1).join(":"));
+   const wrongs=[...wrongSet].filter(w=>w!==ratio).slice(0,3);
+   while(wrongs.length<2){const cand=f.parts.map(p=>p[1]/div+rnd(2)+1).join(":"); if(cand!==ratio&&!wrongs.includes(cand))wrongs.push(cand);}
+   return mc("formulae","What is the ratio of elements ("+names+") in "+f.html+" ("+f.name+")?",ratio,wrongs,
+     "Counting atoms in "+f.html+": "+f.parts.map(p=>p[0]+" = "+p[1]).join(", ")+", which simplifies to "+ratio+".",{cols2:true});},
+ ()=>{const f=pick(FORMULAS.filter(x=>x.parts.length>1));
+   return numQ("formulae","How many different <strong>elements</strong> are present in "+f.html+" ("+f.name+")?",f.parts.length,
+     "Each capital letter starts a new element symbol. "+f.html+" contains "+f.parts.map(p=>p[0]).join(", ")+": "+f.parts.length+" elements.");},
+],
+classify: [
+ ()=>{const d=pick(DIAGRAMS);
+   return mc("classify","Is this an element, a compound or a mixture?",d.epm,
+     ["Element","Compound","Mixture"].filter(o=>o!==d.epm),
+     "It is a "+d.epm.toLowerCase()+" because "+d.why+".",{svg:d.make(), sig:"epm-"+d.kind});},
+ ()=>{const d=pick(DIAGRAMS);
+   const correct=d.pure?"Pure substance":"Mixture";
+   return mc("classify","Is this a pure substance or a mixture?",correct,
+     [d.pure?"Mixture":"Pure substance"],
+     "It is a "+correct.toLowerCase()+" because "+d.why+".",{svg:d.make(), sig:"pure-"+d.kind});},
+ ()=>{const isAtom=rnd(2)===0;
+   const svg=isAtom
+     ? svgWrap(atomC(140,75,16,"p1"))
+     : svgWrap(pick([
+         atomC(124,75,14,"p1")+atomC(156,75,14,"p1"),
+         atomC(140,68,14,"p1")+atomC(122,86,10,"p2")+atomC(158,86,10,"p2")
+       ]));
+   return mc("classify","Is this single particle an atom or a molecule?",
+     isAtom?"Atom":"Molecule",[isAtom?"Molecule":"Atom"],
+     isAtom?"It is one particle on its own with no bonds: an atom, the smallest possible piece of matter."
+           :"It is two or more atoms joined together by bonds: a molecule.",
+     {svg, sig:"am-"+(isAtom?"a":"m")+rnd(2)});},
+],
+};
+
+/* ---------- topics ---------- */
+const TOPICS = [
+ {id:"states", label:"States of matter"},
+ {id:"atom", label:"Atomic structure"},
+ {id:"numbers", label:"Atomic & mass number"},
+ {id:"ptable", label:"Periodic table"},
+ {id:"shells", label:"Electron shells"},
+ {id:"metals", label:"Metals & non-metals"},
+ {id:"classify", label:"Elements, compounds & mixtures"},
+ {id:"formulae", label:"Chemical formulae"},
+ {id:"changes", label:"Physical & chemical change"},
+ {id:"reactions", label:"Reactions & word equations"},
+];
+
+/* physical vs chemical classification generator lives in 'changes' */
+const PC_EXAMPLES = [
+ ["An ice cube melts in the sun","Physical","No new substance forms; it is just a change of state."],
+ ["A puddle of water evaporates","Physical","Evaporating is a change of state; the water is still water."],
+ ["A bicycle changes colour as it rusts","Chemical","Rust (hydrated iron oxide) is a new substance, and the colour change is a clue."],
+ ["Two substances are mixed and together they glow","Chemical","Producing light energy is evidence of a chemical reaction."],
+ ["Salt and pepper are mixed together","Physical","Mixing forms a mixture; both substances are unchanged and could be separated."],
+ ["Chocolate syrup is dissolved in milk","Physical","Dissolving is a physical change; no new substance forms."],
+ ["A marshmallow is toasted over a campfire","Chemical","The browning/burning forms new substances and cannot be undone."],
+ ["A solid is crushed into powder","Physical","Only the size and shape change; it is the same substance."],
+ ["An aluminium can is crushed","Physical","A change of shape is a physical change."],
+ ["A piece of paper is torn in half","Physical","Tearing changes the shape only."],
+ ["An egg is cooked","Chemical","Cooking forms new substances; it cannot be reversed."],
+ ["Wood burns on a campfire","Chemical","Burning (combustion) forms new substances such as carbon dioxide and water."],
+ ["Water boils into steam","Physical","Boiling is a change of state; steam is still water."],
+ ["Sugar dissolves in tea","Physical","Dissolving makes a solution (a mixture); the sugar is unchanged."],
+ ["A metal bridge expands on a hot day","Physical","Expansion is a physical change; the particles spread out but stay the same."],
+ ["Milk goes sour","Chemical","New substances with a different taste and smell have formed."],
+ ["A cake bakes in the oven","Chemical","Baking causes reactions that form new substances; you cannot un-bake a cake."],
+ ["Air freshener spreads across a room","Physical","That is diffusion: particles moving from high to low concentration."],
+ ["Juice is frozen into ice blocks","Physical","Freezing is a change of state."],
+ ["Iron filings and sand are stirred together","Physical","Stirring makes a mixture; a magnet could separate them again."],
+];
+GEN.changes = [
+ ()=>{const x=pick(PC_EXAMPLES);
+   return mc("changes","Physical or chemical change? <em>"+esc(x[0])+"</em>",x[1],
+     [x[1]==="Physical"?"Chemical":"Physical"],x[2]);},
+];
+GEN.states=[]; GEN.atom=[]; GEN.numbers=GEN.numbers; GEN.reactions=[];
+
+/* ---------- engine ---------- */
+const $=id=>document.getElementById(id);
+let enabled=new Set(TOPICS.map(t=>t.id));
+let mixed=true;
+let streak=0, best=0, answered=0, correctCount=0;
+let current=null, awaiting=false;
+const recent=[];
+
+function loadState(){
+  try{
+    const s=JSON.parse(localStorage.getItem("atomicStreak")||"{}");
+    if(typeof s.best==="number") best=s.best;
+    if(Array.isArray(s.topics)&&s.topics.length){ enabled=new Set(s.topics.filter(t=>TOPICS.some(x=>x.id===t))); mixed=!!s.mixed; }
+    if(s.mixed!==false){ mixed=true; enabled=new Set(TOPICS.map(t=>t.id)); }
+    if(s.ptable===false) ptShown=false;
+  }catch(e){}
+  if(!enabled.size){ mixed=true; enabled=new Set(TOPICS.map(t=>t.id)); }
+}
+function saveState(){
+  try{ localStorage.setItem("atomicStreak", JSON.stringify({best, mixed, topics:[...enabled], ptable:ptShown})); }catch(e){}
+}
+
+function makeQuestion(){
+  for(let attempt=0; attempt<25; attempt++){
+    const topic=pick([...enabled]);
+    const gens=(GEN[topic]||[]).concat(BANKS[topic]||[]);
+    if(!gens.length) continue;
+    const q=pick(gens)();
+    if(recent.includes(q.sig) && attempt<20) continue;
+    recent.push(q.sig); if(recent.length>10) recent.shift();
+    return q;
+  }
+  return pick(BANKS.atom)();
+}
+
+function topicLabel(id){const t=TOPICS.find(t=>t.id===id); return t?t.label:id;}
+
+function render(){
+  current=makeQuestion(); awaiting=true;
+  $("card").classList.remove("pop"); void $("card").offsetWidth; $("card").classList.add("pop");
+  $("eyebrow").textContent=topicLabel(current.topic);
+  $("qtext").innerHTML=current.q;
+  if(current.svg){ $("diagram").innerHTML=current.svg; $("diagram").style.display="flex"; }
+  else { $("diagram").style.display="none"; $("diagram").innerHTML=""; }
+  $("feedback").className="feedback"; $("nextBtn").style.display="none"; $("milestone").classList.remove("show");
+  const optsEl=$("opts"); optsEl.innerHTML="";
+  if(current.kind==="mc"){
+    $("freeform").style.display="none";
+    optsEl.className="opts"+(current.cols2?" cols2":"");
+    current.opts.forEach((o,i)=>{
+      const b=document.createElement("button");
+      b.className="opt"; b.innerHTML='<span class="key">'+(i+1)+'</span>'+o;
+      b.addEventListener("click",()=>answerMC(i));
+      optsEl.appendChild(b);
+    });
+  } else {
+    $("freeform").style.display="flex";
+    const inp=$("answerInput"); inp.value=""; inp.disabled=false;
+    inp.placeholder=current.placeholder||"";
+    inp.inputMode = (current.placeholder==="number") ? "numeric" : "text";
+    $("submitBtn").disabled=false;
+    inp.focus();
+  }
+  updateStats();
+}
+
+function answerMC(i){
+  if(!awaiting) return;
+  awaiting=false;
+  const btns=[...$("opts").children];
+  btns.forEach(b=>b.disabled=true);
+  const ok=(i===current.ans);
+  btns[current.ans].classList.add("correct");
+  if(!ok) btns[i].classList.add("wrong");
+  finish(ok, current.opts[current.ans]);
+}
+function answerInput(){
+  if(!awaiting) return;
+  const v=$("answerInput").value;
+  if(!v.trim()) return;
+  awaiting=false;
+  $("answerInput").disabled=true; $("submitBtn").disabled=true;
+  finish(current.check(v), current.ansText);
+}
+
+function finish(ok, ansText){
+  answered++;
+  if(ok){ correctCount++; streak++; if(streak>best){best=streak; saveState();} }
+  else streak=0;
+  const fb=$("feedback");
+  fb.className="feedback show "+(ok?"good":"bad");
+  $("verdict").textContent = ok ? pick(["Correct!","Right!","Nice one.","Spot on."])
+    : "Not quite. The answer is: ";
+  if(!ok){
+    const span=document.createElement("span"); span.innerHTML=ansText;
+    span.style.fontFamily='"IBM Plex Mono", monospace'; span.style.fontWeight="600";
+    $("verdict").appendChild(span);
+  }
+  $("explanation").innerHTML=current.exp||"";
+  if(ok && (streak===5||streak===10||streak===20||streak===50)){
+    $("milestone").textContent = streak+" in a row!";
+    $("milestone").classList.add("show");
+  }
+  $("nextBtn").style.display="inline-block";
+  $("nextBtn").focus();
+  updateStats();
+}
+
+function updateStats(){
+  $("streakN").textContent=streak;
+  $("bestN").textContent=best;
+  $("scoreN").textContent=correctCount+"/"+answered;
+  $("streakStat").classList.toggle("on-fire", streak>=3);
+  $("sessionInfo").textContent = answered ? (Math.round(100*correctCount/answered)+"% this session") : "";
+}
+
+/* ---------- topic chips ---------- */
+function buildChips(){
+  const row=$("topicRow");
+  TOPICS.forEach(t=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.textContent=t.label; b.dataset.id=t.id;
+    b.setAttribute("aria-pressed","false");
+    b.addEventListener("click",()=>{
+      if(mixed){ mixed=false; enabled=new Set([t.id]); }
+      else if(enabled.has(t.id)){
+        if(enabled.size>1) enabled.delete(t.id);
+        else { mixed=true; enabled=new Set(TOPICS.map(x=>x.id)); }
+      }
+      else enabled.add(t.id);
+      syncChips(); saveState(); render();
+    });
+    row.appendChild(b);
+  });
+  $("mixedChip").addEventListener("click",()=>{
+    mixed=true; enabled=new Set(TOPICS.map(t=>t.id));
+    syncChips(); saveState(); render();
+  });
+}
+function syncChips(){
+  $("mixedChip").setAttribute("aria-pressed", mixed?"true":"false");
+  [...$("topicRow").querySelectorAll(".chip:not(.mixed)")].forEach(b=>{
+    b.setAttribute("aria-pressed", (!mixed && enabled.has(b.dataset.id))?"true":"false");
+  });
+}
+
+/* ---------- keyboard ---------- */
+document.addEventListener("keydown",e=>{
+  if(e.target===$("answerInput")){
+    if(e.key==="Enter"){ e.preventDefault(); answerInput(); }
+    return;
+  }
+  if(!awaiting && (e.key==="Enter"||e.key===" ") && $("nextBtn").style.display!=="none" && e.target.tagName!=="BUTTON"){
+    e.preventDefault(); render(); return;
+  }
+  if(awaiting && current && current.kind==="mc"){
+    const n=parseInt(e.key,10);
+    if(n>=1 && n<=current.opts.length){ e.preventDefault(); answerMC(n-1); }
+  }
+});
+$("submitBtn").addEventListener("click",answerInput);
+$("nextBtn").addEventListener("click",render);
+
+/* ---------- periodic table reference ---------- */
+const PT_SYMBOLS = ("H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn "+
+ "Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba "+
+ "La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn Fr Ra "+
+ "Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg Bh Hs Mt Ds Rg Cn Nh Fl Mc Lv Ts Og").split(" ");
+const PT_MASSES = ("1.0 4.0 6.9 9.0 10.8 12.0 14.0 16.0 19.0 20.2 23.0 24.3 27.0 28.1 31.0 32.1 35.5 39.9 39.1 40.1 "+
+ "45.0 47.9 50.9 52.0 54.9 55.8 58.9 58.7 63.5 65.4 69.7 72.6 74.9 79.0 79.9 83.8 85.5 87.6 88.9 91.2 "+
+ "92.9 96.0 (98) 101.1 102.9 106.4 107.9 112.4 114.8 118.7 121.8 127.6 126.9 131.3 132.9 137.3 "+
+ "138.9 140.1 140.9 144.2 (145) 150.4 152.0 157.3 158.9 162.5 164.9 167.3 168.9 173.0 175.0 "+
+ "178.5 180.9 183.8 186.2 190.2 192.2 195.1 197.0 200.6 204.4 207.2 209.0 (209) (210) (222) (223) (226) "+
+ "(227) 232.0 231.0 238.0 (237) (244) (243) (247) (247) (251) (252) (257) (258) (259) (266) "+
+ "(267) (268) (269) (270) (269) (278) (281) (282) (285) (286) (289) (290) (293) (294) (294)").split(" ");
+function ptPos(z){
+  if(z===1)return[1,1]; if(z===2)return[18,1];
+  if(z<=4)return[z-2,2]; if(z<=10)return[z+8,2];
+  if(z<=12)return[z-10,3]; if(z<=18)return[z,3];
+  if(z<=36)return[z-18,4];
+  if(z<=54)return[z-36,5];
+  if(z<=56)return[z-54,6];
+  if(z<=71)return[z-57+3,8.5];      /* lanthanides, drawn row 10 */
+  if(z<=86)return[z-68,6];
+  if(z<=88)return[z-86,7];
+  if(z<=103)return[z-89+3,9.5];     /* actinides, drawn row 11 */
+  return [z-100,7];
+}
+function buildPTable(){
+  const grid=$("ptGrid");
+  const cell=(html,cls,col,row)=>{
+    const d=document.createElement("div");
+    d.className=cls; d.innerHTML=html;
+    d.style.gridColumn=col; d.style.gridRow=row;
+    grid.appendChild(d);
+  };
+  cell("57-71","pt-tile marker",3,6); cell("89-103","pt-tile marker",3,7);
+  PT_SYMBOLS.forEach((sym,i)=>{
+    const z=i+1; const [g,p]=ptPos(z);
+    const row = p===8.5 ? 9 : p===9.5 ? 10 : p;
+    const cls = "pt-tile"+(z<=20?" core":"");
+    cell('<span class="z">'+z+'</span><span class="s">'+sym+'</span><span class="a">'+PT_MASSES[i]+'</span>',cls,g,row);
+  });
+}
+let ptShown=true;
+function syncPT(){
+  $("ptSection").classList.toggle("hidden", !ptShown);
+  $("ptToggle").textContent = ptShown ? "Hide periodic table" : "Show periodic table";
+}
+$("ptToggle").addEventListener("click",()=>{ ptShown=!ptShown; syncPT(); saveState(); });
+
+/* ---------- init ---------- */
+loadState();
+buildChips();
+syncChips();
+buildPTable();
+syncPT();
+updateStats();
+render();
+</script>
+</body>
+</html>
