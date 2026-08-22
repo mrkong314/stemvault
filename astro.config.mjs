@@ -6,4 +6,7 @@ export default defineConfig({
   integrations: [sitemap()],
   output: 'static',
   trailingSlash: 'ignore',
+  redirects: {
+    '/tools/vce-motion-grapher': '/tools/vce-physics-grapher',
+  },
 });

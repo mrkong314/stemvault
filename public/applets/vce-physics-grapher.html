@@ -1,5 +1,5 @@
-<!doctype html><html><head><meta charset="utf-8"></head><body><title>VCE Motion Grapher</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!doctype html><html><head><meta charset="utf-8"></head><body><title>VCE Physics Grapher</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
@@ -56,14 +56,20 @@
   --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0}
+html,body{margin:0;padding:0;overscroll-behavior:none;touch-action:manipulation}
 body{
   background:var(--bg);
   color:var(--ink);
   font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif;
-  height:100vh;display:flex;flex-direction:column;overflow:hidden;
+  height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;
 }
 button,input,select,textarea{font:inherit;color:inherit}
+/* iOS zooms when focusing an input smaller than 16px; on touch devices keep
+   every focusable field at 16px so the view never zooms. */
+@media (pointer: coarse){
+  .f input[type=text],.f input[type=number],.f select,
+  input[type=text],input[type=number],select,textarea{font-size:16px}
+}
 :focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-radius:4px}
 
 header{
@@ -222,7 +228,7 @@ table.help td:first-child{font-family:"IBM Plex Mono",monospace;font-size:12px;w
 </style>
 
 <header>
-  <h1>VCE Motion Grapher <span>· exam-style kinematics graphs</span></h1>
+  <h1>VCE Physics Grapher <span>· exam-style kinematics graphs</span></h1>
   <div class="spacer"></div>
   <div class="seg" id="viewSeg" role="group" aria-label="View">
     <button id="viewTeacher" class="on">Teacher</button>
@@ -1466,7 +1472,7 @@ $("importFile").addEventListener("change",()=>{
       }else if(d&&d.axes){                     // bare state object
         const p=makeProject(f.name.replace(/\.json$/i,""),hydrateState(d));
         projects.push(p); activeId=p.id;
-      }else throw new Error("not a Motion Grapher file");
+      }else throw new Error("not a Physics Grapher file");
       state=activeProj().state; syncAll(); toast("Imported into a new tab");
     }catch(e){ toast("Import failed: "+e.message); }
     $("importFile").value="";

@@ -19,9 +19,9 @@ export const TOOLS: Tool[] = [
     href: '/tools/palette-picker',
   },
   {
-    slug: 'vce-motion-grapher',
-    title: 'VCE Motion Grapher',
+    slug: 'vce-physics-grapher',
+    title: 'VCE Physics Grapher',
     description: 'Exam-style kinematics graph builder for VCE Physics. Create x-t, v-t, and a-t graphs with curves, guide lines, and annotations. Export to PNG.',
-    href: '/tools/vce-motion-grapher',
+    href: '/tools/vce-physics-grapher',
   },
 ];
