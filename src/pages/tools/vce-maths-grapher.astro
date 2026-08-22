@@ -1,0 +1,166 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+---
+<BaseLayout title="VCE Maths Grapher · Tools · StemVault" description="Exam-style function graph builder for VCE Maths. Plot curves with intercepts, intersections, asymptotes, tangents, shaded areas and annotations. Export publication-ready PNG graphs.">
+  <div class="tool-shell" id="tool-shell">
+    <div class="tool-bar">
+      <nav class="crumbs">
+        <a href="/tools">Tools</a>
+        <span aria-hidden="true">/</span>
+        <span class="crumb-current">VCE Maths Grapher</span>
+      </nav>
+      <button type="button" class="fs-btn" id="fs-btn" aria-pressed="false">
+        Fullscreen
+      </button>
+    </div>
+
+    <div class="frame-wrap">
+      <iframe
+        src="/applets/vce-maths-grapher.html"
+        title="VCE Maths Grapher"
+        class="grapher-frame"
+        allow="fullscreen; clipboard-write">
+      </iframe>
+    </div>
+  </div>
+</BaseLayout>
+
+<style is:global>
+  /* This page runs the tool edge to edge: no page scroll, no footer. */
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  /* The header stays put on its own: this page never scrolls. */
+  .site-footer { display: none; }
+</style>
+
+<style>
+  .tool-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tool-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 1.1rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .crumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+  }
+  .crumbs a { color: var(--ink-mute); }
+  .crumbs a:hover { color: var(--pine); }
+  .crumb-current { color: var(--ink); }
+
+  .fs-btn {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .fs-btn:hover {
+    border-color: var(--pine);
+    color: var(--pine);
+  }
+
+  .frame-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    background: #fff;
+  }
+
+  /* Native fullscreen. */
+  .tool-shell:fullscreen { background: #fff; }
+
+  /* Fallback for embedded contexts that block the Fullscreen API: fill the
+     window instead, covering the site header. */
+  .tool-shell.faux-fs {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #fff;
+  }
+
+  .grapher-frame {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+</style>
+
+<script>
+  const shell = document.getElementById('tool-shell');
+  const btn = document.getElementById('fs-btn');
+
+  if (shell && btn) {
+    const sync = (on: boolean) => {
+      btn.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+      btn.setAttribute('aria-pressed', String(on));
+    };
+
+    const fauxOn = () => shell.classList.contains('faux-fs');
+    const setFaux = (on: boolean) => {
+      shell.classList.toggle('faux-fs', on);
+      sync(on);
+    };
+
+    btn.addEventListener('click', () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+        return;
+      }
+      if (fauxOn()) {
+        setFaux(false);
+        return;
+      }
+      // Some embedded contexts reject requestFullscreen; fall back to
+      // filling the window so the button always does something.
+      try {
+        const p = shell.requestFullscreen?.();
+        if (p) p.catch(() => setFaux(true));
+        else setFaux(true);
+      } catch {
+        setFaux(true);
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      sync(document.fullscreenElement === shell);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && fauxOn()) setFaux(false);
+    });
+  }
+</script>
