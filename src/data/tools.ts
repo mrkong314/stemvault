@@ -18,4 +18,10 @@ export const TOOLS: Tool[] = [
     description: 'Quick colour picker for teaching materials. Browse the StemVault palette or sample any hex.',
     href: '/tools/palette-picker',
   },
+  {
+    slug: 'vce-motion-grapher',
+    title: 'VCE Motion Grapher',
+    description: 'Exam-style kinematics graph builder for VCE Physics. Create x-t, v-t, and a-t graphs with curves, guide lines, and annotations. Export to PNG.',
+    href: '/tools/vce-motion-grapher',
+  },
 ];
