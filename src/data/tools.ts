@@ -19,6 +19,12 @@ export const TOOLS: Tool[] = [
     href: '/tools/palette-picker',
   },
   {
+    slug: 'vce-electrical-circuit-maker',
+    title: 'VCE Electrical Circuit Maker',
+    description: 'Exam-style circuit diagram builder for VCE Physics. Drag in cells, resistors, lamps, switches, meters and semiconductors, wire them up, and read off the circuit analysis. Export to PNG or SVG.',
+    href: '/tools/vce-electrical-circuit-maker',
+  },
+  {
     slug: 'vce-maths-grapher',
     title: 'VCE Maths Grapher',
     description: 'Exam-style function graph builder for VCE Maths. Plot curves with intercepts, intersections, asymptotes, tangents, and shaded areas. Export to PNG.',
