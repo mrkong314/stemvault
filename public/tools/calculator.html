@@ -898,14 +898,28 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   /* let long unbroken digit/letter runs (e.g. a 30-digit number) wrap too */
   .mq-field .mq-root-block .mq-digit, .mq-field .mq-root-block var,
   .mq-field .mq-root-block .mq-nonSymbola { overflow-wrap: anywhere; }
-  /* ...but NEVER inside a superscript/subscript. The root's overflow-wrap:anywhere
-     is inherited into the (inline-block) supsub and collapses its min-content width
-     to ~1 char; under the flex row (min-width:0) plus sub-pixel rounding at certain
-     zoom levels the exponent then gets squeezed and wraps onto two stacked lines
-     (e.g. 2^{232} renders as "23" over "2"). Keeping scripts non-wrapping stops the
-     collapse so multi-character exponents/subscripts always render on one line. */
+  /* ...but NEVER inside a structured construct. The root's overflow-wrap:anywhere
+     is inherited into inline-block constructs (supsub, fraction numerators and
+     denominators, radicands, sum bounds, matrix cells) and collapses their
+     min-content width to ~1 char; under the flex row (min-width:0) plus sub-pixel
+     rounding at certain zoom levels the content then gets squeezed and wraps onto
+     stacked lines (e.g. 2^{232} renders as "23" over "2", and the same for a long
+     numerator). Keeping these constructs non-wrapping stops the collapse; the
+     root can still wrap the line before or after them. */
   .mq-field .mq-root-block .mq-supsub,
-  .mq-field .mq-root-block .mq-supsub * {
+  .mq-field .mq-root-block .mq-supsub *,
+  .mq-field .mq-root-block .mq-fraction,
+  .mq-field .mq-root-block .mq-fraction *,
+  .mq-field .mq-root-block .mq-sqrt-stem,
+  .mq-field .mq-root-block .mq-sqrt-stem *,
+  .mq-field .mq-root-block .mq-nthroot,
+  .mq-field .mq-root-block .mq-nthroot *,
+  .mq-field .mq-root-block .mq-from,
+  .mq-field .mq-root-block .mq-from *,
+  .mq-field .mq-root-block .mq-to,
+  .mq-field .mq-root-block .mq-to *,
+  .mq-field .mq-root-block .mq-array,
+  .mq-field .mq-root-block .mq-array * {
     overflow-wrap: normal; word-break: normal; white-space: nowrap;
   }
 
@@ -1864,7 +1878,8 @@ const PHYS_CONSTANTS_BASE = {
   c:   3.0e8,      // speed of light (m/s)
   k:   8.99e9,     // Coulomb constant (N m^2 C^-2)
   G:   6.67e-11,   // gravitational constant (N m^2 kg^-2)
-  h:   6.63e-34,   // Planck constant (J s), 3 sf (VCE)
+  h_J:  6.63e-34,  // Planck constant (J s), 3 sf (VCE)
+  h_eV: 4.14e-15,  // Planck constant (eV s), 3 sf (VCE)
   M_E: 5.98e24,    // mass of the Earth (kg), VCE formula sheet
   r_E: 6.37e6      // radius of the Earth (m), VCE formula sheet
 };
@@ -2109,15 +2124,15 @@ const FORMULA_LIST = [
   { name:'f_n = n f_1', cat:'Light and Matter', kw:'standing wave, harmonic, frequency, fundamental, overtone, resonance', latex:'f_{n}=nf_{1}' },
   { name:'n_1 \\sin\\theta_1 = n_2 \\sin\\theta_2', cat:'Light and Matter', kw:'snell, refraction, refractive index, angle of incidence, angle of refraction, bending', latex:'n_{1}\\sin\\theta_{1}=n_{2}\\sin\\theta_{2}' },
   { name:'n_1 v_1 = n_2 v_2', cat:'Light and Matter', kw:'refractive index, wave speed, refraction, media', latex:'n_{1}v_{1}=n_{2}v_{2}' },
-  { name:'E_{k,max} = hf - \\phi', cat:'Light and Matter', kw:'photoelectric, photoelectric effect, max kinetic energy, planck, frequency, work function, phi, photon', latex:'E_{kmax}=hf-\\phi' },
-  { name:'\\phi = h f_0', cat:'Light and Matter', kw:'work function, phi, threshold frequency, cutoff frequency, planck, photoelectric', latex:'\\phi=hf_{0}' },
+  { name:'E_{k,max} = h_J f - \\phi', cat:'Light and Matter', kw:'photoelectric, photoelectric effect, max kinetic energy, planck, frequency, work function, phi, photon', latex:'E_{kmax}=h_{J}f-\\phi' },
+  { name:'\\phi = h_J f_0', cat:'Light and Matter', kw:'work function, phi, threshold frequency, cutoff frequency, planck, photoelectric', latex:'\\phi=h_{J}f_{0}' },
   { name:'eV_0 = E_{k,max}', cat:'Light and Matter', kw:'stopping voltage, stopping potential, photoelectric, photocurrent, max kinetic energy', latex:'eV_{0}=E_{kmax}' },
-  { name:'E = hf', cat:'Light and Matter', kw:'photon energy, planck, frequency, quantum', latex:'E=hf' },
-  { name:'E = hc/\\lambda', cat:'Light and Matter', kw:'photon energy, planck, wavelength, lambda, speed of light, quantum', latex:'E=\\frac{hc}{\\lambda}' },
-  { name:'E_{d} = E_{high} - E_{low} = hf', cat:'Light and Matter', kw:'energy levels, atomic transition, emission, absorption, spectral line, photon, planck, delta', latex:'E_{d}=E_{high}-E_{low}=hf' },
-  { name:'p = h/\\lambda', cat:'Light and Matter', kw:'photon momentum, planck, wavelength, lambda', latex:'p=\\frac{h}{\\lambda}' },
-  { name:'\\lambda = h/p', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, momentum, planck', latex:'\\lambda=\\frac{h}{p}' },
-  { name:'\\lambda = h/\\sqrt{2mE_k}', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, kinetic energy, mass, planck', latex:'\\lambda=\\frac{h}{\\sqrt{2mE_{k}}}' },
+  { name:'E = h_J f', cat:'Light and Matter', kw:'photon energy, planck, frequency, quantum', latex:'E=h_{J}f' },
+  { name:'E = h_J c/\\lambda', cat:'Light and Matter', kw:'photon energy, planck, wavelength, lambda, speed of light, quantum', latex:'E=\\frac{h_{J}c}{\\lambda}' },
+  { name:'E_{d} = E_{high} - E_{low} = h_J f', cat:'Light and Matter', kw:'energy levels, atomic transition, emission, absorption, spectral line, photon, planck, delta', latex:'E_{d}=E_{high}-E_{low}=h_{J}f' },
+  { name:'p = h_J/\\lambda', cat:'Light and Matter', kw:'photon momentum, planck, wavelength, lambda', latex:'p=\\frac{h_{J}}{\\lambda}' },
+  { name:'\\lambda = h_J/p', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, momentum, planck', latex:'\\lambda=\\frac{h_{J}}{p}' },
+  { name:'\\lambda = h_J/\\sqrt{2mE_k}', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, kinetic energy, mass, planck', latex:'\\lambda=\\frac{h_{J}}{\\sqrt{2mE_{k}}}' },
 ];
 
 /* Convert a LaTeX definite integral into an integrate(...) call.
