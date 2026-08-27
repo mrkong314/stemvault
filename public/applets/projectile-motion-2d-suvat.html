@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projectile Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+</head>
+<body>
+<style>
+  :root {
+    --bg: #F4F6F5;
+    --card: #FFFFFF;
+    --ink: #1B2228;
+    --ink-soft: #5A6870;
+    --line: #DCE2E4;
+    --grid: #E4E9EA;
+    --axis: #9AA7AD;
+    --traj: #8A98A0;
+    --traj-done: #313C44;
+    --vx: #0778A8;
+    --vy: #C97A08;
+    --v:  #C0392B;
+    --slider-track: #D5DCDF;
+    --focus: #0778A8;
+    --btn-ink: #FFFFFF;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11161A;
+      --card: #1A2126;
+      --ink: #E9EDEF;
+      --ink-soft: #94A2AA;
+      --line: #2A343B;
+      --grid: #232D33;
+      --axis: #5E6D75;
+      --traj: #5E6D75;
+      --traj-done: #C7D1D6;
+      --vx: #189AAD;
+      --vy: #C58414;
+      --v:  #E8695C;
+      --slider-track: #344047;
+      --focus: #189AAD;
+      --btn-ink: #11161A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11161A;
+    --card: #1A2126;
+    --ink: #E9EDEF;
+    --ink-soft: #94A2AA;
+    --line: #2A343B;
+    --grid: #232D33;
+    --axis: #5E6D75;
+    --traj: #5E6D75;
+    --traj-done: #C7D1D6;
+    --vx: #189AAD;
+    --vy: #C58414;
+    --v:  #E8695C;
+    --slider-track: #344047;
+    --focus: #189AAD;
+    --btn-ink: #11161A;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Archivo', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 16px 20px 28px;
+  }
+  header.top {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  header.top h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+  header.top .sub {
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 292px;
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 780px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .stage { padding: 10px 10px 4px; }
+  #cv {
+    display: block;
+    width: 100%;
+    height: clamp(300px, 46vh, 500px);
+  }
+  @media (max-width: 780px) {
+    #cv { height: 320px; }
+  }
+
+  .timebar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px 14px;
+    border-top: 1px solid var(--line);
+    margin-top: 6px;
+  }
+  .timebar button {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--ink);
+    color: var(--btn-ink);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+  .timebar button:focus-visible,
+  input[type=range]:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .timebar .t-label {
+    flex: none;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 9ch;
+    text-align: right;
+  }
+  .timebar .t-name {
+    flex: none;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 28px;
+    background: transparent;
+    cursor: pointer;
+    margin: 0;
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--slider-track);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--ink);
+    margin-top: -7px;
+    border: none;
+  }
+  input[type=range]::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--slider-track);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--ink);
+    border: none;
+  }
+
+  .panel { padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+  .mode {
+    display: flex;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .mode button {
+    flex: 1;
+    padding: 7px 8px;
+    font-family: inherit;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .mode button.active { background: var(--ink); color: var(--btn-ink); }
+  .mode button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+  .cgroup { display: flex; flex-direction: column; gap: 18px; }
+  .ctrl label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-soft);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .ctrl label .val {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ink);
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  input.num {
+    width: 5.5ch;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 2px 4px;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  input.num::-webkit-outer-spin-button,
+  input.num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input.num:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+  .readouts {
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+  }
+  .readouts .full { grid-column: 1 / -1; }
+  .ro { display: flex; flex-direction: column; gap: 1px; }
+  .ro .k {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ro .k .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .ro .k .sym {
+    text-transform: none;
+    font-style: italic;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+  }
+  .ro .n {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 1.02rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .ro .n .u { font-size: 0.75rem; color: var(--ink-soft); }
+  .c-vx { color: var(--vx); }
+  .c-vy { color: var(--vy); }
+  .c-v  { color: var(--v); }
+
+  .stats {
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .stats .n { font-size: 0.95rem; }
+
+  .graphs { margin-top: 16px; padding: 14px 14px 8px; }
+  .g-head {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 2px 4px 10px;
+  }
+  .g-head .g-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .g-head .legend { display: inline-flex; gap: 14px; }
+  .g-head .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+  .g-head .chip .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .g-head .g-hint { margin-left: auto; font-size: 0.72rem; color: var(--ink-soft); }
+  .g-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 780px) {
+    .g-grid { grid-template-columns: 1fr; }
+  }
+  .g-cell .g-name {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0 4px 4px;
+  }
+  .g-cell canvas {
+    display: block;
+    width: 100%;
+    height: clamp(140px, 20vh, 200px);
+    cursor: ew-resize;
+    touch-action: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Projectile Lab</h1>
+    <span class="sub">no air resistance &middot; g = 9.81 m s<sup>&#8722;2</sup></span>
+  </header>
+
+  <div class="layout">
+    <div class="card">
+      <div class="stage"><canvas id="cv"></canvas></div>
+      <div class="timebar">
+        <button id="play" aria-label="Play">
+          <svg id="icoPlay" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg>
+          <svg id="icoPause" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="display:none"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/></svg>
+        </button>
+        <span class="t-name">Time</span>
+        <input id="tSlider" type="range" min="0" max="1000" value="0" step="1" aria-label="Time">
+        <span class="t-label" id="tOut">0.00 s</span>
+      </div>
+    </div>
+
+    <div class="card panel">
+      <div class="mode">
+        <button id="modeSA" class="active" type="button">Speed &amp; angle</button>
+        <button id="modeXY" type="button">Components</button>
+      </div>
+      <div id="ctrlsSA" class="cgroup">
+        <div class="ctrl">
+          <label for="vSlider">Launch speed <span class="val"><input class="num" id="vNum" type="number" min="1" max="500" step="1" value="20" aria-label="Launch speed in metres per second"> m/s</span></label>
+          <input id="vSlider" type="range" min="5" max="50" value="20" step="1">
+        </div>
+        <div class="ctrl">
+          <label for="aSlider">Launch angle <span class="val"><input class="num" id="aNum" type="number" min="0" max="90" step="1" value="45" aria-label="Launch angle in degrees"> &deg;</span></label>
+          <input id="aSlider" type="range" min="0" max="90" value="45" step="1">
+        </div>
+      </div>
+      <div id="ctrlsXY" class="cgroup" style="display:none">
+        <div class="ctrl">
+          <label for="vxSlider">Horizontal velocity <span class="val"><input class="num" id="vxNum" type="number" min="0" max="500" step="0.1" value="14.1" aria-label="Horizontal velocity in metres per second"> m/s</span></label>
+          <input id="vxSlider" type="range" min="0" max="50" value="14.1" step="0.1">
+        </div>
+        <div class="ctrl">
+          <label for="vySlider">Vertical velocity <span class="val"><input class="num" id="vyNum" type="number" min="0" max="500" step="0.1" value="14.1" aria-label="Vertical velocity in metres per second"> m/s</span></label>
+          <input id="vySlider" type="range" min="0" max="50" value="14.1" step="0.1">
+        </div>
+      </div>
+      <div class="ctrl">
+        <label for="hSlider">Launch height <span class="val"><input class="num" id="hNum" type="number" min="0" max="500" step="1" value="0" aria-label="Launch height in metres"> m</span></label>
+        <input id="hSlider" type="range" min="0" max="50" value="0" step="1">
+      </div>
+
+      <div class="readouts">
+        <div class="ro"><span class="k"><span class="dot" style="background:var(--vx)"></span><span class="sym">v<sub>h</sub></span></span><span class="n c-vx" id="roVx">&ndash;</span></div>
+        <div class="ro"><span class="k"><span class="dot" style="background:var(--vy)"></span><span class="sym">v<sub>v</sub></span></span><span class="n c-vy" id="roVy">&ndash;</span></div>
+        <div class="ro"><span class="k"><span class="dot" style="background:var(--v)"></span><span class="sym">v</span> (resultant)</span><span class="n c-v" id="roV">&ndash;</span></div>
+        <div class="ro"><span class="k">direction</span><span class="n" id="roDir">&ndash;</span></div>
+        <div class="ro"><span class="k">Horizontal position</span><span class="n" id="roX">&ndash;</span></div>
+        <div class="ro"><span class="k">Vertical position</span><span class="n" id="roY">&ndash;</span></div>
+      </div>
+
+      <div class="stats">
+        <div class="ro"><span class="k">Range</span><span class="n" id="stR">&ndash;</span></div>
+        <div class="ro"><span class="k">Max height</span><span class="n" id="stH">&ndash;</span></div>
+        <div class="ro"><span class="k">Flight time</span><span class="n" id="stT">&ndash;</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card graphs">
+    <div class="g-head">
+      <span class="g-title">Motion graphs</span>
+      <span class="legend">
+        <span class="chip"><span class="dot" style="background:var(--vx)"></span>horizontal</span>
+        <span class="chip"><span class="dot" style="background:var(--vy)"></span>vertical</span>
+      </span>
+      <span class="g-hint">drag on a graph to scrub time</span>
+    </div>
+    <div class="g-grid">
+      <div class="g-cell"><span class="g-name">Displacement&ndash;time <span style="color:var(--ink-soft);font-weight:400">(m)</span></span><canvas id="gS"></canvas></div>
+      <div class="g-cell"><span class="g-name">Velocity&ndash;time <span style="color:var(--ink-soft);font-weight:400">(m/s)</span></span><canvas id="gV"></canvas></div>
+      <div class="g-cell"><span class="g-name">Acceleration&ndash;time <span style="color:var(--ink-soft);font-weight:400">(m/s&sup2;)</span></span><canvas id="gA"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var g = 9.81;
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+
+  var vSlider = document.getElementById('vSlider');
+  var aSlider = document.getElementById('aSlider');
+  var tSlider = document.getElementById('tSlider');
+  var playBtn = document.getElementById('play');
+  var icoPlay = document.getElementById('icoPlay');
+  var icoPause = document.getElementById('icoPause');
+
+  var state = { v0: 20, angDeg: 45, h0: 0, frac: 0, playing: false };
+
+  function params() {
+    var th = state.angDeg * Math.PI / 180;
+    var vx = state.v0 * Math.cos(th);
+    var vy0 = state.v0 * Math.sin(th);
+    var T = (vy0 + Math.sqrt(vy0 * vy0 + 2 * g * state.h0)) / g;
+    return {
+      th: th, vx: vx, vy0: vy0, h0: state.h0, T: T,
+      R: vx * T,
+      H: state.h0 + vy0 * vy0 / (2 * g)
+    };
+  }
+
+  function css(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function fmt(n, dp) { return n.toFixed(dp === undefined ? 1 : dp); }
+
+  function niceStep(raw) {
+    var pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    var m = raw / pow;
+    var f = m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10;
+    return f * pow;
+  }
+
+  // draws e.g. "v" with a subscript "x" on a canvas context
+  function subLabel(c, main, sub, x, y, color, align) {
+    var mainFont = '600 12px "IBM Plex Mono", monospace';
+    var subFont = '600 9px "IBM Plex Mono", monospace';
+    c.font = mainFont;
+    var wm = c.measureText(main).width;
+    c.font = subFont;
+    var ws = sub ? c.measureText(sub).width : 0;
+    var x0 = align === 'center' ? x - (wm + ws) / 2 : align === 'right' ? x - wm - ws : x;
+    c.textAlign = 'left';
+    c.textBaseline = 'middle';
+    c.fillStyle = color;
+    c.font = mainFont;
+    c.fillText(main, x0, y);
+    if (sub) { c.font = subFont; c.fillText(sub, x0 + wm + 0.5, y + 4); }
+  }
+
+  function arrow(x1, y1, x2, y2, color, width, dash) {
+    var dx = x2 - x1, dy = y2 - y1;
+    var len = Math.hypot(dx, dy);
+    if (len < 2) return;
+    var ux = dx / len, uy = dy / len;
+    var head = Math.min(10, len * 0.4);
+    var bx = x2 - ux * head, by = y2 - uy * head;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dash || []);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(bx - uy * head * 0.45, by + ux * head * 0.45);
+    ctx.lineTo(bx + uy * head * 0.45, by - ux * head * 0.45);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function draw() {
+    var dpr = window.devicePixelRatio || 1;
+    var w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    var p = params();
+    var t = state.frac * p.T;
+    var px = p.vx * t;
+    var py = p.h0 + p.vy0 * t - 0.5 * g * t * t;
+    if (py < 0) py = 0;
+    var vy = p.vy0 - g * t;
+
+    var padL = 46, padR = 24, padT = 26, padB = 40;
+    var innerW = w - padL - padR, innerH = h - padT - padB;
+    var scale = Math.min(innerW / Math.max(p.R, 1), innerH / Math.max(p.H * 1.12, 1));
+
+    function X(m) { return padL + m * scale; }
+    function Y(m) { return h - padB - m * scale; }
+
+    var cGrid = css('--grid'), cAxis = css('--axis'), cInkSoft = css('--ink-soft');
+    var cTraj = css('--traj'), cDone = css('--traj-done');
+    var cVx = css('--vx'), cVy = css('--vy'), cV = css('--v');
+
+    ctx.font = '11px "IBM Plex Mono", monospace';
+
+    // grid + ticks
+    var step = niceStep(60 / scale);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = cGrid;
+    ctx.fillStyle = cInkSoft;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (var m = 0; m <= p.R + step * 0.51; m += step) {
+      var x = X(m);
+      if (x > w - padR + 1) break;
+      ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, h - padB); ctx.stroke();
+      if (Math.abs(x - X(p.R)) > 20) ctx.fillText(fmt(m, step < 1 ? 1 : 0), x, h - padB + 8);
+    }
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    var maxYm = (h - padB - padT) / scale;
+    for (var my = step; my <= maxYm; my += step) {
+      var yv = Y(my);
+      if (yv < padT - 1) break;
+      ctx.beginPath(); ctx.moveTo(padL, yv); ctx.lineTo(w - padR, yv); ctx.stroke();
+      if (Math.abs(yv - Y(p.H)) > 9) ctx.fillText(fmt(my, step < 1 ? 1 : 0), padL - 7, yv);
+    }
+    // axes
+    ctx.strokeStyle = cAxis;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, h - padB);
+    ctx.lineTo(w - padR, h - padB);
+    ctx.stroke();
+    ctx.fillStyle = cInkSoft;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('m', padL + 4, padT + 12);
+    ctx.textAlign = 'right';
+    ctx.fillText('m', w - padR, h - padB - 5);
+
+    // launch platform
+    if (p.h0 > 0) {
+      ctx.fillStyle = cAxis;
+      ctx.fillRect(padL - 4, Y(p.h0), 4, (h - padB) - Y(p.h0));
+    }
+
+    // max-height marker: dotted line at the apex, value on the axis
+    var tApex = p.vy0 > 0 ? p.vy0 / g : 0;
+    var yApex = Y(p.H);
+    ctx.strokeStyle = cInkSoft;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padL, yApex);
+    ctx.lineTo(X(p.vx * tApex), yApex);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '600 11px "IBM Plex Mono", monospace';
+    ctx.fillStyle = cDone;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(fmt(p.H, 1), padL - 7, yApex);
+
+    // range marker: value on the axis at the landing point
+    var xLand = X(p.R);
+    ctx.fillStyle = cDone;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(fmt(p.R, 1), xLand, h - padB + 8);
+    ctx.font = '11px "IBM Plex Mono", monospace';
+
+    // trajectory: full path dashed, traversed solid
+    function pathTo(fracEnd, N) {
+      ctx.beginPath();
+      for (var i = 0; i <= N; i++) {
+        var tt = (i / N) * fracEnd * p.T;
+        var xx = X(p.vx * tt);
+        var yy = Y(p.h0 + p.vy0 * tt - 0.5 * g * tt * tt);
+        if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+      }
+      ctx.stroke();
+    }
+    ctx.strokeStyle = cTraj;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 5]);
+    pathTo(1, 90);
+    ctx.setLineDash([]);
+    ctx.strokeStyle = cDone;
+    ctx.lineWidth = 2.5;
+    pathTo(state.frac, 90);
+
+    // projectile + vectors
+    var ox = X(px), oy = Y(py);
+    var pxPerMs = Math.min(innerW, innerH) * 0.55 / 50;  // fixed: 50 m/s = 55% of the short side
+    var ax = p.vx * pxPerMs;
+    var ay = vy * pxPerMs;
+
+    // head-to-tail: dotted v_x from the projectile, dotted v_y added at its head,
+    // solid resultant v closes the triangle as the main velocity vector
+    arrow(ox, oy, ox + ax, oy, cVx, 2, [3, 4]);
+    arrow(ox + ax, oy, ox + ax, oy - ay, cVy, 2, [3, 4]);
+    arrow(ox, oy, ox + ax, oy - ay, cV, 3.5);
+
+    // vector labels: v_x sits opposite the resultant, v_y beside its arrow, v off the midpoint
+    if (Math.abs(ax) > 6) subLabel(ctx, 'v', 'h', ox + ax / 2, ay >= 0 ? oy + 12 : oy - 12, cVx, 'center');
+    if (Math.abs(ay) > 6) subLabel(ctx, 'v', 'v', ox + ax + 8, oy - ay / 2, cVy, 'left');
+    var vlen = Math.hypot(ax, ay);
+    if (vlen > 6 && Math.abs(ax) > 6 && Math.abs(ay) > 6) {
+      var ux2 = ax / vlen, uy2 = -ay / vlen;
+      var nx = uy2, ny = -ux2;
+      if (ny > 0) { nx = -nx; ny = -ny; }   // keep the label on the upper side of the resultant
+      subLabel(ctx, 'v', '', ox + ax / 2 + nx * 14, oy - ay / 2 + ny * 14, cV, 'center');
+    }
+
+    // projectile dot
+    ctx.fillStyle = cDone;
+    ctx.beginPath();
+    ctx.arc(ox, oy, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    updateReadouts(p, t, px, py, vy);
+    drawGraphs(p, t);
+  }
+
+  // ---- motion graphs ----
+  var GPAD = { l: 42, r: 12, t: 10, b: 24 };
+  var graphDefs = [
+    { cv: document.getElementById('gS'), series: function (p) { return [
+        { key: 'vx', label: 's', sub: 'h', f: function (tt) { return p.vx * tt; } },
+        { key: 'vy', label: 's', sub: 'v', f: function (tt) { return p.h0 + p.vy0 * tt - 0.5 * g * tt * tt; } }
+      ]; } },
+    { cv: document.getElementById('gV'), series: function (p) { return [
+        { key: 'vx', label: 'v', sub: 'h', f: function ()   { return p.vx; } },
+        { key: 'vy', label: 'v', sub: 'v', f: function (tt) { return p.vy0 - g * tt; } }
+      ]; } },
+    { cv: document.getElementById('gA'), series: function (p) { return [
+        { key: 'vx', label: 'a', sub: 'h', f: function ()   { return 0; } },
+        { key: 'vy', label: 'a', sub: 'v', f: function ()   { return -g; } }
+      ]; } }
+  ];
+
+  function plotGraph(def, p, t) {
+    var cnv = def.cv, gc = cnv.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    var w = cnv.clientWidth, h = cnv.clientHeight;
+    if (cnv.width !== Math.round(w * dpr) || cnv.height !== Math.round(h * dpr)) {
+      cnv.width = Math.round(w * dpr); cnv.height = Math.round(h * dpr);
+    }
+    gc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    gc.clearRect(0, 0, w, h);
+
+    var cCard = css('--card'), cGrid = css('--grid'), cAxis = css('--axis'), cSoft = css('--ink-soft');
+    var innerW = w - GPAD.l - GPAD.r, innerH = h - GPAD.t - GPAD.b;
+    var T = Math.max(p.T, 0.001);
+    var ser = def.series(p);
+    var N = 80;
+
+    // y range across both series, always including 0
+    var ymin = 0, ymax = 0;
+    ser.forEach(function (s) {
+      for (var i = 0; i <= N; i++) {
+        var v = s.f((i / N) * T);
+        if (v < ymin) ymin = v;
+        if (v > ymax) ymax = v;
+      }
+    });
+    if (ymax === ymin) ymax = ymin + 1;
+    var padv = (ymax - ymin) * 0.1;
+    ymax += padv; ymin -= padv;
+
+    function GX(tt) { return GPAD.l + (tt / T) * innerW; }
+    function GY(v)  { return GPAD.t + (ymax - v) / (ymax - ymin) * innerH; }
+
+    gc.font = '10px "IBM Plex Mono", monospace';
+
+    // grid + ticks
+    var ystep = niceStep((ymax - ymin) / Math.max(innerH / 34, 2));
+    var ydp = ystep < 0.1 ? 2 : ystep < 1 ? 1 : 0;
+    gc.strokeStyle = cGrid; gc.lineWidth = 1;
+    gc.fillStyle = cSoft; gc.textAlign = 'right'; gc.textBaseline = 'middle';
+    for (var iy = Math.ceil(ymin / ystep); iy * ystep <= ymax; iy++) {
+      var yy = GY(iy * ystep);
+      gc.beginPath(); gc.moveTo(GPAD.l, yy); gc.lineTo(w - GPAD.r, yy); gc.stroke();
+      gc.fillText(fmt(iy * ystep, ydp), GPAD.l - 5, yy);
+    }
+    var tstep = niceStep(T / Math.max(innerW / 46, 2));
+    var tdp = tstep < 0.1 ? 2 : tstep < 1 ? 1 : 0;
+    gc.textAlign = 'center'; gc.textBaseline = 'top';
+    for (var it = 0; it * tstep <= T * 1.001; it++) {
+      var xx = GX(it * tstep);
+      gc.beginPath(); gc.moveTo(xx, GPAD.t); gc.lineTo(xx, h - GPAD.b); gc.stroke();
+      gc.fillText(fmt(it * tstep, tdp), xx, h - GPAD.b + 5);
+    }
+
+    // zero line + y axis
+    gc.strokeStyle = cAxis; gc.lineWidth = 1.2;
+    var y0 = GY(0);
+    gc.beginPath(); gc.moveTo(GPAD.l, y0); gc.lineTo(w - GPAD.r, y0); gc.stroke();
+    gc.beginPath(); gc.moveTo(GPAD.l, GPAD.t); gc.lineTo(GPAD.l, h - GPAD.b); gc.stroke();
+
+    // curves
+    ser.forEach(function (s) {
+      gc.strokeStyle = css('--' + s.key);
+      gc.lineWidth = 2;
+      gc.beginPath();
+      for (var i = 0; i <= N; i++) {
+        var tt = (i / N) * T;
+        var px2 = GX(tt), py2 = GY(s.f(tt));
+        if (i === 0) gc.moveTo(px2, py2); else gc.lineTo(px2, py2);
+      }
+      gc.stroke();
+    });
+
+    // direct labels at curve ends, pushed apart if they collide
+    var lab = ser.map(function (s) { return { s: s, y: GY(s.f(T)) - 9 }; });
+    if (Math.abs(lab[0].y - lab[1].y) < 13) {
+      var mid = (lab[0].y + lab[1].y) / 2;
+      lab[0].y = mid - 7; lab[1].y = mid + 7;
+    }
+    lab.forEach(function (L) {
+      subLabel(gc, L.s.label, L.s.sub, w - GPAD.r - 3,
+        Math.max(GPAD.t + 7, Math.min(h - GPAD.b - 7, L.y)),
+        css('--' + L.s.key), 'right');
+    });
+
+    // time cursor + markers
+    var tc = Math.min(t, T);
+    var xc = GX(tc);
+    gc.strokeStyle = cSoft; gc.lineWidth = 1; gc.setLineDash([3, 4]);
+    gc.beginPath(); gc.moveTo(xc, GPAD.t); gc.lineTo(xc, h - GPAD.b); gc.stroke();
+    gc.setLineDash([]);
+    ser.forEach(function (s) {
+      var yy = GY(s.f(tc));
+      gc.beginPath(); gc.arc(xc, yy, 5, 0, Math.PI * 2);
+      gc.fillStyle = css('--' + s.key); gc.fill();
+      gc.lineWidth = 2; gc.strokeStyle = cCard; gc.stroke();
+    });
+  }
+
+  function drawGraphs(p, t) {
+    graphDefs.forEach(function (d) { plotGraph(d, p, t); });
+  }
+
+  // drag on a graph to scrub time
+  graphDefs.forEach(function (d) {
+    var dragging = false;
+    function setFromEvent(e) {
+      var r = d.cv.getBoundingClientRect();
+      var frac = (e.clientX - r.left - GPAD.l) / (r.width - GPAD.l - GPAD.r);
+      state.frac = Math.max(0, Math.min(1, frac));
+      tSlider.value = Math.round(state.frac * 1000);
+      draw();
+    }
+    d.cv.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      stopPlay();
+      d.cv.setPointerCapture(e.pointerId);
+      setFromEvent(e);
+    });
+    d.cv.addEventListener('pointermove', function (e) { if (dragging) setFromEvent(e); });
+    d.cv.addEventListener('pointerup',   function () { dragging = false; });
+  });
+
+  function span(v, unit, dp) {
+    return fmt(v, dp) + ' <span class="u">' + unit + '</span>';
+  }
+
+  function updateReadouts(p, t, px, py, vy) {
+    var speed = Math.hypot(p.vx, vy);
+    var dirDeg = Math.atan2(vy, p.vx) * 180 / Math.PI;
+    var dirWord = dirDeg > 0.05 ? 'above horizontal' : dirDeg < -0.05 ? 'below horizontal' : 'horizontal';
+    document.getElementById('tOut').textContent = fmt(t, 2) + ' s';
+    document.getElementById('roVx').innerHTML = span(p.vx, 'm/s');
+    document.getElementById('roVy').innerHTML = span(vy, 'm/s');
+    document.getElementById('roV').innerHTML = span(speed, 'm/s');
+    document.getElementById('roDir').innerHTML = span(Math.abs(dirDeg), '&deg;', 1) + ' <span class="u">' + dirWord + '</span>';
+    document.getElementById('roX').innerHTML = span(px, 'm');
+    document.getElementById('roY').innerHTML = span(py, 'm');
+    document.getElementById('stR').innerHTML = span(p.R, 'm');
+    document.getElementById('stH').innerHTML = span(p.H, 'm');
+    document.getElementById('stT').innerHTML = span(p.T, 's', 2);
+  }
+
+  // controls: slider and number box stay in sync; typing may exceed the slider range
+  function round1(v) { return Math.round(v * 10) / 10; }
+  function bindControl(slider, num, lo, hi, apply, get) {
+    slider.addEventListener('input', function () {
+      apply(+slider.value);
+      num.value = slider.value;
+      draw();
+    });
+    num.addEventListener('input', function () {
+      var v = parseFloat(num.value);
+      if (isNaN(v)) return;
+      apply(Math.min(hi, Math.max(lo, v)));
+      slider.value = get();
+      draw();
+    });
+    num.addEventListener('change', function () { num.value = round1(get()); });
+  }
+  function compVx() { return state.v0 * Math.cos(state.angDeg * Math.PI / 180); }
+  function compVy() { return state.v0 * Math.sin(state.angDeg * Math.PI / 180); }
+  function setComponents(vx, vy) {
+    state.v0 = Math.hypot(vx, vy);
+    state.angDeg = state.v0 < 1e-9 ? 0 : Math.atan2(vy, vx) * 180 / Math.PI;
+  }
+  var hSlider = document.getElementById('hSlider');
+  var vNum = document.getElementById('vNum'), aNum = document.getElementById('aNum');
+  var vxSlider = document.getElementById('vxSlider'), vxNum = document.getElementById('vxNum');
+  var vySlider = document.getElementById('vySlider'), vyNum = document.getElementById('vyNum');
+  bindControl(vSlider, vNum, 1, 500, function (v) { state.v0 = v; }, function () { return state.v0; });
+  bindControl(aSlider, aNum, 0, 90, function (v) { state.angDeg = v; }, function () { return state.angDeg; });
+  bindControl(hSlider, document.getElementById('hNum'), 0, 500, function (v) { state.h0 = v; }, function () { return state.h0; });
+  bindControl(vxSlider, vxNum, 0, 500, function (v) { setComponents(v, compVy()); }, compVx);
+  bindControl(vySlider, vyNum, 0, 500, function (v) { setComponents(compVx(), v); }, compVy);
+
+  // input mode toggle: speed & angle vs components
+  var modeSA = document.getElementById('modeSA'), modeXY = document.getElementById('modeXY');
+  var ctrlsSA = document.getElementById('ctrlsSA'), ctrlsXY = document.getElementById('ctrlsXY');
+  function setMode(xy) {
+    ctrlsSA.style.display = xy ? 'none' : '';
+    ctrlsXY.style.display = xy ? '' : 'none';
+    modeSA.classList.toggle('active', !xy);
+    modeXY.classList.toggle('active', xy);
+    if (xy) {
+      vxSlider.value = vxNum.value = round1(compVx());
+      vySlider.value = vyNum.value = round1(compVy());
+    } else {
+      vSlider.value = vNum.value = round1(state.v0);
+      aSlider.value = aNum.value = round1(state.angDeg);
+    }
+  }
+  modeSA.addEventListener('click', function () { setMode(false); });
+  modeXY.addEventListener('click', function () { setMode(true); });
+  tSlider.addEventListener('input', function () {
+    stopPlay();
+    state.frac = +tSlider.value / 1000;
+    draw();
+  });
+
+  // playback
+  var rafId = null, lastTs = null;
+  function tick(ts) {
+    if (lastTs !== null) {
+      var dt = (ts - lastTs) / 1000;
+      var p = params();
+      state.frac += dt / Math.max(p.T, 0.001);
+      if (state.frac >= 1) { state.frac = 1; stopPlay(); }
+      tSlider.value = Math.round(state.frac * 1000);
+      draw();
+    }
+    lastTs = ts;
+    if (state.playing) rafId = requestAnimationFrame(tick);
+  }
+  function startPlay() {
+    if (state.frac >= 1) { state.frac = 0; tSlider.value = 0; }
+    state.playing = true;
+    icoPlay.style.display = 'none';
+    icoPause.style.display = '';
+    playBtn.setAttribute('aria-label', 'Pause');
+    lastTs = null;
+    rafId = requestAnimationFrame(tick);
+  }
+  function stopPlay() {
+    state.playing = false;
+    icoPlay.style.display = '';
+    icoPause.style.display = 'none';
+    playBtn.setAttribute('aria-label', 'Play');
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+  playBtn.addEventListener('click', function () {
+    state.playing ? stopPlay() : startPlay();
+  });
+
+  // redraw on resize and theme change
+  window.addEventListener('resize', draw);
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  if (mq.addEventListener) mq.addEventListener('change', draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+  draw();
+})();
+</script>
+</body>
+</html>
