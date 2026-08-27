@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lenz's Law</title>
+<style>
+  :root {
+    --panel-bg: #f5f0dc;
+    --panel-border: #b8ac82;
+    --sim-bg: #ffffff;
+    --accent: #2a6fb0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #4a4a4a;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 12px;
+  }
+  #app {
+    background: var(--sim-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.45);
+    width: 960px;
+    max-width: 100%;
+  }
+  #titlebar {
+    background: #2b2b2b;
+    color: #fff;
+    padding: 8px 14px;
+    font-size: 15px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #titlebar span.sub { font-weight: normal; font-size: 12px; color: #bbb; }
+  #simwrap { position: relative; }
+  canvas { display: block; width: 100%; height: auto; cursor: grab; touch-action: none; }
+  canvas.dragging { cursor: grabbing; }
+  #controls {
+    background: var(--panel-bg);
+    border-top: 2px solid var(--panel-border);
+    padding: 10px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .ctrl-group { display: flex; align-items: center; gap: 8px; }
+  .ctrl-group label { font-weight: bold; color: #333; }
+  button {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #8a7f5a;
+    background: linear-gradient(#fdfaf0, #e8e0c4);
+    cursor: pointer;
+    color: #333;
+  }
+  button:hover { background: linear-gradient(#ffffff, #f0ead2); }
+  button:active { background: #ddd4b4; }
+  input[type=range] { width: 110px; accent-color: var(--accent); }
+  input[type=checkbox] { accent-color: var(--accent); transform: scale(1.15); }
+  .value-readout { font-family: "Courier New", monospace; font-weight: bold; min-width: 30px; text-align: right; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="titlebar">
+    Lenz's Law
+    <span class="sub">Drag the magnet toward or away from the solenoid</span>
+  </div>
+  <div id="simwrap">
+    <canvas id="cv" width="960" height="480"></canvas>
+  </div>
+  <div id="controls">
+    <div class="ctrl-group">
+      <button id="flipBtn">Flip magnet poles</button>
+    </div>
+    <div class="ctrl-group">
+      <label for="loops">Loops:</label>
+      <input type="range" id="loops" min="4" max="12" step="1" value="8">
+      <span class="value-readout" id="loopsVal">8</span>
+    </div>
+    <div class="ctrl-group">
+      <label for="strength">Magnet strength:</label>
+      <input type="range" id="strength" min="0.4" max="1.6" step="0.05" value="1">
+      <span class="value-readout" id="strengthVal">1.0</span>
+    </div>
+    <div class="ctrl-group">
+      <input type="checkbox" id="showMagField">
+      <label for="showMagField">Magnet field lines</label>
+    </div>
+    <div class="ctrl-group">
+      <input type="checkbox" id="showField" checked>
+      <label for="showField">Solenoid field lines</label>
+    </div>
+    <div class="ctrl-group">
+      <input type="checkbox" id="showPoles" checked>
+      <label for="showPoles">Induced poles</label>
+    </div>
+    <div class="ctrl-group">
+      <button id="resetBtn">Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+
+  // ---------- State ----------
+  const state = {
+    magnetX: 260,          // centre x of magnet (px)
+    magnetXPrev: 260,
+    magnetV: 0,            // smoothed velocity (px/s)
+    poleFlip: 1,           // +1: N faces solenoid (right face of magnet); -1: S faces solenoid
+    loops: 8,
+    strength: 1.0,
+    showMagField: false,
+    showField: true,
+    showPoles: true,
+    dragging: false,
+    dragOffset: 0,
+    emf: 0,                // signed, smoothed
+    needleAngle: 0
+  };
+
+  // ---------- Geometry ----------
+  const SOL = {
+    cx: 700, cy: 250,      // solenoid centre
+    coilR: 62,             // coil radius (visual, vertical semi-axis)
+    length: 190            // horizontal extent of winding region
+  };
+  const MAGNET = { w: 170, h: 64, y: 250 };
+  const MAG_MIN_X = MAGNET.w / 2 + 20;
+  const MAG_MAX_X = SOL.cx - SOL.length / 2 - MAGNET.w / 2 - 14;
+
+  const GALV = { cx: 700, cy: 425, r: 46 };
+
+  // ---------- Physics ----------
+  // Flux through solenoid ~ dipole axial field falloff. d = gap between magnet
+  // face and solenoid mouth. Phi ∝ strength * poleFlip / (d + d0)^3
+  function fluxAt(mx) {
+    const faceX = mx + MAGNET.w / 2;
+    const mouthX = SOL.cx - SOL.length / 2;
+    const d = Math.max(mouthX - faceX, 0);
+    const d0 = 90;
+    return state.poleFlip * state.strength * 8.0e8 / Math.pow(d + d0, 3);
+  }
+
+  // Sign conventions (fixed for this mirrored geometry):
+  //   fluxAt > 0 when the magnet's N pole faces the solenoid.
+  //   emf = -N dPhi/dt, current = clamped emf.
+  //   Right-hand grip on screen: conventional current UP the front of a loop
+  //   curls front-up / top-back / back-down, so B inside points LEFT (-x),
+  //   making the LEFT face N. Working the chain through: N approaching gives
+  //   current < 0, which must render as up-the-front with the left face N
+  //   (repelling the incoming N). Hence:
+  //     draw up-the-front when current < 0
+  //     rightIsN when current > 0
+
+  // ---------- Input ----------
+  function canvasPos(e) {
+    const r = cv.getBoundingClientRect();
+    const sx = W / r.width, sy = H / r.height;
+    const p = e.touches ? e.touches[0] : e;
+    return { x: (p.clientX - r.left) * sx, y: (p.clientY - r.top) * sy };
+  }
+  function magnetHit(p) {
+    return Math.abs(p.x - state.magnetX) < MAGNET.w / 2 + 12 &&
+           Math.abs(p.y - MAGNET.y) < MAGNET.h / 2 + 12;
+  }
+  function startDrag(e) {
+    const p = canvasPos(e);
+    if (magnetHit(p)) {
+      state.dragging = true;
+      state.dragOffset = p.x - state.magnetX;
+      cv.classList.add('dragging');
+      e.preventDefault();
+    }
+  }
+  function moveDrag(e) {
+    if (!state.dragging) return;
+    const p = canvasPos(e);
+    state.magnetX = Math.min(MAG_MAX_X, Math.max(MAG_MIN_X, p.x - state.dragOffset));
+    e.preventDefault();
+  }
+  function endDrag() {
+    state.dragging = false;
+    cv.classList.remove('dragging');
+  }
+  cv.addEventListener('mousedown', startDrag);
+  window.addEventListener('mousemove', moveDrag);
+  window.addEventListener('mouseup', endDrag);
+  cv.addEventListener('touchstart', startDrag, { passive: false });
+  cv.addEventListener('touchmove', moveDrag, { passive: false });
+  window.addEventListener('touchend', endDrag);
+
+  // Keyboard: arrow keys nudge magnet, F flips poles
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { state.magnetX = Math.max(MAG_MIN_X, state.magnetX - 6); }
+    else if (e.key === 'ArrowRight') { state.magnetX = Math.min(MAG_MAX_X, state.magnetX + 6); }
+    else if (e.key === 'f' || e.key === 'F') { flipPoles(); }
+  });
+
+  // ---------- Controls ----------
+  function flipPoles() { state.poleFlip *= -1; }
+  document.getElementById('flipBtn').addEventListener('click', flipPoles);
+  document.getElementById('loops').addEventListener('input', (e) => {
+    state.loops = +e.target.value;
+    document.getElementById('loopsVal').textContent = state.loops;
+  });
+  document.getElementById('strength').addEventListener('input', (e) => {
+    state.strength = +e.target.value;
+    document.getElementById('strengthVal').textContent = state.strength.toFixed(1);
+  });
+  document.getElementById('showMagField').addEventListener('change', (e) => state.showMagField = e.target.checked);
+  document.getElementById('showField').addEventListener('change', (e) => state.showField = e.target.checked);
+  document.getElementById('showPoles').addEventListener('change', (e) => state.showPoles = e.target.checked);
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state.magnetX = 260; state.magnetXPrev = 260; state.magnetV = 0;
+    state.poleFlip = 1; state.emf = 0; state.needleAngle = 0;
+  });
+
+  // ---------- Drawing helpers ----------
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawArrowhead(x, y, angle, size, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(size, 0);
+    ctx.lineTo(-size * 0.7, size * 0.6);
+    ctx.lineTo(-size * 0.7, -size * 0.6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ---------- Magnet field lines (two-monopole model, numerically traced) ----------
+  function magnetB(px, py) {
+    const s = state.poleFlip; // +1: N on right (facing solenoid)
+    const mx = state.magnetX, my = MAGNET.y;
+    const off = MAGNET.w / 2 - 12;
+    let dx = px - (mx + s * off), dy = py - my;      // from N pole
+    let r3 = Math.pow(dx * dx + dy * dy, 1.5) + 1e-6;
+    let bx = dx / r3, by = dy / r3;
+    dx = px - (mx - s * off); dy = py - my;          // from S pole
+    r3 = Math.pow(dx * dx + dy * dy, 1.5) + 1e-6;
+    bx -= dx / r3; by -= dy / r3;
+    return [bx, by];
+  }
+
+  // Trace one field line from (px, py). dir=+1 follows B (out of N pole),
+  // dir=-1 traces against B (used to extend rays back from the S pole).
+  // Arrowheads always point along B regardless of trace direction.
+  function traceMagnetLine(px, py, dir, arrows) {
+    const s = state.poleFlip;
+    const mx = state.magnetX, my = MAGNET.y;
+    const off = MAGNET.w / 2 - 12;
+    const nPoleX = mx + s * off, sPoleX = mx - s * off;
+    const step = 3, maxSteps = 900, capture = 13;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    let dist = 0, nextArrow = 60;
+    for (let i = 0; i < maxSteps; i++) {
+      const [bx, by] = magnetB(px, py);
+      const m = Math.hypot(bx, by) + 1e-12;
+      px += dir * (bx / m) * step;
+      py += dir * (by / m) * step;
+      ctx.lineTo(px, py);
+      dist += step;
+      if (dist >= nextArrow) {
+        arrows.push([px, py, Math.atan2(by, bx)]);
+        nextArrow += 130;
+      }
+      const ddy = py - my;
+      let ddx = px - sPoleX;
+      if (dir === 1 && ddx * ddx + ddy * ddy < capture * capture) break;   // reached S
+      ddx = px - nPoleX;
+      if (dir === -1 && ddx * ddx + ddy * ddy < capture * capture) break;  // back at N
+      if (px < -40 || px > W + 40 || py < -40 || py > H + 40) break;
+    }
+    ctx.stroke();
+  }
+
+  function drawFieldLines() {
+    const s = state.poleFlip;
+    const mx = state.magnetX, my = MAGNET.y;
+    const off = MAGNET.w / 2 - 12;
+    const nPoleX = mx + s * off, sPoleX = mx - s * off;
+    const seedR = 16;
+    const arrows = [];
+
+    // Near-axial lines out of N: these thread the solenoid core (flux linkage).
+    const axialAngles = [0, 4, -4, 8, -8];
+    // Lobes chosen to close fully within the canvas (dip < ~230 px off axis).
+    const lobeAngles = [80, -80, 95, -95, 115, -115, 140, -140];
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(90, 90, 200, 0.6)';
+    ctx.lineWidth = 1.4;
+    for (const aDeg of [...axialAngles, ...lobeAngles]) {
+      const a = aDeg * Math.PI / 180;
+      traceMagnetLine(nPoleX + s * Math.cos(a) * seedR,
+                      my + Math.sin(a) * seedR, 1, arrows);
+    }
+    // Matching near-axial rays INTO the S pole, traced backward so the far
+    // side of the magnet shows the same axial structure.
+    for (const aDeg of axialAngles) {
+      const a = aDeg * Math.PI / 180;
+      traceMagnetLine(sPoleX - s * Math.cos(a) * seedR,
+                      my + Math.sin(a) * seedR, -1, arrows);
+    }
+    for (const [ax, ay, ang] of arrows) {
+      drawArrowhead(ax, ay, ang, 6, 'rgba(90,90,200,0.8)');
+    }
+    ctx.restore();
+  }
+
+  // ---------- Solenoid field lines (traced through the 2D wire-crossing field) ----------
+  // Side-view cross-section: each turn crosses the drawing plane at the top
+  // (y = cy - coilR) and bottom (y = cy + coilR) of the coil. When current
+  // goes UP the front, the top crossing carries current into the page
+  // (clockwise field on screen) and the bottom crossing out of the page.
+  // Summing all crossings gives the real solenoid cross-section field:
+  // near-uniform inside, fringing at the mouths, return loops outside.
+  function solenoidB(px, py, upFront) {
+    const { cx, cy, coilR, length } = SOL;
+    const n = state.loops;
+    const spacing = length / (n - 1);
+    const x0 = cx - length / 2;
+    const sTop = upFront ? 1 : -1; // +1: into page => clockwise on screen
+    let bx = 0, by = 0;
+    // 3 virtual turns beyond each end lengthen the effective solenoid, so
+    // field lines run further out of the mouths before fringing back.
+    for (let i = -3; i < n + 3; i++) {
+      const wx = x0 + i * spacing;
+      let dx = px - wx, dy = py - (cy - coilR);
+      let r2 = dx * dx + dy * dy + 400;   // softened to smooth between wires
+      bx += sTop * (-dy) / r2;
+      by += sTop * dx / r2;
+      dx = px - wx; dy = py - (cy + coilR);
+      r2 = dx * dx + dy * dy + 400;
+      bx -= sTop * (-dy) / r2;
+      by -= sTop * dx / r2;
+    }
+    return [bx, by];
+  }
+
+  function drawSolenoidField(current) {
+    const { cx, cy, coilR } = SOL;
+    const upFront = current < 0;
+    const mag = Math.min(Math.abs(current), 1);
+    const alpha = Math.min(mag / 0.25, 1) * 0.7;
+    const step = 3, maxSteps = 1200;
+    const seedFracs = [-0.8, -0.53, -0.27, 0, 0.27, 0.53, 0.8];
+    const arrows = [];
+
+    ctx.save();
+    ctx.strokeStyle = `rgba(30, 132, 73, ${alpha})`;
+    ctx.lineWidth = 1.6;
+    for (const f of seedFracs) {
+      const sy = cy + f * (coilR - 12);
+      let closedForward = false;
+      for (const dir of [1, -1]) {
+        if (dir === -1 && closedForward) break;  // loop already complete
+        let px = cx, py = sy;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        let dist = 0, nextArrow = 50;
+        for (let i = 0; i < maxSteps; i++) {
+          const [bx, by] = solenoidB(px, py, upFront);
+          const m = Math.hypot(bx, by) + 1e-12;
+          px += dir * (bx / m) * step;
+          py += dir * (by / m) * step;
+          ctx.lineTo(px, py);
+          dist += step;
+          if (dir === 1 && dist >= nextArrow) {
+            arrows.push([px, py, Math.atan2(by, bx)]);
+            nextArrow += 140;
+          }
+          // closed loop: back near the seed after a meaningful path
+          if (i > 50) {
+            const ddx = px - cx, ddy = py - sy;
+            if (ddx * ddx + ddy * ddy < 25) {
+              ctx.lineTo(cx, sy);              // close the visible gap
+              if (dir === 1) closedForward = true;
+              break;
+            }
+          }
+          if (px < -40 || px > W + 40 || py < -40 || py > H + 40) break;
+        }
+        ctx.stroke();
+      }
+    }
+    for (const [ax, ay, ang] of arrows) {
+      drawArrowhead(ax, ay, ang, 6, `rgba(30, 132, 73, ${alpha})`);
+    }
+    ctx.restore();
+  }
+
+  // ---------- Solenoid ----------
+  // Drawn as a helix: for each turn the FRONT strand (bold, bright copper,
+  // bulging left) sits at x_i and the BACK strand (thinner, darker, bulging
+  // right, slightly shorter) sits half a spacing to the right, so the wire
+  // visibly passes in front of and behind the core.
+  function drawSolenoid(current) {
+    const { cx, cy, coilR, length } = SOL;
+    const n = state.loops;
+    const spacing = length / (n - 1);
+    const x0 = cx - length / 2;
+    const backR = coilR - 6;
+
+    const mag = Math.min(Math.abs(current), 1);
+    const upFront = current < 0; // see sign conventions above
+
+    // Wire to galvanometer (behind coil)
+    ctx.save();
+    ctx.strokeStyle = '#a06a28';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x0 + length, cy + coilR);
+    ctx.lineTo(x0 + length + 60, cy + coilR);
+    ctx.lineTo(x0 + length + 60, GALV.cy);
+    ctx.lineTo(GALV.cx + GALV.r, GALV.cy);
+    ctx.moveTo(x0, cy + coilR);
+    ctx.lineTo(x0 - 40, cy + coilR + 30);
+    ctx.lineTo(x0 - 40, GALV.cy);
+    ctx.lineTo(GALV.cx - GALV.r, GALV.cy);
+    ctx.stroke();
+    ctx.restore();
+
+    // Back strands (drawn first, behind the core)
+    ctx.save();
+    ctx.lineWidth = 4.5;
+    ctx.strokeStyle = '#6b4a1e';
+    ctx.globalAlpha = 0.75;
+    for (let i = 0; i < n; i++) {
+      const x = x0 + i * spacing + spacing / 2;
+      ctx.beginPath();
+      ctx.ellipse(x, cy, 14, backR, 0, -Math.PI / 2, Math.PI / 2, false);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Back-strand current arrows (opposite vertical direction to the front)
+    if (mag > 0.04) {
+      for (let i = 0; i < n; i += 2) {
+        const x = x0 + i * spacing + spacing / 2 + 14;
+        const angle = upFront ? Math.PI / 2 : -Math.PI / 2;
+        drawArrowhead(x, cy, angle, 6, 'rgba(217,47,47,0.5)');
+      }
+    }
+
+    // Core tube (partially opaque: hides some of the back, sits behind front)
+    ctx.save();
+    ctx.fillStyle = 'rgba(215, 222, 235, 0.55)';
+    roundRect(x0 - 16, cy - coilR + 10, length + 32, 2 * (coilR - 10), 10);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(140, 150, 170, 0.5)';
+    ctx.lineWidth = 1.5;
+    roundRect(x0 - 16, cy - coilR + 10, length + 32, 2 * (coilR - 10), 10);
+    ctx.stroke();
+    ctx.restore();
+
+    // Induced field lines: above the core tube, behind the front strands
+    if (state.showField && mag > 0.03) drawSolenoidField(current);
+
+    // Front strands, colour brightens with current
+    ctx.save();
+    ctx.lineWidth = 7.5;
+    const glow = Math.round(mag * 120);
+    ctx.strokeStyle = `rgb(${200 + Math.round(mag*55)}, ${130 + glow}, ${40})`;
+    ctx.shadowColor = mag > 0.05 ? 'rgba(255,200,60,0.6)' : 'transparent';
+    ctx.shadowBlur = mag * 12;
+    for (let i = 0; i < n; i++) {
+      const x = x0 + i * spacing;
+      ctx.beginPath();
+      ctx.ellipse(x, cy, 14, coilR, 0, Math.PI / 2, 3 * Math.PI / 2, false);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Front-strand current arrows (conventional current) on every loop
+    if (mag > 0.04) {
+      const color = '#d92f2f';
+      for (let i = 0; i < n; i++) {
+        const x = x0 + i * spacing - 14;
+        const angle = upFront ? -Math.PI / 2 : Math.PI / 2;
+        drawArrowhead(x, cy, angle, 8, color);
+      }
+      // Label
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.font = 'bold 13px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('I', x0 + length + 34, cy - 4);
+      drawArrowhead(x0 + length + 34, cy + 8, upFront ? -Math.PI / 2 : Math.PI / 2, 7, color);
+      ctx.restore();
+    }
+
+    // front / back annotations with leader lines
+    ctx.save();
+    ctx.font = 'italic 12px Arial';
+    ctx.fillStyle = '#777';
+    ctx.strokeStyle = '#999';
+    ctx.lineWidth = 1;
+    ctx.textAlign = 'center';
+    const midFront = x0 + Math.floor(n / 2) * spacing - 14;
+    const midBack = x0 + Math.floor(n / 2) * spacing + spacing / 2 + 14;
+    ctx.fillText('front of coil', midFront, cy + coilR + 30);
+    ctx.beginPath();
+    ctx.moveTo(midFront, cy + coilR + 18);
+    ctx.lineTo(midFront, cy + coilR + 4);
+    ctx.stroke();
+    ctx.fillText('back of coil', midBack, cy - coilR - 34);
+    ctx.beginPath();
+    ctx.moveTo(midBack, cy - coilR - 24);
+    ctx.lineTo(midBack, cy - backR - 4);
+    ctx.stroke();
+    ctx.restore();
+
+    // Induced pole labels on solenoid faces
+    if (state.showPoles && mag > 0.04) {
+      const rightIsN = current > 0; // see sign conventions above
+      ctx.save();
+      ctx.font = 'bold 26px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const lx = x0 - 26, rx = x0 + length + 26;
+      const ly = cy - coilR - 18;
+      ctx.fillStyle = rightIsN ? '#2a6fb0' : '#d92f2f';
+      ctx.fillText(rightIsN ? 'S' : 'N', lx, ly);
+      ctx.fillStyle = rightIsN ? '#d92f2f' : '#2a6fb0';
+      ctx.fillText(rightIsN ? 'N' : 'S', rx, ly);
+      ctx.restore();
+    }
+  }
+
+  // ---------- Magnet ----------
+  function drawMagnet() {
+    const mx = state.magnetX, my = MAGNET.y;
+    const halfW = MAGNET.w / 2, halfH = MAGNET.h / 2;
+    const nRight = state.poleFlip === 1; // N faces the solenoid
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 3;
+
+    // Left half
+    ctx.fillStyle = nRight ? '#2a6fb0' : '#d92f2f';
+    roundRect(mx - halfW, my - halfH, halfW, MAGNET.h, 6);
+    ctx.fill();
+    // Right half
+    ctx.fillStyle = nRight ? '#d92f2f' : '#2a6fb0';
+    roundRect(mx, my - halfH, halfW, MAGNET.h, 6);
+    ctx.fill();
+    ctx.restore();
+
+    // Divider + outline
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 2;
+    roundRect(state.magnetX - halfW, my - halfH, MAGNET.w, MAGNET.h, 6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mx, my - halfH);
+    ctx.lineTo(mx, my + halfH);
+    ctx.stroke();
+
+    // Pole letters
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 30px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(nRight ? 'S' : 'N', mx - halfW / 2, my);
+    ctx.fillText(nRight ? 'N' : 'S', mx + halfW / 2, my);
+
+    // Drag handle hint
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.font = '11px Arial';
+    ctx.fillText('drag', mx, my + halfH - 10);
+  }
+
+  // ---------- Force / interaction annotation ----------
+  function drawForceHint(current) {
+    if (Math.abs(current) < 0.06) return;
+    // Attract/repel: solenoid near (left) face pole vs magnet near (right) pole.
+    const rightIsN = current > 0;      // solenoid faces (see sign conventions)
+    const solNearIsN = !rightIsN;      // near face = left face of solenoid
+    const magnetNearIsN = state.poleFlip === 1;
+    const repel = (solNearIsN === magnetNearIsN);
+    const faceX = SOL.cx - SOL.length / 2;
+    const gapMid = (state.magnetX + MAGNET.w / 2 + faceX) / 2;
+    const y = SOL.cy;
+
+    ctx.save();
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = repel ? '#c0392b' : '#1e8449';
+    ctx.fillText(repel ? 'repels' : 'attracts', gapMid, y - 84);
+    // Arrow on the magnet showing force it feels (repel pushes it left, away)
+    const dir = repel ? Math.PI : 0;
+    const ax = state.magnetX + MAGNET.w / 2 + 26;
+    drawArrowhead(ax - (repel ? 10 : -10), y - 60, dir, 9, repel ? '#c0392b' : '#1e8449');
+    ctx.strokeStyle = repel ? '#c0392b' : '#1e8449';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(ax + (repel ? 18 : -18), y - 60);
+    ctx.lineTo(ax - (repel ? 8 : -8), y - 60);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---------- Galvanometer ----------
+  function drawGalvanometer() {
+    const { cx, cy, r } = GALV;
+    ctx.save();
+    // Body
+    ctx.fillStyle = '#fdfdf6';
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Scale ticks
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 1.5;
+    for (let a = -60; a <= 60; a += 15) {
+      const rad = (a - 90) * Math.PI / 180;
+      const r1 = r - 8, r2 = a % 30 === 0 ? r - 16 : r - 12;
+      ctx.beginPath();
+      ctx.moveTo(cx + r1 * Math.cos(rad), cy + r1 * Math.sin(rad));
+      ctx.lineTo(cx + r2 * Math.cos(rad), cy + r2 * Math.sin(rad));
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#444';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('0', cx, cy - r + 22);
+    ctx.fillText('−', cx - r + 20, cy - 8);
+    ctx.fillText('+', cx + r - 20, cy - 8);
+    ctx.font = 'bold 11px Arial';
+    ctx.fillText('G', cx, cy + r - 14);
+
+    // Needle
+    const maxDeflect = 65 * Math.PI / 180;
+    const target = Math.max(-1, Math.min(1, state.emf)) * maxDeflect;
+    state.needleAngle += (target - state.needleAngle) * 0.25;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(state.needleAngle);
+    ctx.strokeStyle = '#d92f2f';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(0, 6);
+    ctx.lineTo(0, -(r - 14));
+    ctx.stroke();
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(0, 0, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.restore();
+  }
+
+  // ---------- Status text ----------
+  function drawStatus(current) {
+    ctx.save();
+    ctx.font = '13px Arial';
+    ctx.fillStyle = '#333';
+    ctx.textAlign = 'left';
+    const moving = Math.abs(state.magnetV) > 3;
+    let line;
+    if (!moving || Math.abs(current) < 0.04) {
+      line = 'Magnet stationary: no change in flux, no induced current.';
+    } else {
+      const towards = state.magnetV > 0;
+      const nearPole = state.poleFlip === 1 ? 'N' : 'S';
+      line = `${nearPole} pole moving ${towards ? 'towards' : 'away from'} the solenoid: flux ${towards ? 'increasing' : 'decreasing'} — induced current opposes the change.`;
+    }
+    ctx.fillText(line, 20, 34);
+    ctx.font = 'italic 12px Arial';
+    ctx.fillStyle = '#666';
+    ctx.fillText('ε = −N dΦ/dt', 20, 54);
+    ctx.restore();
+  }
+
+  // ---------- Main loop ----------
+  let lastT = performance.now();
+  let lastFlux = fluxAt(state.magnetX);
+
+  function frame(t) {
+    const dt = Math.min((t - lastT) / 1000, 0.05);
+    lastT = t;
+
+    // Velocity (smoothed)
+    const rawV = (state.magnetX - state.magnetXPrev) / Math.max(dt, 1e-4);
+    state.magnetV += (rawV - state.magnetV) * 0.3;
+    state.magnetXPrev = state.magnetX;
+
+    // EMF from flux change
+    const flux = fluxAt(state.magnetX);
+    const dPhi = (flux - lastFlux) / Math.max(dt, 1e-4);
+    lastFlux = flux;
+    const rawEmf = -dPhi * state.loops * 0.010;
+    state.emf += (rawEmf - state.emf) * 0.25;
+    if (!state.dragging && Math.abs(state.magnetV) < 1) state.emf *= 0.85;
+
+    const current = Math.max(-1, Math.min(1, state.emf));
+
+    // Draw
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    if (state.showMagField) drawFieldLines();
+    drawSolenoid(current);
+    drawMagnet();
+    drawForceHint(current);
+    drawGalvanometer();
+    drawStatus(current);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
