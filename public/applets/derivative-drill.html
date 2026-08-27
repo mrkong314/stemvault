@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Derivative Drill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&family=Archivo:wght@500;600;700&display=swap">
+</head>
+<body>
+<style>
+  :root {
+    --bg: #F5F4EF;
+    --surface: #FFFFFF;
+    --ink: #232E38;
+    --muted: #75808B;
+    --line: #DFDBD2;
+    --accent: #0F7A68;
+    --accent-soft: #E3EFEC;
+    --chip-on: #232E38;
+    --chip-on-ink: #F5F4EF;
+    --focus: #0F7A68;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11171D;
+      --surface: #19212A;
+      --ink: #E9EAE5;
+      --muted: #8B95A1;
+      --line: #2A3540;
+      --accent: #41BFA6;
+      --accent-soft: #1B2C29;
+      --chip-on: #E9EAE5;
+      --chip-on-ink: #11171D;
+      --focus: #41BFA6;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11171D;
+    --surface: #19212A;
+    --ink: #E9EAE5;
+    --muted: #8B95A1;
+    --line: #2A3540;
+    --accent: #41BFA6;
+    --accent-soft: #1B2C29;
+    --chip-on: #E9EAE5;
+    --chip-on-ink: #11171D;
+    --focus: #41BFA6;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Archivo", "Segoe UI", system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ---------- top bar ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    padding: 0.9rem 1.4rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .wordmark {
+    font-weight: 700;
+    font-size: 1.02rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .wordmark .fx {
+    font-family: "STIX Two Text", Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    color: var(--accent);
+    margin-right: 0.45rem;
+  }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+  .grouplabel {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-right: 0.15rem;
+  }
+  .chip {
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.42rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .chip[aria-pressed="true"] {
+    background: var(--chip-on);
+    border-color: var(--chip-on);
+    color: var(--chip-on-ink);
+  }
+  .chip:focus-visible, .btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .sep { width: 1px; height: 1.5rem; background: var(--line); margin: 0 0.35rem; }
+
+  /* ---------- stage ---------- */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.6rem;
+    padding: 1.5rem 1.2rem 0.5rem;
+  }
+  .qcounter {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .card {
+    width: min(94vw, 66rem);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: clamp(1.6rem, 4vh, 3rem) 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: clamp(11rem, 34vh, 19rem);
+    cursor: pointer;
+  }
+  .math {
+    font-family: "STIX Two Text", "Cambria Math", Georgia, serif;
+    font-size: clamp(2.6rem, 8.5vw, 5.4rem);
+    line-height: 1.15;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .math .fname { font-style: italic; }
+  .math .eq { margin: 0 0.55ch; }
+  .math .vx  { font-style: italic; }
+  .math .co  { font-style: normal; }
+
+  /* superscripts */
+  .sup {
+    font-size: 0.52em;
+    vertical-align: baseline;
+    position: relative;
+    top: -0.75em;
+    margin-left: 0.06ch;
+  }
+  .supfrac {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.4em;
+    line-height: 1.05;
+    position: relative;
+    top: -0.95em;
+    margin-left: 0.1ch;
+    vertical-align: baseline;
+  }
+  .supfrac .mns { margin-right: 0.1ch; }
+  .supfrac .stk { display: inline-flex; flex-direction: column; align-items: center; }
+  .supfrac .n { border-bottom: 0.06em solid currentColor; padding: 0 0.18ch 0.05em; }
+  .supfrac .d { padding-top: 0.05em; }
+
+  /* display fractions */
+  .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    vertical-align: middle;
+    line-height: 1.15;
+    margin: 0 0.15ch;
+  }
+  .frac > .n {
+    border-bottom: 0.045em solid currentColor;
+    padding: 0 0.35ch 0.08em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .frac > .d {
+    padding-top: 0.08em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* roots */
+  .root { display: inline-flex; align-items: stretch; position: relative; }
+  .root .idx {
+    font-size: 0.42em;
+    align-self: flex-start;
+    position: relative;
+    top: -0.1em;
+    margin-right: -0.35ch;
+    z-index: 1;
+  }
+  .root .rsym { font-style: normal; }
+  .root .rad {
+    border-top: 0.05em solid currentColor;
+    padding: 0.03em 0.15ch 0 0.08ch;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* ---------- answer ---------- */
+  .answer {
+    width: min(94vw, 66rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: clamp(7rem, 22vh, 12rem);
+    visibility: hidden;
+  }
+  .answer.shown { visibility: visible; }
+  .answer.shown .apane { animation: rise 220ms ease-out; }
+  @media (prefers-reduced-motion: reduce) {
+    .answer.shown .apane { animation: none; }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .apane {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    padding: 1.1rem 2.2rem 1.3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .rewrite {
+    font-family: "STIX Two Text", Georgia, serif;
+    font-size: clamp(1.15rem, 2.6vw, 1.7rem);
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .amath { color: var(--accent); font-size: clamp(2.1rem, 6.5vw, 4rem); }
+  .alt {
+    font-family: "STIX Two Text", Georgia, serif;
+    font-size: clamp(1.4rem, 3.6vw, 2.3rem);
+    color: var(--ink);
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  /* ---------- footer ---------- */
+  footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+    padding: 1.1rem 1.4rem 1.4rem;
+  }
+  .btn {
+    font: inherit;
+    font-weight: 700;
+    font-size: 1.02rem;
+    padding: 0.85rem 1.7rem;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7ch;
+  }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+  kbd {
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 0.1rem 0.4rem;
+    background: var(--bg);
+    color: var(--muted);
+  }
+  .btn.primary kbd { border-color: color-mix(in srgb, var(--bg) 45%, transparent); background: transparent; color: var(--bg); }
+  .hint { font-size: 0.78rem; color: var(--muted); width: 100%; text-align: center; }
+</style>
+
+<header>
+  <div class="wordmark"><span class="fx">f&thinsp;&prime;(x)</span>Derivative Drill</div>
+  <div class="controls" role="group" aria-label="Question types">
+    <span class="grouplabel">Index types</span>
+    <button class="chip" id="mSimple"   aria-pressed="true">Simple</button>
+    <button class="chip" id="mNegative" aria-pressed="false">Negative</button>
+    <button class="chip" id="mRational" aria-pressed="false">Rational</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button class="chip" id="mMixed" aria-pressed="true" title="Sometimes pose questions as fractions or surds instead of index form">Surd &amp; fraction forms</button>
+  </div>
+</header>
+
+<main>
+  <div class="qcounter" id="qcounter">Press space to start</div>
+  <div class="card" id="card" role="button" tabindex="0" aria-label="Question card. Click to reveal answer or get the next question.">
+    <div class="math" id="question"><span class="co" style="color:var(--muted); font-family:Archivo,sans-serif; font-size:0.4em; font-style:normal;">Choose index types, then press space</span></div>
+  </div>
+  <div class="answer" id="answer" aria-live="polite">
+    <div class="apane">
+      <div class="rewrite" id="rewrite" hidden></div>
+      <div class="math amath" id="deriv"></div>
+      <div class="alt" id="altform" hidden></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <button class="btn primary" id="btnNew">New question <kbd>space</kbd></button>
+  <button class="btn" id="btnReveal" disabled>Reveal answer <kbd>enter</kbd></button>
+  <div class="hint">Cold-call flow: space for a question, student answers aloud, enter to reveal. Enter again moves on. Clicking the card does the same.</div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- fraction helpers ---------- */
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; }
+  function frac(p, q) {
+    if (q < 0) { p = -p; q = -q; }
+    const g = gcd(p, q);
+    return { p: p / g, q: q / g };
+  }
+  function fmul(a, b) { return frac(a.p * b.p, a.q * b.q); }
+  function fsub1(a) { return frac(a.p - a.q, a.q); }   /* a - 1 */
+  const isInt = f => f.q === 1;
+  const isZero = f => f.p === 0;
+  const isNeg = f => f.p < 0;
+
+  /* ---------- render helpers (return HTML strings) ---------- */
+  const esc = s => String(s);
+  const MINUS = "−";
+
+  function supInt(n) {          /* integer exponent as superscript, n may be negative */
+    const s = (n < 0 ? MINUS : "") + Math.abs(n);
+    return '<span class="sup">' + esc(s) + "</span>";
+  }
+  function supFrac(f) {         /* rational exponent as stacked superscript */
+    const minus = f.p < 0 ? '<span class="mns">' + MINUS + "</span>" : "";
+    return '<span class="supfrac">' + minus +
+      '<span class="stk"><span class="n">' + Math.abs(f.p) + '</span><span class="d">' + f.q + "</span></span></span>";
+  }
+  function powX(f) {            /* x^f in index form; f is reduced fraction, never 0 here */
+    if (isInt(f) && f.p === 1) return '<span class="vx">x</span>';
+    if (isInt(f)) return '<span class="vx">x</span>' + supInt(f.p);
+    return '<span class="vx">x</span>' + supFrac(f);
+  }
+  function coeffHTML(f, hideOne) {  /* coefficient fraction; sign included */
+    const sign = isNeg(f) ? MINUS : "";
+    const ap = Math.abs(f.p);
+    if (isInt(f)) {
+      if (hideOne && ap === 1) return sign ? '<span class="co">' + sign + "</span>" : "";
+      return '<span class="co">' + sign + ap + "</span>";
+    }
+    return '<span class="co">' + sign + "</span>" + fracHTML(String(ap), String(f.q));
+  }
+  function fracHTML(numHTML, denHTML) {
+    return '<span class="frac"><span class="n">' + numHTML + '</span><span class="d">' + denHTML + "</span></span>";
+  }
+  function rootHTML(q, p) {     /* q-th root of x^p (p,q positive ints) */
+    const idx = q === 2 ? "" : '<span class="idx">' + q + "</span>";
+    const inner = p === 1 ? '<span class="vx">x</span>' : '<span class="vx">x</span>' + supInt(p);
+    return '<span class="root">' + idx + '<span class="rsym">&radic;</span><span class="rad">' + inner + "</span></span>";
+  }
+
+  /* Term in index form: c x^e  (c, e reduced fractions) */
+  function indexForm(c, e) {
+    if (isZero(e)) {
+      const sign = isNeg(c) ? MINUS : "";
+      if (isInt(c)) return '<span class="co">' + sign + Math.abs(c.p) + "</span>";
+      return '<span class="co">' + sign + "</span>" + fracHTML(String(Math.abs(c.p)), String(c.q));
+    }
+    if (isZero(c)) return '<span class="co">0</span>';
+    return coeffHTML(c, true) + powX(e);
+  }
+
+  /* Term in fraction / surd form; returns null when index form is already simplest */
+  function altForm(c, e) {
+    if (isZero(c) || isZero(e)) return null;
+    if (isInt(e) && e.p > 0 && isInt(c)) return null;
+    const sign = isNeg(c) ? '<span class="co">' + MINUS + "</span>" : "";
+    const ap = Math.abs(c.p), aq = c.q;
+
+    if (isInt(e) && e.p > 0) {
+      /* fractional coefficient, positive integer power: (a/b) x^n -> a x^n / b */
+      return sign + fracHTML('<span class="co">' + (ap === 1 ? "" : ap) + "</span>" + powX(frac(e.p, 1)), String(aq));
+    }
+    if (isInt(e)) {
+      /* negative integer power -> a / (b x^k) */
+      const den = (aq === 1 ? "" : '<span class="co">' + aq + "</span>") + powX(frac(-e.p, 1));
+      return sign + fracHTML('<span class="co">' + ap + "</span>", den);
+    }
+    /* rational power -> surd */
+    const rp = Math.abs(e.p), rq = e.q;
+    if (e.p > 0) {
+      const surd = rootHTML(rq, rp);
+      if (aq === 1) return sign + (ap === 1 ? "" : '<span class="co">' + ap + "</span>") + surd;
+      return sign + fracHTML((ap === 1 ? "" : '<span class="co">' + ap + "</span>") + surd, String(aq));
+    }
+    const den = (aq === 1 ? "" : '<span class="co">' + aq + "</span>") + rootHTML(rq, rp);
+    return sign + fracHTML('<span class="co">' + ap + "</span>", den);
+  }
+
+  /* ---------- state ---------- */
+  const modes = { simple: true, negative: false, rational: false, mixed: true };
+  try {
+    const saved = JSON.parse(localStorage.getItem("derivdrill-modes") || "null");
+    if (saved && typeof saved === "object") Object.assign(modes, saved);
+    if (!modes.simple && !modes.negative && !modes.rational) modes.simple = true;
+  } catch (e) { /* storage unavailable; defaults stand */ }
+
+  let current = null;       /* { c, e, posedAlt } */
+  let revealed = false;
+  let count = 0;
+  let lastKey = "";
+
+  /* ---------- generation ---------- */
+  const ri = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+  const pick = arr => arr[ri(0, arr.length - 1)];
+  function coeff() {
+    const a = ri(2, 9);
+    return frac(Math.random() < 0.5 ? -a : a, 1);
+  }
+  function maybeUnit(c) { return Math.random() < 0.18 ? frac(c.p < 0 ? -1 : 1, 1) : c; }
+
+  function generate() {
+    const pool = [];
+    if (modes.simple)   pool.push("simple");
+    if (modes.negative) pool.push("negative");
+    if (modes.rational) pool.push("rational");
+    const kind = pick(pool);
+
+    let c = maybeUnit(coeff());
+    let e;
+    if (kind === "simple") {
+      if (Math.random() < 0.1) { e = frac(0, 1); c = coeff(); }        /* constant: f' = 0 */
+      else e = frac(pick([1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7]), 1);
+    } else if (kind === "negative") {
+      e = frac(-pick([1, 1, 2, 2, 3, 3, 4, 5]), 1);
+    } else {
+      const pos = [[1, 2], [1, 2], [3, 2], [3, 2], [5, 2], [1, 3], [2, 3], [4, 3], [5, 3]];
+      const neg = [[-1, 2], [-1, 2], [-3, 2], [-1, 3], [-2, 3]];
+      const set = modes.negative && Math.random() < 0.4 ? neg : pos;
+      const [p, q] = pick(set);
+      e = frac(p, q);
+    }
+
+    const canAlt = altForm(c, e) !== null;
+    const posedAlt = modes.mixed && canAlt && Math.random() < 0.55;
+    return { c, e, posedAlt, key: kind + "|" + c.p + "/" + c.q + "|" + e.p + "/" + e.q + "|" + posedAlt };
+  }
+
+  /* ---------- DOM ---------- */
+  const $ = id => document.getElementById(id);
+  const qEl = $("question"), aEl = $("answer"), dEl = $("deriv"),
+        rEl = $("rewrite"), altEl = $("altform"), counterEl = $("qcounter"),
+        btnNew = $("btnNew"), btnReveal = $("btnReveal"), card = $("card");
+
+  const HEAD_F  = '<span class="fname">f</span><span class="co">(</span><span class="vx">x</span><span class="co">)</span><span class="co eq">=</span>';
+  const HEAD_FP = '<span class="fname">f</span><span class="co">&prime;</span><span class="co">(</span><span class="vx">x</span><span class="co">)</span><span class="co eq">=</span>';
+
+  function newQuestion() {
+    if (!modes.simple && !modes.negative && !modes.rational) return;
+    let q, guard = 0;
+    do { q = generate(); guard++; } while (q.key === lastKey && guard < 12);
+    lastKey = q.key;
+    current = q;
+    revealed = false;
+    count++;
+
+    const posed = q.posedAlt ? altForm(q.c, q.e) : indexForm(q.c, q.e);
+    qEl.innerHTML = HEAD_F + posed;
+    aEl.classList.remove("shown");
+    counterEl.textContent = "Question " + count;
+    btnReveal.disabled = false;
+  }
+
+  function reveal() {
+    if (!current || revealed) return;
+    revealed = true;
+
+    /* rewrite line: only when the question was posed in surd/fraction form */
+    if (current.posedAlt) {
+      rEl.innerHTML = HEAD_F + indexForm(current.c, current.e);
+      rEl.hidden = false;
+    } else rEl.hidden = true;
+
+    const dc = fmul(current.c, current.e);          /* c·n */
+    const de = fsub1(current.e);                    /* n − 1 */
+    if (isZero(dc)) {
+      dEl.innerHTML = HEAD_FP + '<span class="co">0</span>';
+      altEl.hidden = true;
+    } else {
+      dEl.innerHTML = HEAD_FP + indexForm(dc, de);
+      const alt = altForm(dc, de);
+      if (alt) { altEl.innerHTML = '<span class="co eq">=</span>' + alt; altEl.hidden = false; }
+      else altEl.hidden = true;
+    }
+    aEl.classList.add("shown");
+    btnReveal.disabled = true;
+  }
+
+  function advance() { if (current && !revealed) reveal(); else newQuestion(); }
+
+  /* ---------- controls ---------- */
+  function saveModes() {
+    try { localStorage.setItem("derivdrill-modes", JSON.stringify(modes)); } catch (e) { /* fine */ }
+  }
+  function bindChip(id, key, isTypeChip) {
+    const el = $(id);
+    el.setAttribute("aria-pressed", String(modes[key]));
+    el.addEventListener("click", () => {
+      if (isTypeChip && modes[key] && !(Object.keys(modes).filter(k => k !== "mixed" && modes[k]).length > 1)) return;
+      modes[key] = !modes[key];
+      el.setAttribute("aria-pressed", String(modes[key]));
+      saveModes();
+      el.blur();
+    });
+  }
+  bindChip("mSimple", "simple", true);
+  bindChip("mNegative", "negative", true);
+  bindChip("mRational", "rational", true);
+  bindChip("mMixed", "mixed", false);
+
+  btnNew.addEventListener("click", () => { newQuestion(); btnNew.blur(); });
+  btnReveal.addEventListener("click", () => { reveal(); btnReveal.blur(); });
+  card.addEventListener("click", advance);
+
+  document.addEventListener("keydown", e => {
+    if (e.target !== document.body && e.target !== card) return;
+    const k = e.key.toLowerCase();
+    if (k === " " || k === "n") { e.preventDefault(); newQuestion(); }
+    else if (k === "enter" || k === "a") {
+      e.preventDefault();
+      if (current && !revealed) reveal(); else newQuestion();
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
