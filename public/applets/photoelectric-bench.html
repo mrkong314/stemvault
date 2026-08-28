@@ -352,7 +352,7 @@ function step(dt){
     if(p.left>0) return true;
     if(d.KE>0 && Math.random()<0.85){
       // KE sampled so P(KE > eV) = 1 - (V/V0)^2 — matches the I-V curve
-      const ke = Math.max(0.08, Math.sqrt(Math.random()))*d.KE;
+      const ke = Math.max(0.18, Math.sqrt(Math.random()))*d.KE;
       electrons.push({x:CATH.x+CATH.w+2, y:p.y+(Math.random()*10-5), ke, dir:1, x0:CATH.x+CATH.w+2});
     } else {
       flashes.push({x:CATH.x+CATH.w, y:p.y, t:0.25});
@@ -360,11 +360,14 @@ function step(dt){
     return false;
   });
 
-  const VS = 200;
+  // VS sets the drift speed: v = VS√KE, so a typical electron crosses the tube in
+  // about a second and visibly speeds up with frequency. Too low and the dots crawl.
+  const VS = 620;
   electrons = electrons.filter(el=>{
     const kex = el.ke + d.U*((el.x-el.x0)/GAP);
     if(kex<=0.001 && el.dir>0){ el.dir=-1; }
     const v = VS*Math.sqrt(Math.max(kex,0.02));
+    el.v = el.dir*v;
     el.x += el.dir*v*dt;
     if(el.x>=ANODE.x-4){ flashes.push({x:ANODE.x, y:el.y, t:0.3}); return false; }
     if(el.x<=CATH.x+CATH.w) return false;
@@ -447,7 +450,12 @@ function drawApparatus(){
       else { c.fillStyle='rgba(255,255,255,0.7)'; c.beginPath(); c.arc(p.x,p.y,1.6,0,7); c.fill(); }
     }
     for(const el of electrons){
-      c.fillStyle='#63D2F0'; c.beginPath(); c.arc(el.x,el.y,3.4,0,7); c.fill();
+      const tr = Math.min(30, Math.abs(el.v||0)*0.035);
+      if(tr>3){
+        c.strokeStyle='rgba(99,210,240,0.38)'; c.lineWidth=2.6; c.lineCap='round';
+        c.beginPath(); c.moveTo(el.x-Math.sign(el.v)*tr, el.y); c.lineTo(el.x, el.y); c.stroke();
+      }
+      c.fillStyle='#63D2F0'; c.beginPath(); c.arc(el.x,el.y,3.8,0,7); c.fill();
     }
     for(const f of flashes){
       c.fillStyle=`rgba(233,238,245,${f.t*2})`; c.beginPath(); c.arc(f.x,f.y,5*(0.35-f.t)+6,0,7); c.fill();
