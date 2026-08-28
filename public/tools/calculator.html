@@ -922,6 +922,16 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .mq-field .mq-root-block .mq-array * {
     overflow-wrap: normal; word-break: normal; white-space: nowrap;
   }
+  /* Bracket groups too: MathQuill scales the bracket glyph to the measured height
+     of the enclosed block, so if that block wraps (its min-content collapses under
+     the inherited overflow-wrap:anywhere) the measurement sees a stack of lines
+     and the bracket is stretched to cover it — e.g. a bracketed number rendered
+     with a bracket 20x taller than the content. Keeping bracket contents on one
+     line makes the height measurement (and thus the glyph scaling) correct. */
+  .mq-field .mq-root-block .mq-paren + .mq-non-leaf,
+  .mq-field .mq-root-block .mq-paren + .mq-non-leaf * {
+    overflow-wrap: normal; word-break: normal; white-space: nowrap;
+  }
 
   /* With a tall radicand (e.g. a fraction inside \sqrt) MathQuill's scaled radical
      glyph can leave a thin sliver above the top bar. Nudge the stem bar to sit
