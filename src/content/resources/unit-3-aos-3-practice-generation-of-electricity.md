@@ -1,5 +1,5 @@
 ---
-title: "Unit 3 Area of Study 3 Practice: Generation of Electricity"
+title: "Unit 3 Area of Study 3 Physics Practice: Generation of Electricity"
 type: applet
 subject: Physics
 yearLevel: [11, 12]
