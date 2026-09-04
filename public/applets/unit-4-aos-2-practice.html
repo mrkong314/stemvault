@@ -98,6 +98,55 @@ main{padding:24px 32px 80px;max-width:880px}
 .nums input.ok{border-color:var(--got);background:var(--got-tint)}.nums input.bad{border-color:var(--miss);background:var(--miss-tint)}
 .katex{font-size:1.02em}
 .hint{font-size:13px;color:var(--muted);margin:4px 0 10px}
+.typed{margin:10px 0 2px}
+.typed textarea{display:block;width:100%;min-height:96px;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font:inherit;font-size:15px;line-height:1.45;background:#fff;resize:vertical}
+.typed textarea:focus-visible{outline:3px solid #9CC2F1;outline-offset:2px}
+.typed .tnote{font-size:12.5px;color:var(--muted);margin-top:4px}
+.note-btn{margin-left:auto}
+.note-btn.has{border-color:var(--part);color:#8a5d00;background:var(--part-tint)}
+.note-btn.has::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--part);margin-right:6px;vertical-align:middle}
+.note{margin:8px 0 2px}
+.note textarea{display:block;width:100%;min-height:52px;padding:7px 10px;border:1px solid #EAD9A6;border-radius:6px;font:inherit;font-size:14px;line-height:1.4;background:#FFFBEC;resize:vertical}
+.note textarea:focus-visible{outline:3px solid #9CC2F1;outline-offset:2px}
+.actions .verdict{flex-basis:100%}
+.sk{margin:8px auto;width:420px;max-width:100%}
+.sk.pad{width:100%;margin:6px 0 2px}
+.sk.pad canvas{border:1px solid var(--rule);border-radius:6px}
+.sk img,.sk canvas{display:block;width:100%;max-width:100%;margin:0 auto}
+.sk canvas.editing{cursor:crosshair;touch-action:none;outline:2px dashed var(--sky);outline-offset:2px}
+.skbar{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
+.skbar button{font-size:12.5px;padding:4px 11px;border:1px solid var(--rule);border-radius:14px;background:#fff;color:var(--ink);font-weight:600}
+.skbar button:hover{background:var(--sky-tint)}
+.skbar button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.calc{position:fixed;right:24px;bottom:24px;width:360px;max-width:calc(100vw - 20px);background:var(--paper);border:1px solid var(--rule);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);z-index:50;font-size:14px}
+.calc-h{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 14px;background:var(--navy);color:#fff;border-radius:10px 10px 0 0;cursor:move;user-select:none;touch-action:none}
+.calc-t{font-weight:700}
+.calc-mode{margin-left:auto;display:flex;gap:2px}
+.calc-mode button{font-size:12px;padding:3px 8px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;border-radius:4px}
+.calc-mode button.on{background:#fff;color:var(--navy)}
+.calc-x{border:0;background:transparent;color:#fff;font-size:20px;line-height:1;padding:0 4px}
+.calc-in{padding:10px 12px 4px}
+.calc-in math-field{display:block;width:100%;font-size:19px;padding:6px 8px;border:1px solid var(--rule);border-radius:6px;background:#fff;--caret-color:var(--navy)}
+.calc-in math-field::part(menu-toggle){display:none}
+.calc-in input{display:block;width:100%;font:inherit;font-size:16px;padding:8px;border:1px solid var(--rule);border-radius:6px}
+.calc-res{min-height:26px;padding:0 14px 6px;font-size:17px;color:var(--navy)}
+.calc-res.err{font-size:13px;color:var(--miss)}
+.calc-keys{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;padding:4px 12px 8px}
+.calc-keys button{font-size:13.5px;padding:7px 2px;border:1px solid var(--rule);border-radius:6px;background:#F7FAFE;color:var(--ink)}
+.calc-keys button:hover{background:var(--sky-tint)}
+.calc-keys button.eq{grid-column:span 2;background:var(--navy);color:#fff;border-color:var(--navy)}
+.calc-note{font-size:12px;color:var(--muted);padding:0 14px 8px}
+.calc-hh{display:flex;align-items:center;justify-content:space-between;padding:4px 14px;border-top:1px solid var(--rule);font-size:12px;color:var(--muted)}
+.calc-hclear{font-size:12px;padding:2px 8px;border:1px solid var(--rule);border-radius:4px;background:#fff;color:var(--ink)}
+.calc-hclear:hover{background:var(--miss-tint);border-color:var(--miss)}
+.calc-hist{max-height:38px;overflow-y:auto}
+.calc-hist .hrow{display:flex;align-items:stretch;border-top:1px solid var(--sky-tint)}
+.calc-hist .huse{flex:1;display:flex;justify-content:space-between;gap:10px;min-height:36px;text-align:left;border:0;background:#fff;padding:5px 6px 5px 14px;font-size:13.5px;color:var(--ink);align-items:center}
+.calc-hist .huse:hover{background:var(--sky-tint)}
+.calc-hist .hdel{border:0;background:#fff;color:var(--muted);font-size:17px;line-height:1;width:32px;opacity:0;cursor:pointer}
+.calc-hist .hrow:hover .hdel,.calc-hist .hdel:focus-visible{opacity:1}
+.calc-hist .hdel:hover{color:var(--miss);background:var(--miss-tint)}
+@media (hover:none){.calc-hist .hdel{opacity:1}}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
 .answer{display:none;margin-top:12px;border-top:2px solid var(--sky-tint);padding:12px 14px 4px;background:#F7FAFE;border-radius:0 0 6px 6px;font-size:15.5px;color:#123}
 .answer.open{display:block}
@@ -139,6 +188,8 @@ main{padding:24px 32px 80px;max-width:880px}
   <span class="sub">VCE Physics: Experimental and Practical Investigation</span>
   <div class="tools">
     <button class="btn menu-toggle" id="menuBtn">Criteria</button>
+    <button class="btn" id="homeBtn">Back to home</button>
+    <button class="btn" id="calcBtn">Calculator</button>
     <button class="btn" id="resetBtn">Reset progress</button>
     <span class="saved" id="savedNote"></span>
   </div>
@@ -273,6 +324,245 @@ function splitSteps(line) {
   return line.split(/(?<=\(\d\)[.;:]?)\s+(?=[A-Za-z0-9λγΦΔ(√vEpF])/).map(t => t.trim()).filter(Boolean);
 }
 
+// ---- optional tools: sketch canvas on question images, pop-up scientific calculator ----
+// Inlined into the practice HTML by build_html.js. Depends on: state, qstate, save, esc, DATA (from the page runtime).
+
+// ===== Sketch =====
+const SK_COLOR = "#1B3A6B";
+function skWrap(name, src) {
+  return '<div class="sk" data-img="' + name + '"><img src="' + src + '" alt=""><div class="skbar"><button type="button" data-sk="edit">Sketch on this diagram</button></div></div>';
+}
+function bindSketch(el, q) {
+  el.querySelectorAll(".sk").forEach(w => setupSketch(w, q));
+}
+function setupSketch(w, q) {
+  const name = w.dataset.img, img = w.querySelector("img"), bar = w.querySelector(".skbar"); // no img: blank scratchpad
+  let strokes = (!q.variant && (qstate(q.code).sketch || {})[name]) || [];
+  let canvas = null, ctx = null, editing = false, tool = "pen", cur = null;
+  const persist = () => {
+    if (q.variant) return;
+    const sk = { ...(qstate(q.code).sketch || {}) };
+    if (strokes.length) sk[name] = strokes; else delete sk[name];
+    state[q.code] = { ...qstate(q.code), sketch: sk }; save();
+  };
+  const W = () => canvas.width, Hh = () => canvas.height;
+  const draw = (preview) => {
+    ctx.clearRect(0, 0, W(), Hh());
+    if (img) ctx.drawImage(img, 0, 0, W(), Hh());
+    else { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W(), Hh()); ctx.strokeStyle = "#E3E9F1"; ctx.lineWidth = 1; for (let x = 40; x < W(); x += 40) { ctx.beginPath(); ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, Hh()); ctx.stroke(); } for (let y = 40; y < Hh(); y += 40) { ctx.beginPath(); ctx.moveTo(0, y + 0.5); ctx.lineTo(W(), y + 0.5); ctx.stroke(); } }
+    ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = SK_COLOR; ctx.lineWidth = Math.max(2, W() / 260);
+    strokes.concat(preview ? [preview] : []).forEach(s => {
+      if (s.p.length < 2) { ctx.beginPath(); ctx.arc(s.p[0][0] * W(), s.p[0][1] * Hh(), ctx.lineWidth / 2, 0, 7); ctx.fillStyle = SK_COLOR; ctx.fill(); return; }
+      ctx.beginPath(); ctx.moveTo(s.p[0][0] * W(), s.p[0][1] * Hh());
+      s.p.slice(1).forEach(pt => ctx.lineTo(pt[0] * W(), pt[1] * Hh())); ctx.stroke();
+    });
+  };
+  const build = () => {
+    if (canvas) return;
+    canvas = document.createElement("canvas"); canvas.className = "skc";
+    canvas.width = img ? (img.naturalWidth || 640) : 1000; canvas.height = img ? (img.naturalHeight || 480) : 520;
+    if (img) img.replaceWith(canvas); else w.insertBefore(canvas, bar);
+    ctx = canvas.getContext("2d"); draw();
+    const pos = e => { const r = canvas.getBoundingClientRect(); return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))]; };
+    const near = (pt, s) => { // distance in canvas px from pt to stroke s
+      const px = pt[0] * W(), py = pt[1] * Hh(); let best = 1e9;
+      for (let i = 0; i < s.p.length; i++) {
+        const ax = s.p[i][0] * W(), ay = s.p[i][1] * Hh();
+        if (i === 0 || s.p.length === 1) best = Math.min(best, Math.hypot(px - ax, py - ay));
+        if (i > 0) { const bx = s.p[i - 1][0] * W(), by = s.p[i - 1][1] * Hh(); const dx = ax - bx, dy = ay - by; const L2 = dx * dx + dy * dy || 1;
+          const t = Math.min(1, Math.max(0, ((px - bx) * dx + (py - by) * dy) / L2)); best = Math.min(best, Math.hypot(px - (bx + t * dx), py - (by + t * dy))); }
+      }
+      return best;
+    };
+    const erase = pt => { const n = strokes.length; strokes = strokes.filter(s => near(pt, s) > Math.max(10, W() / 60)); if (strokes.length !== n) { draw(); persist(); } };
+    canvas.addEventListener("pointerdown", e => {
+      if (!editing) return; e.preventDefault(); canvas.setPointerCapture(e.pointerId);
+      const pt = pos(e);
+      if (tool === "erase") { erase(pt); cur = { erase: true }; return; }
+      cur = { t: tool, p: [pt] };
+    });
+    canvas.addEventListener("pointermove", e => {
+      if (!editing || !cur) return; e.preventDefault(); const pt = pos(e);
+      if (cur.erase) { erase(pt); return; }
+      if (cur.t === "line") cur.p = [cur.p[0], pt]; else cur.p.push(pt);
+      draw(cur);
+    });
+    const finish = e => { if (!cur) return; if (!cur.erase) { strokes.push(cur); persist(); } cur = null; draw(); };
+    canvas.addEventListener("pointerup", finish); canvas.addEventListener("pointercancel", finish);
+  };
+  const tools = [["pen", "Pen"], ["line", "Line"], ["erase", "Erase"], ["undo", "Undo"], ["clear", "Clear"], ["done", "Done"]];
+  const showBar = () => {
+    if (editing) bar.innerHTML = tools.map(t => '<button type="button" data-sk="' + t[0] + '"' + (t[0] === tool ? ' class="on"' : '') + '>' + t[1] + '</button>').join("");
+    else bar.innerHTML = '<button type="button" data-sk="edit">' + (strokes.length ? "Edit sketch" : (img ? "Sketch on this diagram" : "Draw")) + '</button>';
+  };
+  bar.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return; const a = b.dataset.sk;
+    if (a === "edit") { const start = () => { build(); editing = true; canvas.classList.add("editing"); showBar(); }; if (!img || (img.complete && img.naturalWidth)) start(); else img.addEventListener("load", start, { once: true }); return; }
+    if (a === "done") { editing = false; canvas.classList.remove("editing"); showBar(); return; }
+    if (a === "undo") { strokes.pop(); draw(); persist(); return; }
+    if (a === "clear") { strokes = []; draw(); persist(); return; }
+    tool = a; showBar();
+  });
+  if (strokes.length) { const show = () => { build(); showBar(); }; if (!img || (img.complete && img.naturalWidth)) show(); else img.addEventListener("load", show, { once: true }); }
+  w.skEdit = () => bar.querySelector('[data-sk="edit"]') && bar.querySelector('[data-sk="edit"]').click();
+}
+// blank scratchpad markup (the canvas is created on first use)
+function padWrap() { return '<div class="sk pad" data-img="_pad"><div class="skbar"><button type="button" data-sk="edit">Draw</button></div></div>'; }
+
+// ===== Calculator =====
+let calcEl = null, calcAns = 0, calcDeg = true, calcField = null, calcHist = [];
+function calcNormalise(s) {
+  s = String(s || "");
+  s = s.replace(/\\left|\\right|\\,|\\;|\\!|\\quad|\\qquad|\\ /g, "")
+    .replace(/\\placeholder\{[^}]*\}/g, "")
+    .replace(/\\mathrm\{([^}]*)\}|\\text\{([^}]*)\}|\\operatorname\{([^}]*)\}/g, (m, a, b, c) => " " + (a || b || c) + " ")
+    .replace(/\\(sin|cos|tan)\^\{-1\}|\\(sin|cos|tan)\^-1/g, (m, a, b) => " a" + (a || b) + " ")
+    .replace(/\\arc(sin|cos|tan)/g, " a$1 ")
+    .replace(/\\(sin|cos|tan|ln|log|exp)/g, " $1 ")
+    .replace(/\*\*/g, "^").replace(/\\times|\\cdot|×|·/g, "*").replace(/\\div|÷/g, "/").replace(/−|–/g, "-")
+    .replace(/\\pi|π/g, " pi ").replace(/\\%|%/g, "/100");
+  for (let i = 0; i < 30; i++) {
+    const t = s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, "(($1)/($2))")
+      .replace(/\\sqrt\[([^\[\]{}]*)\]\{([^{}]*)\}/g, "(($2)^(1/($1)))")
+      .replace(/\\sqrt\{([^{}]*)\}/g, " sqrt($1)")
+      .replace(/\^\{([^{}]*)\}/g, "^($1)")
+      .replace(/_\{[^{}]*\}/g, "");
+    if (t === s) break; s = t;
+  }
+  s = s.replace(/\\sqrt/g, " sqrt ").replace(/\\[a-zA-Z]+/g, " ").replace(/[{}]/g, m => m === "{" ? "(" : ")");
+  return s;
+}
+function calcTokens(s) {
+  const out = []; let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (/\s/.test(c)) { i++; continue; }
+    let m;
+    if ((m = /^\d+\.?\d*(?:[eE][+-]?\d+)?|^\.\d+(?:[eE][+-]?\d+)?/.exec(s.slice(i)))) { out.push({ t: "num", v: Number(m[0]) }); i += m[0].length; continue; }
+    if ((m = /^[a-zA-Z]+/.exec(s.slice(i)))) { out.push({ t: "id", v: m[0].toLowerCase() }); i += m[0].length; continue; }
+    if ("+-*/^()!,".includes(c)) { out.push({ t: c }); i++; continue; }
+    throw new Error("Unexpected '" + c + "'");
+  }
+  return out;
+}
+const trig = f => x => Number(f(calcDeg ? x * Math.PI / 180 : x).toFixed(15)); // rounds cos(90) to exactly 0
+const CALC_FN = {
+  sin: trig(Math.sin), cos: trig(Math.cos), tan: trig(Math.tan),
+  asin: x => calcDeg ? Math.asin(x) * 180 / Math.PI : Math.asin(x), acos: x => calcDeg ? Math.acos(x) * 180 / Math.PI : Math.acos(x), atan: x => calcDeg ? Math.atan(x) * 180 / Math.PI : Math.atan(x),
+  ln: x => Math.log(x), log: x => Math.log10(x), sqrt: x => Math.sqrt(x), abs: x => Math.abs(x), exp: x => Math.exp(x),
+};
+const CALC_CONST = { pi: Math.PI, e: Math.E };
+function calcEval(src) {
+  const tk = calcTokens(calcNormalise(src)); let p = 0;
+  const peek = () => tk[p], next = () => tk[p++];
+  const startsOperand = t => t && (t.t === "num" || t.t === "id" || t.t === "(");
+  function expr() { let v = term(); while (peek() && (peek().t === "+" || peek().t === "-")) { const o = next().t; const r = term(); v = o === "+" ? v + r : v - r; } return v; }
+  function term() { let v = unary(); for (;;) { const t = peek(); if (!t) break; if (t.t === "*" || t.t === "/") { next(); const r = unary(); v = t.t === "*" ? v * r : v / r; } else if (startsOperand(t)) { v = v * unary(); } else break; } return v; }
+  function unary() { if (peek() && peek().t === "-") { next(); return -unary(); } if (peek() && peek().t === "+") { next(); return unary(); } return power(); }
+  function power() { const b = postfix(); if (peek() && peek().t === "^") { next(); return Math.pow(b, unary()); } return b; }
+  function postfix() { let v = atom(); while (peek() && peek().t === "!") { next(); if (v < 0 || v !== Math.floor(v) || v > 170) throw new Error("Factorial needs a whole number"); let f = 1; for (let k = 2; k <= v; k++) f *= k; v = f; } return v; }
+  function atom() {
+    const t = next(); if (!t) throw new Error("Incomplete expression");
+    if (t.t === "num") return t.v;
+    if (t.t === "(") { const v = expr(); if (!peek() || next().t !== ")") throw new Error("Missing )"); return v; }
+    if (t.t === "id") {
+      if (t.v === "ans") return calcAns;
+      if (CALC_CONST[t.v] !== undefined) return CALC_CONST[t.v];
+      if (CALC_FN[t.v]) { const f = CALC_FN[t.v]; if (peek() && peek().t === "(") { next(); const v = expr(); if (!peek() || next().t !== ")") throw new Error("Missing )"); return f(v); } return f(unary()); }
+      throw new Error("Unknown symbol " + t.v);
+    }
+    throw new Error("Unexpected " + t.t);
+  }
+  const v = expr(); if (p < tk.length) throw new Error("Unexpected " + (tk[p].t === "id" || tk[p].t === "num" ? tk[p].v : tk[p].t));
+  if (!isFinite(v) || isNaN(v)) throw new Error("Undefined");
+  return v;
+}
+function calcFormat(v) {
+  v = Number(v.toPrecision(12)); if (v === 0) return "0";
+  const a = Math.abs(v);
+  if (a >= 1e9 || a < 1e-4) { const n = Math.floor(Math.log10(a)); const m = Number((v / Math.pow(10, n)).toPrecision(10)); return String(m) + " \\times 10^{" + n + "}"; }
+  return String(Number(v.toPrecision(10)));
+}
+function calcRender(el, tex) { if (window.katex) { try { katex.render(tex, el, { throwOnError: false, strict: "ignore" }); return; } catch (e) {} } el.textContent = tex; }
+function calcValue() { return calcField.tagName === "MATH-FIELD" ? calcField.value : calcField.value; }
+function calcUpdate() {
+  const res = calcEl.querySelector(".calc-res"); const src = calcValue();
+  if (!src.trim()) { res.textContent = ""; res.className = "calc-res"; return null; }
+  try { const v = calcEval(src); calcRender(res, "= " + calcFormat(v)); res.className = "calc-res"; return v; }
+  catch (e) { res.textContent = e.message; res.className = "calc-res err"; return null; }
+}
+function calcCommit() {
+  const v = calcUpdate(); if (v === null) return;
+  calcAns = v; const src = calcValue(); calcField.value = ""; calcEl.querySelector(".calc-res").textContent = "";
+  calcHist.unshift({ src, v }); calcHist = calcHist.slice(0, 20);
+  calcHistRender();
+}
+function calcHistRender() {
+  const h = calcEl.querySelector(".calc-hist"); h.innerHTML = "";
+  calcEl.querySelector(".calc-hclear").hidden = !calcHist.length;
+  calcHist.forEach((it, i) => {
+    const row = document.createElement("div"); row.className = "hrow";
+    const use = document.createElement("button"); use.type = "button"; use.className = "huse"; use.title = "Put this back in the calculator";
+    const a = document.createElement("span"), b = document.createElement("span");
+    calcRender(a, calcField.tagName === "MATH-FIELD" ? it.src : esc(it.src)); calcRender(b, "= " + calcFormat(it.v)); use.append(a, b);
+    use.addEventListener("click", () => { calcField.value = it.src; calcUpdate(); calcField.focus(); });
+    const del = document.createElement("button"); del.type = "button"; del.className = "hdel"; del.textContent = "×"; del.setAttribute("aria-label", "Delete this entry"); del.title = "Delete this entry";
+    del.addEventListener("click", () => { calcHist.splice(i, 1); calcHistRender(); });
+    row.append(use, del); h.appendChild(row);
+  });
+}
+function calcInsert(latex, plain) {
+  if (calcField.tagName === "MATH-FIELD") { calcField.executeCommand(["insert", latex, { format: "latex" }]); }
+  else { const f = calcField, s = f.selectionStart, e = f.selectionEnd; f.value = f.value.slice(0, s) + plain + f.value.slice(e); f.selectionStart = f.selectionEnd = s + plain.length; }
+  calcField.focus(); calcUpdate();
+}
+const CALC_KEYS = [
+  ["sin", "\\sin(#?)", "sin("], ["cos", "\\cos(#?)", "cos("], ["tan", "\\tan(#?)", "tan("], ["√", "\\sqrt{#?}", "sqrt("], ["x²", "^2", "^2"], ["xʸ", "^{#?}", "^("],
+  ["sin⁻¹", "\\sin^{-1}(#?)", "asin("], ["cos⁻¹", "\\cos^{-1}(#?)", "acos("], ["tan⁻¹", "\\tan^{-1}(#?)", "atan("], ["π", "\\pi", "pi"], ["e", "e", "e"], ["×10ⁿ", "\\times10^{#?}", "*10^("],
+  ["(", "(", "("], [")", ")", ")"], ["ln", "\\ln(#?)", "ln("], ["log", "\\log(#?)", "log("], ["a/b", "\\frac{#?}{#0}", "/"], ["Ans", "\\mathrm{Ans}", "Ans"],
+];
+function initCalc() {
+  const btn = document.getElementById("calcBtn"); if (!btn) return;
+  btn.addEventListener("click", () => { if (!calcEl) calcBuild(); calcEl.hidden = !calcEl.hidden; if (!calcEl.hidden) calcField.focus(); });
+}
+function calcBuild() {
+  calcEl = document.createElement("div"); calcEl.className = "calc"; calcEl.hidden = true;
+  calcEl.innerHTML = '<div class="calc-h"><span class="calc-t">Calculator</span><span class="calc-mode"><button type="button" data-ang="deg" class="on">DEG</button><button type="button" data-ang="rad">RAD</button></span><button type="button" class="calc-x" aria-label="Close">×</button></div>' +
+    '<div class="calc-in"></div><div class="calc-res"></div>' +
+    '<div class="calc-keys">' + CALC_KEYS.map((k, i) => '<button type="button" data-k="' + i + '">' + k[0] + '</button>').join("") + '<button type="button" data-k="del">⌫</button><button type="button" data-k="clear">Clear</button><button type="button" data-k="eq" class="eq">=</button></div>' +
+    '<div class="calc-note">Type as you would write it: 2.5×10^3, sin(30), sqrt(2×9.81×5). Use the right arrow key to leave a fraction, root or power. Enter or = stores the result as Ans. Angles in degrees unless RAD is chosen.</div><div class="calc-hh"><span>History</span><button type="button" class="calc-hclear" hidden>Clear history</button></div><div class="calc-hist"></div>';
+  document.body.appendChild(calcEl);
+  const inWrap = calcEl.querySelector(".calc-in");
+  if (window.customElements && customElements.get("math-field")) {
+    const mf = document.createElement("math-field"); mf.setAttribute("aria-label", "calculator input");
+    inWrap.appendChild(mf);
+    mf.inlineShortcuts = { ...mf.inlineShortcuts, "*": "\\times", "x": "\\times", "X": "\\times", "Ans": "\\mathrm{Ans}", "ans": "\\mathrm{Ans}", "asin": "\\sin^{-1}", "acos": "\\cos^{-1}", "atan": "\\tan^{-1}" };
+    mf.menuItems = []; mf.smartFence = true; mf.smartSuperscript = false; mf.mathVirtualKeyboardPolicy = "auto";
+    mf.addEventListener("input", calcUpdate);
+    mf.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); calcCommit(); } });
+    calcField = mf;
+  } else {
+    const inp = document.createElement("input"); inp.type = "text"; inp.placeholder = "e.g. 2*10^3*sin(30)"; inp.autocomplete = "off"; inp.setAttribute("aria-label", "calculator input");
+    inWrap.appendChild(inp); inp.addEventListener("input", calcUpdate); inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); calcCommit(); } });
+    calcField = inp;
+  }
+  calcEl.querySelector(".calc-x").addEventListener("click", () => { calcEl.hidden = true; });
+  calcEl.querySelector(".calc-hclear").addEventListener("click", () => { calcHist = []; calcHistRender(); calcField.focus(); });
+  calcEl.querySelectorAll("[data-ang]").forEach(b => b.addEventListener("click", () => { calcDeg = b.dataset.ang === "deg"; calcEl.querySelectorAll("[data-ang]").forEach(x => x.classList.toggle("on", x === b)); calcUpdate(); }));
+  calcEl.querySelector(".calc-keys").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return; const k = b.dataset.k;
+    if (k === "eq") { calcCommit(); calcField.focus(); return; }
+    if (k === "clear") { calcField.value = ""; calcUpdate(); calcField.focus(); return; }
+    if (k === "del") { if (calcField.tagName === "MATH-FIELD") calcField.executeCommand("deleteBackward"); else calcField.value = calcField.value.slice(0, -1); calcUpdate(); calcField.focus(); return; }
+    const key = CALC_KEYS[Number(k)]; calcInsert(key[1], key[2]);
+  });
+  // drag by the header
+  const hd = calcEl.querySelector(".calc-h"); let drag = null;
+  hd.addEventListener("pointerdown", e => { if (e.target.closest("button")) return; const r = calcEl.getBoundingClientRect(); drag = { dx: e.clientX - r.left, dy: e.clientY - r.top }; hd.setPointerCapture(e.pointerId); });
+  hd.addEventListener("pointermove", e => { if (!drag) return; const x = Math.max(0, Math.min(window.innerWidth - 120, e.clientX - drag.dx)), y = Math.max(0, Math.min(window.innerHeight - 60, e.clientY - drag.dy)); calcEl.style.left = x + "px"; calcEl.style.top = y + "px"; calcEl.style.right = "auto"; calcEl.style.bottom = "auto"; });
+  hd.addEventListener("pointerup", () => { drag = null; }); hd.addEventListener("pointercancel", () => { drag = null; });
+}
+
 // ---- similar-question generators (Unit 4 AOS 2, EPI) ----
 const H = 6.63e-34, C = 3.00e8, E = 1.60e-19, ME = 9.11e-31, MP = 1.67e-27, VS = 340, G = 9.81;
 const R = (a, b, step) => { const n = Math.round((b - a) / step); return a + step * Math.floor(Math.random() * (n + 1)); };
@@ -292,37 +582,130 @@ function sci(x, sf = 2) {
 }
 const V = (label, value, tol) => tol === undefined ? [label, value] : [label, value, tol];
 const fix = (x, d) => Number(x).toFixed(d);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+// multiple choice helper: shuffles the correct option in with three distractors and returns the letter of the correct one
+const mcq = (correct, distractors) => { const options = shuffle([correct, ...distractors]); return { options, letter: "ABCD"[options.indexOf(correct)] }; };
+// pick n distinct items from an array
+const pickN = (arr, n) => shuffle(arr).slice(0, n);
 
-// experiments for the variables / aim / hypothesis generators
+// experiments for the variables / aim / hypothesis generators (iv, dv, cv are stand-alone noun phrases)
 const EXPTS = [
-  { iv: "the extension of the spring", dv: "the force it exerts", cv: "the spring used", up: true,
-    setup: "A student stretches the same spring to extensions of 2.0 cm to 10.0 cm and measures the force it exerts with a newton meter." },
-  { iv: "the length of the wire", dv: "its resistance", cv: "the thickness (diameter) of the wire", up: true,
-    setup: "A student measures the resistance of 0.20 m to 1.00 m lengths of the same nichrome wire at the same temperature." },
-  { iv: "the distance from the lamp", dv: "the light intensity", cv: "the power setting of the lamp", up: false,
-    setup: "A student moves a light sensor from 0.10 m to 0.50 m from a small lamp in a darkened room and records the intensity, keeping the lamp at the same power setting." },
-  { iv: "the frequency of the light", dv: "the stopping voltage", cv: "the metal surface used", up: true,
-    setup: "A student shines light of five different frequencies at the same intensity onto the same metal in a photoelectric cell and measures the stopping voltage." },
-  { iv: "the height from which the ball is dropped", dv: "the time taken to fall", cv: "the ball used", up: true,
-    setup: "A student drops the same steel ball from heights of 0.50 m to 2.50 m and measures the fall time with light gates." },
-  { iv: "the speed of the object", dv: "the net force required for circular motion", cv: "the radius of the circle", up: true,
-    setup: "A student whirls a rubber stopper in a horizontal circle of fixed radius at different speeds and measures the tension in the string." },
-  { iv: "the current drawn from the battery", dv: "its terminal voltage", cv: "the battery used", up: false,
-    setup: "A student varies the load on a battery to draw currents from 0.2 A to 1.0 A and measures the terminal voltage each time." },
+  { iv: "the extension of the spring", dv: "the force exerted by the spring", cv: "the spring used", up: true, topic: "the behaviour of a spring",
+    setup: "A student stretches the same spring to extensions of 2.0 cm to 10.0 cm and measures the force it exerts with a newton meter.",
+    theory: "It is hypothesised that the spring obeys Hooke's law",
+    why: "The force at a given extension depends on the stiffness of the spring, so if a different spring were used the student could not tell whether a change in force was caused by the extension or by the spring" },
+  { iv: "the length of the wire", dv: "the resistance of the wire", cv: "the thickness (diameter) of the wire", up: true, topic: "the resistance of a wire",
+    setup: "A student measures the resistance of 0.20 m to 1.00 m lengths of the same nichrome wire at the same temperature.",
+    theory: "It is hypothesised that resistance is caused by collisions between electrons and the metal lattice",
+    why: "Resistance depends on the thickness of the wire as well as on its length, so if the thickness changed between readings the student could not tell whether a change in resistance was caused by the length or by the thickness" },
+  { iv: "the distance from the lamp", dv: "the light intensity at the sensor", cv: "the power setting of the lamp", up: false, topic: "light intensity",
+    setup: "A student moves a light sensor from 0.10 m to 0.50 m from a small lamp in a darkened room and records the intensity, keeping the lamp at the same power setting.",
+    theory: "It is hypothesised that light spreads out equally in all directions from the lamp",
+    why: "The intensity at the sensor depends on the power of the lamp as well as on the distance, so if the power changed between readings the student could not tell whether a change in intensity was caused by the distance or by the lamp" },
+  { iv: "the frequency of the light", dv: "the stopping voltage", cv: "the metal surface used", up: true, topic: "the photoelectric effect",
+    setup: "A student shines light of five different frequencies at the same intensity onto the same metal in a photoelectric cell and measures the stopping voltage.",
+    theory: "It is hypothesised that light of higher frequency has photons of higher energy",
+    why: "The stopping voltage depends on the work function of the metal as well as on the frequency, so if the metal changed between readings the student could not tell whether a change in stopping voltage was caused by the frequency or by the metal" },
+  { iv: "the height from which the ball is dropped", dv: "the time taken to fall", cv: "the ball used", up: true, topic: "falling objects",
+    setup: "A student drops the same steel ball from heights of 0.50 m to 2.50 m and measures the fall time with light gates.",
+    theory: "It is hypothesised that the ball falls with constant acceleration",
+    why: "The fall time can depend on the size and mass of the ball through air resistance, so if a different ball were used the student could not tell whether a change in fall time was caused by the height or by the ball" },
+  { iv: "the speed of the stopper", dv: "the tension in the string", cv: "the radius of the circle", up: true, topic: "circular motion",
+    setup: "A student whirls a rubber stopper in a horizontal circle of fixed radius at different speeds and measures the tension in the string.",
+    theory: "It is hypothesised that a net force towards the centre is needed for circular motion",
+    why: "The tension needed depends on the radius as well as on the speed, so if the radius changed between readings the student could not tell whether a change in tension was caused by the speed or by the radius" },
+  { iv: "the current drawn from the battery", dv: "the terminal voltage of the battery", cv: "the battery used", up: false, topic: "batteries",
+    setup: "A student varies the load on a battery to draw currents from 0.2 A to 1.0 A and measures the terminal voltage each time.",
+    theory: "It is hypothesised that the battery has internal resistance",
+    why: "The terminal voltage depends on the emf and internal resistance of the battery as well as on the current, so if a different battery were used the student could not tell whether a change in terminal voltage was caused by the current or by the battery" },
 ];
 
-// linearising formulas: [statement, plot y, plot x, gradient]
+// linearising formulas: eq, context, plot y, plot x, gradient, distractor quantities for the horizontal axis
 const LINEAR = [
-  ["v^{2} = 2as for a trolley released from rest", "v^{2}", "s", "2a"],
-  ["F = mv^{2}/r for circular motion at fixed radius and mass", "F", "v^{2}", "m/r"],
-  ["T^{2} = 4π^{2}r^{3}/(GM) for a satellite", "T^{2}", "r^{3}", "4π^{2}/(GM)"],
-  ["I = P/(4πd^{2}) for light from a small source", "I", "1/d^{2}", "P/(4π)"],
-  ["h = ½gt^{2} for an object dropped from rest", "h", "t^{2}", "g/2"],
-  ["E_{k} = ½mv^{2} for an object of fixed mass", "E_{k}", "v^{2}", "m/2"],
-  ["P = V^{2}/R for a fixed resistor", "P", "V^{2}", "1/R"],
-  ["R = ρL/A for a wire of fixed length and material", "R", "1/A", "ρL"],
-  ["F = kq_{1}q_{2}/r^{2} for two fixed charges", "F", "1/r^{2}", "kq_{1}q_{2}"],
+  { eq: "v^{2} = 2as", ctx: "for a trolley released from rest", y: "v^{2}", x: "s", k: "2a", d: ["s^{2}", "1/s", "√s"] },
+  { eq: "F = mv^{2}/r", ctx: "for circular motion at fixed radius and mass", y: "F", x: "v^{2}", k: "m/r", d: ["v", "1/v", "√v"] },
+  { eq: "T^{2} = 4π^{2}r^{3}/(GM)", ctx: "for a satellite", y: "T^{2}", x: "r^{3}", k: "4π^{2}/(GM)", d: ["r", "r^{2}", "1/r"] },
+  { eq: "I = P/(4πd^{2})", ctx: "for light from a small source", y: "I", x: "1/d^{2}", k: "P/(4π)", d: ["d", "d^{2}", "1/d"] },
+  { eq: "h = ½gt^{2}", ctx: "for an object dropped from rest", y: "h", x: "t^{2}", k: "g/2", d: ["t", "1/t", "√t"] },
+  { eq: "E_{k} = ½mv^{2}", ctx: "for an object of fixed mass", y: "E_{k}", x: "v^{2}", k: "m/2", d: ["v", "1/v", "√v"] },
+  { eq: "P = V^{2}/R", ctx: "for a fixed resistor", y: "P", x: "V^{2}", k: "1/R", d: ["V", "1/V", "√V"] },
+  { eq: "R = ρL/A", ctx: "for a wire of fixed length and material", y: "R", x: "1/A", k: "ρL", d: ["A", "A^{2}", "√A"] },
+  { eq: "F = kq_{1}q_{2}/r^{2}", ctx: "for two fixed charges", y: "F", x: "1/r^{2}", k: "kq_{1}q_{2}", d: ["r", "r^{2}", "1/r"] },
 ];
+
+// gradient units: y (unit) against x (unit) gives unit u; three wrong units; why the unit is what it is
+const GRAD = [
+  { y: "v^{2}", yu: "m^{2} s^{–2}", x: "s", xu: "m", u: "m s^{–2}", d: ["m s^{–1}", "m^{2} s^{–2}", "s^{2} m^{–1}"], ctx: "for a trolley on a ramp", why: "the unit of acceleration, consistent with v^{2} = 2as" },
+  { y: "F", yu: "N", x: "x", xu: "m", u: "N m^{–1}", d: ["N m", "N", "m N^{–1}"], ctx: "for a spring", why: "the unit of the spring constant k in F = kx" },
+  { y: "h", yu: "m", x: "t^{2}", xu: "s^{2}", u: "m s^{–2}", d: ["m s^{–1}", "m s^{2}", "s^{2} m^{–1}"], ctx: "for a ball dropped from rest", why: "the unit of acceleration, consistent with the gradient g/2 in h = ½gt^{2}" },
+  { y: "V_{0}", yu: "V", x: "f", xu: "Hz", u: "V s", d: ["V Hz", "V", "s V^{–1}"], ctx: "for a photoelectric cell", why: "since 1 Hz = 1 s^{–1}; the gradient is h in eV s, consistent with V_{0} = hf – Φ" },
+  { y: "R", yu: "Ω", x: "L", xu: "m", u: "Ω m^{–1}", d: ["Ω m", "Ω", "m Ω^{–1}"], ctx: "for a nichrome wire", why: "the resistance per metre of the wire" },
+  { y: "I", yu: "mW m^{–2}", x: "1/d^{2}", xu: "m^{–2}", u: "mW", d: ["mW m^{–4}", "mW m^{–2}", "m^{2} mW^{–1}"], ctx: "for light from a small lamp", why: "a power, since the gradient is P/(4π) in I = P/(4πd^{2})" },
+];
+
+// error scenarios for 5.1: text, kind, reason
+const ERRORS = [
+  { t: "A stopwatch is started and stopped by hand, and the student's reaction time differs from one trial to the next", k: "random", why: "the reaction time varies unpredictably from trial to trial, so the readings are scattered above and below the true value" },
+  { t: "The scale of a metre rule is read from a slightly different angle each time", k: "random", why: "parallax that changes from reading to reading scatters the readings in both directions" },
+  { t: "The supply voltage fluctuates during a series of current readings", k: "random", why: "the fluctuations are unpredictable, so the readings are scattered above and below the true value" },
+  { t: "A trolley is released by hand and is given a slightly different push on each trial", k: "random", why: "the push varies unpredictably from trial to trial, so the readings are scattered in both directions" },
+  { t: "Draughts in the room deflect a falling paper cone by different amounts on each drop", k: "random", why: "the deflection varies unpredictably from drop to drop, so the readings are scattered in both directions" },
+  { t: "The student judges by eye the moment the ball reaches the floor, sometimes early and sometimes late", k: "random", why: "the judgement varies unpredictably from trial to trial, so the readings are scattered above and below the true value" },
+  { t: "The end of the metre rule is worn, so every length is read 2 mm too long", k: "systematic", why: "every reading is shifted in the same direction by the same amount, so repeating the measurement does not reveal or reduce it" },
+  { t: "A balance reads 0.3 g when there is nothing on it", k: "systematic", why: "every mass reads 0.3 g too high, a shift in the same direction by the same amount on every reading" },
+  { t: "An ammeter is incorrectly calibrated and reads 5% higher than the true current for every reading", k: "systematic", why: "every reading is shifted in the same direction by a predictable amount, so repeating the measurement does not reveal or reduce it" },
+  { t: "A stopwatch is consistently started a little after the ball is released", k: "systematic", why: "every fall time is shortened in the same direction by a consistent amount" },
+  { t: "Every height is measured from the floor to the top of the ball instead of to its bottom", k: "systematic", why: "every height is too large by the diameter of the ball, a shift in the same direction on every reading" },
+  { t: "The connecting leads add the same resistance to every reading of the resistance of a wire", k: "systematic", why: "every reading is shifted up by the same amount, so repeating the measurement does not reveal or reduce it" },
+  { t: "Air resistance slows the ball on every drop", k: "systematic", why: "every fall time is lengthened in the same direction, so repeating the measurement does not reveal or reduce it" },
+];
+
+// effect of an error on the experimental value (5.2): scenario, quantity, effect, reason
+const EFFECTS = [
+  { s: "A student times a ball falling a height h with a hand-held stopwatch and calculates g = 2h/t^{2}. The stopwatch is consistently started a little after the ball is released.", qty: "g", eff: "higher", why: "The measured t is smaller than the true fall time, and t^{2} is in the denominator, so the calculated g is larger than the true value" },
+  { s: "A student times a ball falling a height h with a hand-held stopwatch and calculates g = 2h/t^{2}. The stopwatch is consistently stopped a little after the ball lands.", qty: "g", eff: "lower", why: "The measured t is larger than the true fall time, and t^{2} is in the denominator, so the calculated g is smaller than the true value" },
+  { s: "A student drops a light plastic ball from a height of 2.0 m and calculates g = 2h/t^{2} from the measured fall time. Air resistance acts on the ball.", qty: "g", eff: "lower", why: "Air resistance reduces the acceleration, so the ball takes longer to fall than in free fall; t is larger and t^{2} is in the denominator, so the calculated g is smaller than the true value" },
+  { s: "A student drops a ball and calculates g = 2h/t^{2}. Every height h is measured from the floor to the top of the ball instead of to its bottom.", qty: "g", eff: "higher", why: "The measured h is larger than the true fall height, and h is in the numerator, so the calculated g is larger than the true value" },
+  { s: "A student finds the spring constant of a spring from a single reading using k = F/x. The newton meter has a zero error and reads 0.5 N with no force applied.", qty: "k", eff: "higher", why: "The measured F is 0.5 N too large, and F is in the numerator, so the calculated k is larger than the true value" },
+  { s: "A student finds the spring constant of a spring from a single reading using k = F/x. The end of the metre rule used for the extension is worn, so every extension is read 2 mm too long.", qty: "k", eff: "lower", why: "The measured x is too large, and x is in the denominator, so the calculated k is smaller than the true value" },
+  { s: "A student finds the resistance of a wire from a single reading using R = V/I. The ammeter is incorrectly calibrated and reads 5% higher than the true current.", qty: "R", eff: "lower", why: "The measured I is too large, and I is in the denominator, so the calculated R is smaller than the true value" },
+  { s: "A student finds the resistance of a wire from a single reading using R = V/I. The voltmeter is incorrectly calibrated and reads 5% higher than the true voltage.", qty: "R", eff: "higher", why: "The measured V is too large, and V is in the numerator, so the calculated R is larger than the true value" },
+  { s: "A student measures the fall time of a ball five times with a hand-held stopwatch. The student's reaction time is sometimes longer at the start and sometimes longer at the stop.", qty: "the fall time", eff: "varies", why: "The error is random, so on some trials the measured time is too long and on others too short, with no consistent direction" },
+  { s: "A student measures the current through a resistor at a set voltage several times while the supply voltage fluctuates during the readings.", qty: "the current", eff: "varies", why: "The fluctuations are random, so the readings are scattered above and below the true value with no consistent direction" },
+];
+const EFF_LABEL = { higher: "Higher", lower: "Lower", varies: "The values vary: they are scattered above and below the true value" };
+const EFF_OPTS = ["higher than the true value", "lower than the true value", "equal to the true value", "scattered above and below the true value"];
+const EFF_IDX = { higher: 0, lower: 1, varies: 3 };
+
+// minimising an error (5.4): scenario sentence, kind, two methods (full sentences), best method as an option fragment, explanation
+const MINIMISE = [
+  { s: "A student times a ball falling 2.0 m with a hand-held stopwatch, so the reaction time introduces a random error.", short: "A student times a ball falling 2.0 m with a hand-held stopwatch, so reaction time affects every reading.", k: "random",
+    m: ["Repeat the measurement several times and take the average", "Replace the hand-held stopwatch with light gates or an electronic release and timer, or use a video with a time stamp, so that reaction time is removed from the measurement"],
+    best: "use light gates or an electronic timer instead of the hand-held stopwatch", why: "Reaction time is a random error; removing the human element from the timing (or repeating and averaging) reduces it. Zeroing or subtracting a fixed correction only removes a systematic error" },
+  { s: "A student reads the position of a pointer against a metre rule, and the reading angle changes from one reading to the next, so parallax introduces a random error.", short: "A student reads the position of a pointer against a metre rule from a slightly different angle each time.", k: "random",
+    m: ["Read the pointer with the eye level with it, perpendicular to the rule", "Use a set square or a mirror scale to align each reading"],
+    best: "read the pointer with the eye level with it, perpendicular to the rule", why: "Changing parallax is a random error; aligning the eye with the pointer for every reading removes it. Zeroing the instrument or subtracting a fixed correction only removes a systematic error" },
+  { s: "A balance reads 0.3 g with nothing on the pan, a systematic error.", short: "A balance reads 0.3 g with nothing on the pan.", k: "systematic",
+    m: ["Zero the balance before each measurement", "Subtract the zero reading of 0.3 g from every result"],
+    best: "zero the balance before each measurement, or subtract the zero reading from every result", why: "A zero error is systematic; zeroing the balance, or subtracting the zero reading, removes it. Repeating and averaging does not reduce a systematic error" },
+  { s: "A newton meter reads 0.5 N with no force applied, a systematic error.", short: "A newton meter reads 0.5 N with no force applied.", k: "systematic",
+    m: ["Zero the newton meter before use, or subtract 0.5 N from every reading", "Find the spring constant from the gradient of the F against x graph rather than from single readings, since a constant offset does not change the gradient"],
+    best: "zero the newton meter before use, or subtract 0.5 N from every reading", why: "A zero error is systematic; zeroing the meter, or subtracting the zero reading, removes it. Repeating and averaging does not reduce a systematic error" },
+  { s: "The end of a metre rule is worn, so every length is read too long, a systematic error.", short: "The end of a metre rule is worn, so every length is read 2 mm too long.", k: "systematic",
+    m: ["Measure from a mark part way along the rule (for example the 10 cm mark) and subtract that starting value", "Use a rule with an undamaged end"],
+    best: "measure from the 10 cm mark of the rule and subtract 10 cm from every reading", why: "A worn end is a systematic error; starting from an undamaged mark and subtracting removes it. Repeating and averaging does not reduce a systematic error" },
+  { s: "The connecting leads add the same resistance to every reading of the resistance of a wire, a systematic error.", short: "The connecting leads add the same resistance to every reading of the resistance of a wire.", k: "systematic",
+    m: ["Find the resistance per metre from the gradient of the R against L graph rather than from single readings, since a constant offset does not change the gradient", "Measure the resistance of the leads alone and subtract it from every reading"],
+    best: "measure the resistance of the leads alone and subtract it from every reading", why: "The lead resistance is a constant offset, a systematic error; subtracting it (or using the gradient of the R against L graph) removes it. Repeating and averaging does not reduce a systematic error" },
+  { s: "Draughts in the room deflect a falling paper cone by different amounts on each drop, a random error.", short: "Draughts in the room deflect a falling paper cone by different amounts on each drop.", k: "random",
+    m: ["Close windows and doors and shield the drop from draughts", "Repeat the drop several times and take the average fall time"],
+    best: "repeat the drop several times and take the average", why: "The deflection varies unpredictably, a random error; repeating and averaging (or shielding the drop) reduces it. Zeroing or subtracting a fixed correction only removes a systematic error" },
+];
+const MIN_DISTRACT = {
+  systematic: ["repeat each measurement several times and take the average", "use larger values so the error is a smaller fraction of each reading", "measure each value several times on the same instrument"],
+  random: ["zero the instrument before each measurement", "subtract a fixed correction from every reading", "take a single very careful reading instead of several"],
+};
 
 const VARIANTS = {
   "2.1 Q3": () => { const nx = pick([10, 12, 14]), ny = pick([8, 10, 12]); const xmax = R(0.4, 1.0, 0.1), ymax = R(1.1, 3.0, 0.1);
@@ -344,15 +727,43 @@ const VARIANTS = {
   "1.1 Q1": () => { const e = pick(EXPTS);
     return { text: `${e.setup} Identify the independent variable, the dependent variable and one controlled variable.`, marks: 3,
       lines: [`Independent variable: ${e.iv} (1). Dependent variable: ${e.dv} (1). Controlled variable: ${e.cv} (1).`] }; },
+  "1.1 Q2": () => { const e = pick(EXPTS); const { options, letter } = mcq(cap(e.cv), [cap(e.iv), cap(e.dv), "The order in which the readings are taken"]);
+    return { type: "mc", text: `${e.setup} Which of the following is a controlled variable?`, marks: 1, options,
+      lines: [`${letter}. ${cap(e.cv)} is kept the same for every measurement. ${cap(e.iv)} is the independent variable and ${e.dv} is the dependent variable; the order of the readings is not a variable that affects the result.`] }; },
+  "1.1 Q4": () => { const e = pick(EXPTS);
+    return { text: e.setup, marks: 4,
+      parts: [{ text: "a.  Identify the independent variable, the dependent variable and one controlled variable.", marks: 3 }, { text: `b.  Explain why ${e.cv} must be controlled.`, marks: 1 }],
+      lines: [`a. Independent variable: ${e.iv} (1). Dependent variable: ${e.dv} (1). Controlled variable: ${e.cv} (1).`, `b. ${e.why} (1).`] }; },
   "1.2 Q1": () => { const e = pick(EXPTS);
     return { text: `${e.setup} Write an aim for the experiment in the required format.`, marks: 1,
       lines: [`To determine the effect of ${e.iv} on ${e.dv} (1).`] }; },
+  "1.2 Q2": () => { const e = pick(EXPTS); const correct = `To determine the effect of ${e.iv} on ${e.dv}`;
+    const { options, letter } = mcq(correct, [`To determine the effect of ${e.dv} on ${e.iv}`, `To investigate ${e.topic}`, `To find out how ${e.dv} changes when ${e.iv} is changed`]);
+    return { type: "mc", text: `${e.setup} Which of the following is the correctly written aim?`, marks: 1, options,
+      lines: [`${letter}. The aim names the independent variable (${e.iv}) as the cause and the dependent variable (${e.dv}) as the effect. The option with the variables reversed treats ${e.dv} as the cause, and the other two options do not use the required format.`] }; },
   "1.3 Q1": () => { const e = pick(EXPTS);
     return { text: `${e.setup} Write a hypothesis for the experiment in the required format.`, marks: 1,
       lines: [`It is hypothesised that as ${e.iv} increases, ${e.dv} will ${e.up ? "increase" : "decrease"} (1).`] }; },
+  "1.3 Q2": () => { const e = pick(EXPTS); const dir = e.up ? "increase" : "decrease"; const correct = `It is hypothesised that as ${e.iv} increases, ${e.dv} will ${dir}`;
+    const { options, letter } = mcq(correct, [`It is hypothesised that as ${e.dv} increases, ${e.iv} will increase`, e.theory, `It is hypothesised that ${e.dv} depends on ${e.iv}`]);
+    return { type: "mc", text: `${e.setup} Which of the following is the correctly written hypothesis?`, marks: 1, options,
+      lines: [`${letter}. The hypothesis states that as the independent variable (${e.iv}) increases, the dependent variable (${e.dv}) will ${dir}. Of the others, one reverses the variables, one is theory rather than a prediction about the variables, and one does not predict a direction.`] }; },
+  "2.1 Q2": () => { const ny = pick([8, 10, 12]); const sc = pick([0.5, 1, 2, 5]); const frac = R(0.55, 0.95, 0.05);
+    const qn = pick([["force", "N"], ["resistance", "Ω"], ["terminal voltage", "V"], ["speed", "m s^{–1}"]]);
+    const vmax = Number((sc * ny * frac).toFixed(1)), vmin = Number((vmax * pick([0.2, 0.25, 0.3])).toFixed(1));
+    const tidy = x => String(Number(Number(x).toFixed(2))); const opt = x => `${tidy(x)} ${qn[1]} per large square`;
+    const { options, letter } = mcq(opt(sc), [opt(sc / 2), opt(2 * sc), opt(5 * sc)]);
+    return { type: "mc", text: `A grid has ${ny} large squares along its vertical axis. The ${qn[0]} values to be plotted range from ${vmin} ${qn[1]} to ${vmax} ${qn[1]}. Which scale for the vertical axis, starting from 0 at the origin, is the best choice?`, marks: 1, options,
+      lines: [`${letter}. At ${opt(sc)} the largest value, ${vmax} ${qn[1]}, needs ${tidy(vmax / sc)} squares, so the data use ${Math.round(frac * 100)}% of the ${ny} squares on the axis. At ${tidy(sc / 2)} ${qn[1]} per square the data do not fit (${tidy(vmax / (sc / 2))} squares needed); at ${tidy(2 * sc)} and ${tidy(5 * sc)} ${qn[1]} per square the data use only ${Math.round(frac * 50)}% and ${Math.round(frac * 20)}% of the axis.`] }; },
   "2.4 Q1": () => { const f = pick(LINEAR);
-    return { text: `A student measures data expected to follow ${f[0]}. State which quantities should be plotted to obtain a straight line graph, and state what the gradient of the line represents.`, marks: 2,
-      lines: [`Plot ${f[1]} on the vertical axis against ${f[2]} on the horizontal axis (1). The gradient is ${f[3]} (1).`] }; },
+    return { text: `A student measures data expected to follow ${f.eq} ${f.ctx}. State which quantities should be plotted to obtain a straight line graph, and state what the gradient of the line represents.`, marks: 2,
+      lines: [`Plot ${f.y} on the vertical axis against ${f.x} on the horizontal axis (1). The gradient is ${f.k} (1).`] }; },
+  "2.4 Q2": () => { const f = pick(LINEAR); const { options, letter } = mcq(f.x, f.d);
+    return { type: "mc", text: `A student measures data expected to follow ${f.eq} ${f.ctx}. To obtain a straight line, ${f.y} should be plotted against`, marks: 1, options,
+      lines: [`${letter}. ${f.eq} can be written as ${f.y} = (${f.k}) × ${f.x}, so ${f.y} is directly proportional to ${f.x}; a graph of ${f.y} against ${f.x} is a straight line through the origin with gradient ${f.k}.`] }; },
+  "3.1 Q2": () => { const g = pick(GRAD); const { options, letter } = mcq(g.u, g.d);
+    return { type: "mc", text: `A graph of ${g.y} (in ${g.yu}) against ${g.x} (in ${g.xu}) is plotted ${g.ctx}. The unit of the gradient is`, marks: 1, options,
+      lines: [`${letter}. Gradient = rise/run has units ${g.yu} ÷ ${g.xu} = ${g.u}, ${g.why}.`] }; },
   "3.1 Q3": () => { const k = R(0.30, 0.80, 0.05), c = pick([0, 0.2, 0.5]); const x1 = pick([1.0, 2.0]), x2 = pick([8.0, 10.0]);
     const y1 = sig(k * x1 + c, 3), y2 = sig(k * x2 + c, 3); const m = (y2 - y1) / (x2 - x1);
     return { text: `A student plots force F against extension x for a spring. Two points on the line of best fit are (${fix(x1, 1)} cm, ${fix(y1, 2)} N) and (${fix(x2, 1)} cm, ${fix(y2, 2)} N). Calculate the gradient of the line in N cm^{–1}, convert it to N m^{–1}, and hence state the spring constant k.`, marks: 3,
@@ -367,15 +778,56 @@ const VARIANTS = {
     return { text: `A graph of stopping voltage V_{0} against frequency f for a photoelectric cell has a line of best fit that meets the V_{0} axis at –${fix(phi, 1)} V. Since E_{k max} in eV is numerically equal to V_{0} in volts, E_{k max} = hf – Φ gives V_{0} = hf – Φ with h in eV s and Φ in eV. Explain what this intercept indicates and determine the quantity it gives.`, marks: 3,
       num: [V("Φ (eV)", phi, 0.05)],
       lines: [`The intercept is –${fix(phi, 1)} V (1). V_{0} = hf – Φ, so the intercept is –Φ: it is a physical constant of the metal (the work function), not an error (1). Φ = ${fix(phi, 1)} eV (1).`] }; },
+  "4.2 Q2": () => { const f = pick(LINEAR); const correct = `${f.y} is directly proportional to ${f.x}, consistent with ${f.eq}`;
+    const { options, letter } = mcq(correct, [`${f.y} is inversely proportional to ${f.x}`, `${f.y} is directly proportional to ${f.d[0]}`, `${f.y} increases with ${f.x} but is not directly proportional to it`]);
+    return { type: "mc", text: `A graph of ${f.y} against ${f.x} ${f.ctx} is a straight line through the origin. This observation supports the conclusion that`, marks: 1, options,
+      lines: [`${letter}. A straight line through the origin means ${f.y} ∝ ${f.x}, which is what ${f.eq} predicts. A line that did not pass through the origin would show ${f.y} increasing with ${f.x} without being proportional to it.`] }; },
   "4.2 Q4": () => { const m = R(4.6, 5.1, 0.1);
     return { text: `A ball is dropped from rest and a graph of height h against t^{2} is a straight line through the origin with gradient ${fix(m, 1)} m s^{–2}. Explain how the graph relates to h = ½gt^{2} and determine the experimental value of g.`, marks: 3,
       num: [V("g (m s^{–2})", 2 * m)],
       lines: [`h = ½gt^{2} predicts a straight line through the origin when h is plotted against t^{2}, which is what is observed (1). The gradient is g/2 (1). g = 2 × ${fix(m, 1)} = ${num(2 * m, 3)} m s^{–2}${Math.abs(2 * m - 9.81) < 0.3 ? ", consistent with the accepted value" : ", somewhat " + (2 * m > 9.81 ? "above" : "below") + " the accepted 9.81 m s^{–2}"} (1).`] }; },
+  "5.1 Q1": () => { const chosen = shuffle([...pickN(ERRORS.filter(e => e.k === "random"), 2), ...pickN(ERRORS.filter(e => e.k === "systematic"), 2)]);
+    return { text: "Classify each of the following errors as systematic or random.", marks: 4,
+      parts: chosen.map((e, i) => ({ text: `${"abcd"[i]}.  ${e.t}.`, marks: 1 })),
+      lines: chosen.map((e, i) => `${"abcd"[i]}. ${cap(e.k)} (1).`) }; },
+  "5.1 Q2": () => { const ask = pick(["systematic", "random"]), other = ask === "systematic" ? "random" : "systematic";
+    const one = pick(ERRORS.filter(e => e.k === ask)); const rest = pickN(ERRORS.filter(e => e.k === other), 3);
+    const { options, letter } = mcq(one.t, rest.map(e => e.t));
+    return { type: "mc", text: `Which of the following is a ${ask} error?`, marks: 1, options,
+      lines: [`${letter}. ${cap(one.why)}. The others are ${other} errors: ${other === "random" ? "they vary unpredictably from reading to reading" : "each shifts every reading in the same direction by a consistent amount"}.`] }; },
+  "5.1 Q4": () => { const e = pick(ERRORS);
+    return { text: `${e.t}. State the type of error and explain your answer.`, marks: 2,
+      lines: [`${cap(e.k)} error (1). ${cap(e.why)} (1).`] }; },
+  "5.2 Q1": () => { const e = pick(EFFECTS);
+    return { text: `${e.s} State whether the experimental value of ${e.qty} is higher than, lower than, or varies about the true value, and explain why.`, marks: 2,
+      lines: [`${EFF_LABEL[e.eff]} (1). ${e.why} (1).`] }; },
+  "5.2 Q2": () => { const e = pick(EFFECTS); const letter = "ABCD"[EFF_IDX[e.eff]];
+    return { type: "mc", text: `${e.s} The experimental value of ${e.qty} will be`, marks: 1, options: EFF_OPTS,
+      lines: [`${letter}. ${e.why}.`] }; },
+  "5.3 Q2": () => { const kind = pick(["ap", "pi", "ai", "ni"]); const [accurate, precise] = { ap: [true, true], pi: [false, true], ai: [true, false], ni: [false, false] }[kind];
+    const off = accurate ? R(-0.08, 0.08, 0.01) : pick([-1, 1]) * R(0.45, 0.7, 0.05);
+    const dev = precise ? pick([[-0.05, 0.05, 0, 0.05, -0.05], [0, 0.05, -0.05, 0, 0.05]]) : pick([[-0.4, 0.3, -0.1, 0.4, -0.2], [0.35, -0.3, 0.1, -0.4, 0.25]]);
+    const vals = shuffle(dev.map(d => fix(9.81 + off + d, 1))); const list = vals.slice(0, 4).join(", ") + " and " + vals[4]; const mean = vals.reduce((s, v) => s + Number(v), 0) / 5;
+    const range = (Math.max(...vals.map(Number)) - Math.min(...vals.map(Number))).toFixed(1); const side = mean > 9.81 ? "above" : "below";
+    const options = ["accurate and precise, with little error of either kind", "precise but not accurate, indicating a systematic error", "accurate but not precise, indicating a random error", "neither accurate nor precise, indicating both systematic and random error"];
+    const idx = { ap: 0, pi: 1, ai: 2, ni: 3 }[kind];
+    const why = { ap: `The values are tightly grouped (precise) and their mean of ${num(mean, 3)} m s^{–2} is close to the accepted value (accurate), so neither type of error is large.`,
+      pi: `The values are tightly grouped (precise) but all well ${side} the accepted value, with a mean of ${num(mean, 3)} m s^{–2} (not accurate), which is the signature of a systematic error.`,
+      ai: `The values are spread over ${range} m s^{–2} (not precise) but their mean of ${num(mean, 3)} m s^{–2} is close to the accepted value (accurate), which indicates random error.`,
+      ni: `The values are spread over ${range} m s^{–2} (not precise) and their mean of ${num(mean, 3)} m s^{–2} is well ${side} the accepted value (not accurate), so both systematic and random errors are present.` }[kind];
+    return { type: "mc", text: `A student's five values for g are ${list} m s^{–2}. The accepted value is 9.81 m s^{–2}. The results are best described as`, marks: 1, options,
+      lines: [`${"ABCD"[idx]}. ${why}`] }; },
   "5.3 Q3": () => { const tA = sig(9.81 + R(-0.15, 0.15, 0.01), 3), tB = sig(pick([9.2, 9.3, 10.3, 10.4, 10.5]) + R(-0.1, 0.1, 0.05), 3);
     const A = [0.3, -0.35, 0.1, -0.15, 0.1].map(d => fix(tA + d, 1)), B = [0.0, 0.1, -0.1, 0.1, 0.0].map(d => fix(tB + d, 1));
     const mA = A.reduce((s, v) => s + Number(v), 0) / 5, mB = B.reduce((s, v) => s + Number(v), 0) / 5;
     return { text: `Two students each measure g five times. Student A obtains ${A.join(", ")} m s^{–2}. Student B obtains ${B.join(", ")} m s^{–2}. The accepted value is 9.81 m s^{–2}. Compare the accuracy and precision of the two sets of results and identify the type of error that dominates each.`, marks: 3,
       lines: [`Student A: mean ${num(mA, 3)} m s^{–2}, close to the accepted value, so accurate; but the values are spread over about 0.6 m s^{–2}, so less precise (1). Student B: values spread over only 0.2 m s^{–2}, so precise; but the mean of ${num(mB, 3)} m s^{–2} is well ${mB > 9.81 ? "above" : "below"} the accepted value, so not accurate (1). Random error dominates A's results; systematic error dominates B's (1).`] }; },
+  "5.4 Q1": () => { const e = pick(MINIMISE);
+    return { text: `${e.s} State two methods for minimising this error.`, marks: 2,
+      lines: [`${e.m[0]} (1). ${e.m[1]} (1).`] }; },
+  "5.4 Q2": () => { const e = pick(MINIMISE); const { options, letter } = mcq(e.best, MIN_DISTRACT[e.k]);
+    return { type: "mc", text: `${e.short} The best method for minimising this error is to`, marks: 1, options,
+      lines: [`${letter}. ${e.why}.`] }; },
   "6.1 Q3": () => { const k = R(40, 60, 1), kman = pick([40, 45, 50, 55]); const c = pick([0.2, 0.3, 0.5]); const pd = (k - kman) / kman * 100;
     return { text: `A student's aim was to determine the effect of the extension of a spring on the force it exerts, and the hypothesis was that as the extension increases, the force will increase. Plotting F against x gave a straight line with gradient ${k} N m^{–1} and an intercept of ${fix(c, 1)} N on the F axis. The manufacturer states the spring constant as ${kman} N m^{–1}. Write a conclusion for the experiment.`, marks: 3,
       num: [V("percentage difference (%)", pd, 0.1)],
@@ -447,25 +899,42 @@ function openCrit(code) {
   c.questions.forEach(q => bindQ(q));
   renderMath(main);
 }
+// which optional tools a question gets: typed answer on worded items (no value boxes), scratchpad on draw/plot/sketch items; bank.json "tools" overrides
+function qTools(q) {
+  if (q.type === "mc") return [];
+  if (q.tools) return q.tools;
+  const txt = q.text + " " + (q.parts || []).map(p => p.text).join(" ");
+  const pad = /(^|[.;:]\s*|[a-d]\.\s+)(draw|plot|sketch)\b/i.test(txt);   // an instruction to draw, not "a student's plot"
+  const wordy = /\b(explain|describe|state|identify|write|suggest|compare|classify|justify|discuss|outline|give|why|what|which|whether)\b/i.test(txt);
+  const type = pad || q.num ? wordy : true;
+  return [type ? "type" : null, pad ? "pad" : null].filter(Boolean);
+}
+const noteBtn = st => '<button class="btn note-btn' + (st.note ? ' has' : '') + '" data-act="note">' + (st.noteOpen ? 'Hide note' : 'Note') + '</button>';
+const noteBox = st => '<div class="note"' + (st.noteOpen ? '' : ' hidden') + '><textarea rows="2" placeholder="Optional: add a note for this question, e.g. what to revise or ask about. Saved in this browser.">' + esc(st.note || "") + '</textarea></div>';
 function renderQ(q) {
-  const st = q.variant ? { mark: qstate(q.code).mark } : qstate(q.code);
+  const full = qstate(q.code);
+  const st = q.variant ? { mark: full.mark, note: full.note, noteOpen: full.noteOpen } : full;
+  const tools = qTools(q);
   let h = '<div class="q ' + (st.mark ? 'm-' + st.mark : '') + '" id="q-' + q.code.replace(/\W/g, "_") + '">' +
     '<div class="qh"><span class="code">' + q.code + (q.variant ? ' <span class="vtag">similar question</span>' : '') + '</span><span class="marks">' + q.marks + (q.marks > 1 ? ' marks' : ' mark') + '</span></div>' +
     '<div class="qt">' + fmt(q.text) + '</div>';
-  if (q.img) h += '<img src="' + DATA.imgs[q.img] + '" alt="">';
-  if (q.parts) q.parts.forEach(p => { h += '<div class="part"><span>' + fmt(p.text) + '</span><span class="pm">' + p.marks + (p.marks > 1 ? ' marks' : ' mark') + '</span></div>'; if (p.img) h += '<img src="' + DATA.imgs[p.img] + '" alt="">'; });
+  const qimg = n => (q.type === "mc" || q.variant) ? '<img src="' + DATA.imgs[n] + '" alt="">' : skWrap(n, DATA.imgs[n]);
+  if (q.img) h += qimg(q.img);
+  if (q.parts) q.parts.forEach(p => { h += '<div class="part"><span>' + fmt(p.text) + '</span><span class="pm">' + p.marks + (p.marks > 1 ? ' marks' : ' mark') + '</span></div>'; if (p.img) h += qimg(p.img); });
   if (q.type === "mc") {
     h += '<ul class="opts">' + q.options.map((o, i) => '<li><label><input type="radio" name="mc-' + q.code + '" value="' + i + '"' + (st.choice === i ? " checked" : "") + '><span class="let">' + "ABCD"[i] + '</span><span>' + fmt(o) + '</span></label></li>').join("") + '</ul>' +
-      '<div class="actions"><button class="btn primary" data-act="checkmc">Check</button><span class="verdict"></span></div>';
+      '<div class="actions"><button class="btn primary" data-act="checkmc">Check</button>' + noteBtn(st) + '<span class="verdict"></span></div>' + noteBox(st);
   } else {
     if (q.num) {
       h += '<div class="nums">' + q.num.map((n, i) => '<label>' + fmt(n[0]) + '<input class="fld" type="text" inputmode="text" data-i="' + i + '" value="' + esc((st.vals || [])[i] || "") + '" placeholder="e.g. 1.4x10^14" autocomplete="off"><span class="preview"></span></label>').join("") + '</div>' +
         '<div class="hint">Type the value as you would write it, e.g. 1.4x10^14 (the box formats it as you type). Use the arrow key to leave a power. Checked to about 3%.</div>';
     }
-    h += '<div class="actions">' + (q.num ? '<button class="btn primary" data-act="checknum">Check values</button>' : '') + '<button class="btn" data-act="reveal">' + (st.open ? 'Hide answer' : 'Show answer') + '</button><span class="verdict"></span></div>';
+    h += '<div class="actions">' + (q.num ? '<button class="btn primary" data-act="checknum">Check values</button>' : '') + (tools.includes("type") ? '<button class="btn" data-act="type">' + (st.typing ? 'Hide typing' : 'Type answer') + '</button>' : '') + (tools.includes("pad") ? '<button class="btn" data-act="pad">' + (st.pad ? 'Hide scratchpad' : 'Scratchpad') + '</button>' : '') + '<button class="btn" data-act="reveal">' + (st.open ? 'Hide answer' : 'Show answer') + '</button>' + noteBtn(st) + '<span class="verdict"></span></div>' + noteBox(st);
+    if (tools.includes("type")) h += '<div class="typed"' + (st.typing ? '' : ' hidden') + '><textarea rows="4" placeholder="Type your answer here (optional)" spellcheck="true">' + esc(st.resp || "") + '</textarea><div class="tnote">Optional. Your typed answer is saved in this browser. Show the answer to compare, then mark yourself.</div></div>';
+    if (tools.includes("pad")) h += '<div class="padwrap"' + (st.pad ? '' : ' hidden') + '>' + padWrap() + '</div>';
   }
   h += '<div class="answer' + (st.open ? " open" : "") + '">' + q.answer.lines.flatMap(splitSteps).map(l => '<p>' + fmt(l) + '</p>').join("") + (q.answer.img ? '<img src="' + DATA.imgs[q.answer.img] + '" alt="">' : '') + '</div>';
-  const canVary = q.type !== "mc" && VARIANTS[q.orig];
+  const canVary = !!VARIANTS[q.orig];
   h += '<div class="selfmark"><span>Mark yourself:</span><button class="m-got' + (st.mark === "got" ? " on" : "") + '" data-mark="got">Got it</button><button class="m-part' + (st.mark === "part" ? " on" : "") + '" data-mark="part">Partly</button><button class="m-miss' + (st.mark === "miss" ? " on" : "") + '" data-mark="miss">Missed</button>' +
     (canVary ? '<button class="similar" data-act="similar">' + (q.variant ? 'Another similar question' : 'Try a similar question') + '</button>' : '') +
     (q.variant ? '<button class="similar" data-act="original">Back to original</button>' : '') + '</div>';
@@ -475,8 +944,10 @@ function bindQ(q) {
   const el = document.getElementById("q-" + q.code.replace(/\W/g, "_"));
   const verdict = el.querySelector(".verdict");
   const ans = el.querySelector(".answer");
-  const applyMark = m => { setq(q.code, { mark: m }); el.classList.remove("m-got", "m-part", "m-miss"); el.classList.add("m-" + m); el.querySelectorAll(".selfmark button").forEach(b => b.classList.toggle("on", b.dataset.mark === m)); };
-  el.querySelectorAll(".selfmark button").forEach(b => b.addEventListener("click", () => applyMark(b.dataset.mark)));
+  const applyMark = m => { // m may be null to clear the mark
+    setq(q.code, { mark: m || undefined }); el.classList.remove("m-got", "m-part", "m-miss"); if (m) el.classList.add("m-" + m);
+    el.querySelectorAll(".selfmark button[data-mark]").forEach(b => b.classList.toggle("on", !!m && b.dataset.mark === m)); };
+  el.querySelectorAll(".selfmark button[data-mark]").forEach(b => b.addEventListener("click", () => applyMark(qstate(q.code).mark === b.dataset.mark ? null : b.dataset.mark)));
   const mcBtn = el.querySelector('[data-act="checkmc"]');
   if (mcBtn) {
     const correct = "ABCD".indexOf(q.answer.lines[0].trim()[0]);
@@ -495,7 +966,7 @@ function bindQ(q) {
     });
     if (qstate(q.code).open) show();
   }
-  upgradeFields(el);
+  upgradeFields(el); bindSketch(el, q);
   const numBtn = el.querySelector('[data-act="checknum"]');
   if (numBtn) numBtn.addEventListener("click", () => {
     const inputs = [...el.querySelectorAll(".nums .fld")];
@@ -513,13 +984,30 @@ function bindQ(q) {
     verdict.textContent = ok === inputs.length ? "All values correct. Show the answer to check your working, then mark yourself." : ok + " of " + inputs.length + " correct.";
     verdict.className = "verdict " + (ok === inputs.length ? "ok" : "no");
   });
+  const tBtn = el.querySelector('[data-act="type"]');
+  if (tBtn) {
+    const box = el.querySelector(".typed"), ta = box.querySelector("textarea");
+    tBtn.addEventListener("click", () => { const on = box.hidden; box.hidden = !on; tBtn.textContent = on ? "Hide typing" : "Type answer"; if (on) ta.focus(); if (!q.variant) setq(q.code, { typing: on }); });
+    ta.addEventListener("input", () => { if (!q.variant) { state[q.code] = { ...qstate(q.code), resp: ta.value }; save(); } });
+  }
+  const nBtn = el.querySelector('[data-act="note"]');
+  if (nBtn) {
+    const box = el.querySelector(".note"), ta = box.querySelector("textarea");
+    nBtn.addEventListener("click", () => { const on = box.hidden; box.hidden = !on; nBtn.textContent = on ? "Hide note" : "Note"; if (on) ta.focus(); setq(q.code, { noteOpen: on }); });
+    ta.addEventListener("input", () => { state[q.code] = { ...qstate(q.code), note: ta.value }; save(); nBtn.classList.toggle("has", !!ta.value.trim()); });
+  }
+  const pBtn = el.querySelector('[data-act="pad"]');
+  if (pBtn) {
+    const box = el.querySelector(".padwrap"), sk = box.querySelector(".sk");
+    pBtn.addEventListener("click", () => { const on = box.hidden; box.hidden = !on; pBtn.textContent = on ? "Hide scratchpad" : "Scratchpad"; if (on && !sk.querySelector("canvas")) sk.skEdit(); if (!q.variant) setq(q.code, { pad: on }); });
+  }
   const rev = el.querySelector('[data-act="reveal"]');
   if (rev) rev.addEventListener("click", () => { const open = !ans.classList.contains("open"); ans.classList.toggle("open", open); rev.textContent = open ? "Hide answer" : "Show answer"; if (!q.variant) setq(q.code, { open }); });
   const sim = el.querySelector('[data-act="similar"]');
   if (sim) sim.addEventListener("click", () => {
     const base = q.variant ? q.base : q;
     const v = VARIANTS[base.orig]();
-    const vq = { code: base.code, orig: base.orig, crit: base.crit, type: "sa", text: v.text, marks: v.marks, num: v.num, answer: { lines: v.lines }, variant: true, base };
+    const vq = { code: base.code, orig: base.orig, crit: base.crit, type: v.type === "mc" ? "mc" : "sa", text: v.text, marks: v.marks, num: v.num, options: v.options, parts: v.parts, answer: { lines: v.lines }, variant: true, base };
     swapQ(el, vq);
   });
   const orig = el.querySelector('[data-act="original"]');
@@ -532,7 +1020,8 @@ function swapQ(el, nq) {
 }
 document.getElementById("resetBtn").addEventListener("click", () => { if (confirm("Clear all your marks and answers on this device?")) { state = {}; save(); if (current) openCrit(current); else renderHome(); } });
 document.getElementById("menuBtn").addEventListener("click", () => document.getElementById("nav").classList.toggle("hidden"));
-renderHome(); save();
+document.getElementById("homeBtn").addEventListener("click", () => { renderHome(); document.getElementById("nav").classList.remove("hidden"); window.scrollTo(0, 0); });
+renderHome(); save(); initCalc();
 window.addEventListener("load", () => { renderMath(document); upgradeFields(document); });
 </script>
 </body>
