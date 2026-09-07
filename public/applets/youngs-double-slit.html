@@ -149,7 +149,7 @@
   <header>
     <p class="eyebrow">VCE Physics &middot; Wave Interference</p>
     <h1>Young's Double Slit</h1>
-    <p class="lede">Two coherent sources, one screen. Set the path difference (PD) at the screen and see whether the waves meet in phase (bright) or antiphase (dark).</p>
+    <p class="lede">Two coherent sources, one screen. Set the optics (&lambda;, <em>d</em>, <em>L</em>) to change the fringe spacing on the wall, then set the path difference (PD) at the screen and see whether the waves meet in phase (bright) or antiphase (dark).</p>
   </header>
 
   <div class="layout">
@@ -164,10 +164,27 @@
     </div>
 
     <aside class="panel">
+      <h2>Optics</h2>
+      <div class="control">
+        <div class="row"><label for="wl">Wavelength &lambda;</label><span class="val" id="wlV">550 nm</span></div>
+        <input type="range" id="wl" min="400" max="700" value="550" step="10">
+      </div>
+      <div class="control">
+        <div class="row"><label for="slitsep">Slit separation <em>d</em></label><span class="val" id="slitsepV">0.20 mm</span></div>
+        <input type="range" id="slitsep" min="0.15" max="0.40" value="0.20" step="0.01">
+      </div>
+      <div class="control">
+        <div class="row"><label for="dist">Slit&ndash;screen distance <em>L</em></label><span class="val" id="distV">1.50 m</span></div>
+        <input type="range" id="dist" min="1.0" max="2.0" value="1.5" step="0.05">
+      </div>
+      <p class="note">Fringe spacing &Delta;y = &lambda;<em>L</em>/<em>d</em>. The viewing window on the wall is fixed, so wider fringes mean fewer bands in view. The PD you have set is held at the same number of wavelengths &mdash; the probe and rays move to wherever that PD now occurs.</p>
+
+      <hr class="divider">
       <h2>Animation</h2>
       <div class="control">
         <div class="row"><label for="probe">Path Difference (PD)</label><span class="val" id="probeV">1.0 λ</span></div>
         <input type="range" id="probe" min="-6" max="6" value="2" step="1">
+        <p class="note" id="pdnote" style="margin-top:6px"></p>
       </div>
       <div class="control">
         <div class="row"><label for="phase">Time (s)</label><span class="val" id="phaseV">0.00 s</span></div>
@@ -190,6 +207,8 @@
       <div class="stats">
         <div class="stat"><div class="k">PD</div><div class="v" id="pdl">0.0<span class="u"> &lambda;</span></div></div>
         <div class="stat"><div class="k">At probe</div><div class="v" id="state" style="color:var(--accent)">&mdash;</div></div>
+        <div class="stat"><div class="k">Spacing &Delta;y</div><div class="v" id="dyl" style="font-size:16px">&mdash;</div></div>
+        <div class="stat"><div class="k">Probe y</div><div class="v" id="yposl" style="font-size:16px">&mdash;</div></div>
         <div class="stat" style="grid-column:1 / -1"><div class="k">Condition</div><div class="v" id="nval" style="font-size:16px">&mdash;</div></div>
       </div>
       <p class="note" id="condition"></p>
@@ -220,6 +239,9 @@
   const sctx = screen.getContext('2d');
 
   const ctl = {
+    wl: document.getElementById('wl'),
+    slitsep: document.getElementById('slitsep'),
+    dist: document.getElementById('dist'),
     phase: document.getElementById('phase'),
     probe: document.getElementById('probe'),
     paths: document.getElementById('paths'),
@@ -228,8 +250,13 @@
     guides: document.getElementById('guides'),
   };
   const out = {
+    wl: document.getElementById('wlV'),
+    slitsep: document.getElementById('slitsepV'),
+    dist: document.getElementById('distV'),
     phase: document.getElementById('phaseV'),
     probe: document.getElementById('probeV'),
+    pdnote: document.getElementById('pdnote'),
+    dyl: document.getElementById('dyl'), yposl: document.getElementById('yposl'),
     pdl: document.getElementById('pdl'), state: document.getElementById('state'),
     condition: document.getElementById('condition'),
     nval: document.getElementById('nval'),
@@ -252,21 +279,19 @@
   // --- geometry (canvas px) ---
   const W = field.width, H = field.height;
   const slitX = 150;          // x of the slit plane
-  const screenX = W - 40;     // x of the detection screen
   const cy = H / 2;           // optical axis
+  const BASE_X_MAX = W - 40 - slitX;  // slit→screen distance (px) at L = L_MAX
 
-  // px-to-physical scale for the *visible field*: the window is sized so
-  // that exactly 7 bright fringes are shown — orders m = -3..+3, i.e. a
-  // path difference of -6..+6 half-wavelengths. The probe slider spans the
-  // same range, so both views stay locked together.
+  // Reference optics = the slider defaults. The visible window on the wall is
+  // FIXED in mm (sized from these defaults to show 7 bright fringes, orders
+  // m = -3..+3). Because the window no longer rescales with the optics,
+  // changing λ, d or L now visibly widens or narrows the fringes.
+  const WL0 = 550, D0 = 0.20, L0 = 1.5;      // nm, mm, m
+  const L_MAX = 2.0;                          // m — matches the L slider max
   const PROBE_N_MAX = 6;        // half-wavelengths each side of axis
-  // half-height of the visible field, in mm, given current optics + headroom
-  function visibleHalfMM(v) {
-    const lambda = v.wl * 1e-9, dM = v.d * 1e-3;
-    const edgeMM = PROBE_N_MAX * (lambda/2) * v.L / dM * 1000; // n=+6 position
-    return edgeMM * 1.08; // small headroom past the outer fringe
-  }
-  function mmPerPx_y(v) { return visibleHalfMM(v) / (H / 2); }
+  const FIELD_HALF_MM =
+    PROBE_N_MAX * (WL0 * 1e-9 / 2) * L0 / (D0 * 1e-3) * 1000 * 1.08;
+  const mmPerPx = FIELD_HALF_MM / (H / 2);
 
   // Light is rendered green throughout. The wavelength slider still drives
   // the optics (fringe spacing, path difference); only the displayed colour
@@ -277,13 +302,13 @@
 
   let animating = false, animPhase = 0, rafId = null, lastT = 0;
 
-  // Fixed internal optics. The simulation works entirely in units of λ via the
-  // PD slider, so these set the (arbitrary, unshown) scale for the derived
-  // screen position and the green colour. They are never displayed.
-  const WL = 550, D = 0.20, L_M = 1.5;   // nm, mm, m
+  // The PD the user asked for, in units of λ/2. Kept separately from the
+  // slider so that a PD which falls outside the window at wide fringe
+  // spacing is restored (not lost) once the fringes narrow again.
+  let desiredProbeN = 2;
 
   function readVars() {
-    const wl = WL, d = D, L = L_M;
+    const wl = +ctl.wl.value, d = +ctl.slitsep.value, L = +ctl.dist.value;
     const probeN = +ctl.probe.value;   // path difference in units of λ/2 (integer)
     // physical screen position for this path difference:
     // Δ = d·y/L = probeN·(λ/2)  ⇒  y = probeN·(λ/2)·L/d
@@ -301,6 +326,23 @@
     };
   }
 
+  // Highest PD order (in λ/2) whose screen position still lies inside the
+  // fixed viewing window at this fringe spacing.
+  function maxProbeN(spacingMM) {
+    return Math.max(1, Math.min(PROBE_N_MAX,
+      Math.floor(2 * 0.94 * FIELD_HALF_MM / spacingMM)));
+  }
+  // Re-range the PD slider for the current optics, holding the user's PD
+  // where it still fits. Returns the limit so the note can explain a clamp.
+  function syncProbeRange() {
+    const spacingMM = +ctl.wl.value * +ctl.dist.value / +ctl.slitsep.value * 1e-3;
+    const nMax = maxProbeN(spacingMM);
+    ctl.probe.min = -nMax;
+    ctl.probe.max = nMax;
+    ctl.probe.value = Math.max(-nMax, Math.min(nMax, desiredProbeN));
+    return nMax;
+  }
+
   // physical fringe model: y_m = m * lambda * L / d
   function fringeSpacingMM(v) {
     const lambda = v.wl * 1e-9, d = v.d * 1e-3, L = v.L;
@@ -313,7 +355,7 @@
   }
 
   // map a screen-position (mm) to a field-canvas y pixel
-  function mmToFieldY(v, yMM) { return cy - yMM / mmPerPx_y(v); }
+  function mmToFieldY(v, yMM) { return cy - yMM / mmPerPx; }
 
   // intensity (0..1) at screen position yMM for two-slit pattern
   function intensity(v, yMM) {
@@ -332,34 +374,42 @@
     // Field geometry is exaggerated (true d/L would be sub-pixel), but kept
     // INTERNALLY self-consistent: the slit gap and ring spacing are chosen so
     // the two circular waves interfere constructively along exactly the same
-    // bright-fringe directions (orders m = -3..+3) that the intensity strip
-    // shows. So where two crests cross, that point really is on a bright fringe.
-    const baseX = screenX - slitX;               // slit→screen distance (px)
-    const halfPx = H / 2;                         // visible half-height (px)
-    const fringePx = halfPx / 1.08 / PROBE_N_MAX * 2; // px between bright fringes
-    const visGap = 130;                           // wider gap → wider, clearer wavefronts
+    // bright-fringe directions that the intensity strip shows. So where two
+    // crests cross, that point really is on a bright fringe.
+    //
+    // Each optics slider also moves the picture in the physically correct
+    // direction: d widens the drawn slit gap, L pushes the screen further
+    // right, λ (through the anchor below) stretches the ring spacing. The
+    // exaggeration is compressed (square/0.6 powers) so the drawing stays
+    // near-paraxial across the whole slider range.
+    const fringePx = fringeSpacingMM(v) / mmPerPx; // px between bright fringes
+    const baseX = BASE_X_MAX * Math.sqrt(v.L / L_MAX); // slit→screen distance (px)
+    const screenX = slitX + baseX;               // x of the detection screen
+    const visGap = 130 * Math.pow(v.d / D0, 0.6); // drawn slit gap (exaggerated)
     const s1y = cy - visGap/2;   // top slit
     const s2y = cy + visGap/2;   // bottom slit
-    // Ring spacing set so the EXACT path difference at the mid bright fringe
-    // (m = ±2) equals 2 wavelengths. This anchors the rings to true geometry
-    // and keeps every visible order within ~2% of an integer λ, so crest
-    // intersections sit on the bright-fringe lines the strip draws.
-    const yMid = cy - 2 * fringePx;
-    const rMid1 = Math.hypot(baseX, yMid - s1y);
-    const rMid2 = Math.hypot(baseX, yMid - s2y);
-    const wlPx = Math.abs(rMid2 - rMid1) / 2;
+    // Ring spacing set so the EXACT path difference at a mid-field point
+    // equals that point's fringe order in wavelengths. Anchoring mid-field
+    // (rather than at a fixed order) keeps every visible order close to an
+    // integer λ for any fringe spacing the sliders can produce.
+    const yAnchor = H * 0.26;                     // px off axis
+    const mAnchor = yAnchor / fringePx;           // its order (fractional)
+    const rA1 = Math.hypot(baseX, (cy - yAnchor) - s1y);
+    const rA2 = Math.hypot(baseX, (cy - yAnchor) - s2y);
+    const wlPx = Math.abs(rA2 - rA1) / mAnchor;
 
     // wavefronts: incoming plane wave from the left, then circular waves
     // spreading from each slit on the right. Both share spacing and phase
     // so the wave is continuous as it passes through the slits.
     if (v.showWavefronts) {
       const phase = (animating ? animPhase : v.phase) % 1; // fractional period
+      const maxR = Math.hypot(baseX, H/2) + wlPx;
       drawPlaneWave(wlPx, phase, r,g,b, s1y, s2y);
-      drawRings(s1y, wlPx, phase, r,g,b);
-      drawRings(s2y, wlPx, phase, r,g,b);
+      drawRings(s1y, wlPx, phase, r,g,b, maxR);
+      drawRings(s2y, wlPx, phase, r,g,b, maxR);
     }
     // antinode/node lines — only shown together with wavefronts
-    if (v.showGuides && v.showWavefronts) drawFringeGuides(fringePx);
+    if (v.showGuides && v.showWavefronts) drawFringeGuides(fringePx, screenX);
 
     // barrier wall — a clear light-grey slab so it reads against the dark field
     const wallW = 12;
@@ -389,7 +439,7 @@
       const [gr0, gg0, gb0] = wlToRGB(v.wl);
       for (let yy = 0; yy < H; yy++) {
         // field-y pixel → screen position (mm) → intensity
-        const yMM = (cy - yy) * mmPerPx_y(v);
+        const yMM = (cy - yy) * mmPerPx;
         const I = intensity(v, yMM);
         fctx.fillStyle = `rgb(${Math.round(gr0*I)},${Math.round(gg0*I)},${Math.round(gb0*I)})`;
         fctx.fillRect(screenX, yy, scrW, 1);
@@ -476,6 +526,39 @@
     fctx.beginPath(); fctx.arc(screenX + 18, py, 5, 0, 7); fctx.fill();
     fctx.strokeStyle = '#05070f'; fctx.lineWidth = 1.5; fctx.stroke();
 
+    // dimension marks: the drawn slit gap (d) and the slit→screen run (L),
+    // so it is clear which piece of geometry each optics slider is moving
+    {
+      fctx.strokeStyle = 'rgba(255,255,255,0.45)';
+      fctx.lineWidth = 1;
+      fctx.font = '600 11px Inter, sans-serif';
+      const dx0 = slitX - 50;
+      fctx.beginPath();
+      fctx.moveTo(dx0, s1y); fctx.lineTo(dx0, s2y);
+      fctx.moveTo(dx0-4, s1y+5); fctx.lineTo(dx0, s1y); fctx.lineTo(dx0+4, s1y+5);
+      fctx.moveTo(dx0-4, s2y-5); fctx.lineTo(dx0, s2y); fctx.lineTo(dx0+4, s2y-5);
+      fctx.stroke();
+      fctx.fillStyle = 'rgba(255,255,255,0.7)';
+      fctx.textAlign = 'right';
+      fctx.fillText('d', dx0 - 6, cy + 4);
+
+      const ly = H - 14;
+      fctx.beginPath();
+      fctx.moveTo(slitX, ly); fctx.lineTo(screenX, ly);
+      fctx.moveTo(slitX+6, ly-4); fctx.lineTo(slitX, ly); fctx.lineTo(slitX+6, ly+4);
+      fctx.moveTo(screenX-6, ly-4); fctx.lineTo(screenX, ly); fctx.lineTo(screenX-6, ly+4);
+      fctx.stroke();
+      const ltxt = 'L = ' + v.L.toFixed(2) + ' m';
+      fctx.textAlign = 'center';
+      const lcx = (slitX + screenX) / 2;
+      const ltw = fctx.measureText(ltxt).width;
+      fctx.fillStyle = 'rgba(5,7,15,0.85)';
+      fctx.fillRect(lcx - ltw/2 - 5, ly - 8, ltw + 10, 16);
+      fctx.fillStyle = 'rgba(255,255,255,0.75)';
+      fctx.fillText(ltxt, lcx, ly + 4);
+      fctx.textAlign = 'left';
+    }
+
     // path-difference annotation, top-left of the gap
     {
       const pdMag = Math.abs(v.probeN) / 2;         // PD magnitude, in λ
@@ -542,13 +625,17 @@
   // guide rays from the slit midpoint to each fringe on the screen:
   // green = constructive (bright, integer λ), grey = destructive (dark).
   // Crest intersections in the animated rings fall on the green lines.
-  function drawFringeGuides(fringePx) {
+  function drawFringeGuides(fringePx, screenX) {
+    if (fringePx < 14) return;               // too dense to read — skip
+    const showDark = fringePx >= 40;         // node lines only when they fit
     const mx = slitX, my = cy; // slit-pair midpoint
+    const nMax = Math.ceil(H / fringePx) * 2 + 2;
     fctx.lineWidth = 1;
-    for (let n = -PROBE_N_MAX; n <= PROBE_N_MAX; n++) {
+    for (let n = -nMax; n <= nMax; n++) {
       const y = cy - (n/2) * fringePx;   // n in half-wavelengths
       if (y < 4 || y > H - 4) continue;
       const bright = (n % 2 === 0);
+      if (!bright && !showDark) continue;
       fctx.strokeStyle = bright ? 'rgba(120,255,160,0.28)' : 'rgba(180,180,190,0.16)';
       fctx.setLineDash(bright ? [] : [3,4]);
       fctx.beginPath(); fctx.moveTo(mx, my); fctx.lineTo(screenX, y); fctx.stroke();
@@ -556,12 +643,11 @@
     fctx.setLineDash([]);
   }
 
-  function drawRings(syY, spacing, phase, r,g,b) {
-    const maxR = W; 
+  function drawRings(syY, spacing, phase, r,g,b, maxR) {
     const offset = phase * spacing;
     fctx.lineWidth = 2;
     for (let rad = offset; rad < maxR; rad += spacing) {
-      const a = 0.5 * Math.max(0, 1 - rad/(W*0.9));
+      const a = 0.5 * Math.max(0, 1 - rad/(maxR*0.95));
       fctx.strokeStyle = `rgba(${r},${g},${b},${a})`;
       fctx.beginPath();
       // only draw the rightward-propagating arc past the slit plane
@@ -576,8 +662,9 @@
     const [r,g,b] = wlToRGB(v.wl);
     sctx.clearRect(0,0,sw,sh);
 
-    // window matches the field: exactly the 7-fringe span
-    const halfMM = visibleHalfMM(v);
+    // window matches the field: a fixed span in mm, so the fringes
+    // themselves widen and narrow with the optics
+    const halfMM = FIELD_HALF_MM;
     const img = sctx.createImageData(sw, 1);
     for (let x=0; x<sw; x++) {
       const yMM = (x/sw*2 - 1) * halfMM;
@@ -609,23 +696,36 @@
     sctx.strokeStyle = '#ffd23f'; sctx.lineWidth = 2;
     sctx.beginPath(); sctx.moveTo(px, 0); sctx.lineTo(px, bandTop+bandH); sctx.stroke();
 
-    // ticks at bright-fringe orders m = -3..+3
+    // ticks at every bright-fringe order that fits in the window
     const fs = fringeSpacingMM(v); // bright-fringe spacing (mm)
+    const fsPx = fs / (2*halfMM) * sw;
+    const mMax = Math.floor(halfMM / fs);
+    const labelEvery = Math.max(1, Math.ceil(46 / fsPx)); // avoid crowding
     sctx.fillStyle = 'rgba(255,255,255,0.55)';
     sctx.font = '11px Inter, sans-serif'; sctx.textAlign = 'center';
-    for (let m=-3; m<=3; m++) {
+    for (let m=-mMax; m<=mMax; m++) {
       const mm = m * fs;
       const x = (mm/halfMM + 1)/2 * sw;
       sctx.fillRect(x, bandTop+bandH, 1, 5);
-      sctx.fillText('n=' + Math.abs(m), x, sh-4);
+      if (m % labelEvery === 0) sctx.fillText('n=' + Math.abs(m), x, sh-4);
     }
     sctx.textAlign = 'left';
     sctx.fillText('bright-fringe order n', 6, 13);
   }
 
   // --- stats / readouts ---
-  function updateReadouts(v) {
+  function updateReadouts(v, nMax) {
     out.phase.textContent = ((animating ? animPhase : v.phase) / RATE).toFixed(2) + ' s';
+    out.wl.textContent = v.wl.toFixed(0) + ' nm';
+    out.slitsep.textContent = v.d.toFixed(2) + ' mm';
+    out.dist.textContent = v.L.toFixed(2) + ' m';
+    out.dyl.textContent = fringeSpacingMM(v).toFixed(2) + ' mm';
+    out.yposl.textContent = v.probe.toFixed(2) + ' mm';
+    out.pdnote.textContent = Math.abs(desiredProbeN) > nMax
+      ? 'PD held at ' + (nMax/2).toFixed(1) + ' λ: the fringes are now wide enough that '
+        + (Math.abs(desiredProbeN)/2).toFixed(1) + ' λ falls outside the viewing window. '
+        + 'Narrow the fringes and it returns.'
+      : '';
     // PD is a magnitude (|S2P - S1P|); the slider's sign only selects the side.
     const pdMag = Math.abs(v.probeN) / 2;
     out.probe.textContent = pdMag.toFixed(1) + ' λ';
@@ -655,10 +755,11 @@
   }
 
   function render() {
+    const nMax = syncProbeRange();
     const v = readVars();
     drawField(v);
     drawScreen(v);
-    updateReadouts(v);
+    updateReadouts(v, nMax);
   }
 
   // --- animation loop ---
@@ -700,10 +801,15 @@
   // --- events ---
   ['probe','phase'].forEach(id => {
     ctl[id].addEventListener('input', () => {
+      if (id === 'probe') desiredProbeN = +ctl.probe.value;
       if (id === 'phase' && animating) pause();
       if (id === 'phase' && !animating) animPhase = +ctl.phase.value/100 * 4;
       render();
     });
+  });
+  // optics: fringe spacing changes, the set PD (in λ) is carried across
+  ['wl','slitsep','dist'].forEach(id => {
+    ctl[id].addEventListener('input', render);
   });
   ['paths','fringes','guides','wavefronts'].forEach(id => {
     ctl[id].addEventListener('change', () => {
@@ -716,7 +822,8 @@
   playBtn.addEventListener('click', () => animating ? pause() : play());
   resetBtn.addEventListener('click', () => {
     pause(); animPhase = 0; ctl.phase.value = 0;
-    ctl.probe.value = 2;
+    ctl.wl.value = WL0; ctl.slitsep.value = D0; ctl.dist.value = L0;
+    desiredProbeN = 2; ctl.probe.value = 2;
     render();
   });
 
