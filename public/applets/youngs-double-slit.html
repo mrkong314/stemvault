@@ -177,7 +177,7 @@
         <div class="row"><label for="dist">Slit&ndash;screen distance <em>L</em></label><span class="val" id="distV">1.50 m</span></div>
         <input type="range" id="dist" min="1.0" max="2.0" value="1.5" step="0.05">
       </div>
-      <p class="note">Fringe spacing &Delta;y = &lambda;<em>L</em>/<em>d</em>. The viewing window on the wall is fixed, so wider fringes mean fewer bands in view. The PD you have set is held at the same number of wavelengths &mdash; the probe and rays move to wherever that PD now occurs.</p>
+      <p class="note">Fringe spacing &Delta;y = &lambda;<em>L</em>/<em>d</em>. The viewing window on the wall is fixed, so wider fringes mean fewer bands in view. The PD you have set is held at the same number of wavelengths, so the probe and rays move to wherever that PD now occurs.</p>
 
       <hr class="divider">
       <h2>Animation</h2>
@@ -287,7 +287,7 @@
   // m = -3..+3). Because the window no longer rescales with the optics,
   // changing λ, d or L now visibly widens or narrows the fringes.
   const WL0 = 550, D0 = 0.20, L0 = 1.5;      // nm, mm, m
-  const L_MAX = 2.0;                          // m — matches the L slider max
+  const L_MAX = 2.0;                          // m, matches the L slider max
   const PROBE_N_MAX = 6;        // half-wavelengths each side of axis
   const FIELD_HALF_MM =
     PROBE_N_MAX * (WL0 * 1e-9 / 2) * L0 / (D0 * 1e-3) * 1000 * 1.08;
@@ -626,7 +626,7 @@
   // green = constructive (bright, integer λ), grey = destructive (dark).
   // Crest intersections in the animated rings fall on the green lines.
   function drawFringeGuides(fringePx, screenX) {
-    if (fringePx < 14) return;               // too dense to read — skip
+    if (fringePx < 14) return;               // too dense to read, skip
     const showDark = fringePx >= 40;         // node lines only when they fit
     const mx = slitX, my = cy; // slit-pair midpoint
     const nMax = Math.ceil(H / fringePx) * 2 + 2;
