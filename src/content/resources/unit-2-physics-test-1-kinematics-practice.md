@@ -1,5 +1,5 @@
 ---
-title: "Unit 2 Physics Test 1 Practice: Kinematics"
+title: "Unit 2 Physics Motion Test 1 Kinematics Practice"
 type: applet
 subject: Physics
 yearLevel: [11]
