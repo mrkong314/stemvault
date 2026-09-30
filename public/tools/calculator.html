@@ -841,6 +841,8 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     position: relative; display: flex; align-items: stretch;
     border-top: 1px solid var(--glass-border); background: transparent;
     transition: background 0.12s;
+    /* breathing room kept around the active line when it is scrolled into view */
+    scroll-margin-top: 0.6rem; scroll-margin-bottom: 1.5rem;
   }
   .line:first-child { border-top: none; }
   .line:hover { background: rgba(127,127,127,0.06); }
@@ -1200,7 +1202,9 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   @media (min-width: 720px) and (orientation: landscape) {
     #app { max-width: none; flex-direction: row; }
     .header-wrap { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
-    #folders { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 1rem; }
+    /* generous bottom padding: the last line always has clear space below it, so
+       the entry being typed never sits flush against the bottom edge */
+    #folders { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: clamp(4rem, 22vh, 14rem); }
     #keypad {
       display: block; grid-template-columns: none;
       flex: 0 0 clamp(340px, 30vw, 520px);
@@ -1245,7 +1249,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     /* the math entries scroll; the keypad keeps its full height and is always
        completely visible (no internal scroll, no clipped bottom row) */
     .header-wrap { min-height: 0; }
-    #folders { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 0.6rem; -webkit-overflow-scrolling: touch; }
+    #folders { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: clamp(3rem, 16vh, 10rem); -webkit-overflow-scrolling: touch; }
 
     #keypad {
       display: block;                 /* no longer the math grid; holds the paged pad */
@@ -3484,6 +3488,30 @@ function recompute() {
   try { recomputeImpl(); }
   catch (e) { /* never let a single bad line break the whole calculator */ }
 }
+/* Trailing assignment: "2.5*12 = m" defines m, mirroring "m = 2.5*12". Applies
+   only when the line has exactly one top-level "=", the right side is a single
+   standalone variable, the left side is an expression (not itself a bare
+   variable -- "a = b" keeps its leading-assignment meaning) and the left side
+   does not reference the target (that shape is an equation, not a definition). */
+const TRAIL_VAR_RE = /^[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?$/;
+function trailingAssign(expr) {
+  if (!expr) return null;
+  let depth = 0, eq = -1;
+  for (let i = 0; i < expr.length; i++) {
+    const ch = expr[i];
+    if (ch === '(' || ch === '[') depth++;
+    else if (ch === ')' || ch === ']') { if (depth > 0) depth--; }
+    else if (ch === '=' && depth === 0) { if (eq !== -1) return null; eq = i; }
+  }
+  if (eq === -1) return null;
+  const lhs = expr.slice(0, eq).trim();
+  const name = expr.slice(eq + 1).trim();
+  if (!lhs || !TRAIL_VAR_RE.test(name) || TRAIL_VAR_RE.test(lhs)) return null;
+  if (name === 'ans' || RESERVED.includes(name)) return null;
+  try { if (referencedVars(lhs).includes(name)) return null; } catch (e) { return null; }
+  return { name, rhs: lhs };
+}
+
 function recomputeImpl() {
   const angleFns = angleScope();
   for (const folder of folders) {
@@ -3495,8 +3523,11 @@ function recomputeImpl() {
       let expr = '';
       try { expr = prepareExpr(line.mq.latex()); } catch (e) { expr = ''; }
       const m = expr.match(/^\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)\s*(.+)$/);
-      if (m) definedNames.add(m[1]);
-      return { line, expr, isAssign: !!m, name: m?m[1]:null, rhs: m?m[2]:null };
+      const t = m ? null : trailingAssign(expr);
+      const name = m ? m[1] : (t ? t.name : null);
+      const rhs = m ? m[2] : (t ? t.rhs : null);
+      if (name) definedNames.add(name);
+      return { line, expr, isAssign: !!(m || t), trailing: !!t, name, rhs };
     });
 
     // Pass 1: resolve assignments order-independently
@@ -3591,9 +3622,16 @@ function recomputeImpl() {
         if (info.isAssign) {
           value = evalExpr(info.rhs, { ...scope });
           line.lastValue = value;
-          // RHS latex = everything after the first '=' (so the echo omits "name =")
-          const eqAt = fullLatex.indexOf('=');
-          const rhsLatex = eqAt >= 0 ? fullLatex.slice(eqAt + 1) : fullLatex;
+          // value latex = everything after the first '=' (leading form, so the
+          // echo omits "name ="), or before the last '=' (trailing "expr = m")
+          let rhsLatex;
+          if (info.trailing) {
+            const eqAt = lastTopLevelEquals(fullLatex);
+            rhsLatex = eqAt >= 0 ? fullLatex.slice(0, eqAt) : fullLatex;
+          } else {
+            const eqAt = fullLatex.indexOf('=');
+            rhsLatex = eqAt >= 0 ? fullLatex.slice(eqAt + 1) : fullLatex;
+          }
           renderResult(resEl, { prefixLatex: varToLatex(info.name) + ' =', srcLatex: rhsLatex, srcExpr: info.rhs }, value);
         } else {
           value = evalExpr(info.expr, { ...scope });
@@ -3610,6 +3648,8 @@ function recomputeImpl() {
   }
   if (typeof scheduleSave === 'function') scheduleSave();
   if (typeof varsListEl !== 'undefined' && varsListEl && !varsListEl.hidden) buildVarsList();
+  // typing can grow the active line (wrap, stacked result, chips); keep it on screen
+  if (typeof focusedLineObj !== 'undefined') ensureActiveLineVisible(focusedLineObj);
 }
 
 /* Decide whether a line's result sits inline (to the right of the input) or
@@ -3929,6 +3969,20 @@ function focusLine(lineObj) {
   focusedLineObj = lineObj;
   document.querySelectorAll('.line.focused').forEach(el => el.classList.remove('focused'));
   lineObj.lineEl.classList.add('focused');
+  ensureActiveLineVisible(lineObj);
+}
+
+/* Keep the line being edited on screen. Scrolls #folders just enough to bring
+   the line (plus the breathing room from .line's scroll-margin) into view --
+   "nearest" means an already-visible line never moves, so scrolling back to
+   read earlier entries is not fought while a long tab is being edited. Only
+   acts on the line that actually holds the caret. */
+function ensureActiveLineVisible(lineObj) {
+  if (!lineObj || !lineObj.lineEl || !lineObj.lineEl.isConnected) return;
+  if (!lineObj.lineEl.contains(document.activeElement)) return;
+  requestAnimationFrame(() => {
+    try { lineObj.lineEl.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+  });
 }
 /* Focus a line regardless of type (system lines have no single .mq). */
 function focusLineSafe(lineObj) {
@@ -4103,6 +4157,14 @@ function fixWrapBoundary(mq) {
       if (rp === -1) break;
       const innerStart = lp + openTag.length;
       const inner = latex.slice(innerStart, rp);
+      // never rewrite a function call's argument list: solve(2x+1=5,x) and
+      // cSolve(...) legitimately hold an "=" inside their brackets. A call is a
+      // bracket directly preceded by an \operatorname{...} name, or one whose
+      // contents carry a top-level comma (an argument separator).
+      if (/\\operatorname\{[A-Za-z]+\}\s*$/.test(latex.slice(0, lp)) || hasTopLevelComma(inner)) {
+        from = innerStart;
+        continue;
+      }
       // index of the last top-level "=" within the inner content
       const eqRel = lastTopLevelEquals(inner);
       if (eqRel !== -1) {
@@ -4118,6 +4180,29 @@ function fixWrapBoundary(mq) {
     if (!acted) break;
   }
   if (changed) { try { mq.latex(latex); mq.moveToRightEnd(); recompute(); } catch (e) {} }
+}
+
+/* True if `s` contains a "," at the top level (same nesting rules as
+   lastTopLevelEquals): the signature of a function-call argument list. */
+function hasTopLevelComma(s) {
+  let depthBrace = 0, depthParen = 0;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '\\') {
+      if (s.startsWith('\\left(', i)) { depthParen++; i += 5; continue; }
+      if (s.startsWith('\\right)', i)) { if (depthParen > 0) depthParen--; i += 6; continue; }
+      i++;                                  // skip escaped char
+      while (i + 1 < s.length && /[a-zA-Z]/.test(s[i + 1])) i++;
+      continue;
+    }
+    if (ch === '{') { depthBrace++; continue; }
+    if (ch === '}') { if (depthBrace > 0) depthBrace--; continue; }
+    if (depthBrace !== 0) continue;
+    if (ch === '(') { depthParen++; continue; }
+    if (ch === ')') { if (depthParen > 0) depthParen--; continue; }
+    if (ch === ',' && depthParen === 0) return true;
+  }
+  return false;
 }
 
 /* Index of the last "=" in `s` that is at the top level: not inside any {...}
