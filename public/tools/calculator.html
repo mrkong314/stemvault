@@ -1203,8 +1203,9 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     #app { max-width: none; flex-direction: row; }
     .header-wrap { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
     /* generous bottom padding: the last line always has clear space below it, so
-       the entry being typed never sits flush against the bottom edge */
-    #folders { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: clamp(4rem, 22vh, 14rem); }
+       the entry being typed never sits flush against the bottom edge -- and the
+       empty area is a large, easy mouse target for the "+ new section" button */
+    #folders { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: clamp(8rem, 38vh, 26rem); }
     #keypad {
       display: block; grid-template-columns: none;
       flex: 0 0 clamp(340px, 30vw, 520px);
@@ -1249,7 +1250,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     /* the math entries scroll; the keypad keeps its full height and is always
        completely visible (no internal scroll, no clipped bottom row) */
     .header-wrap { min-height: 0; }
-    #folders { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: clamp(3rem, 16vh, 10rem); -webkit-overflow-scrolling: touch; }
+    #folders { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: clamp(5rem, 26vh, 16rem); -webkit-overflow-scrolling: touch; }
 
     #keypad {
       display: block;                 /* no longer the math grid; holds the paged pad */
