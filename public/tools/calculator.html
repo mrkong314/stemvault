@@ -927,6 +927,13 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .mq-field .mq-root-block .mq-array * {
     overflow-wrap: normal; word-break: normal; white-space: nowrap;
   }
+  /* breathing room in function calls: air after the function name, inside the
+     brackets, and after argument-separator commas (tagged .mq-comma by JS,
+     since MathQuill gives comma spans no class of their own) */
+  .mq-field var.mq-operator-name + .mq-non-leaf { margin-left: 0.14em; }
+  .mq-field .mq-paren + .mq-non-leaf { padding: 0 0.12em; }
+  .mq-field .mq-comma { padding-right: 0.4em; }
+
   /* Bracket groups too: MathQuill scales the bracket glyph to the measured height
      of the enclosed block, so if that block wraps (its min-content collapses under
      the inherited overflow-wrap:anywhere) the measurement sees a stack of lines
@@ -2163,6 +2170,7 @@ const FORMULA_LIST = [
   { name:'E_{d} = E_{high} - E_{low} = h_J f', cat:'Light and Matter', kw:'energy levels, atomic transition, emission, absorption, spectral line, photon, planck, delta', latex:'E_{d}=E_{high}-E_{low}=h_{J}f' },
   { name:'p = h_J/\\lambda', cat:'Light and Matter', kw:'photon momentum, planck, wavelength, lambda', latex:'p=\\frac{h_{J}}{\\lambda}' },
   { name:'\\lambda = h_J/p', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, momentum, planck', latex:'\\lambda=\\frac{h_{J}}{p}' },
+  { name:'\\lambda = h_J/mv', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, mass, velocity, speed, planck', latex:'\\lambda=\\frac{h_{J}}{mv}' },
   { name:'\\lambda = h_J/\\sqrt{2mE_k}', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, kinetic energy, mass, planck', latex:'\\lambda=\\frac{h_{J}}{\\sqrt{2mE_{k}}}' },
 ];
 
@@ -3697,6 +3705,16 @@ function recomputeImpl() {
   if (typeof focusedLineObj !== 'undefined') ensureActiveLineVisible(focusedLineObj);
 }
 
+/* MathQuill renders comma spans with no class; tag them .mq-comma so the CSS
+   can put breathing room after argument separators (solve(eq, x)). */
+function tagCommas(field) {
+  const root = field && field.querySelector('.mq-root-block');
+  if (!root) return;
+  root.querySelectorAll('span:not(.mq-comma)').forEach(s => {
+    if (s.childElementCount === 0 && s.textContent === ',') s.classList.add('mq-comma');
+  });
+}
+
 /* Decide whether a line's result sits inline (to the right of the input) or
    stacked below it. Inline saves vertical space; we stack when the input is long
    enough that input + result wouldn't comfortably share one row. */
@@ -3704,6 +3722,7 @@ function updateLineLayout(line) {
   const row = line.mainRow; if (!row) return;
   const field = line.fieldEl, res = line.resultEl;
   if (!field || !res) return;
+  tagCommas(field);
   const measure = () => {
     const hasResult = res.textContent.trim() !== '' || res.children.length > 0;
     if (hasResult) {
