@@ -1582,12 +1582,24 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   }
   .fml-row {
     display: flex; align-items: center; justify-content: space-between; gap: 0.7rem;
+    flex-wrap: wrap;
     padding: 0.4rem 0.55rem; border-radius: 9px; cursor: pointer;
   }
   .fml-row.active { background: var(--focus-bg); }
   .fml-eq { flex: 0 1 auto; color: var(--ink); font-size: 0.95rem; overflow: hidden; }
   .fml-kw { flex: 0 0 auto; font-size: 0.68rem; color: var(--ink-dim); text-align: right; max-width: 9rem;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* subject chips on the active formula row: pick the variable to solve for */
+  .fml-subj { display: flex; align-items: center; gap: 0.3rem; flex-basis: 100%; flex-wrap: wrap; margin-top: 0.15rem; }
+  .fml-subj-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-mute); }
+  .fml-chip {
+    padding: 0.06rem 0.5rem; border: 1px solid var(--glass-border); border-radius: 999px;
+    cursor: pointer; font-size: 0.85rem; line-height: 1.35;
+  }
+  .fml-chip:hover { border-color: var(--accent); }
+  .fml-chip.on { background: rgba(10,132,255,0.14); border-color: var(--accent); color: var(--accent); }
+  .fml-subj-hint { margin-left: auto; font-size: 0.62rem; color: var(--ink-mute);
+    border: 1px solid var(--glass-border); border-radius: 4px; padding: 0 0.3rem; }
 </style>
 </head>
 <body>
@@ -2410,7 +2422,7 @@ function solveEquation(eqText, varName, scope) {
   // exact linear shortcut
   const f0 = f(0), f1 = f(1), f2 = f(2);
   const m = f1 - f0, m2 = f2 - f1;
-  if (isFinite(m) && Math.abs(m - m2) < 1e-9 && Math.abs(m) > 1e-12) return cleanRoot(-f0 / m);
+  if (isFinite(m) && Math.abs(m - m2) < 1e-9 && Math.abs(m) > 1e-12) return cleanRoot(-f0 / m, f);
 
   // Newton from a spread of seeds; derivative step scales with |x| so it stays
   // meaningful at large magnitudes.
@@ -2423,7 +2435,7 @@ function solveEquation(eqText, varName, scope) {
       if (!isFinite(d) || d === 0) break;
       const nx = x - fx / d; if (!isFinite(nx)) break;
       if (Math.abs(nx - x) < 1e-12 * Math.max(1, Math.abs(x))) {
-        if (Math.abs(f(nx)) < 1e-6 * Math.max(1, Math.abs(nx))) return cleanRoot(nx);
+        if (Math.abs(f(nx)) < 1e-6 * Math.max(1, Math.abs(nx))) return cleanRoot(nx, f);
         break;
       }
       x = nx;
@@ -2506,7 +2518,7 @@ function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
   const roots = [];
   const add = r => {
     if (!isFinite(r)) return;
-    const c = cleanRoot(r) + 0;   // +0 normalises -0 to 0
+    const c = cleanRoot(r, f) + 0;   // +0 normalises -0 to 0
     if (!roots.some(e => Math.abs(e - c) < 1e-6 * Math.max(1, Math.abs(c)))) roots.push(c);
   };
   const newton = x0 => {
@@ -2574,7 +2586,25 @@ function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
   }
   return { roots: roots.sort((a, b) => a - b), trig, mode, lo: -limit, hi: limit };
 }
-function cleanRoot(x) { const r = Math.round(x); return Math.abs(x - r) < 1e-9 ? r : x; }
+/* Snap a root to the nearest integer only when that integer satisfies the
+   equation at least as well -- tidies 1.9999999998 -> 2 without destroying
+   genuinely tiny roots (3.3e-19 is within 1e-9 of 0 but is NOT a root at 0).
+   Without an equation to test against, integers still snap but a nonzero value
+   is never collapsed to 0. */
+function cleanRoot(x, f) {
+  const r = Math.round(x);
+  if (x === r) return x;
+  if (Math.abs(x - r) >= 1e-9) return x;
+  if (typeof f === 'function') {
+    try {
+      // purely relative: the snap must not worsen the residual (an absolute
+      // threshold here would re-collapse tiny physics-scale roots to 0)
+      const fr = Math.abs(f(r)), fx = Math.abs(f(x));
+      return (isFinite(fr) && fr <= fx * 4) ? r : x;
+    } catch (e) { return x; }
+  }
+  return r === 0 ? x : r;
+}
 
 /* Find the matching close paren for the '(' at index openIdx. */
 function matchParen(s, openIdx) {
@@ -2885,11 +2915,21 @@ function resolveSums(expr, scope) {
 }
 function hasSum(expr) { return /\bsummation\s*\(/.test(expr); }
 
+/* A prepared expression's multi-char subscript names (E_usr, E_kmax, h_J)
+   carry a plain underscore, but the tokenizer's bare "_" rule reads exactly one
+   character (so typed q_1q_2 splits correctly). In a PREPARED string implicit
+   multiplication is already explicit, so a letter run after "_" is always one
+   subscript: wrap it in the tokenizer's sentinels so it reads back as ONE name
+   (without this, E_kmax re-tokenized as E_k, m, a, x -- phantom variables). */
+function protectSubscripts(s) {
+  return s.replace(/_([A-Za-z0-9]+)/g, '_‹$1›');
+}
+
 /* collect the free variable names referenced in an expression (non-function
    single-letter names, excluding constants, ans, predefined constants, and any
    solve() target var) */
 function referencedVars(expr) {
-  const toks = tokenize(expr); const out = new Set();
+  const toks = tokenize(protectSubscripts(expr)); const out = new Set();
   for (const t of toks) {
     // `i` is reserved for the imaginary unit (math.js) and is never offered as an
     // undefined variable. If the user explicitly assigns `i = ...` in a field it
@@ -2910,7 +2950,7 @@ function referencedVars(expr) {
 
 /* collect predefined physics constants referenced in an expression */
 function referencedPhys(expr) {
-  const toks = tokenize(expr); const out = new Set();
+  const toks = tokenize(protectSubscripts(expr)); const out = new Set();
   for (const t of toks) {
     if (t.t === 'name' && !t.fn && PHYS_NAMES.has(t.v)) out.add(t.v);
   }
@@ -5598,16 +5638,95 @@ function filterFormulas(q) {
   return scored.map(s => s.f);
 }
 
+/* The free variables of a formula, in first-appearance order -- so index 0 is
+   the left-hand side, the default subject. Physics constants (h_J, c, ...) are
+   never subjects. Cached on the formula entry. */
+function formulaVars(f) {
+  if (f._vars) return f._vars;
+  let vars = [];
+  try { vars = referencedVars(prepareExpr(f.latex)); } catch (e) {}
+  f._vars = vars;
+  return vars;
+}
+/* solve() needs exactly one top-level '=' (chained forms like a=b=c can't). */
+function formulaSolvable(f) {
+  if (f._solvable !== undefined) return f._solvable;
+  let ok = false;
+  try {
+    const expr = prepareExpr(f.latex);
+    let d = 0, n = 0;
+    for (const ch of expr) { if (ch === '(') d++; else if (ch === ')') d--; else if (ch === '=' && d === 0) n++; }
+    ok = (n === 1);
+  } catch (e) {}
+  f._solvable = ok;
+  return ok;
+}
+/* Match a typed token against a formula's variables: exact name (E, p, E_k),
+   case-insensitive fallback, or a Greek command name (lambda -> λ, theta_1 -> θ_1). */
+function subjectFromToken(tok, vars) {
+  const t = (tok || '').trim();
+  if (!t) return null;
+  // compare against the internal name and its display form (E_usr shows as E)
+  const eq = (v, s) => v === s || displayName(v) === s ||
+                       v.toLowerCase() === s.toLowerCase() || displayName(v).toLowerCase() === s.toLowerCase();
+  let m = vars.find(v => eq(v, t));
+  if (m) return m;
+  const us = t.indexOf('_');
+  const base = us === -1 ? t : t.slice(0, us), sub = us === -1 ? null : t.slice(us + 1);
+  const glyph = GREEK[base] || GREEK[base.toLowerCase()];
+  if (glyph) {
+    const cand = sub ? glyph + '_' + sub : glyph;
+    m = vars.find(v => eq(v, cand));
+    if (m) return m;
+  }
+  return null;
+}
+/* Filter + subject parse. "query > x" names the subject explicitly; otherwise,
+   if the last word of a multi-word query names a variable of formulas matched
+   by the preceding words ("de broglie p"), it is read as the subject. Each
+   returned item is {f, vars, subjIdx, solvable}. */
+function formulaMatches(q) {
+  q = (q || '').trim();
+  const wrap = f => ({ f, vars: formulaVars(f), subjIdx: 0, solvable: formulaSolvable(f) });
+  let textQ = q, subjTok = null;
+  const gt = q.indexOf('>');
+  if (gt !== -1) { subjTok = q.slice(gt + 1).trim(); textQ = q.slice(0, gt).trim(); }
+  let items = filterFormulas(textQ).map(wrap);
+  if (subjTok) {
+    const hits = items.filter(it => {
+      const m = subjectFromToken(subjTok, it.vars);
+      if (m) { it.subjIdx = it.vars.indexOf(m); return true; }
+      return false;
+    });
+    if (hits.length) items = hits;
+  } else {
+    const toks = textQ.split(/\s+/);
+    if (toks.length > 1) {
+      const last = toks[toks.length - 1], rest = toks.slice(0, -1).join(' ');
+      const hits = filterFormulas(rest).map(wrap).filter(it => {
+        const m = subjectFromToken(last, it.vars);
+        if (m) { it.subjIdx = it.vars.indexOf(m); return true; }
+        return false;
+      });
+      if (hits.length) items = hits;
+    }
+  }
+  return items;
+}
+function defaultSubject(it) { return (it && it.solvable && it.vars.length) ? it.vars[it.subjIdx] : null; }
+
+let formulaItems = [];
 function renderFormulaResults(q) {
-  const items = filterFormulas(q);
+  formulaItems = formulaMatches(q);
   formulaActiveIdx = 0;
   formulaResults.innerHTML = '';
-  if (items.length === 0) {
+  if (formulaItems.length === 0) {
     const e = document.createElement('div'); e.className = 'sym-empty'; e.textContent = 'No formulas match';
     formulaResults.appendChild(e); return;
   }
   let lastCat = null;
-  items.forEach((f, i) => {
+  formulaItems.forEach((it, i) => {
+    const f = it.f;
     if (f.cat !== lastCat) {
       const h = document.createElement('div'); h.className = 'fml-cat'; h.textContent = f.cat;
       formulaResults.appendChild(h); lastCat = f.cat;
@@ -5620,32 +5739,77 @@ function renderFormulaResults(q) {
     const kw = document.createElement('span'); kw.className = 'fml-kw';
     kw.textContent = f.kw.split(',')[0];
     row.appendChild(eq); row.appendChild(kw);
-    row.addEventListener('mousedown', (ev) => { ev.preventDefault(); chooseFormula(f); });
+    row.addEventListener('mousedown', (ev) => {
+      ev.preventDefault();
+      const chip = ev.target.closest && ev.target.closest('.fml-chip');
+      if (chip) chooseFormula(f, it.vars[+chip.dataset.k]);
+      else chooseFormula(f, defaultSubject(it));
+    });
     row.addEventListener('mouseenter', () => setFormulaActive(i));
     formulaResults.appendChild(row);
   });
+  renderSubjectChips();
+}
+/* "solve for" chips under the active row; the highlighted chip is the subject
+   the formula will be solved for on Enter (Tab cycles it). */
+function renderSubjectChips() {
+  const rows = formulaResults.querySelectorAll('.fml-row');
+  rows.forEach(r => { const c = r.querySelector('.fml-subj'); if (c) c.remove(); });
+  const it = formulaItems[formulaActiveIdx];
+  const row = [...rows].find(r => +r.dataset.idx === formulaActiveIdx);
+  if (!it || !row || !it.solvable || !it.vars.length) return;
+  const c = document.createElement('div'); c.className = 'fml-subj';
+  const lab = document.createElement('span'); lab.className = 'fml-subj-label'; lab.textContent = 'solve for';
+  c.appendChild(lab);
+  it.vars.forEach((v, k) => {
+    const chip = document.createElement('span');
+    chip.className = 'fml-chip' + (k === it.subjIdx ? ' on' : '');
+    chip.dataset.k = k;
+    try { katex.render(varToLatex(v), chip, { throwOnError:false }); } catch (e) { chip.textContent = v; }
+    c.appendChild(chip);
+  });
+  const hint = document.createElement('span'); hint.className = 'fml-subj-hint'; hint.textContent = 'Tab';
+  c.appendChild(hint);
+  row.appendChild(c);
 }
 function setFormulaActive(i) {
   const rows = formulaResults.querySelectorAll('.fml-row');
   rows.forEach(r => r.classList.toggle('active', +r.dataset.idx === i));
   formulaActiveIdx = i;
+  renderSubjectChips();
   const el = [...rows].find(r => +r.dataset.idx === i); if (el) el.scrollIntoView({ block:'nearest' });
 }
-function chooseFormula(f) {
+/* Insert a formula. With a subject it goes in as solve(formula, subject) --
+   the default subject is the left-hand side -- so filling in the knowns (via
+   the undefined-variable chips) solves it immediately. Without a subject
+   (Shift+Enter, or an unsolvable chained form) the bare formula is written. */
+function chooseFormula(f, subject) {
   const mq = formulaTargetMQ || (formulaTargetLine && formulaTargetLine.mq);
-  if (mq) { mq.focus(); mq.write(f.latex); }
+  if (mq) {
+    mq.focus();
+    if (subject) mq.write('\\operatorname{solve}\\left(' + f.latex + ',' + varToLatex(subject) + '\\right)');
+    else mq.write(f.latex);
+  }
   closeFormulaPicker();
   recompute();
 }
 
 formulaSearch.addEventListener('input', () => renderFormulaResults(formulaSearch.value));
 formulaSearch.addEventListener('keydown', (e) => {
-  const items = filterFormulas(formulaSearch.value);
-  if (e.key === 'ArrowDown') { e.preventDefault(); setFormulaActive(Math.min(formulaActiveIdx+1, items.length-1)); }
+  if (e.key === 'ArrowDown') { e.preventDefault(); setFormulaActive(Math.min(formulaActiveIdx+1, formulaItems.length-1)); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); setFormulaActive(Math.max(formulaActiveIdx-1, 0)); }
+  else if (e.key === 'Tab') {
+    e.preventDefault();
+    const it = formulaItems[formulaActiveIdx];
+    if (it && it.solvable && it.vars.length) {
+      it.subjIdx = (it.subjIdx + (e.shiftKey ? -1 : 1) + it.vars.length) % it.vars.length;
+      renderSubjectChips();
+    }
+  }
   else if (e.key === 'Enter') {
     e.preventDefault();
-    if (items[formulaActiveIdx]) chooseFormula(items[formulaActiveIdx]);
+    const it = formulaItems[formulaActiveIdx];
+    if (it) chooseFormula(it.f, e.shiftKey ? null : defaultSubject(it));
     else closeFormulaPicker();
   } else if (e.key === 'Escape') { e.preventDefault(); closeFormulaPicker(); }
 });
@@ -5657,8 +5821,8 @@ function formulaKeyGuard(e) {
   if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeFormulaPicker(); }
   else if (e.key === 'Enter') {
     e.preventDefault(); e.stopImmediatePropagation();
-    const items = filterFormulas(formulaSearch.value);
-    if (items[formulaActiveIdx]) chooseFormula(items[formulaActiveIdx]);
+    const it = formulaItems[formulaActiveIdx];
+    if (it) chooseFormula(it.f, e.shiftKey ? null : defaultSubject(it));
     else closeFormulaPicker();
   }
 }
