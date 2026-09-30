@@ -847,6 +847,9 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .line:first-child { border-top: none; }
   .line:hover { background: rgba(127,127,127,0.06); }
   .line.focused { background: rgba(10,132,255,0.08); }
+  /* multi-row selection (shift+click, shift+arrows, Ctrl/Cmd+A) */
+  .line.multi-selected { background: rgba(10,132,255,0.16); box-shadow: inset 3px 0 0 var(--accent); }
+  .line.multi-selected:hover { background: rgba(10,132,255,0.2); }
   .line.drag-ghost { opacity: 0.4; }
   .line.drop-before { box-shadow: inset 0 3px 0 var(--drop); }
   .line.drop-after  { box-shadow: inset 0 -3px 0 var(--drop); }
@@ -5797,6 +5800,109 @@ function gotoLastLine()  { const a = flatLines(); if (a.length) focusLineSafe(a[
 function gotoFolderFirst(line) { const f = line && line.folder; if (f && f.lines[0]) focusLineSafe(f.lines[0]); }
 function gotoFolderLast(line)  { const f = line && line.folder; if (f && f.lines.length) focusLineSafe(f.lines[f.lines.length-1]); }
 
+/* ---------------------------------------------------------------------------
+   Multi-row selection. Shift+click (or Shift+arrows with nothing focused)
+   selects a range of rows across sections; Ctrl/Cmd+click toggles single rows;
+   Ctrl/Cmd+A with no field focused selects every row. Backspace/Delete removes
+   the whole selection at once (undoable), Escape or a plain click clears it.
+--------------------------------------------------------------------------- */
+const selectedLines = new Set();
+let selAnchor = null;   // where the selection started (fixed end of a range)
+let selLead = null;     // the moving end of the range (follows shift+arrows)
+
+function lineObjFromEl(el) { return flatLines().find(l => l.lineEl === el) || null; }
+function keyTargetIsTyping() {
+  const ae = document.activeElement;
+  return !!(ae && ae !== document.body &&
+    (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable));
+}
+function setRowSelected(l, on) {
+  if (on) { selectedLines.add(l); l.lineEl.classList.add('multi-selected'); }
+  else { selectedLines.delete(l); l.lineEl.classList.remove('multi-selected'); }
+}
+function clearRowSelection() {
+  selectedLines.forEach(l => l.lineEl.classList.remove('multi-selected'));
+  selectedLines.clear(); selAnchor = null; selLead = null;
+}
+function selectRowRange(a, b) {
+  const all = flatLines();
+  let i = all.indexOf(a), j = all.indexOf(b);
+  if (i === -1 || j === -1) return;
+  if (i > j) [i, j] = [j, i];
+  selectedLines.forEach(l => l.lineEl.classList.remove('multi-selected'));
+  selectedLines.clear();
+  for (let k = i; k <= j; k++) setRowSelected(all[k], true);
+}
+function selectAllRows() {
+  const all = flatLines(); if (!all.length) return;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  selAnchor = all[0]; selLead = all[all.length - 1];
+  selectRowRange(selAnchor, selLead);
+}
+function deleteSelectedRows() {
+  if (!selectedLines.size) return;
+  pushUndo();
+  const all = flatLines();
+  const doomed = all.filter(l => selectedLines.has(l));
+  // land on the first surviving row after the selection, else the last one before it
+  let landing = null;
+  const lastIdx = all.indexOf(doomed[doomed.length - 1]);
+  for (let i = lastIdx + 1; i < all.length; i++) if (!selectedLines.has(all[i])) { landing = all[i]; break; }
+  if (!landing) {
+    const firstIdx = all.indexOf(doomed[0]);
+    for (let i = firstIdx - 1; i >= 0; i--) if (!selectedLines.has(all[i])) { landing = all[i]; break; }
+  }
+  clearRowSelection();
+  doomed.forEach(l => {
+    const f = l.folder, i = f.lines.indexOf(l);
+    if (i !== -1) { l.lineEl.remove(); f.lines.splice(i, 1); }
+  });
+  // same guarantees as removeLine: a tab and every section keep at least one row
+  if (totalLines() === 0) landing = createLine(folders[0]);
+  else folders.forEach(f => { if (f.lines.length === 0) createLine(f); });
+  renumber(); recompute();
+  if (landing) focusLineSafe(landing);
+}
+/* Duplicate rows below themselves (Ctrl/Cmd+D): the selection if there is one,
+   otherwise the focused row. Reverse document order keeps insertion points valid. */
+function duplicateRows(rows) {
+  const all = flatLines();
+  const list = all.filter(l => rows.has ? rows.has(l) : rows.includes(l));
+  if (!list.length) return;
+  pushUndo();
+  list.reverse().forEach(l => {
+    if (l.isSystem) createSystemLine(l.folder, l, l.eqFields.map(e => e.mq.latex()));
+    else createLine(l.folder, l, l.mq.latex());
+  });
+  renumber(); recompute();
+}
+
+/* selection mouse handling: shift = range, ctrl/cmd = toggle, plain click clears */
+foldersEl.addEventListener('mousedown', (e) => {
+  const withMod = e.shiftKey || e.ctrlKey || e.metaKey;
+  if (!withMod) { if (selectedLines.size) clearRowSelection(); return; }
+  const rowEl = e.target.closest && e.target.closest('.line');
+  if (!rowEl) return;
+  const row = lineObjFromEl(rowEl);
+  if (!row) return;
+  // shift+click inside the field that already has the caret keeps MathQuill's
+  // own in-field selection, as long as no row selection is under way
+  if (e.shiftKey && !selectedLines.size) {
+    const f = e.target.closest('.mq-field');
+    if (f && f.contains(document.activeElement)) return;
+  }
+  e.preventDefault();
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  if (e.shiftKey) {
+    if (!selAnchor) selAnchor = (focusedLineObj && flatLines().includes(focusedLineObj)) ? focusedLineObj : row;
+    selLead = row;
+    selectRowRange(selAnchor, selLead);
+  } else {
+    setRowSelected(row, !selectedLines.has(row));
+    selAnchor = row; selLead = row;
+  }
+}, true);
+
 /* global keyboard shortcuts: mode toggles, line navigation, Tab cycling */
 document.addEventListener('keydown', (e) => {
   const mod = e.ctrlKey || e.metaKey;
@@ -5806,6 +5912,38 @@ document.addEventListener('keydown', (e) => {
     if (k === 'e') { e.preventDefault(); toggleExact(); return; }
     if (k === 'd') { e.preventDefault(); toggleAngle(); return; }
     if (k === 's') { e.preventDefault(); toggleSigFigs(); return; }
+  }
+  // Ctrl/Cmd+A with no field focused: select every row (inside a field, the
+  // native in-field select-all is untouched)
+  if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'a' && !keyTargetIsTyping()) {
+    e.preventDefault(); selectAllRows(); return;
+  }
+  // Ctrl/Cmd+D duplicates the selected rows, or the focused row
+  if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'd') {
+    const rows = selectedLines.size ? selectedLines
+               : (focusedLineObj ? [focusedLineObj] : []);
+    if (rows.size || rows.length) { e.preventDefault(); duplicateRows(rows); }
+    return;
+  }
+  // with rows selected: Backspace/Delete removes them all, Escape clears
+  if (selectedLines.size && !keyTargetIsTyping()) {
+    if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); deleteSelectedRows(); return; }
+    if (e.key === 'Escape') { clearRowSelection(); return; }
+  }
+  // Shift+arrows with nothing focused: grow/shrink the row selection
+  if (!mod && !e.altKey && e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && !keyTargetIsTyping()) {
+    const all = flatLines(); if (!all.length) return;
+    e.preventDefault();
+    const dir = (e.key === 'ArrowDown') ? +1 : -1;
+    if (!selAnchor || !all.includes(selAnchor)) {
+      selAnchor = (focusedLineObj && all.includes(focusedLineObj)) ? focusedLineObj
+                : (dir === 1 ? all[0] : all[all.length - 1]);
+      selLead = selAnchor;
+    }
+    const li = all.indexOf(selLead);
+    selLead = all[Math.min(all.length - 1, Math.max(0, li + dir))];
+    selectRowRange(selAnchor, selLead);
+    return;
   }
   // line navigation with the arrow keys
   if (mod && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
@@ -5838,7 +5976,10 @@ document.addEventListener('keydown', (e) => {
       const all = flatLines();
       if (!all.length) return;
       const dir = (e.key === 'ArrowDown') ? +1 : -1;
-      const i = focusedLineObj ? all.indexOf(focusedLineObj) : -1;
+      // an active row selection collapses onto its moving end
+      const base = (selectedLines.size && selLead && all.includes(selLead)) ? selLead : focusedLineObj;
+      if (selectedLines.size) clearRowSelection();
+      const i = base ? all.indexOf(base) : -1;
       const target = (i !== -1)
         ? all[Math.min(all.length - 1, Math.max(0, i + dir))]
         : (dir === 1 ? all[0] : all[all.length - 1]);
@@ -5965,6 +6106,7 @@ function snapshotActive() {
    Any load that isn't an undo/redo step (tab switch, open, restore) starts a
    fresh history, so undo stays scoped to the visible tab. */
 function loadSnapshot(data, keepHistory = false) {
+  if (typeof clearRowSelection === 'function') clearRowSelection();   // line objects are about to be replaced
   // tear down current DOM + state
   folders.slice().forEach(f => f.el.remove());
   folders.length = 0;
