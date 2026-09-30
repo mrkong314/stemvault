@@ -5853,14 +5853,23 @@ function deleteSelectedRows() {
     for (let i = firstIdx - 1; i >= 0; i--) if (!selectedLines.has(all[i])) { landing = all[i]; break; }
   }
   clearRowSelection();
+  const emptied = new Set();
   doomed.forEach(l => {
     const f = l.folder, i = f.lines.indexOf(l);
     if (i !== -1) { l.lineEl.remove(); f.lines.splice(i, 1); }
+    if (f.lines.length === 0) emptied.add(f);
   });
-  // same guarantees as removeLine: a tab and every section keep at least one row
+  // a section whose every row was selected is deleted with them; when every
+  // section goes (Ctrl+A + Delete), the tab resets to one blank row in the
+  // last remaining section -- the same end state as "Clear this tab"
+  emptied.forEach(f => {
+    if (folders.length > 1) {
+      const idx = folders.indexOf(f);
+      if (idx !== -1) { f.el.remove(); folders.splice(idx, 1); }
+    }
+  });
   if (totalLines() === 0) landing = createLine(folders[0]);
-  else folders.forEach(f => { if (f.lines.length === 0) createLine(f); });
-  renumber(); recompute();
+  renumberFolders(); renumber(); recompute();
   if (landing) focusLineSafe(landing);
 }
 /* Duplicate rows below themselves (Ctrl/Cmd+D): the selection if there is one,
