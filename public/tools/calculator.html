@@ -5826,6 +5826,26 @@ document.addEventListener('keydown', (e) => {
     navigateLine(focusedLineObj, e.shiftKey ? -1 : +1);
     return;
   }
+  // plain arrows with nothing focused: step between rows, across sections.
+  // Resumes from the last-focused line; with no history, ArrowDown enters at
+  // the top of the tab and ArrowUp at the bottom. When a field, input or note
+  // has focus its own arrow handling stays in charge.
+  if (!mod && !e.altKey && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+    const ae = document.activeElement;
+    const typing = ae && ae !== document.body &&
+      (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable);
+    if (!typing) {
+      const all = flatLines();
+      if (!all.length) return;
+      const dir = (e.key === 'ArrowDown') ? +1 : -1;
+      const i = focusedLineObj ? all.indexOf(focusedLineObj) : -1;
+      const target = (i !== -1)
+        ? all[Math.min(all.length - 1, Math.max(0, i + dir))]
+        : (dir === 1 ? all[0] : all[all.length - 1]);
+      if (target) { e.preventDefault(); focusNavTarget({ kind: 'line', line: target }); }
+      return;
+    }
+  }
 }, true);
 
 const solveModeSeg = document.getElementById('solveModeSeg');
