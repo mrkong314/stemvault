@@ -945,6 +945,8 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .mq-field .mq-comma { padding-right: 0.4em; }
   /* the solve arrow gets air on both sides: 2v+1=9 ⇒ v */
   .mq-field .mq-arrow { padding: 0 0.35em; }
+  /* predefined constants used in an input read as given values: quiet dark grey */
+  .mq-field .mq-const { color: var(--def-echo); }
   /* the variable a solve() call is solving for, everywhere it appears in the call */
   .mq-field .mq-solve-target { color: var(--accent); }
 
@@ -3947,6 +3949,29 @@ function tagSolveTargets(field, targetName) {
   }
 }
 
+/* Render predefined constants used in an input (h_J, c, q_e, ...) in a quiet
+   dark grey: their values are known, so they read as given, not unknown. A
+   constant the user redefines in the section keeps full ink. */
+function tagConstants(field, folder) {
+  const root = field && field.querySelector('.mq-root-block');
+  if (!root) return;
+  root.querySelectorAll('.mq-const').forEach(el => el.classList.remove('mq-const'));
+  const userDefined = new Set((folder && folder.definedNamesList) || []);
+  root.querySelectorAll('var:not(.mq-operator-name)').forEach(v => {
+    if (v.closest('.mq-sub, .mq-sup')) return;
+    if (v.classList.contains('mq-solve-target')) return;
+    let name = v.textContent, els = [v];
+    const next = v.nextElementSibling;
+    if (next && next.classList && next.classList.contains('mq-supsub')) {
+      const sub = next.querySelector(':scope > .mq-sub');
+      const sup = next.querySelector(':scope > .mq-sup');
+      if (sub && !sup) { name = name + '_' + sub.textContent; els.push(next); }
+      // a constant with an exponent (c^2) is still the constant
+    }
+    if (PHYS_NAMES.has(name) && !userDefined.has(name)) els.forEach(el => el.classList.add('mq-const'));
+  });
+}
+
 /* Decide whether a line's result sits inline (to the right of the input) or
    stacked below it. Inline saves vertical space; we stack when the input is long
    enough that input + result wouldn't comfortably share one row. */
@@ -3956,6 +3981,7 @@ function updateLineLayout(line) {
   if (!field || !res) return;
   tagCommas(field);
   tagSolveTargets(field, line.solveTargetName);
+  tagConstants(field, line.folder);
   const measure = () => {
     const hasResult = res.textContent.trim() !== '' || res.children.length > 0;
     if (hasResult) {
