@@ -1042,6 +1042,12 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   #presentOverlay .pr-used { border-top: 1px solid var(--rule); }
   #presentOverlay .pr-const .pr-in { color: var(--ink-dim); }
   #presentOverlay .pr-const-label { font-size: 0.55em; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+  /* live sliders in the focus view */
+  #presentOverlay .pr-sliders { border-top: 1px solid var(--rule); margin-top: 0.4em; padding-top: 0.3em; }
+  #presentOverlay .pr-slider { display: flex; align-items: center; gap: 0.9rem; padding: 0.3em 0; font-size: 0.6em; }
+  #presentOverlay .pr-slider-lab { flex: 0 0 auto; min-width: 7em; }
+  #presentOverlay .pr-slider-bound { flex: 0 0 auto; color: var(--ink-dim); font-size: 0.8em; }
+  #presentOverlay .pr-slider input[type=range] { flex: 1 1 auto; accent-color: var(--accent); }
   /* the variable a solve() call is solving for, everywhere it appears in the call */
   .mq-field .mq-solve-target { color: var(--accent); }
 
@@ -7062,7 +7068,11 @@ presentBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="no
 (() => { const sw = document.querySelector('.settings-wrap'); if (sw) sw.parentNode.insertBefore(presentBtn, sw); })();
 
 let presentFS = 1.7;   // rem; A-/A+ adjust
-function closePresent() { const ov = document.getElementById('presentOverlay'); if (ov) ov.remove(); }
+let presentCleanup = null;
+function closePresent() {
+  const ov = document.getElementById('presentOverlay'); if (ov) ov.remove();
+  if (presentCleanup) { try { presentCleanup(); } catch (e) {} presentCleanup = null; }
+}
 function openPresent() {
   closePresent();
   const ov = document.createElement('div'); ov.id = 'presentOverlay';
@@ -7143,12 +7153,15 @@ function openPresentRow(line) {
   bar.appendChild(mkBtn('×', closePresent, 'pr-close'));
   ov.appendChild(bar);
 
+  const ansRefs = [], sliderLabelUpdaters = [];
+  const BIG = { W: 680, H: 300, PX: 34, PT: 18, PB: 22, fsz: 13, sw: 2.6, r: 5.5, N: 120 };
   const addRow = (srcLine, big) => {
     let lx = '';
     try { lx = srcLine.mq.latex(); } catch (e) {}
     const row = document.createElement('div'); row.className = 'pr-row' + (big ? '' : ' pr-sub');
     const inp = document.createElement('span'); inp.className = 'pr-in';
-    try { katex.render(lx, inp, { throwOnError: false }); } catch (e) { inp.textContent = lx; }
+    const updIn = () => { try { katex.render(srcLine.mq.latex(), inp, { throwOnError: false }); } catch (e) { inp.textContent = srcLine.mq.latex(); } };
+    updIn();
     row.appendChild(inp);
     const hasAns = srcLine.resultEl && (srcLine.resultEl.textContent.trim() !== '' || srcLine.resultEl.children.length > 0);
     if (hasAns) {
@@ -7161,19 +7174,23 @@ function openPresentRow(line) {
       pill.addEventListener('click', () => wrap.classList.remove('pr-hidden'));
       wrap.appendChild(ans); wrap.appendChild(pill);
       row.appendChild(wrap);
+      ansRefs.push({ srcLine, ans, updIn });
+    } else {
+      ansRefs.push({ srcLine, ans: null, updIn });
     }
     return row;
   };
 
   body.appendChild(addRow(line, true));
 
-  // large plot when the row carries a sparkline
+  // large plot when the row carries a sparkline; kept live under slider drags
+  let plotDiv = null;
   if (line._sparkData) {
-    const svg = sparkSVG(line._sparkData, { W: 680, H: 300, PX: 34, PT: 18, PB: 22, fsz: 13, sw: 2.6, r: 5.5, N: 120 });
+    const svg = sparkSVG(line._sparkData, BIG);
     if (svg) {
-      const plot = document.createElement('div'); plot.className = 'pr-plot';
-      plot.innerHTML = svg;
-      body.appendChild(plot);
+      plotDiv = document.createElement('div'); plotDiv.className = 'pr-plot';
+      plotDiv.innerHTML = svg;
+      body.appendChild(plotDiv);
     }
   }
 
@@ -7229,6 +7246,65 @@ function openPresentRow(line) {
     const h = document.createElement('div'); h.className = 'pr-section'; h.textContent = 'Uses';
     body.appendChild(h); body.appendChild(used);
   }
+
+  // live sliders: every slider-capable definition this view involves gets a
+  // working control; drags drive the REAL row (same input event), recompute,
+  // and refresh the answers, equations and the big plot in place
+  const refresh = () => {
+    ansRefs.forEach(ref => {
+      ref.updIn();
+      if (ref.ans) { ref.ans.innerHTML = ''; ref.ans.appendChild(ref.srcLine.resultEl.cloneNode(true)); }
+    });
+    if (plotDiv && line._sparkData) {
+      const s = sparkSVG(line._sparkData, BIG);
+      if (s) plotDiv.innerHTML = s;
+    }
+    sliderLabelUpdaters.forEach(f => f());
+  };
+  const sliderDefs = [];
+  const seenDef = new Set();
+  const considerSlider = (l) => {
+    if (l && !l.isSystem && l.range && l.lineEl.classList.contains('has-slider') && !seenDef.has(l)) {
+      seenDef.add(l); sliderDefs.push(l);
+    }
+  };
+  considerSlider(line);
+  refs.forEach(v => considerSlider(findDef(v)));
+  phys.forEach(p => { if ((line.folder.definedNamesList || []).includes(p)) considerSlider(findDef(p)); });
+  if (sliderDefs.length) {
+    const sect = document.createElement('div'); sect.className = 'pr-sliders';
+    sliderDefs.forEach(dl => {
+      const wrap = document.createElement('div'); wrap.className = 'pr-slider';
+      const lab = document.createElement('span'); lab.className = 'pr-slider-lab';
+      const updLab = () => { try { katex.render(dl.mq.latex(), lab, { throwOnError: false }); } catch (e) { lab.textContent = dl.mq.latex(); } };
+      sliderLabelUpdaters.push(updLab); updLab();
+      const lo = document.createElement('span'); lo.className = 'pr-slider-bound'; lo.textContent = fmtBound(parseFloat(dl.range.min));
+      const hiB = document.createElement('span'); hiB.className = 'pr-slider-bound'; hiB.textContent = fmtBound(parseFloat(dl.range.max));
+      const rg = document.createElement('input'); rg.type = 'range';
+      rg.min = dl.range.min; rg.max = dl.range.max; rg.step = dl.range.step; rg.value = dl.range.value;
+      rg.addEventListener('input', () => {
+        dl.range.value = rg.value;
+        dl.range.dispatchEvent(new Event('input', { bubbles: true }));
+        refresh();
+      });
+      wrap.appendChild(lab); wrap.appendChild(lo); wrap.appendChild(rg); wrap.appendChild(hiB);
+      sect.appendChild(wrap);
+    });
+    body.appendChild(sect);
+  }
+  // keep the plot's data refreshing while the overlay is open: the driver's
+  // slider panel must count as open for updateSparkline
+  let addedShown = null;
+  if (line._sparkData) {
+    const dl = findDef(line._sparkData.dv);
+    if (dl && !dl.lineEl.classList.contains('slider-shown')) {
+      dl.lineEl.classList.add('slider-shown'); addedShown = dl;
+    }
+  }
+  presentCleanup = () => {
+    if (addedShown) { addedShown.lineEl.classList.remove('slider-shown'); recompute(); }
+  };
+
   applyFS();
   ov.appendChild(body);
   document.body.appendChild(ov);
