@@ -3785,7 +3785,9 @@ function recomputeImpl() {
       if (bareVar) undef = [];
       line.undefVars = undef;
       // predefined constants used but not explicitly defined in this folder
-      line.undefPhys = bareVar ? [] : referencedPhys(refExpr).filter(v => !definedNames.has(v));
+      // predefined constants are always in scope and show in the evaluated
+      // answer, so they are never suggested or materialised as rows
+      line.undefPhys = [];
 
       try {
         const fullLatex = line.mq.latex();
@@ -4034,12 +4036,6 @@ function materializeSuggestions(lineObj) {
   if (lineObj.undefVars && lineObj.undefVars.length) {
     lineObj.undefVars.slice().forEach(v => {
       const nl = addVariable(f, v, false);
-      if (nl) { added = true; if (!firstNew) firstNew = nl; }
-    });
-  }
-  if (lineObj.undefPhys && lineObj.undefPhys.length) {
-    lineObj.undefPhys.slice().forEach(v => {
-      const nl = addVariable(f, v, false, PHYS_CONSTANTS[v]);
       if (nl) { added = true; if (!firstNew) firstNew = nl; }
     });
   }
