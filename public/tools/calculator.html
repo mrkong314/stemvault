@@ -2510,7 +2510,10 @@ function rewriteCommaSolve(expr) {
   if (comma === -1) return expr;
   const lhs = expr.slice(0, comma).trim();
   const rhs = expr.slice(comma + 1).trim();
-  if (!lhs || !TRAIL_VAR_RE.test(rhs)) return expr;
+  const rhsFlat = rhs.replace(/[()\s]/g, '');
+  const okSubject = TRAIL_VAR_RE.test(rhsFlat) ||
+    /^Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?\/c$/.test(rhsFlat);   // "v/c" ratio subject
+  if (!lhs || !okSubject) return expr;
   let dd = 0, eq = 0;
   for (const ch of lhs) {
     if (ch === '(' || ch === '[') dd++;
@@ -2543,8 +2546,11 @@ function solveEquation(eqText, varName, scope) {
   if (isFinite(m) && Math.abs(m - m2) < 1e-9 && Math.abs(m) > 1e-12) return cleanRoot(-f0 / m, f);
 
   // Newton from a spread of seeds; derivative step scales with |x| so it stays
-  // meaningful at large magnitudes.
+  // meaningful at large magnitudes. A positive root is returned as soon as one
+  // converges; negative roots are kept as fallbacks (physics answers are
+  // usually the positive branch).
   const seeds = [0,1,-1,2,-2,0.5,-0.5,5,-5,10,-10,3.14159,1.5708,100,-100,1e4,-1e4];
+  const negatives = [];
   for (const s0 of seeds) {
     let x = s0;
     for (let it = 0; it < 80; it++) {
@@ -2553,21 +2559,29 @@ function solveEquation(eqText, varName, scope) {
       if (!isFinite(d) || d === 0) break;
       const nx = x - fx / d; if (!isFinite(nx)) break;
       if (Math.abs(nx - x) < 1e-12 * Math.max(1, Math.abs(x))) {
-        if (Math.abs(f(nx)) < 1e-6 * Math.max(1, Math.abs(nx))) return cleanRoot(nx, f);
+        if (Math.abs(f(nx)) < 1e-6 * Math.max(1, Math.abs(nx))) {
+          const r = cleanRoot(nx, f);
+          if (r >= 0) return r;
+          negatives.push(r);
+        }
         break;
       }
       x = nx;
     }
   }
 
-  // Fallback: the seeds missed it (e.g. a root far out at 1e20). Reuse the wide
-  // log-scale scanner (|x| <= 1e30) and return the root nearest zero.
+  // Fallback: the seeds missed it (e.g. a root far out at 1e20, or wedged
+  // against a domain wall). Reuse the wide log-scale scanner and prefer the
+  // positive root nearest zero; failing that, the nearest-zero root found.
   try {
     const all = solveEquationAll(eqText, varName, scope);
     if (all.roots && all.roots.length) {
-      return all.roots.slice().sort((a, b) => Math.abs(a) - Math.abs(b))[0];
+      const pos = all.roots.filter(r => r >= 0);
+      const pool = pos.length ? pos : all.roots;
+      return pool.slice().sort((a, b) => Math.abs(a) - Math.abs(b))[0];
     }
   } catch (e) {}
+  if (negatives.length) return negatives.sort((a, b) => Math.abs(a) - Math.abs(b))[0];
   return undefined;
 }
 
@@ -2688,6 +2702,25 @@ function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
   if (B && isFinite(B)) { mode = 'poly'; limit = Math.min(B, MAXR); }
   else { mode = 'wide'; limit = MAXR; }
 
+  // domain-edge hunting: f finite on one side of a grid step and NaN on the
+  // other means the function's domain ends between them. Binary-search the
+  // boundary, then look for a sign change between the finite side and a point
+  // just inside the wall -- e.g. γ = 1/sqrt(1 - v²/c²) has its root wedged
+  // against |v| = c, far from any log-grid point.
+  const edgeRoot = (fin, nan) => {
+    let a = fin, b = nan;
+    for (let it = 0; it < 90; it++) {
+      const m = (a + b) / 2;
+      if (isFinite(f(m))) a = m; else b = m;
+    }
+    const ffin = f(fin), fe = f(a);
+    if (!isFinite(ffin) || !isFinite(fe)) return;
+    if ((ffin < 0) !== (fe < 0)) { const r = bisect(fin, a); if (r !== undefined) add(r); }
+    // a root sitting exactly on the domain edge: judge the residual against the
+    // function's own scale, never against |x| (at x ~ 1e23 that accepts anything)
+    else if (Math.abs(fe) < 1e-9 * Math.max(1, Math.abs(ffin))) add(a);
+  };
+
   // grid: dense linear band near zero + geometric spacing out to `limit`
   const grid = buildScanGrid(limit, 200, 0.5, 40);
   let pa = grid[0], pf = f(pa);
@@ -2699,6 +2732,10 @@ function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
       if (r !== undefined) { const nr = newton(r); if (nr !== undefined && Math.abs(f(nr)) <= Math.abs(f(r)) + 1e-12) r = nr; add(r); }
     } else if (isFinite(fa) && Math.abs(fa) < 1e-12) {
       add(a);
+    } else if (isFinite(pf) && !isFinite(fa)) {
+      edgeRoot(pa, a);
+    } else if (!isFinite(pf) && isFinite(fa)) {
+      edgeRoot(a, pa);
     }
     pa = a; pf = fa;
   }
@@ -3499,7 +3536,7 @@ function renderResult(resEl, opts, value) {
 /* Render a list of roots from all-solutions / cSolve mode, e.g. "x = -2, x = 2".
    Each root is rendered as its own KaTeX span inside a wrapping container so a
    long list (many complex roots) breaks across lines instead of overflowing. */
-function renderRootList(resEl, varName, roots, assignName, meta) {
+function renderRootList(resEl, varName, roots, assignName, meta, vTexOverride) {
   resEl.className = 'result list-result';   // keep list-result so it stacks + wraps
   resEl.textContent = '';
   meta = meta || {};
@@ -3509,7 +3546,7 @@ function renderRootList(resEl, varName, roots, assignName, meta) {
     s.style.opacity = '0.7'; s.style.fontSize = '0.85em'; resEl.appendChild(s);
     return;
   }
-  const vTex = (() => { try { return varToLatex(varName); } catch (e) { return varName; } })();
+  const vTex = vTexOverride || (() => { try { return varToLatex(varName); } catch (e) { return varName; } })();
   const degUnit = meta.trig && angleMode === 'deg';   // append ° to trig answers in deg mode
   // value-only LaTeX per root (what gets shown in the clickable item and copied)
   const valParts = roots.map(r => {
@@ -3696,8 +3733,15 @@ function recomputeImpl() {
       if (!m && !t && expr) {
         const ps = pureSolveCall(expr);
         const pc = ps ? null : pureCSolveCall(expr);
-        if (ps) solveDef = { eqText: ps.eqText, varName: ps.varName, complex: false };
-        else if (pc) solveDef = { eqText: pc.eqText, varName: pc.varName, complex: true };
+        if (ps && ps.varName) {
+          // subject "v/c": solve for v, report the ratio v/c -- the usual
+          // "what fraction of the speed of light" question
+          const flat = ps.varName.replace(/[()\s]/g, '');
+          const rm = flat.match(/^(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\/c$/);
+          if (rm) solveDef = { eqText: ps.eqText, varName: rm[1], complex: false, ratioC: true };
+          else solveDef = { eqText: ps.eqText, varName: ps.varName, complex: false };
+        }
+        else if (pc && pc.varName) solveDef = { eqText: pc.eqText, varName: pc.varName, complex: true };
         if (solveDef) definedNames.add(solveDef.varName);
         else {
           // a plain equation (one top-level '=') may auto-solve -- decided
@@ -3853,15 +3897,30 @@ function recomputeImpl() {
         // so the result reads like the assignment it is -- "v = root", or a
         // root list when there are several solutions
         if (info.solveDef && info.solved !== undefined) {
+          const sdr = info.solveDef;
+          const cVal = scope.c;
+          const asRatio = sdr.ratioC && typeof cVal === 'number' && isFinite(cVal) && cVal !== 0;
           if (info._solveRes) {
-            const roots = info._solveRes.roots;
+            let roots = info._solveRes.roots;
+            let vTexOv = null;
+            if (asRatio) { roots = roots.map(r => r / cVal); vTexOv = varToLatex(sdr.varName) + '/c'; }
             line.lastValue = (roots.length === 1) ? roots[0] : undefined;
-            renderRootList(resEl, info.solveDef.varName, roots, null, info._solveRes.meta);
+            renderRootList(resEl, sdr.varName, roots, null, info._solveRes.meta, vTexOv);
           } else {
-            line.lastValue = info.solved;
-            renderResult(resEl, { prefixLatex: varToLatex(info.solveDef.varName) + ' =' }, info.solved);
+            const val = asRatio ? info.solved / cVal : info.solved;
+            const prefix = varToLatex(sdr.varName) + (asRatio ? '/c =' : ' =');
+            line.lastValue = val;
+            renderResult(resEl, { prefixLatex: prefix }, val);
           }
           updateChip(line); updateSlider(line, info); updateLineLayout(line);
+          continue;
+        }
+        // a solve with every input defined but no root found says so plainly
+        if (info.solveDef && !info.isAssign && info.solved === undefined && line.undefVars.length === 0) {
+          resEl.classList.add('assign');
+          const s = document.createElement('span'); s.textContent = 'no solutions';
+          s.style.opacity = '0.7'; s.style.fontSize = '0.85em'; resEl.appendChild(s);
+          updateChip(line); updateLineLayout(line);
           continue;
         }
         if (info.isAssign) {
@@ -4733,10 +4792,14 @@ function activeFnContext(before) {
 
 /* Replace the subject of the line's solve (arrow form or call form) and keep
    everything else as typed. */
+function subjectTex(vName) {
+  if (/\/c$/.test(vName)) return varToLatex(vName.slice(0, -2)) + '/c';
+  try { return varToLatex(vName); } catch (e) { return vName; }
+}
 function setSolveSubjectLatex(mq, vName) {
   if (!mq) return;
   let latex; try { latex = mq.latex(); } catch (e) { return; }
-  const vTex = varToLatex(vName);
+  const vTex = subjectTex(vName);
   const ar = latex.lastIndexOf('\\Rightarrow');
   // comma form first: a ',' at bracket depth 0 means "equation, subject"
   let topComma = -1;
@@ -4795,12 +4858,18 @@ function pickSubject(v) {
 function renderSubjectDropdown(line, pure) {
   let vars = [];
   try { vars = referencedVars(pure.eqText); } catch (e) {}
+  // when the equation involves the speed of light, offer each variable as a
+  // fraction of c too (v/c -- the usual relativity question)
+  try {
+    if (referencedPhys(pure.eqText).includes('c')) vars = vars.concat(vars.map(v => v + '/c'));
+  } catch (e) {}
   if (!vars.length) return false;
   const key = subjKeyFor(line);
   if (key === subjSuppressKey) return false;
   if (key !== subjHintKey) {
     subjHintKey = key;
-    subjActiveIdx = Math.max(0, vars.indexOf(pure.varName));
+    const curFlat = (pure.varName || '').replace(/[()\s]/g, '');   // ((v)/(c)) -> v/c
+    subjActiveIdx = Math.max(0, vars.indexOf(curFlat));
   }
   subjHintLine = line; subjHintVars = vars;
   if (subjActiveIdx >= vars.length) subjActiveIdx = 0;
@@ -4809,7 +4878,7 @@ function renderSubjectDropdown(line, pure) {
   vars.forEach((v, i) => {
     const row = document.createElement('div');
     row.className = 'fn-subj-row' + (i === subjActiveIdx ? ' active' : '');
-    try { katex.render(varToLatex(v), row, { throwOnError: false }); } catch (e) { row.textContent = prettyVarLabel(v); }
+    try { katex.render(subjectTex(v), row, { throwOnError: false }); } catch (e) { row.textContent = v; }
     row.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); subjActiveIdx = i; pickSubject(v); });
     row.addEventListener('mouseenter', () => { subjActiveIdx = i; highlightSubjRows(); });
     fnHintEl.appendChild(row);
