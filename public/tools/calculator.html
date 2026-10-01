@@ -1059,10 +1059,23 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   #presentOverlay .pr-used { border-top: 1px solid var(--rule); }
   #presentOverlay .pr-const .pr-in { color: var(--ink-dim); }
   #presentOverlay .pr-const-label { font-size: 0.55em; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.06em; }
-  /* live sliders in the focus view: hidden until their row (or the slider
-     itself) is hovered, matching the main view's quiet controls */
+  /* live sliders in the focus view: a toggle button appears on row hover,
+     the slider itself shows once toggled open */
   #presentOverlay .pr-slider { display: none; align-items: center; gap: 0.9rem; padding: 0.3em 0; font-size: 0.6em; }
-  #presentOverlay .pr-row:hover + .pr-slider, #presentOverlay .pr-slider:hover { display: flex; }
+  #presentOverlay .pr-slider.pr-open { display: flex; }
+  #presentOverlay .pr-slide-btn {
+    flex: 0 0 auto; border: none; background: transparent; color: var(--ink-dim);
+    cursor: pointer; padding: 0.1em 0.2em; opacity: 0; transition: opacity 0.12s;
+  }
+  #presentOverlay .pr-row:hover .pr-slide-btn { opacity: 1; }
+  #presentOverlay .pr-slide-btn:hover { color: var(--accent); }
+  /* bottom rows: larger by default, white on hover/selection to signal they
+     are editable -- background only, so nothing moves or resizes */
+  #presentOverlay .pr-row.pr-sub { font-size: 0.8em; border-radius: 12px; padding: 0.3em 0.5em; }
+  #presentOverlay .pr-row.pr-sub:hover,
+  #presentOverlay .pr-row.pr-sub:focus-within {
+    background: var(--key-bg);
+  }
   #presentOverlay .pr-slider-lab { flex: 0 0 auto; min-width: 7em; }
   #presentOverlay .pr-slider-bound { flex: 0 0 auto; color: var(--ink-dim); font-size: 0.8em; }
   #presentOverlay .pr-slider input[type=range] { flex: 1 1 auto; accent-color: var(--accent); }
@@ -7144,6 +7157,8 @@ function openPresent() {
 }
 presentBtn.addEventListener('click', (e) => { e.stopPropagation(); openPresent(); });
 
+/* (single-row focus presentation below attaches, then reflows its fields) */
+
 /* Single-row focus presentation: one line full screen -- its answer (shown by
    default, click to hide), the mini-plot drawn large when present, and every
    variable the line uses: constants with values, simple definitions inline,
@@ -7161,7 +7176,10 @@ function openPresentRow(line) {
     b.textContent = label; b.addEventListener('click', fn); return b;
   };
   const body = document.createElement('div'); body.className = 'pr-body pr-focus';
-  const applyFS = () => { body.style.fontSize = presentFS + 'rem'; };
+  // MathQuill measures glyph scaling from the LIVE layout, so fields must
+  // reflow after the overlay attaches and after any font-size change
+  const reflowFields = () => requestAnimationFrame(() => ovFields.forEach(m => { try { m.reflow(); } catch (e) {} }));
+  const applyFS = () => { body.style.fontSize = presentFS + 'rem'; reflowFields(); };
   bar.appendChild(mkBtn('A−', () => { presentFS = Math.max(1.1, presentFS - 0.2); applyFS(); }));
   bar.appendChild(mkBtn('A+', () => { presentFS = Math.min(3, presentFS + 0.2); applyFS(); }));
   const spacer = document.createElement('span'); spacer.style.flex = '1 1 auto'; bar.appendChild(spacer);
@@ -7175,6 +7193,7 @@ function openPresentRow(line) {
   const rowByLine = new Map();
   const BIG = { W: 680, H: 300, PX: 34, PT: 18, PB: 22, fsz: 13, sw: 2.6, r: 5.5, N: 120 };
   let refresh = () => {};   // assigned below; rows close over it
+  const ovFields = [];      // live overlay fields; reflowed once attached
   const addRow = (srcLine, big) => {
     let lx = '';
     try { lx = srcLine.mq.latex(); } catch (e) {}
@@ -7208,6 +7227,7 @@ function openPresentRow(line) {
         }
       });
       syncing = true; ovMq.latex(lx); syncing = false;
+      ovFields.push(ovMq);
     } catch (e) { ovMq = null; }
     const updIn = () => {
       let src = ''; try { src = srcLine.mq.latex(); } catch (e2) {}
@@ -7325,10 +7345,12 @@ function openPresentRow(line) {
   considerSlider(line);
   refs.forEach(v => considerSlider(findDef(v)));
   phys.forEach(p => { if ((line.folder.definedNamesList || []).includes(p)) considerSlider(findDef(p)); });
-  // each slider sits directly under its own row, hidden until that row (or
-  // the slider itself) is hovered -- matching the main view's quiet controls
+  // each slider sits directly under its own row. Like the main view: a toggle
+  // button appears on row hover, the slider shows once clicked -- or straight
+  // away when that line's panel was already open in the main view.
   sliderDefs.forEach(dl => {
     const wrap = document.createElement('div'); wrap.className = 'pr-slider';
+    if (dl.lineEl.classList.contains('slider-shown')) wrap.classList.add('pr-open');
     const lab = document.createElement('span'); lab.className = 'pr-slider-lab';
     const updLab = () => { try { katex.render(dl.mq.latex(), lab, { throwOnError: false }); } catch (e) { lab.textContent = dl.mq.latex(); } };
     sliderLabelUpdaters.push(updLab); updLab();
@@ -7343,8 +7365,14 @@ function openPresentRow(line) {
     });
     wrap.appendChild(lab); wrap.appendChild(lo); wrap.appendChild(rg); wrap.appendChild(hiB);
     const host = rowByLine.get(dl) || rowByLine.get(line);
-    if (host) host.insertAdjacentElement('afterend', wrap);
-    else body.appendChild(wrap);
+    if (host) {
+      const tog = document.createElement('button');
+      tog.className = 'pr-slide-btn'; tog.title = 'Toggle slider';
+      tog.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="9" x2="21" y2="9"/><circle cx="9" cy="9" r="3" fill="var(--surface)"/><line x1="3" y1="16" x2="21" y2="16"/><circle cx="15" cy="16" r="3" fill="var(--surface)"/></svg>';
+      tog.addEventListener('click', (e) => { e.stopPropagation(); wrap.classList.toggle('pr-open'); });
+      host.appendChild(tog);
+      host.insertAdjacentElement('afterend', wrap);
+    } else body.appendChild(wrap);
   });
   // keep the plot's data refreshing while the overlay is open: the driver's
   // slider panel must count as open for updateSparkline
@@ -7362,6 +7390,7 @@ function openPresentRow(line) {
   applyFS();
   ov.appendChild(body);
   document.body.appendChild(ov);
+  reflowFields();
 }
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.getElementById('presentOverlay')) {
