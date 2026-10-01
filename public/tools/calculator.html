@@ -4658,21 +4658,47 @@ function sparkSVG(data, o) {
     d += (pen ? 'L' : 'M') + X(x).toFixed(1) + ' ' + Y(y).toFixed(1) + ' ';
     pen = true;
   });
-  let dot = '';
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const axf = o.axFsz || (fsz + 2);
+  // maths-styled axis label: italic KaTeX face with a real subscript tspan
+  const varLbl = (name) => {
+    let base = name, sub = null;
+    try { const p = splitVar(name); base = p.base; sub = p.sub === 'half' ? '1/2' : p.sub; } catch (e) {}
+    return esc(base) + (sub ? '<tspan font-size="' + (axf * 0.7).toFixed(1) + '" dy="' + (axf * 0.28).toFixed(1) + '">' + esc(sub) + '</tspan>' : '');
+  };
+  const MATHFONT = 'font-family="KaTeX_Math, \'Times New Roman\', serif" font-style="italic"';
+  let dot = '', coord = '';
   const cur = data.base[data.dv];
   if (typeof cur === 'number' && cur >= data.lo && cur <= data.hi) {
     let cy; try { fscope[data.dv] = cur; cy = compiled.evaluate(fscope); } catch (e) { cy = NaN; }
     if (typeof cy === 'number' && isFinite(cy) && cy >= ymin && cy <= ymax) {
-      dot = '<circle cx="' + X(cur).toFixed(1) + '" cy="' + Y(cy).toFixed(1) + '" r="' + r + '" fill="var(--accent)"/>';
+      const cxp = X(cur), cyp = Y(cy);
+      dot = '<circle cx="' + cxp.toFixed(1) + '" cy="' + cyp.toFixed(1) + '" r="' + r + '" fill="var(--accent)"/>';
+      if (o.coord) {
+        const anchor = cxp > W * 0.6 ? 'end' : 'start';
+        const tx = anchor === 'end' ? cxp - r - 5 : cxp + r + 5;
+        const ty = Math.max(PT + axf, cyp - r - 5);
+        // ×10^8 renders with a real superscript tspan
+        const supify = (s) => esc(s).replace(/\^(-?\d+)/g,
+          '<tspan font-size="' + (axf * 0.68).toFixed(1) + '" dy="-' + (axf * 0.35).toFixed(1) + '">$1</tspan>' +
+          '<tspan dy="' + (axf * 0.35).toFixed(1) + '">​</tspan>');
+        coord = '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" font-size="' + axf + '" ' + MATHFONT +
+          ' fill="var(--accent)" text-anchor="' + anchor + '">(' + supify(numToPlainLabel(cur)) + ', ' + supify(numToPlainLabel(cy)) + ')</text>';
+      }
     }
   }
-  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const ax = H - PB, ayTop = PT;
+  const xEnd = W - 4, yEnd = ayTop;
   return '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
-    '<path d="M' + PX + ' ' + (H - PB) + ' L' + (W - PX) + ' ' + (H - PB) + '" stroke="var(--rule)" stroke-width="1"/>' +
-    '<path d="M' + PX + ' ' + (H - PB) + ' L' + PX + ' ' + PT + '" stroke="var(--rule)" stroke-width="1"/>' +
-    '<path d="' + d.trim() + '" fill="none" stroke="var(--accent)" stroke-width="' + sw + '"/>' + dot +
-    '<text x="' + (W - PX) + '" y="' + (H - PB + fsz + 2) + '" font-size="' + fsz + '" fill="var(--ink-dim)" text-anchor="end">' + esc(prettyVarLabel(data.dv)) + '</text>' +
-    '<text x="' + (PX + 3) + '" y="' + (PT + fsz) + '" font-size="' + fsz + '" fill="var(--ink-dim)">' + esc(prettyVarLabel(data.name)) + '</text>' +
+    // axes with arrowheads
+    '<path d="M' + PX + ' ' + ax + ' L' + (xEnd - 7) + ' ' + ax + '" stroke="var(--ink-dim)" stroke-width="1"/>' +
+    '<path d="M' + (xEnd - 7) + ' ' + (ax - 3.5) + ' L' + xEnd + ' ' + ax + ' L' + (xEnd - 7) + ' ' + (ax + 3.5) + ' Z" fill="var(--ink-dim)"/>' +
+    '<path d="M' + PX + ' ' + ax + ' L' + PX + ' ' + (yEnd + 7) + '" stroke="var(--ink-dim)" stroke-width="1"/>' +
+    '<path d="M' + (PX - 3.5) + ' ' + (yEnd + 7) + ' L' + PX + ' ' + yEnd + ' L' + (PX + 3.5) + ' ' + (yEnd + 7) + ' Z" fill="var(--ink-dim)"/>' +
+    '<path d="' + d.trim() + '" fill="none" stroke="var(--accent)" stroke-width="' + sw + '"/>' + dot + coord +
+    // axis variables in maths style: x at the arrow tip (above the axis), y beside its arrow
+    '<text x="' + (xEnd - 2) + '" y="' + (ax - 6) + '" font-size="' + axf + '" ' + MATHFONT + ' fill="var(--ink)" text-anchor="end">' + varLbl(data.dv) + '</text>' +
+    '<text x="' + (PX + 7) + '" y="' + (yEnd + axf) + '" font-size="' + axf + '" ' + MATHFONT + ' fill="var(--ink)">' + varLbl(data.name) + '</text>' +
     '</svg>';
 }
 
@@ -7192,7 +7218,7 @@ function openPresentRow(line) {
 
   const ansRefs = [], sliderLabelUpdaters = [];
   const rowByLine = new Map();
-  const BIG = { W: 680, H: 300, PX: 34, PT: 18, PB: 22, fsz: 13, sw: 2.6, r: 5.5, N: 120 };
+  const BIG = { W: 680, H: 300, PX: 34, PT: 18, PB: 22, fsz: 13, axFsz: 17, sw: 2.6, r: 5.5, N: 120, coord: true };
   let refresh = () => {};   // assigned below; rows close over it
   const ovFields = [];      // live overlay fields; reflowed once attached
   const addRow = (srcLine, big) => {
