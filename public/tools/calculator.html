@@ -3948,9 +3948,15 @@ function recomputeImpl() {
             rhsLatex = eqAt >= 0 ? fullLatex.slice(eqAt + 1) : fullLatex;
           }
           renderResult(resEl, { prefixLatex: varToLatex(info.name) + ' =', srcLatex: rhsLatex, srcExpr: info.rhs }, value);
-          // simple definition (RHS is a bare number): grey echo, smaller input
+          // simple definition: a bare number, a predefined constant, or a
+          // number times one (v = c, v = 0.5c) -- grey echo, smaller input
           const rhsTrim = (info.rhs || '').trim();
-          if (/^-?\d*\.?\d+$/.test(rhsTrim) || /^-?\d*\.?\d+\*10\^\(?-?\d+\)?$/.test(rhsTrim)) {
+          let simpleDef = /^-?\d*\.?\d+$/.test(rhsTrim) || /^-?\d*\.?\d+\*10\^\(?-?\d+\)?$/.test(rhsTrim);
+          if (!simpleDef) {
+            const mc = rhsTrim.match(/^(?:-?\d*\.?\d+(?:\*10\^\(?-?\d+\)?)?\*)?(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)$/);
+            if (mc && PHYS_NAMES.has(mc[1])) simpleDef = true;
+          }
+          if (simpleDef) {
             resEl.classList.add('assign-echo');
             line.lineEl.classList.add('def-line');
           }
