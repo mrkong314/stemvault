@@ -978,6 +978,8 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     color: var(--def-echo);
     cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="20" viewBox="0 0 14 20"><path d="M1 1 L1 15.5 L4.6 12.2 L7.1 18 L9.6 16.9 L7.1 11.2 L12 11 Z" fill="rgba(255,255,255,0.35)" stroke="rgba(40,40,45,0.45)" stroke-width="1.1"/></svg>') 1 1, auto;
   }
+  /* the MathQuill caret is hard-coded black in the library CSS */
+  [data-theme="dark"] .mq-editable-field .mq-cursor { border-left-color: #f5f5f7; }
   /* in dark mode the see-through pointer flips contrast: a light stroke on a
      dark translucent fill, so it stays visible over dark panels */
   [data-theme="dark"] .mq-field .mq-const,
