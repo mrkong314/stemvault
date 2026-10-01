@@ -975,8 +975,9 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     color: var(--def-echo);
     cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="20" viewBox="0 0 14 20"><path d="M1 1 L1 15.5 L4.6 12.2 L7.1 18 L9.6 16.9 L7.1 11.2 L12 11 Z" fill="rgba(255,255,255,0.35)" stroke="rgba(40,40,45,0.45)" stroke-width="1.1"/></svg>') 1 1, auto;
   }
-  /* hovering a used variable softly lights its defining row */
-  .line.ref-glow { background: rgba(10,132,255,0.08); border-radius: 10px; }
+  /* hovering a used variable rings its defining row: a dashed accent outline,
+     distinct from the solid fills of focused and multi-selected rows */
+  .line.ref-glow { outline: 2px dashed rgba(10,132,255,0.55); outline-offset: -2px; border-radius: 10px; }
   /* hover card describing a predefined constant (name, value, units) */
   #constTip {
     position: fixed; z-index: 70;
