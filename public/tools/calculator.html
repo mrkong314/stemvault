@@ -981,10 +981,13 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   #constTip .ct-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); margin-bottom: 0.12rem; }
   #constTip .ct-eq { font-size: 0.92rem; }
   #constTip .ct-action {
-    margin-top: 0.3rem; padding-top: 0.25rem; border-top: 1px solid var(--glass-border);
-    font-size: 0.7rem; color: var(--accent); cursor: pointer;
+    display: inline-block; margin-top: 0.35rem; padding: 0.18rem 0.6rem;
+    border: 1px solid var(--accent); border-radius: 7px;
+    background: rgba(10,132,255,0.08); color: var(--accent);
+    font-size: 0.7rem; font-weight: 600; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
-  #constTip .ct-action:hover { text-decoration: underline; }
+  #constTip .ct-action:hover { background: rgba(10,132,255,0.16); }
   /* the variable a solve() call is solving for, everywhere it appears in the call */
   .mq-field .mq-solve-target { color: var(--accent); }
 
@@ -4152,19 +4155,20 @@ function scheduleConstTipHide() {
 function redefineConstant(folder, name) {
   constTip.hidden = true;
   if (!folder || !name) return;
+  // already redefined in this section: jump to that row instead
+  const ex = folder.lines.find(l => {
+    if (l.isSystem) return false;
+    try {
+      const m = prepareExpr(l.mq.latex()).match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=/);
+      return m && m[1] === name;
+    } catch (e) { return false; }
+  });
+  if (ex) { ex.mq.focus(); ex.mq.moveToRightEnd(); return; }
+  // new row holds just "name =", caret after the equals, ready to type
   pushUndo();
-  const nl = addVariable(folder, name, true, physConstants()[name]);
-  if (!nl) {
-    // already redefined in this section: jump to that row instead
-    const ex = folder.lines.find(l => {
-      if (l.isSystem) return false;
-      try {
-        const m = prepareExpr(l.mq.latex()).match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=/);
-        return m && m[1] === name;
-      } catch (e) { return false; }
-    });
-    if (ex) { ex.mq.focus(); ex.mq.moveToRightEnd(); }
-  }
+  const line = createLine(folder, folder.lines[folder.lines.length - 1], varToLatex(name) + '=');
+  recompute();
+  line.mq.focus(); line.mq.moveToRightEnd();
 }
 document.addEventListener('mouseover', (e) => {
   if (e.target.closest && e.target.closest('#constTip')) { clearTimeout(constTipHideT); return; }
