@@ -891,6 +891,14 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     white-space: nowrap; pointer-events: none;
   }
   #fnHint .fn-name { font-weight: 600; font-style: normal; font-family: inherit; }
+  /* subject-picking mode: the hint becomes a clickable dropdown of variables */
+  #fnHint.subj-mode { pointer-events: auto; }
+  #fnHint .fn-subj-chip {
+    display: inline-block; margin-left: 0.3rem; padding: 0.02rem 0.45rem;
+    border: 1px solid var(--glass-border); border-radius: 999px; cursor: pointer;
+  }
+  #fnHint .fn-subj-chip:hover { border-color: var(--accent); }
+  #fnHint .fn-subj-chip.on { background: rgba(10,132,255,0.14); border-color: var(--accent); color: var(--accent); }
   #fnHint .fn-arg { opacity: 0.55; }
   #fnHint .fn-arg.active { opacity: 1; color: var(--accent); font-weight: 700; }
   /* Let a long expression wrap onto the next line instead of overflowing the row
@@ -937,9 +945,6 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .mq-field .mq-arrow { padding: 0 0.35em; }
   /* the variable a solve() call is solving for, everywhere it appears in the call */
   .mq-field .mq-solve-target { color: var(--accent); }
-  /* solve's plumbing (the word, its brackets, the argument comma) fades to a
-     readable grey -- same size, just quieter than the mathematics */
-  .mq-field .mq-solve-dim { color: var(--ink-dim); }
 
   /* Bracket groups too: MathQuill scales the bracket glyph to the measured height
      of the enclosed block, so if that block wraps (its min-content collapses under
@@ -2044,6 +2049,7 @@ const FUNC_SIGNATURES = {
   max: [{ name: 'value', rest: true }],
   mod: ['a', 'b'],
   polar: ['z'],
+  solve: ['equation', 'variable'],
   cSolve: ['equation', 'variable'],
   Re: ['z'], Im: ['z'], Arg: ['z'], conj: ['z'],
 };
@@ -2314,6 +2320,10 @@ function expandEllipsisLists(s) {
 
 function latexToMath(latex) {
   let s = latex;
+  // half-life subscript: t_{1/2} (formula sheet) or t_{\frac{1}{2}} (typed) is
+  // one variable; '/' can't live in an identifier, so it becomes t_half
+  // internally and renders back as t_{1/2} (see varToLatex).
+  s = s.replace(/_\{\\frac\{1\}\{2\}\}/g, '_{half}').replace(/_\{1\/2\}/g, '_{half}');
   s = s.replace(/\\left/g, '').replace(/\\right/g, '');
   s = expandEllipsisLists(s);        // [1,2,...,5] -> [1,2,3,4,5] (integer patterns)
   s = s.replace(/\\square/g, '');   // unfilled placeholder box -> empty (incomplete expr renders blank)
@@ -2384,14 +2394,20 @@ function tokenize(s) {
       // latexToMath) which fix the boundary; a bare "_" therefore takes exactly
       // ONE character, so "q_1q_2" -> q_1, q_2 (two variables) not "q_1q".
       let j = i+1; let name = c;
+      // Δ prefixes the following letter as ONE variable: Δv, ΔE_k, Δθ ...
+      // (the LaTeX "\Delta v" arrives as "Δ v", so whitespace is skipped)
+      if (c === 'Δ') {
+        let k = j; while (k < s.length && /\s/.test(s[k])) k++;
+        if (k < s.length && A(s[k])) { name += s[k]; j = k + 1; }
+      }
       if (s[j] === '_') {
         if (s[j+1] === '\u2039') {            // _‹...›  braced/multi-char subscript
           let k = j+2, sub = '';
           while (k < s.length && s[k] !== '\u203A') { sub += s[k]; k++; }
           if (s[k] === '\u203A') k++;          // consume closing sentinel
-          name = c + '_' + sub; j = k;
+          name = name + '_' + sub; j = k;
         } else if (j+1 < s.length && /[A-Za-z0-9]/.test(s[j+1])) {
-          name = c + '_' + s[j+1]; j += 2;     // bare single-character subscript
+          name = name + '_' + s[j+1]; j += 2;  // bare single-character subscript
         }
       }
       let outName = name;
@@ -2969,13 +2985,13 @@ function referencedVars(expr) {
     if (t.t === 'name' && t.v === 'i') continue;
     if (t.t === 'name' && !t.fn && !CONSTS.includes(t.v) && t.v !== 'ans' && !PHYS_NAMES.has(t.v)) out.add(t.v);
   }
-  const solveTargets = [...expr.matchAll(/(?:solve|cSolve)\s*\(.*?,\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*\)/g)].map(m => m[1]);
+  const solveTargets = [...expr.matchAll(/(?:solve|cSolve)\s*\(.*?,\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*\)/g)].map(m => m[1]);
   solveTargets.forEach(v => out.delete(v));
   // the integration variable in integrate(integrand, var, a, b) is bound, not free
-  const intVars = [...expr.matchAll(/integrate\s*\([^,]*,\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*,/g)].map(m => m[1]);
+  const intVars = [...expr.matchAll(/integrate\s*\([^,]*,\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*,/g)].map(m => m[1]);
   intVars.forEach(v => out.delete(v));
   // the summation index in summation(body, var, lo, hi) is bound, not free
-  const sumVars = [...expr.matchAll(/summation\s*\(\s*\((?:[^()]|\([^()]*\))*\)\s*,\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*,/g)].map(m => m[1]);
+  const sumVars = [...expr.matchAll(/summation\s*\(\s*\((?:[^()]|\([^()]*\))*\)\s*,\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*,/g)].map(m => m[1]);
   sumVars.forEach(v => out.delete(v));
   return [...out];
 }
@@ -3569,7 +3585,7 @@ function recompute() {
    standalone variable, the left side is an expression (not itself a bare
    variable -- "a = b" keeps its leading-assignment meaning) and the left side
    does not reference the target (that shape is an equation, not a definition). */
-const TRAIL_VAR_RE = /^[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?$/;
+const TRAIL_VAR_RE = /^Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?$/;
 function trailingAssign(expr) {
   if (!expr) return null;
   let depth = 0, eq = -1;
@@ -3598,7 +3614,7 @@ function recomputeImpl() {
       if (line.isSystem) return { line, isSystem: true, expr: '', isAssign: false };
       let expr = '';
       try { expr = prepareExpr(line.mq.latex()); } catch (e) { expr = ''; }
-      const m = expr.match(/^\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)\s*(.+)$/);
+      const m = expr.match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)\s*(.+)$/);
       const t = m ? null : trailingAssign(expr);
       const name = m ? m[1] : (t ? t.name : null);
       const rhs = m ? m[2] : (t ? t.rhs : null);
@@ -3673,6 +3689,11 @@ function recomputeImpl() {
       pending = still;
     }
 
+    // expose this section's definitions (and their values) to the ? quick-entry
+    folder.definedNamesList = [...definedNames].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()) || a.localeCompare(b));
+    folder.definedValues = {};
+    folder.definedNamesList.forEach(n => { folder.definedValues[n] = scope[n]; });
+
     // ans = last non-empty line spatially
     let ansVal;
     for (let k = infos.length-1; k >= 0; k--) {
@@ -3718,11 +3739,11 @@ function recomputeImpl() {
       let undef = referencedVars(refExpr).filter(v => !definedNames.has(v));
       // if this line is (or is starting to be) an assignment, its own target name
       // must never be flagged as undefined -- it's being defined right here
-      const assignLHS = info.expr.match(/^\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)/);
+      const assignLHS = info.expr.match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)/);
       if (assignLHS) { const lhs = assignLHS[1]; undef = undef.filter(v => v !== lhs); }
       // a bare standalone variable (the whole line is just one variable, no
       // operation) shouldn't prompt to add itself -- it's just a reference
-      const bareVar = /^\s*[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?\s*$/.test(info.expr);
+      const bareVar = /^\s*Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?\s*$/.test(info.expr);
       if (bareVar) undef = [];
       line.undefVars = undef;
       // predefined constants used but not explicitly defined in this folder
@@ -3824,15 +3845,21 @@ function tagSolveTargets(field, targetName) {
   if (!root) return;
   root.querySelectorAll('.mq-solve-target').forEach(el => el.classList.remove('mq-solve-target'));
   root.querySelectorAll('.mq-solve-dim').forEach(el => el.classList.remove('mq-solve-dim'));
-  // signature of the variable starting at <var> element el
+  // signature of the variable at <var> element el. A Δ prefix renders as a
+  // classless <span>Δ</span> before the letter; the pair reads as one name.
   const sig = (el) => {
+    let base = el.textContent, els = [el];
+    const pv = el.previousElementSibling;
+    if (pv && pv.tagName === 'SPAN' && pv.childElementCount === 0 && pv.textContent === 'Δ') {
+      base = 'Δ' + base; els.unshift(pv);
+    }
     const next = el.nextElementSibling;
-    if (next && next.classList.contains('mq-supsub')) {
+    if (next && next.classList && next.classList.contains('mq-supsub')) {
       const sub = next.querySelector(':scope > .mq-sub');
       const sup = next.querySelector(':scope > .mq-sup');
-      if (sub && !sup) return { base: el.textContent, sub: sub.textContent, els: [el, next] };
+      if (sub && !sup) return { base, sub: sub.textContent, els: [...els, next] };
     }
-    return { base: el.textContent, sub: null, els: [el] };
+    return { base, sub: null, els };
   };
   const tagMatches = (container, target) => {
     container.querySelectorAll('var:not(.mq-operator-name)').forEach(v => {
@@ -3849,15 +3876,11 @@ function tagSolveTargets(field, targetName) {
     const nameEls = [];
     while (j < kids.length && kids[j].tagName === 'VAR' && kids[j].classList.contains('mq-operator-name')) { name += kids[j].textContent; nameEls.push(kids[j]); j++; }
     if ((name === 'solve' || name === 'cSolve') && kids[j] && kids[j].classList.contains('mq-non-leaf')) {
-      // fade the plumbing: the word, its brackets and the argument comma
-      nameEls.forEach(el => el.classList.add('mq-solve-dim'));
-      kids[j].querySelectorAll(':scope > .mq-paren').forEach(p => p.classList.add('mq-solve-dim'));
       const content = kids[j].querySelector(':scope > .mq-non-leaf');
       if (content) {
         const cc = [...content.children];
         const lastComma = cc.map(c => c.textContent === ',' && c.childElementCount === 0).lastIndexOf(true);
         if (lastComma !== -1) {
-          cc[lastComma].classList.add('mq-solve-dim');
           const subjEl = cc.slice(lastComma + 1).find(c => c.tagName === 'VAR' && !c.classList.contains('mq-operator-name'));
           if (subjEl) tagMatches(content, sig(subjEl));
         }
@@ -3870,6 +3893,7 @@ function tagSolveTargets(field, targetName) {
   if (targetName) {
     let base = targetName, sub = null;
     try { const p = splitVar(targetName); base = p.base; sub = p.sub; } catch (e) {}
+    if (sub === 'half') sub = '1/2';   // internal name -> what the DOM subscript shows
     tagMatches(root, { base, sub });
   }
 }
@@ -4053,26 +4077,30 @@ function displayName(name) {
 /* reverse Greek map: glyph -> latex command (built once) */
 const GLYPH_TO_LATEX = Object.fromEntries(Object.entries(GREEK).map(([n,g]) => [g, '\\' + n]));
 
-/* split a variable name into base char + optional subscript */
+/* split a variable name into base (possibly Δ-prefixed) + optional subscript */
 function splitVar(name) {
   name = displayName(name);
-  const m = name.match(/^(.)_(.+)$/u);   // first codepoint, then _subscript
+  const m = name.match(/^(Δ?.)_(.+)$/u);   // Δ-prefixed or single codepoint, then _subscript
   if (m) return { base: m[1], sub: m[2] };
   return { base: name, sub: null };
 }
 
-/* LaTeX for the base char (Greek glyph -> command, else the char) */
-function baseToLatex(base) { return GLYPH_TO_LATEX[base] || base; }
+/* LaTeX for the base (Greek glyphs -> commands, per character: Δv -> \Delta v) */
+function baseToLatex(base) {
+  return [...base].map(ch => GLYPH_TO_LATEX[ch] ? GLYPH_TO_LATEX[ch] + ' ' : ch).join('').trim();
+}
 
 function prettyVarLabel(name) {
   const { base, sub } = splitVar(name);
-  return sub ? (base + '_' + sub) : base;
+  return sub ? (base + '_' + (sub === 'half' ? '1/2' : sub)) : base;
 }
 
-/* turn an internal var name back into MathQuill LaTeX (λ_0 -> \lambda_{0}) */
+/* turn an internal var name back into MathQuill LaTeX (λ_0 -> \lambda_{0};
+   the internal 'half' subscript renders as the half-life 1/2) */
 function varToLatex(name) {
   const { base, sub } = splitVar(name);
   const b = baseToLatex(base);
+  if (sub === 'half') return b + '_{1/2}';
   return sub ? (b + '_{' + sub + '}') : b;
 }
 
@@ -4081,7 +4109,7 @@ function addVariable(folder, name, focus = true, value = 1) {
   const already = folder.lines.some(l => {
     if (l.isSystem) return false;
     const expr = prepareExpr(l.mq.latex());
-    const m = expr.match(/^\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)/);
+    const m = expr.match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)/);
     return m && m[1] === name;
   });
   if (already) return null;
@@ -4540,11 +4568,83 @@ function activeFnContext(before) {
   return { name, argIdx };
 }
 
+/* Replace the subject of the line's solve (arrow form or call form) and keep
+   everything else as typed. */
+function setSolveSubjectLatex(mq, vName) {
+  if (!mq) return;
+  let latex; try { latex = mq.latex(); } catch (e) { return; }
+  const vTex = varToLatex(vName);
+  const ar = latex.lastIndexOf('\\Rightarrow');
+  if (ar !== -1) {
+    latex = latex.slice(0, ar) + '\\Rightarrow ' + vTex;
+  } else {
+    // last comma at depth 1 of the outermost \left( ... \right)
+    let depth = 0, lastComma = -1, closeIdx = -1;
+    for (let i = 0; i < latex.length; i++) {
+      if (latex.startsWith('\\left(', i)) { depth++; i += 5; continue; }
+      if (latex.startsWith('\\right)', i)) { depth--; if (depth === 0) closeIdx = i; i += 6; continue; }
+      if (latex[i] === ',' && depth === 1) lastComma = i;
+    }
+    if (lastComma === -1 || closeIdx === -1) return;
+    latex = latex.slice(0, lastComma + 1) + vTex + latex.slice(closeIdx);
+  }
+  try { mq.latex(latex); mq.moveToRightEnd(); recompute(); } catch (e) {}
+}
+
+/* While the caret is editing a solve's subject (after the call's comma, or
+   after the ⇒), the hint becomes a clickable dropdown of the equation's
+   variables -- pick the subject instead of typing it. */
+let subjHintMQ = null;
+function renderSubjectDropdown(line, pure) {
+  let vars = [];
+  try { vars = referencedVars(pure.eqText); } catch (e) {}
+  if (!vars.length) return false;
+  fnHintEl.innerHTML = '';
+  fnHintEl.classList.add('subj-mode');
+  subjHintMQ = line.mq;
+  const lab = document.createElement('span');
+  lab.className = 'fn-name'; lab.textContent = 'solve for ';
+  fnHintEl.appendChild(lab);
+  vars.forEach(v => {
+    const chip = document.createElement('span');
+    chip.className = 'fn-subj-chip' + (v === pure.varName ? ' on' : '');
+    try { katex.render(varToLatex(v), chip, { throwOnError: false }); } catch (e) { chip.textContent = prettyVarLabel(v); }
+    chip.addEventListener('mousedown', (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      setSolveSubjectLatex(subjHintMQ, v);
+      fnHintEl.style.display = 'none';
+    });
+    fnHintEl.appendChild(chip);
+  });
+  return true;
+}
+
 function updateFnHint(line) {
   if (!fnHintEl) return;
+  fnHintEl.classList.remove('subj-mode');
   const fieldEl = line && line.fieldEl;
   if (!fieldEl || !fieldEl.querySelector('.mq-cursor')) { fnHintEl.style.display = 'none'; return; }
-  const ctx = activeFnContext(textBeforeCaret(fieldEl));
+  const before = textBeforeCaret(fieldEl);
+  const ctx = activeFnContext(before);
+  // subject-editing position? (solve's 2nd argument, or anywhere after a ⇒)
+  const inSolveArg = ctx && (ctx.name === 'solve' || ctx.name === 'cSolve') && ctx.argIdx >= 1;
+  const afterArrow = before.indexOf('⇒') !== -1;
+  if (inSolveArg || afterArrow) {
+    let pure = null;
+    try { pure = pureSolveCall(prepareExpr(line.mq.latex())) || pureCSolveCall(prepareExpr(line.mq.latex())); } catch (e) {}
+    if (pure && renderSubjectDropdown(line, pure)) {
+      fnHintEl.style.display = 'block';
+      const cur = fieldEl.querySelector('.mq-cursor');
+      const r = cur.getBoundingClientRect();
+      const hw = fnHintEl.offsetWidth, hh = fnHintEl.offsetHeight;
+      let left = Math.min(Math.max(8, r.left), window.innerWidth - hw - 8);
+      let top = r.top - hh - 6;
+      if (top < 8) top = r.bottom + 6;
+      fnHintEl.style.left = left + 'px';
+      fnHintEl.style.top = top + 'px';
+      return;
+    }
+  }
   if (!ctx) { fnHintEl.style.display = 'none'; return; }
   const params = FUNC_SIGNATURES[ctx.name];
   // build "name(a, b, c)" with the active argument highlighted
@@ -4875,7 +4975,7 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     const v = parseFloat(range.value);
     lineObj.sliderUserValue = v;
     const expr = prepareExpr(mq.latex());
-    const m = expr.match(/^\s*([A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=/);
+    const m = expr.match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=/);
     const nm = m ? varToLatex(m[1]) : null;
     if (nm) { mq.latex(nm + '=' + numToLatex(v)); recompute(); }
   });
@@ -4938,6 +5038,7 @@ function createLine(folder, afterLine = null, initialLatex = '') {
   fieldEl.addEventListener('keydown', (e) => {
     if (e.key === '?') { e.preventDefault(); openSymbolPicker(lineObj); return; }
     if (e.key === '@') { e.preventDefault(); openFormulaPicker(lineObj); return; }
+    if (e.key === '?') { e.preventDefault(); openSymbolPicker(lineObj, mq); return; }
     if (e.key === '"') { e.preventDefault(); openNote(); return; }
     if (e.key === '{' && mq.latex().trim() === '') {
       // empty line + "{" -> convert to a simultaneous-equation system block
@@ -5699,21 +5800,63 @@ function filterSymbols(q) {
   });
 }
 
+/* Items for the ? picker: the section's own defined variables first, then the
+   symbol list. Typing filters both groups. */
+let symbolItems = [];
+function buildSymbolItems(q) {
+  const items = [];
+  const ql = (q || '').trim().toLowerCase();
+  const folder = (symbolTargetLine && symbolTargetLine.folder) || null;
+  const names = (folder && folder.definedNamesList) || [];
+  names.forEach(n => {
+    const label = prettyVarLabel(n).toLowerCase();
+    if (!ql || label.includes(ql) || n.toLowerCase().includes(ql)) {
+      items.push({ kind: 'var', name: n, value: folder.definedValues ? folder.definedValues[n] : undefined });
+    }
+  });
+  filterSymbols(q).forEach(s => items.push({ kind: 'sym', s }));
+  return items;
+}
+function chooseSymbolItem(it) {
+  if (!it) { closeSymbolPicker(); return; }
+  if (it.kind === 'var') {
+    const mq = symbolTargetMQ || (symbolTargetLine && symbolTargetLine.mq);
+    if (mq) { mq.focus(); mq.write(varToLatex(it.name)); }
+    closeSymbolPicker();
+    recompute();
+  } else {
+    chooseSymbol(it.s);
+  }
+}
 function renderSymbolResults(q) {
-  const items = filterSymbols(q);
+  symbolItems = buildSymbolItems(q);
   symbolActiveIdx = 0;
   symbolResults.innerHTML = '';
-  if (items.length === 0) {
+  if (symbolItems.length === 0) {
     const e = document.createElement('div'); e.className = 'sym-empty'; e.textContent = 'No symbols match';
     symbolResults.appendChild(e); return;
   }
-  items.forEach((s, i) => {
+  let lastKind = null;
+  symbolItems.forEach((it, i) => {
+    if (it.kind !== lastKind) {
+      const h = document.createElement('div'); h.className = 'fml-cat';
+      h.textContent = it.kind === 'var' ? 'In this section' : 'Symbols';
+      symbolResults.appendChild(h); lastKind = it.kind;
+    }
     const row = document.createElement('div');
     row.className = 'sym-row' + (i === 0 ? ' active' : '');
     row.innerHTML = '<span class="sym-glyph"></span><span class="sym-name"></span>';
-    row.querySelector('.sym-glyph').textContent = s.glyph;
-    row.querySelector('.sym-name').textContent = s.name + ' (' + s.glyph + ')';
-    row.addEventListener('mousedown', (ev) => { ev.preventDefault(); chooseSymbol(s); });
+    const glyphEl = row.querySelector('.sym-glyph'), nameEl = row.querySelector('.sym-name');
+    if (it.kind === 'var') {
+      try { katex.render(varToLatex(it.name), glyphEl, { throwOnError: false }); } catch (e) { glyphEl.textContent = prettyVarLabel(it.name); }
+      let valTxt = '';
+      try { if (it.value !== undefined && typeof numToPlainLabel === 'function') valTxt = ' = ' + numToPlainLabel(it.value); } catch (e) {}
+      nameEl.textContent = prettyVarLabel(it.name) + valTxt;
+    } else {
+      glyphEl.textContent = it.s.glyph;
+      nameEl.textContent = it.s.name + ' (' + it.s.glyph + ')';
+    }
+    row.addEventListener('mousedown', (ev) => { ev.preventDefault(); chooseSymbolItem(it); });
     row.addEventListener('mouseenter', () => setSymbolActive(i));
     symbolResults.appendChild(row);
   });
@@ -5737,9 +5880,7 @@ symbolSearch.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowUp') { e.preventDefault(); setSymbolActive(Math.max(symbolActiveIdx-1, 0)); }
   else if (e.key === 'Enter') {
     e.preventDefault();
-    const items = filterSymbols(symbolSearch.value);
-    if (items[symbolActiveIdx]) chooseSymbol(items[symbolActiveIdx]); // chooseSymbol closes
-    else closeSymbolPicker();                                          // no match: still close
+    chooseSymbolItem(symbolItems[symbolActiveIdx]);   // closes either way
   } else if (e.key === 'Escape') { e.preventDefault(); closeSymbolPicker(); }
 });
 document.addEventListener('mousedown', (e) => {
@@ -5755,9 +5896,7 @@ function pickerKeyGuard(e) {
     closeSymbolPicker();
   } else if (e.key === 'Enter') {
     e.preventDefault(); e.stopImmediatePropagation();
-    const items = filterSymbols(symbolSearch.value);
-    if (items[symbolActiveIdx]) chooseSymbol(items[symbolActiveIdx]);
-    else closeSymbolPicker();
+    chooseSymbolItem(symbolItems[symbolActiveIdx]);
   }
 }
 window.addEventListener('keydown', pickerKeyGuard, true);
