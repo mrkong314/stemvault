@@ -933,6 +933,8 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .mq-field var.mq-operator-name + .mq-non-leaf { margin-left: 0.14em; }
   .mq-field .mq-paren + .mq-non-leaf { padding: 0 0.12em; }
   .mq-field .mq-comma { padding-right: 0.4em; }
+  /* the variable a solve() call is solving for, everywhere it appears in the call */
+  .mq-field .mq-solve-target { color: var(--accent); }
 
   /* Bracket groups too: MathQuill scales the bracket glyph to the measured height
      of the enclosed block, so if that block wraps (its min-content collapses under
@@ -3580,16 +3582,48 @@ function recomputeImpl() {
       const name = m ? m[1] : (t ? t.name : null);
       const rhs = m ? m[2] : (t ? t.rhs : null);
       if (name) definedNames.add(name);
-      return { line, expr, isAssign: !!(m || t), trailing: !!t, name, rhs };
+      // a bare solve()/cSolve() line defines its subject for the whole section
+      // (multiple solutions define it as a list)
+      let solveDef = null;
+      if (!m && !t && expr) {
+        const ps = pureSolveCall(expr);
+        const pc = ps ? null : pureCSolveCall(expr);
+        if (ps) solveDef = { eqText: ps.eqText, varName: ps.varName, complex: false };
+        else if (pc) solveDef = { eqText: pc.eqText, varName: pc.varName, complex: true };
+        if (solveDef) definedNames.add(solveDef.varName);
+      }
+      return { line, expr, isAssign: !!(m || t), trailing: !!t, name, rhs, solveDef };
     });
 
-    // Pass 1: resolve assignments order-independently
-    let pending = infos.filter(i => i.isAssign && i.expr !== '');
+    // Pass 1: resolve assignments (and bare solve lines' subjects) order-independently
+    let pending = infos.filter(i => (i.isAssign || i.solveDef) && i.expr !== '');
     let progressed = true;
     while (pending.length && progressed) {
       progressed = false; const still = [];
       for (const info of pending) {
-        try { scope[info.name] = evalExpr(info.rhs, scope); progressed = true; }
+        try {
+          if (info.solveDef) {
+            const sd = info.solveDef;
+            let val;
+            if (sd.complex) {
+              const res = cSolveAll(sd.eqText, sd.varName, { ...scope });
+              const roots = (res && res.roots) || [];
+              if (!roots.length) throw new Error('no roots');
+              val = roots.length === 1 ? roots[0] : roots;
+            } else if (solveAllMode) {
+              const res = solveEquationAll(sd.eqText, sd.varName, { ...scope });
+              const roots = (res && res.roots) || [];
+              if (!roots.length) throw new Error('no roots');
+              val = roots.length === 1 ? roots[0] : roots;
+            } else {
+              val = solveEquation(sd.eqText, sd.varName, { ...scope });
+              if (val === undefined || (typeof val === 'number' && !isFinite(val))) throw new Error('no root');
+            }
+            scope[sd.varName] = val; info.solved = val; progressed = true;
+          } else {
+            scope[info.name] = evalExpr(info.rhs, scope); progressed = true;
+          }
+        }
         catch (e) { still.push(info); }
       }
       pending = still;
@@ -3599,7 +3633,11 @@ function recomputeImpl() {
     let ansVal;
     for (let k = infos.length-1; k >= 0; k--) {
       const info = infos[k]; if (info.expr === '') continue;
-      try { ansVal = info.isAssign ? scope[info.name] : evalExpr(info.expr, { ...scope }); }
+      try {
+        ansVal = info.isAssign ? scope[info.name]
+               : info.solveDef ? scope[info.solveDef.varName]
+               : evalExpr(info.expr, { ...scope });
+      }
       catch (e) { ansVal = undefined; }
       break;
     }
@@ -3672,6 +3710,14 @@ function recomputeImpl() {
           updateChip(line); updateSlider(line, info); updateLineLayout(line);
           continue;
         }
+        // bare solve line (first-root mode): show "v = root" -- the subject is
+        // now a defined variable, so the result reads like the assignment it is
+        if (info.solveDef && !info.solveDef.complex && !solveAllMode && info.solved !== undefined && !Array.isArray(info.solved)) {
+          line.lastValue = info.solved;
+          renderResult(resEl, { prefixLatex: varToLatex(info.solveDef.varName) + ' =' }, info.solved);
+          updateChip(line); updateSlider(line, info); updateLineLayout(line);
+          continue;
+        }
         if (info.isAssign) {
           value = evalExpr(info.rhs, { ...scope });
           line.lastValue = value;
@@ -3715,6 +3761,54 @@ function tagCommas(field) {
   });
 }
 
+/* Accent-highlight the subject of each solve()/cSolve() call: the variable
+   after the last comma, and every occurrence of it inside the equation. Works
+   on the rendered DOM: a subject is a <var> (plus a subscript-only supsub),
+   matched by base letter + subscript text. Runs with tagCommas on recompute. */
+function tagSolveTargets(field) {
+  const root = field && field.querySelector('.mq-root-block');
+  if (!root) return;
+  root.querySelectorAll('.mq-solve-target').forEach(el => el.classList.remove('mq-solve-target'));
+  // signature of the variable starting at <var> element el
+  const sig = (el) => {
+    const next = el.nextElementSibling;
+    if (next && next.classList.contains('mq-supsub')) {
+      const sub = next.querySelector(':scope > .mq-sub');
+      const sup = next.querySelector(':scope > .mq-sup');
+      if (sub && !sup) return { base: el.textContent, sub: sub.textContent, els: [el, next] };
+    }
+    return { base: el.textContent, sub: null, els: [el] };
+  };
+  // find operator-name runs spelling solve/cSolve followed by a bracket group
+  const kids = [...root.children];
+  for (let i = 0; i < kids.length; i++) {
+    if (!(kids[i].tagName === 'VAR' && kids[i].classList.contains('mq-operator-name'))) continue;
+    let name = '', j = i;
+    while (j < kids.length && kids[j].tagName === 'VAR' && kids[j].classList.contains('mq-operator-name')) { name += kids[j].textContent; j++; }
+    if ((name === 'solve' || name === 'cSolve') && kids[j] && kids[j].classList.contains('mq-non-leaf')) {
+      const content = kids[j].querySelector(':scope > .mq-non-leaf');
+      if (content) {
+        const cc = [...content.children];
+        const lastComma = cc.map(c => c.textContent === ',' && c.childElementCount === 0).lastIndexOf(true);
+        if (lastComma !== -1) {
+          const subjEl = cc.slice(lastComma + 1).find(c => c.tagName === 'VAR' && !c.classList.contains('mq-operator-name'));
+          if (subjEl) {
+            const target = sig(subjEl);
+            // every matching occurrence inside the call (equation + subject),
+            // skipping letters that are themselves subscripts/superscripts
+            content.querySelectorAll('var:not(.mq-operator-name)').forEach(v => {
+              if (v.closest('.mq-sub, .mq-sup')) return;
+              const s = sig(v);
+              if (s.base === target.base && s.sub === target.sub) s.els.forEach(el => el.classList.add('mq-solve-target'));
+            });
+          }
+        }
+      }
+    }
+    i = j - 1;
+  }
+}
+
 /* Decide whether a line's result sits inline (to the right of the input) or
    stacked below it. Inline saves vertical space; we stack when the input is long
    enough that input + result wouldn't comfortably share one row. */
@@ -3723,6 +3817,7 @@ function updateLineLayout(line) {
   const field = line.fieldEl, res = line.resultEl;
   if (!field || !res) return;
   tagCommas(field);
+  tagSolveTargets(field);
   const measure = () => {
     const hasResult = res.textContent.trim() !== '' || res.children.length > 0;
     if (hasResult) {
@@ -6106,10 +6201,18 @@ document.addEventListener('keydown', (e) => {
     if (k === 'd') { e.preventDefault(); toggleAngle(); return; }
     if (k === 's') { e.preventDefault(); toggleSigFigs(); return; }
   }
-  // Ctrl/Cmd+A with no field focused: select every row (inside a field, the
-  // native in-field select-all is untouched)
-  if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'a' && !keyTargetIsTyping()) {
-    e.preventDefault(); selectAllRows(); return;
+  // Ctrl/Cmd+A: with no field focused, select every row. Inside a math field
+  // the first press keeps the native in-field select-all; pressing it AGAIN
+  // (field already fully selected, or empty) escalates to selecting every row.
+  if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'a') {
+    if (!keyTargetIsTyping()) { e.preventDefault(); selectAllRows(); return; }
+    const fEl = document.activeElement.closest && document.activeElement.closest('.mq-field');
+    if (fEl) {
+      const rb = fEl.querySelector('.mq-root-block');
+      const kids = rb ? [...rb.children].filter(c => !c.classList.contains('mq-cursor')) : [];
+      const fullySelected = kids.length > 0 && kids.every(c => c.classList.contains('mq-selection'));
+      if (fullySelected || kids.length === 0) { e.preventDefault(); selectAllRows(); return; }
+    }
   }
   // Ctrl/Cmd+D duplicates the selected rows, or the focused row
   if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'd') {
