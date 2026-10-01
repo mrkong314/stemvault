@@ -7487,39 +7487,37 @@ function openPresentRow(line) {
     const free = l.freeNames || [];
     return { rv, pp: pp.filter(p => !free.includes(p)) };
   };
-  // breadth-first from the focus row: direct dependencies first, then the
-  // rows those depend on; constants gather across every level and list last
+  // discover the full dependency graph from the focus row, then lay it out
+  // knowns-first like a worked solution: constants lead, and every row
+  // appears only after the rows it depends on
   const visited = new Set([line]);
+  const depRows = new Map();   // line -> the definition rows it relies on
   const constNames = [];
   const seenConst = new Set();
   const queue = [line];
   while (queue.length) {
     const cur = queue.shift();
     const { rv, pp } = lineDeps(cur);
+    const kids = [];
     rv.forEach(v => {
       const def = findDef(v);
-      if (!def || visited.has(def)) return;
-      visited.add(def);
-      anyUsed = true;
-      used.appendChild(addRow(def, false));   // simple defs echo quietly; calculated show their working
-      queue.push(def);
+      if (!def || def === cur) return;
+      kids.push(def);
+      if (!visited.has(def)) { visited.add(def); queue.push(def); }
     });
     pp.forEach(p => {
-      if (seenConst.has(p)) return;
-      seenConst.add(p);
       const defd = (line.folder.definedNamesList || []).includes(p);
       if (defd) {
         const dl = findDef(p);
-        if (dl && !visited.has(dl)) {
-          visited.add(dl);
-          used.appendChild(addRow(dl, false));
-          anyUsed = true;
-          queue.push(dl);
+        if (dl && dl !== cur) {
+          kids.push(dl);
+          if (!visited.has(dl)) { visited.add(dl); queue.push(dl); }
         }
         return;
       }
-      constNames.push(p);
+      if (!seenConst.has(p)) { seenConst.add(p); constNames.push(p); }
     });
+    depRows.set(cur, kids);
   }
   constNames.forEach(p => {
     const info = PHYS_INFO[p]; if (!info) return;
@@ -7533,6 +7531,22 @@ function openPresentRow(line) {
     row.appendChild(inp); row.appendChild(lab);
     used.appendChild(row);
   });
+  // post-order from the focus row: each definition emits after its own
+  // dependencies, so givens surface first and derivations build downward;
+  // a circular pair breaks the recursion and keeps discovery order
+  const emitted = new Set([line]);
+  const inStack = new Set();
+  const emit = (l) => {
+    if (inStack.has(l)) return;
+    inStack.add(l);
+    (depRows.get(l) || []).forEach(emit);
+    inStack.delete(l);
+    if (emitted.has(l)) return;
+    emitted.add(l);
+    anyUsed = true;
+    used.appendChild(addRow(l, false));   // simple defs echo quietly; calculated show their working
+  };
+  (depRows.get(line) || []).forEach(emit);
   if (anyUsed) {
     const h = document.createElement('div'); h.className = 'pr-section'; h.textContent = 'Uses';
     body.appendChild(h); body.appendChild(used);
