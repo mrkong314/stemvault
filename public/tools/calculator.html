@@ -501,6 +501,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     --folder-bg: #f0f0f2;
     --ink:       #1d1d1f;
     --ink-dim:   #86868b;
+    --def-echo:  #5c5c61;
     --accent:    #0a84ff;
     --assign:    #34c759;
     --note:      #8e8e93;
@@ -533,6 +534,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     --folder-bg: #2c2c2e;
     --ink:       #f5f5f7;
     --ink-dim:   #98989f;
+    --def-echo:  #8e8e95;
     --accent:    #0a84ff;
     --assign:    #30d158;
     --note:      #98989f;
@@ -980,6 +982,9 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     font-weight: 500;
   }
   .line .result.assign { color: var(--assign); }
+  /* a simple definition's echo (T = 1000) carries no new information; show it
+     in a quiet dark grey so computed results keep the visual emphasis */
+  .line .result.assign-echo { color: var(--def-echo); }
   .line .result .katex { font-size: 1.05rem; color: inherit; }
   /* list/matrix/root-list results can be very wide; they always stack on their
      own line (see updateLineLayout) and render as block-level wrapping content so
@@ -3807,6 +3812,9 @@ function recomputeImpl() {
             rhsLatex = eqAt >= 0 ? fullLatex.slice(eqAt + 1) : fullLatex;
           }
           renderResult(resEl, { prefixLatex: varToLatex(info.name) + ' =', srcLatex: rhsLatex, srcExpr: info.rhs }, value);
+          // simple definition (RHS is a bare number): the echo is quiet grey
+          const rhsTrim = (info.rhs || '').trim();
+          if (/^-?\d*\.?\d+$/.test(rhsTrim) || /^-?\d*\.?\d+\*10\^\(?-?\d+\)?$/.test(rhsTrim)) resEl.classList.add('assign-echo');
         } else {
           value = evalExpr(info.expr, { ...scope });
           line.lastValue = value;
