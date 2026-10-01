@@ -5330,6 +5330,38 @@ function createLine(folder, afterLine = null, initialLatex = '') {
         mq.keystroke('Up');          // caret back in the numerator, untouched
         recompute(); return;
       }
+      // a bracketed group right of the caret becomes the denominator whole
+      // (selecting it mirrors its latex into MathQuill's hidden textarea)
+      const grp = cur2 && cur2.nextElementSibling;
+      if (grp && grp.classList && grp.classList.contains('mq-non-leaf') && grp.querySelector(':scope > .mq-paren')) {
+        e.preventDefault(); e.stopPropagation();
+        mq.keystroke('Shift-Right');
+        // MathQuill mirrors the selection's latex into its hidden textarea on
+        // a zero-timeout flush -- read it a tick later, and only then rebuild
+        setTimeout(() => {
+          const ta2 = fieldEl.querySelector('textarea');
+          let groupLatex = (ta2 && ta2.value) || '';
+          if (!groupLatex) { mq.keystroke('Left'); return; }   // nothing read: collapse, lose nothing
+          mq.keystroke('Backspace');
+          // the fraction bar already groups: drop the outer brackets when they
+          // wrap the whole selection
+          const m2 = /^\\left\((.*)\\right\)$/.exec(groupLatex);
+          if (m2) {
+            let d = 0, ok = true; const s2 = m2[1];
+            for (let i = 0; i < s2.length; i++) {
+              if (s2.startsWith('\\left(', i)) { d++; i += 5; }
+              else if (s2.startsWith('\\right)', i)) { d--; i += 6; if (d < 0) { ok = false; break; } }
+            }
+            if (ok && d === 0) groupLatex = m2[1];
+          }
+          mq.cmd('\\frac');
+          mq.keystroke('Down');
+          mq.write(groupLatex);
+          mq.keystroke('Up');
+          recompute();
+        }, 10);
+        return;
+      }
     }
     // keyboard "/" (not breaking out) builds a fraction; strip wrapping parens.
     // When nothing was pulled into the numerator, the caret hops to the
