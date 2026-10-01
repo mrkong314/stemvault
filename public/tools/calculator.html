@@ -988,6 +988,52 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     -webkit-tap-highlight-color: transparent;
   }
   #constTip .ct-action:hover { background: rgba(10,132,255,0.16); }
+
+  /* mini-plot sparkline at a driven assignment's right edge; on tight rows it
+     wraps onto its own line (main-row wraps, field+result keep the first line) */
+  .main-row { flex-wrap: wrap; }
+  .line-spark { flex: 0 0 auto; display: flex; align-items: center; margin-left: auto; }
+  .line-spark svg { border: 1px solid var(--rule); border-radius: 7px; background: var(--line-hover); }
+
+  /* presentation mode: entry button revealed on header hover */
+  #presentBtn { opacity: 0; transition: opacity 0.15s; }
+  header:hover #presentBtn, #presentBtn:focus-visible { opacity: 1; }
+  @media (hover: none) { #presentBtn { opacity: 0.6; } }
+  #presentOverlay {
+    position: fixed; inset: 0; z-index: 10002; overflow-y: auto;
+    background: var(--bg, #f5f6f8); color: var(--ink);
+  }
+  #presentOverlay .pr-bar {
+    position: sticky; top: 0; display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.55rem 1.2rem; background: var(--header-bg);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  #presentOverlay .pr-btn {
+    border: 1px solid var(--rule-strong); border-radius: 8px; background: var(--key-bg);
+    color: var(--ink); font-size: 0.82rem; padding: 0.25rem 0.7rem; cursor: pointer;
+  }
+  #presentOverlay .pr-btn.pr-accent { border-color: var(--accent); color: var(--accent); }
+  #presentOverlay .pr-btn.pr-close { font-size: 1.1rem; line-height: 1; padding: 0.15rem 0.6rem; }
+  #presentOverlay .pr-body { padding: 1.2rem 2rem 4rem; }
+  #presentOverlay .pr-section {
+    font-size: 0.55em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-dim); margin: 1.1em 0 0.3em;
+  }
+  #presentOverlay .pr-row {
+    display: flex; align-items: center; gap: 1.2rem; padding: 0.45em 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  #presentOverlay .pr-in { flex: 1 1 auto; }
+  #presentOverlay .pr-ans-val { color: var(--accent); font-weight: 500; cursor: pointer; }
+  #presentOverlay .pr-ans-val .result { color: var(--accent); }
+  #presentOverlay .pr-pill {
+    display: none; border: 1.5px dashed var(--accent); color: var(--accent);
+    border-radius: 999px; padding: 0.15em 0.9em; font-size: 0.5em; font-weight: 600;
+    background: rgba(10,132,255,0.06); cursor: pointer;
+  }
+  #presentOverlay .pr-ans.pr-hidden .pr-ans-val { display: none; }
+  #presentOverlay .pr-ans.pr-hidden .pr-pill { display: inline-block; }
   /* the variable a solve() call is solving for, everywhere it appears in the call */
   .mq-field .mq-solve-target { color: var(--accent); }
 
@@ -3929,7 +3975,7 @@ function recomputeImpl() {
           const roots = res.roots;
           line.lastValue = (roots.length === 1) ? roots[0] : undefined;
           renderRootList(resEl, pureC.varName, roots, info.isAssign ? info.name : null, res.meta || {});
-          updateChip(line); updateSlider(line, info); updateLineLayout(line);
+          updateChip(line); updateSlider(line, info); updateSparkline(line, info, scope); updateLineLayout(line);
           continue;
         }
         // all-solutions mode: if the (RHS of the) line is exactly solve(eq,var),
@@ -3941,7 +3987,7 @@ function recomputeImpl() {
           const roots = res.roots;
           line.lastValue = (roots.length === 1) ? roots[0] : undefined;
           renderRootList(resEl, pure.varName, roots, info.isAssign ? info.name : null, res);
-          updateChip(line); updateSlider(line, info); updateLineLayout(line);
+          updateChip(line); updateSlider(line, info); updateSparkline(line, info, scope); updateLineLayout(line);
           continue;
         }
         // bare/implicit/arrow solve line: the subject is now a defined variable,
@@ -3963,7 +4009,7 @@ function recomputeImpl() {
             line.lastValue = val;
             renderResult(resEl, { prefixLatex: prefix }, val);
           }
-          updateChip(line); updateSlider(line, info); updateLineLayout(line);
+          updateChip(line); updateSlider(line, info); updateSparkline(line, info, scope); updateLineLayout(line);
           continue;
         }
         // a solve with every input defined but no root found says so plainly --
@@ -4016,6 +4062,7 @@ function recomputeImpl() {
       }
       updateChip(line);
       updateSlider(line, info);
+      updateSparkline(line, info, scope);
       updateLineLayout(line);
     }
   }
@@ -4511,6 +4558,77 @@ function updateSlider(line, info) {
   if (line.cfgVar) { try { katex.render(varToLatex(info.name), line.cfgVar, { throwOnError:false }); } catch (e) { line.cfgVar.textContent = info.name || ''; } }
   line.range.min = min; line.range.max = max; line.range.step = step;
   line.range.value = Math.min(Math.max(val, min), max);
+}
+
+/* Mini-plot: when an assignment's expression is driven by exactly one
+   slider variable in the section, a sparkline of the relationship renders at
+   the row's right edge, with a dot at the slider's current position. */
+function updateSparkline(line, info, scope) {
+  const remove = () => { if (line.sparkEl) { line.sparkEl.remove(); line.sparkEl = null; } };
+  if (!info || !info.isAssign || !info.rhs || line.isSystem) { remove(); return; }
+  let vars;
+  try { vars = referencedVars(info.rhs); } catch (e) { remove(); return; }
+  if (!vars.length) { remove(); return; }
+  // the driver is the variable whose slider panel is OPEN (every numeric
+  // definition has a collapsed slider, so "open" is the signal of intent)
+  const NAME_RE = /^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=/;
+  const sliders = {};
+  line.folder.lines.forEach(l => {
+    if (l.isSystem || !l.lineEl.classList.contains('slider-shown')) return;
+    try { const m = prepareExpr(l.mq.latex()).match(NAME_RE); if (m) sliders[m[1]] = l; } catch (e) {}
+  });
+  const drivers = vars.filter(v => sliders[v]);
+  if (drivers.length !== 1 || !vars.every(v => v in scope)) { remove(); return; }
+  const dv = drivers[0], dLine = sliders[dv];
+  const lo = isFinite(dLine.sliderMin) ? dLine.sliderMin : -10;
+  const hi = isFinite(dLine.sliderMax) ? dLine.sliderMax : 10;
+  if (!(hi > lo)) { remove(); return; }
+  let compiled;
+  try { compiled = math.compile(info.rhs); } catch (e) { remove(); return; }
+  const fscope = { ...scope };
+  const N = 60, pts = [];
+  let ymin = Infinity, ymax = -Infinity;
+  for (let i = 0; i < N; i++) {
+    const x = lo + (hi - lo) * i / (N - 1);
+    let y; try { fscope[dv] = x; y = compiled.evaluate(fscope); } catch (e) { y = NaN; }
+    if (typeof y !== 'number' || !isFinite(y)) y = NaN;
+    else { if (y < ymin) ymin = y; if (y > ymax) ymax = y; }
+    pts.push([x, y]);
+  }
+  if (!isFinite(ymin)) { remove(); return; }
+  if (ymax - ymin < 1e-12) { const pad = Math.max(1, Math.abs(ymax)) * 0.5; ymin -= pad; ymax += pad; }
+  const W = 150, H = 44, PX = 8, PT = 6, PB = 6;
+  const X = x => PX + (W - 2 * PX) * (x - lo) / (hi - lo);
+  const Y = y => H - PB - (H - PT - PB) * (y - ymin) / (ymax - ymin);
+  let d = '', pen = false;
+  pts.forEach(([x, y]) => {
+    if (isNaN(y)) { pen = false; return; }
+    d += (pen ? 'L' : 'M') + X(x).toFixed(1) + ' ' + Y(y).toFixed(1) + ' ';
+    pen = true;
+  });
+  // dot at the slider's current value
+  let dot = '';
+  const cur = scope[dv];
+  if (typeof cur === 'number' && cur >= lo && cur <= hi) {
+    let cy; try { fscope[dv] = cur; cy = compiled.evaluate(fscope); } catch (e) { cy = NaN; }
+    if (typeof cy === 'number' && isFinite(cy) && cy >= ymin && cy <= ymax) {
+      dot = '<circle cx="' + X(cur).toFixed(1) + '" cy="' + Y(cy).toFixed(1) + '" r="3.2" fill="var(--accent)"/>';
+    }
+  }
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  if (!line.sparkEl) {
+    line.sparkEl = document.createElement('span');
+    line.sparkEl.className = 'line-spark';
+    line.mainRow.appendChild(line.sparkEl);
+  }
+  line.sparkEl.innerHTML =
+    '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
+    '<path d="M' + PX + ' ' + (H - PB) + ' L' + (W - PX) + ' ' + (H - PB) + '" stroke="var(--rule)" stroke-width="1"/>' +
+    '<path d="M' + PX + ' ' + (H - PB) + ' L' + PX + ' ' + PT + '" stroke="var(--rule)" stroke-width="1"/>' +
+    '<path d="' + d.trim() + '" fill="none" stroke="var(--accent)" stroke-width="1.8"/>' + dot +
+    '<text x="' + (W - PX) + '" y="' + (H - 1) + '" font-size="7" fill="var(--ink-dim)" text-anchor="end">' + esc(prettyVarLabel(dv)) + '</text>' +
+    '<text x="' + (PX + 2) + '" y="' + (PT + 4) + '" font-size="7" fill="var(--ink-dim)">' + esc(prettyVarLabel(info.name || '')) + '</text>' +
+    '</svg>';
 }
 
 function trimNum(n) { return parseFloat(n.toPrecision(6)).toString(); }
@@ -6903,6 +7021,75 @@ document.addEventListener('click', () => { if (!settingsPopover.hidden) closeSet
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !settingsPopover.hidden) closeSettings(); });
 
 /* --- undo / redo --- */
+/* ---- presentation mode: full-screen enlarged view for screensharing ----
+   Every answer starts VISIBLE with a Hide toggle; hidden answers show a
+   dashed Show pill. The entry button lives in the header, revealed on hover. */
+const presentBtn = document.createElement('button');
+presentBtn.id = 'presentBtn'; presentBtn.className = 'hdr-gear';
+presentBtn.title = 'Present (full screen)'; presentBtn.setAttribute('aria-label', 'Present');
+presentBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-15M21 3l-7 7M3 21l7-7"/></svg>';
+(() => { const sw = document.querySelector('.settings-wrap'); if (sw) sw.parentNode.insertBefore(presentBtn, sw); })();
+
+let presentFS = 1.7;   // rem; A-/A+ adjust
+function closePresent() { const ov = document.getElementById('presentOverlay'); if (ov) ov.remove(); }
+function openPresent() {
+  closePresent();
+  const ov = document.createElement('div'); ov.id = 'presentOverlay';
+  const bar = document.createElement('div'); bar.className = 'pr-bar';
+  const mkBtn = (label, fn, cls) => {
+    const b = document.createElement('button'); b.className = 'pr-btn' + (cls ? ' ' + cls : '');
+    b.textContent = label; b.addEventListener('click', fn); return b;
+  };
+  const body = document.createElement('div'); body.className = 'pr-body';
+  const applyFS = () => { body.style.fontSize = presentFS + 'rem'; };
+  bar.appendChild(mkBtn('A−', () => { presentFS = Math.max(1.1, presentFS - 0.2); applyFS(); }));
+  bar.appendChild(mkBtn('A+', () => { presentFS = Math.min(3, presentFS + 0.2); applyFS(); }));
+  const spacer = document.createElement('span'); spacer.style.flex = '1 1 auto'; bar.appendChild(spacer);
+  const setAll = (show) => ov.querySelectorAll('.pr-ans').forEach(w => w.classList.toggle('pr-hidden', !show));
+  bar.appendChild(mkBtn('Hide all', () => setAll(false)));
+  bar.appendChild(mkBtn('Show all', () => setAll(true), 'pr-accent'));
+  bar.appendChild(mkBtn('×', closePresent, 'pr-close'));
+  ov.appendChild(bar);
+  folders.forEach(f => {
+    if (f.name && f.name.trim()) {
+      const h = document.createElement('div'); h.className = 'pr-section'; h.textContent = f.name;
+      body.appendChild(h);
+    }
+    f.lines.forEach(line => {
+      if (line.isSystem) return;
+      let latex = '';
+      try { latex = line.mq.latex(); } catch (e) {}
+      if (!latex.trim()) return;
+      const row = document.createElement('div'); row.className = 'pr-row';
+      const inp = document.createElement('span'); inp.className = 'pr-in';
+      try { katex.render(latex, inp, { throwOnError: false }); } catch (e) { inp.textContent = latex; }
+      row.appendChild(inp);
+      const hasAns = line.resultEl && (line.resultEl.textContent.trim() !== '' || line.resultEl.children.length > 0);
+      if (hasAns) {
+        const wrap = document.createElement('span'); wrap.className = 'pr-ans';   // visible by default
+        const ans = document.createElement('span'); ans.className = 'pr-ans-val';
+        ans.appendChild(line.resultEl.cloneNode(true));
+        ans.title = 'Click to hide';
+        ans.addEventListener('click', () => wrap.classList.add('pr-hidden'));
+        const pill = document.createElement('span'); pill.className = 'pr-pill'; pill.textContent = 'Show';
+        pill.addEventListener('click', () => wrap.classList.remove('pr-hidden'));
+        wrap.appendChild(ans); wrap.appendChild(pill);
+        row.appendChild(wrap);
+      }
+      body.appendChild(row);
+    });
+  });
+  applyFS();
+  ov.appendChild(body);
+  document.body.appendChild(ov);
+}
+presentBtn.addEventListener('click', (e) => { e.stopPropagation(); openPresent(); });
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('presentOverlay')) {
+    e.preventDefault(); e.stopImmediatePropagation(); closePresent();
+  }
+}, true);
+
 document.getElementById('undoBtn').addEventListener('click', (e) => { e.stopPropagation(); doUndo(); });
 document.getElementById('redoBtn').addEventListener('click', (e) => { e.stopPropagation(); doRedo(); });
 /* Ctrl/Cmd+Z = undo, Ctrl/Cmd+Shift+Z (or Ctrl+Y) = redo. MathQuill has no
