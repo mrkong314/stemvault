@@ -5106,6 +5106,9 @@ function pickSubject(v) {
 function renderSubjectDropdown(line, pure) {
   let vars = [];
   try { vars = referencedVars(pure.eqText); } catch (e) {}
+  // constant NAMES used in the equation are legitimate subjects too (k may be
+  // a spring constant here, not Coulomb's) -- listed after the true variables
+  try { referencedPhys(pure.eqText).forEach(p => { if (!vars.includes(p)) vars.push(p); }); } catch (e) {}
   try { vars = vars.concat(ratioCVars(pure.eqText, vars)); } catch (e) {}
   if (!vars.length) return false;
   const key = subjKeyFor(line);
@@ -6730,6 +6733,7 @@ function formulaVars(f) {
   try {
     const expr = prepareExpr(f.latex);
     vars = referencedVars(expr);
+    referencedPhys(expr).forEach(p => { if (!vars.includes(p)) vars.push(p); });   // constant names are subjects too
     vars = vars.concat(ratioCVars(expr, vars));   // v/c where the equation divides by c
   } catch (e) {}
   f._vars = vars;
