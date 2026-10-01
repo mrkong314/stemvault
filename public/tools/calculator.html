@@ -4680,15 +4680,16 @@ function sparkSVG(data, o) {
       const cxp = X(cur), cyp = Y(cy);
       dot = '<circle cx="' + cxp.toFixed(1) + '" cy="' + cyp.toFixed(1) + '" r="' + r + '" fill="var(--accent)"/>';
       if (o.coord) {
+        const cf = o.coordFsz || axf;
         const anchor = cxp > W * 0.6 ? 'end' : 'start';
         const tx = anchor === 'end' ? cxp - r - 5 : cxp + r + 5;
-        const ty = Math.max(PT + axf, cyp - r - 5);
+        const ty = Math.max(PT + cf, cyp - r - 5);
         // ×10^8 renders with a real superscript tspan
         const supify = (s) => esc(s).replace(/\^(-?\d+)/g,
-          '<tspan font-size="' + (axf * 0.68).toFixed(1) + '" dy="-' + (axf * 0.35).toFixed(1) + '">$1</tspan>' +
-          '<tspan dy="' + (axf * 0.35).toFixed(1) + '">​</tspan>');
+          '<tspan font-size="' + (cf * 0.68).toFixed(1) + '" dy="-' + (cf * 0.35).toFixed(1) + '">$1</tspan>' +
+          '<tspan dy="' + (cf * 0.35).toFixed(1) + '">​</tspan>');
         // digits and brackets stay upright (KaTeX_Main); only variables are italic
-        coord = '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" font-size="' + axf + '"' +
+        coord = '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" font-size="' + cf + '"' +
           ' font-family="KaTeX_Main, \'Times New Roman\', serif"' +
           ' fill="var(--accent)" text-anchor="' + anchor + '">(' + supify(numToPlainLabel(cur)) + ', ' + supify(numToPlainLabel(cy)) + ')</text>';
       }
@@ -7232,7 +7233,7 @@ function openPresentRow(line) {
 
   const ansRefs = [], sliderLabelUpdaters = [];
   const rowByLine = new Map();
-  const BIG = { W: 680, H: 300, PX: 34, PT: 18, PB: 22, fsz: 13, axFsz: 17, sw: 2.6, r: 5.5, N: 120, coord: true };
+  const BIG = { W: 680, H: 300, PX: 34, PT: 18, PB: 22, fsz: 13, axFsz: 17, sw: 2.6, r: 5.5, N: 120, coord: true, coordFsz: 23 };
   let refresh = () => {};   // assigned below; rows close over it
   const ovFields = [];      // live overlay fields; reflowed once attached
   const addRow = (srcLine, big) => {
