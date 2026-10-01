@@ -976,10 +976,15 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     padding: 0.35rem 0.6rem; font-size: 0.78rem;
     box-shadow: 0 6px 20px rgba(31,45,80,0.18), inset 0 1px 0 var(--glass-edge);
     backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
-    white-space: nowrap; pointer-events: none;
+    white-space: nowrap; pointer-events: auto;
   }
   #constTip .ct-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); margin-bottom: 0.12rem; }
   #constTip .ct-eq { font-size: 0.92rem; }
+  #constTip .ct-action {
+    margin-top: 0.3rem; padding-top: 0.25rem; border-top: 1px solid var(--glass-border);
+    font-size: 0.7rem; color: var(--accent); cursor: pointer;
+  }
+  #constTip .ct-action:hover { text-decoration: underline; }
   /* the variable a solve() call is solving for, everywhere it appears in the call */
   .mq-field .mq-solve-target { color: var(--accent); }
 
@@ -4137,11 +4142,41 @@ const PHYS_INFO = {
 const constTip = document.createElement('div');
 constTip.id = 'constTip'; constTip.hidden = true;
 document.body.appendChild(constTip);
+let constTipHideT = null, constTipFolder = null, constTipName = null;
+function scheduleConstTipHide() {
+  clearTimeout(constTipHideT);
+  constTipHideT = setTimeout(() => { constTip.hidden = true; }, 250);
+}
+/* click-through from the hover card: create (or jump to) a row in the hovered
+   line's section that redefines the constant, seeded with its current value */
+function redefineConstant(folder, name) {
+  constTip.hidden = true;
+  if (!folder || !name) return;
+  pushUndo();
+  const nl = addVariable(folder, name, true, physConstants()[name]);
+  if (!nl) {
+    // already redefined in this section: jump to that row instead
+    const ex = folder.lines.find(l => {
+      if (l.isSystem) return false;
+      try {
+        const m = prepareExpr(l.mq.latex()).match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=/);
+        return m && m[1] === name;
+      } catch (e) { return false; }
+    });
+    if (ex) { ex.mq.focus(); ex.mq.moveToRightEnd(); }
+  }
+}
 document.addEventListener('mouseover', (e) => {
+  if (e.target.closest && e.target.closest('#constTip')) { clearTimeout(constTipHideT); return; }
   const t = e.target.closest && e.target.closest('.mq-const');
-  if (!t || !t.dataset.constName) { if (!constTip.hidden) constTip.hidden = true; return; }
+  if (!t || !t.dataset.constName) { if (!constTip.hidden) scheduleConstTipHide(); return; }
+  clearTimeout(constTipHideT);
   const name = t.dataset.constName, info = PHYS_INFO[name];
   if (!info) { constTip.hidden = true; return; }
+  const row = t.closest('.line');
+  const lineObj = row ? lineObjFromEl(row) : null;
+  constTipFolder = lineObj ? lineObj.folder : null;
+  constTipName = name;
   const val = physConstants()[name];
   constTip.innerHTML = '';
   const lab = document.createElement('div'); lab.className = 'ct-label'; lab.textContent = info.label;
@@ -4152,12 +4187,17 @@ document.addEventListener('mouseover', (e) => {
   try { katex.render(varToLatex(name) + ' = ' + vtex + '\\ \\mathrm{' + info.units + '}', eq, { throwOnError: false }); }
   catch (err) { eq.textContent = name + ' = ' + val; }
   constTip.appendChild(lab); constTip.appendChild(eq);
+  const act = document.createElement('div');
+  act.className = 'ct-action';
+  act.textContent = '✎ redefine in this section';
+  act.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); redefineConstant(constTipFolder, constTipName); });
+  constTip.appendChild(act);
   constTip.hidden = false;
   const r = t.getBoundingClientRect();
   const tw = constTip.offsetWidth, th = constTip.offsetHeight;
   let left = Math.min(Math.max(8, r.left - 10), window.innerWidth - tw - 8);
-  let top = r.top - th - 8;
-  if (top < 8) top = r.bottom + 8;
+  let top = r.top - th - 6;
+  if (top < 8) top = r.bottom + 6;
   constTip.style.left = left + 'px';
   constTip.style.top = top + 'px';
 });
