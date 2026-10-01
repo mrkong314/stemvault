@@ -945,8 +945,9 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .mq-field .mq-comma { padding-right: 0.4em; }
   /* the solve arrow gets air on both sides: 2v+1=9 ⇒ v */
   .mq-field .mq-arrow { padding: 0 0.35em; }
-  /* predefined constants used in an input read as given values: quiet dark grey */
-  .mq-field .mq-const { color: var(--def-echo); }
+  /* predefined constants used in an input read as given values: a lighter grey
+     than the definition echoes, so they contrast clearly with surrounding ink */
+  .mq-field .mq-const { color: var(--ink-dim); }
   /* the variable a solve() call is solving for, everywhere it appears in the call */
   .mq-field .mq-solve-target { color: var(--accent); }
 
