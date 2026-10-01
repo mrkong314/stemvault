@@ -2176,7 +2176,7 @@ const FORMULA_LIST = [
   { name:'m_1 u_1 + m_2 u_2 = m_1 v_1 + m_2 v_2', cat:'Motion', kw:'conservation of momentum, collision, two objects, before after, mass, velocity', latex:'m_{1}u_{1}+m_{2}u_{2}=m_{1}v_{1}+m_{2}v_{2}' },
   { name:'\\frac12 m_1 u_1^2 + \\frac12 m_2 u_2^2 = \\frac12 m_1 v_1^2 + \\frac12 m_2 v_2^2', cat:'Motion', kw:'elastic collision, kinetic energy conserved, collision, momentum, two objects', latex:'\\frac{1}{2}m_{1}u_{1}^{2}+\\frac{1}{2}m_{2}u_{2}^{2}=\\frac{1}{2}m_{1}v_{1}^{2}+\\frac{1}{2}m_{2}v_{2}^{2}' },
   { name:'m_1 u_1 + m_2 u_2 = (m_1 + m_2)v', cat:'Motion', kw:'inelastic collision, perfectly inelastic, stick together, collision, combined mass, momentum', latex:'m_{1}u_{1}+m_{2}u_{2}=\\left(m_{1}+m_{2}\\right)v' },
-  { name:'\\gamma = 1/\\sqrt{1 - v^2/c^2}', cat:'Motion', kw:'relativity, special relativity, lorentz factor, gamma, speed of light, velocity', latex:'\\gamma=\\frac{1}{\\sqrt{1-\\frac{v^{2}}{c^{2}}}}' },
+  { name:'\\gamma = 1/\\sqrt{1 - (v/c)^2}', cat:'Motion', kw:'relativity, special relativity, lorentz factor, gamma, speed of light, velocity', latex:'\\gamma=\\frac{1}{\\sqrt{1-\\left(\\frac{v}{c}\\right)^{2}}}' },
   { name:'t = t_0 \\gamma', cat:'Motion', kw:'relativity, time dilation, proper time, observed time, gamma, lorentz', latex:'t=t_{0}\\gamma' },
   { name:'L = L_0/\\gamma', cat:'Motion', kw:'relativity, length contraction, proper length, observed length, gamma, lorentz', latex:'L=\\frac{L_{0}}{\\gamma}' },
   { name:'E_{rest} = mc^2', cat:'Motion', kw:'relativity, rest energy, mass energy, mass, speed of light', latex:'E_{rest}=mc^{2}' },
@@ -2378,13 +2378,18 @@ function latexToMath(latex) {
   // Definite integral: \int_{a}^{b} integrand d<var>  ->  integrate(integrand, var, a, b)
   // MathQuill emits \int_{a}^{b}; the integrand and the trailing d<var> are plain.
   s = parseIntegrals(s);
+  // powers, fractions and roots convert together to a fixpoint: each pass
+  // clears the innermost braces, so deeply nested forms like
+  // \frac{1}{\sqrt{1-\frac{v^{2}}{c^{2}}}} fully resolve (converting them in
+  // separate sequential loops left outer constructs stuck behind exponent
+  // braces their regexes cannot cross)
   let prev;
   do { prev = s;
+    s = s.replace(/\^\{((?:[^{}]|\{[^{}]*\})*)\}/g, '^($1)');
     s = s.replace(/\\frac\{((?:[^{}]|\{[^{}]*\})*)\}\{((?:[^{}]|\{[^{}]*\})*)\}/g, '(($1)/($2))');
+    s = s.replace(/\\sqrt\[((?:[^{}]|\{[^{}]*\})*)\]\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'nthRoot(($2),($1))');
+    s = s.replace(/\\sqrt\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'sqrt($1)');
   } while (s !== prev);
-  s = s.replace(/\\sqrt\[((?:[^{}]|\{[^{}]*\})*)\]\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'nthRoot(($2),($1))');
-  do { prev = s; s = s.replace(/\\sqrt\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'sqrt($1)'); } while (s !== prev);
-  do { prev = s; s = s.replace(/\^\{((?:[^{}]|\{[^{}]*\})*)\}/g, '^($1)'); } while (s !== prev);
   s = s.replace(/\\operatorname\{([^}]*)\}/g, '$1');
   s = s.replace(/\\log_\{((?:[^{}]|\{[^{}]*\})*)\}\s*\(((?:[^()]|\([^()]*\))*)\)/g, 'log($2,$1)');
   s = s.replace(/\\log_(\w)\s*\(((?:[^()]|\([^()]*\))*)\)/g, 'log($2,$1)');
