@@ -2461,7 +2461,34 @@ function rewriteArrowSolve(latex) {
   return (lhs + ' ' + rhs).trim();
 }
 
-function prepareExpr(latex) { return insertImplicitMult(latexToMath(rewriteArrowSolve(latex))); }
+/* "equation, v" sugar: a single top-level comma followed by one standalone
+   variable reads as solve(equation, v) -- the comma form of the ⇒ arrow.
+   Fires only when the left side is an equation with exactly one top-level '=',
+   so lists, call arguments and plain comma typing are untouched. */
+function rewriteCommaSolve(expr) {
+  if (!expr) return expr;
+  let d = 0, comma = -1;
+  for (let i = 0; i < expr.length; i++) {
+    const ch = expr[i];
+    if (ch === '(' || ch === '[') d++;
+    else if (ch === ')' || ch === ']') { if (d > 0) d--; }
+    else if (ch === ',' && d === 0) { if (comma !== -1) return expr; comma = i; }
+  }
+  if (comma === -1) return expr;
+  const lhs = expr.slice(0, comma).trim();
+  const rhs = expr.slice(comma + 1).trim();
+  if (!lhs || !TRAIL_VAR_RE.test(rhs)) return expr;
+  let dd = 0, eq = 0;
+  for (const ch of lhs) {
+    if (ch === '(' || ch === '[') dd++;
+    else if (ch === ')' || ch === ']') { if (dd > 0) dd--; }
+    else if (ch === '=' && dd === 0) eq++;
+  }
+  if (eq !== 1) return expr;
+  return 'solve(' + lhs + ',' + rhs + ')';
+}
+
+function prepareExpr(latex) { return rewriteCommaSolve(insertImplicitMult(latexToMath(rewriteArrowSolve(latex)))); }
 
 /* ---- numeric equation solver for solve(equation, variable) ----
    Builds f(x) = LHS - RHS with all other variables taken from the folder scope,
@@ -4595,8 +4622,23 @@ function setSolveSubjectLatex(mq, vName) {
   let latex; try { latex = mq.latex(); } catch (e) { return; }
   const vTex = varToLatex(vName);
   const ar = latex.lastIndexOf('\\Rightarrow');
+  // comma form first: a ',' at bracket depth 0 means "equation, subject"
+  let topComma = -1;
+  {
+    let d = 0;
+    for (let i = 0; i < latex.length; i++) {
+      if (latex.startsWith('\\left', i)) { d++; i += 5; continue; }
+      if (latex.startsWith('\\right', i)) { if (d > 0) d--; i += 5; continue; }
+      const ch = latex[i];
+      if (ch === '(' || ch === '[' || ch === '{') d++;
+      else if (ch === ')' || ch === ']' || ch === '}') { if (d > 0) d--; }
+      else if (ch === ',' && d === 0) topComma = i;
+    }
+  }
   if (ar !== -1) {
     latex = latex.slice(0, ar) + '\\Rightarrow ' + vTex;
+  } else if (topComma !== -1) {
+    latex = latex.slice(0, topComma + 1) + vTex;
   } else {
     // last comma at depth 1 of the outermost \left( ... \right)
     let depth = 0, lastComma = -1, closeIdx = -1;
@@ -4686,7 +4728,18 @@ function updateFnHint(line) {
   // subject-editing position? (solve's 2nd argument, or anywhere after a ⇒)
   const inSolveArg = ctx && (ctx.name === 'solve' || ctx.name === 'cSolve') && ctx.argIdx >= 1;
   const afterArrow = before.indexOf('⇒') !== -1;
-  if (inSolveArg || afterArrow) {
+  // comma form: caret after a top-level comma ("E=mc², |"); only counts when
+  // the line genuinely parses as a solve (checked via pureSolveCall below)
+  const afterTopComma = (() => {
+    let d = 0;
+    for (const ch of before) {
+      if (ch === '(' || ch === '[') d++;
+      else if (ch === ')' || ch === ']') { if (d > 0) d--; }
+      else if (ch === ',' && d === 0) return true;
+    }
+    return false;
+  })();
+  if (inSolveArg || afterArrow || afterTopComma) {
     let pure = null;
     try { pure = pureSolveCall(prepareExpr(line.mq.latex())) || pureCSolveCall(prepareExpr(line.mq.latex())); } catch (e) {}
     if (pure && renderSubjectDropdown(line, pure)) {
