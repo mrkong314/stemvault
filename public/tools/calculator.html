@@ -1740,7 +1740,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.5rem;
     border-radius: 9px; cursor: pointer;
   }
-  .sym-row.active { background: var(--focus-bg); }
+  .sym-row.active { background: rgba(10,132,255,0.14); box-shadow: inset 3px 0 0 var(--accent); }
   .sym-glyph {
     flex: 0 0 1.6rem; text-align: center; font-size: 1.15rem; color: var(--accent);
     font-family: 'KaTeX_Math','Cambria Math',serif;
@@ -1773,7 +1773,10 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     flex-wrap: wrap;
     padding: 0.4rem 0.55rem; border-radius: 9px; cursor: pointer;
   }
-  .fml-row.active { background: var(--focus-bg); }
+  /* the focused result follows the app's dropdown convention (accent tint +
+     left bar, as in the subject and prefix dropdowns), not the faint focus-bg
+     that disappears against the glass panel */
+  .fml-row.active { background: rgba(10,132,255,0.14); box-shadow: inset 3px 0 0 var(--accent); }
   .fml-eq { flex: 0 1 auto; color: var(--ink); font-size: 0.95rem; overflow: hidden; }
   .fml-kw { flex: 0 0 auto; font-size: 0.68rem; color: var(--ink-dim); text-align: right; max-width: 9rem;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
