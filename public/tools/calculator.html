@@ -891,14 +891,14 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     white-space: nowrap; pointer-events: none;
   }
   #fnHint .fn-name { font-weight: 600; font-style: normal; font-family: inherit; }
-  /* subject-picking mode: the hint becomes a clickable dropdown of variables */
-  #fnHint.subj-mode { pointer-events: auto; }
-  #fnHint .fn-subj-chip {
-    display: inline-block; margin-left: 0.3rem; padding: 0.02rem 0.45rem;
-    border: 1px solid var(--glass-border); border-radius: 999px; cursor: pointer;
+  /* subject-picking mode: a vertical dropdown of the equation's variables
+     (↑/↓ to move, Enter or click to pick) */
+  #fnHint.subj-mode { pointer-events: auto; padding: 0.3rem; }
+  #fnHint .fn-subj-row {
+    padding: 0.18rem 0.8rem; border-radius: 7px; cursor: pointer;
+    font-style: normal; text-align: left;
   }
-  #fnHint .fn-subj-chip:hover { border-color: var(--accent); }
-  #fnHint .fn-subj-chip.on { background: rgba(10,132,255,0.14); border-color: var(--accent); color: var(--accent); }
+  #fnHint .fn-subj-row.active { background: rgba(10,132,255,0.14); color: var(--accent); }
   #fnHint .fn-arg { opacity: 0.55; }
   #fnHint .fn-arg.active { opacity: 1; color: var(--accent); font-weight: 700; }
   /* Let a long expression wrap onto the next line instead of overflowing the row
@@ -4592,32 +4592,69 @@ function setSolveSubjectLatex(mq, vName) {
 }
 
 /* While the caret is editing a solve's subject (after the call's comma, or
-   after the ⇒), the hint becomes a clickable dropdown of the equation's
-   variables -- pick the subject instead of typing it. */
-let subjHintMQ = null;
+   after the ⇒), the hint becomes a vertical dropdown of the equation's
+   variables: ↑/↓ moves the highlight, Enter or a click picks the subject.
+   After a pick (or Escape) the dropdown stays away until the line changes,
+   so Enter is free to make a new line. */
+let subjHintLine = null, subjHintVars = [], subjActiveIdx = 0;
+let subjHintKey = '', subjSuppressKey = '';
+function subjKeyFor(line) {
+  try { return (line.lineEl.dataset.id || '') + '|' + line.mq.latex(); } catch (e) { return '?'; }
+}
+function highlightSubjRows() {
+  [...fnHintEl.querySelectorAll('.fn-subj-row')].forEach((r, i) => r.classList.toggle('active', i === subjActiveIdx));
+}
+function hideSubjDropdown(suppress) {
+  if (suppress && subjHintLine) subjSuppressKey = subjKeyFor(subjHintLine);
+  fnHintEl.style.display = 'none';
+  fnHintEl.classList.remove('subj-mode');
+}
+function pickSubject(v) {
+  if (!subjHintLine) return;
+  setSolveSubjectLatex(subjHintLine.mq, v);
+  hideSubjDropdown(true);
+}
 function renderSubjectDropdown(line, pure) {
   let vars = [];
   try { vars = referencedVars(pure.eqText); } catch (e) {}
   if (!vars.length) return false;
+  const key = subjKeyFor(line);
+  if (key === subjSuppressKey) return false;
+  if (key !== subjHintKey) {
+    subjHintKey = key;
+    subjActiveIdx = Math.max(0, vars.indexOf(pure.varName));
+  }
+  subjHintLine = line; subjHintVars = vars;
+  if (subjActiveIdx >= vars.length) subjActiveIdx = 0;
   fnHintEl.innerHTML = '';
   fnHintEl.classList.add('subj-mode');
-  subjHintMQ = line.mq;
-  const lab = document.createElement('span');
-  lab.className = 'fn-name'; lab.textContent = 'solve for ';
-  fnHintEl.appendChild(lab);
-  vars.forEach(v => {
-    const chip = document.createElement('span');
-    chip.className = 'fn-subj-chip' + (v === pure.varName ? ' on' : '');
-    try { katex.render(varToLatex(v), chip, { throwOnError: false }); } catch (e) { chip.textContent = prettyVarLabel(v); }
-    chip.addEventListener('mousedown', (ev) => {
-      ev.preventDefault(); ev.stopPropagation();
-      setSolveSubjectLatex(subjHintMQ, v);
-      fnHintEl.style.display = 'none';
-    });
-    fnHintEl.appendChild(chip);
+  vars.forEach((v, i) => {
+    const row = document.createElement('div');
+    row.className = 'fn-subj-row' + (i === subjActiveIdx ? ' active' : '');
+    try { katex.render(varToLatex(v), row, { throwOnError: false }); } catch (e) { row.textContent = prettyVarLabel(v); }
+    row.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); subjActiveIdx = i; pickSubject(v); });
+    row.addEventListener('mouseenter', () => { subjActiveIdx = i; highlightSubjRows(); });
+    fnHintEl.appendChild(row);
   });
   return true;
 }
+/* keyboard control while the dropdown is showing (capture phase, so the arrows
+   never reach MathQuill's caret navigation) */
+window.addEventListener('keydown', (e) => {
+  if (!fnHintEl || fnHintEl.style.display === 'none' || !fnHintEl.classList.contains('subj-mode')) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    const n = subjHintVars.length; if (!n) return;
+    subjActiveIdx = (subjActiveIdx + (e.key === 'ArrowDown' ? 1 : -1) + n) % n;
+    highlightSubjRows();
+  } else if (e.key === 'Enter') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    pickSubject(subjHintVars[subjActiveIdx]);
+  } else if (e.key === 'Escape') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    hideSubjDropdown(true);
+  }
+}, true);
 
 function updateFnHint(line) {
   if (!fnHintEl) return;
