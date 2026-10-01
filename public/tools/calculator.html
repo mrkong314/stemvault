@@ -4631,13 +4631,26 @@ function updateSlider(line, info) {
 
   // Bounds: if the user has set them explicitly, keep them; otherwise derive a
   // sensible span from the current value (recomputed whenever the value changes).
+  // Sign-aware: positive values slide over [0, 2.5v] -- most physics
+  // quantities have no meaningful negative half -- mirrored when negative.
   if (line.sliderUserBounds) {
     if (!isFinite(line.sliderMin) || !isFinite(line.sliderMax)) line.sliderUserBounds = false;
   }
   if (!line.sliderUserBounds && line.sliderUserValue !== val) {
-    const span = Math.max(Math.abs(val) * 2, 10);
-    line.sliderMin = -span;
-    line.sliderMax = span;
+    if (val > 0) { line.sliderMin = 0; line.sliderMax = Math.max(val * 2.5, 10); }
+    else if (val < 0) { line.sliderMin = Math.min(val * 2.5, -10); line.sliderMax = 0; }
+    else { line.sliderMin = -10; line.sliderMax = 10; }
+  }
+  // Step from TYPED precision: 9.81 steps by 0.01, 9.79x10^7 by 10^5 -- the
+  // literal's last decimal place is the granularity the user cares about.
+  if (!line.sliderUserStep && line.sliderUserValue !== val) {
+    const pm = rhs.match(/^-?(\d*)\.?(\d*)(?:\*10\^\(?(-?\d+)\)?)?$/);
+    if (pm) {
+      const dec = (pm[2] || '').length;
+      const exp = pm[3] ? parseInt(pm[3], 10) : 0;
+      const st = Math.pow(10, exp - dec);
+      if (isFinite(st) && st > 0) line.sliderStep = st;
+    }
   }
   line.sliderUserValue = val;
   const min = isFinite(line.sliderMin) ? line.sliderMin : -10;
@@ -5878,6 +5891,7 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     lineObj.sliderMax = newMax;
     lineObj.sliderStep = newStep;
     lineObj.sliderUserBounds = true;
+    lineObj.sliderUserStep = true;
     recompute();
   }
   minBox.addEventListener('change', applyBounds);
@@ -7477,7 +7491,7 @@ function openPresentRow(line) {
       if (isFinite(mn)) dl.sliderMin = mn;
       if (isFinite(mx)) dl.sliderMax = mx;
       dl.sliderUserBounds = true;
-      if (isFinite(st) && st > 0) dl.sliderStep = st;
+      if (isFinite(st) && st > 0) { dl.sliderStep = st; dl.sliderUserStep = true; }
       recompute();
       syncRange();
       refresh();
