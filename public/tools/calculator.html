@@ -950,7 +950,9 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .mq-field .mq-arrow { padding: 0 0.35em; }
   /* predefined constants used in an input read as given values: a lighter grey
      than the definition echoes, so they contrast clearly with surrounding ink */
-  .mq-field .mq-const { color: var(--ink-dim); cursor: help; }
+  /* no cursor glyph over a constant: the pointer would cover the small symbol
+     being inspected, and the hover card is already showing */
+  .mq-field .mq-const { color: var(--ink-dim); cursor: none; }
   /* hover card describing a predefined constant (name, value, units) */
   #constTip {
     position: fixed; z-index: 70;
