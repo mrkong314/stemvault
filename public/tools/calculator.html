@@ -2086,7 +2086,8 @@ const SYMBOL_LIST = [
    `name` is the displayed/rendered formula (also rendered via KaTeX). */
 const FORMULA_LIST = [
   // Thermal
-  { name:'Q = mcT_{d}', cat:'Thermal', kw:'heat, specific heat capacity, temperature change, mass, calorimetry, thermal energy, delta', latex:'Q=mcT_{d}' },
+  { name:'Q = mc\\Delta T', cat:'Thermal', kw:'heat, specific heat capacity, temperature change, mass, calorimetry, thermal energy, delta', latex:'Q=mc\\Delta T' },
+  { name:'Q = mc(T_f - T_i)', cat:'Thermal', kw:'heat, specific heat capacity, temperature change, final, initial, expanded, mass, calorimetry, thermal energy, delta', latex:'Q=mc\\left(T_{f}-T_{i}\\right)' },
   { name:'Q = mL_F', cat:'Thermal', kw:'latent heat, latent heat of fusion, melting, freezing, phase change, mass, heat', latex:'Q=mL_{F}' },
   { name:'Q = mL_V', cat:'Thermal', kw:'latent heat, latent heat of vaporisation, boiling, condensing, evaporation, phase change, mass, heat', latex:'Q=mL_{V}' },
   { name:'T_K = T_C + 273', cat:'Thermal', kw:'temperature, kelvin, celsius, absolute zero, conversion', latex:'T_{K}=T_{C}+273' },
@@ -2160,7 +2161,7 @@ const FORMULA_LIST = [
   { name:'V_1/V_2 = N_1/N_2 = I_2/I_1', cat:'Electricity', kw:'transformer, ideal transformer, turns ratio, step up, step down, primary, secondary, voltage, current, generation', latex:'\\frac{V_{1}}{V_{2}}=\\frac{N_{1}}{N_{2}}=\\frac{I_{2}}{I_{1}}' },
   { name:'V_{RMS} = V_p/\\sqrt2', cat:'Electricity', kw:'rms, root mean square, ac voltage, peak voltage, alternating current, generation', latex:'V_{RMS}=\\frac{V_{p}}{\\sqrt{2}}' },
   { name:'I_{RMS} = I_p/\\sqrt2', cat:'Electricity', kw:'rms, root mean square, ac current, peak current, alternating current, generation', latex:'I_{RMS}=\\frac{I_{p}}{\\sqrt{2}}' },
-  { name:'\\varepsilon = -N \\Phi_{d}/t', cat:'Electricity', kw:'faraday, lenz, emf, induced voltage, magnetic flux, flux, turns, rate of change, generation, delta', latex:'\\varepsilon=-N\\frac{\\Phi_{d}}{t}' },
+  { name:'\\varepsilon = -N\\Delta\\Phi_B/\\Delta t', cat:'Electricity', kw:'faraday, lenz, emf, induced voltage, magnetic flux, flux, turns, rate of change, generation, delta', latex:'\\varepsilon=-N\\frac{\\Delta\\Phi_{B}}{\\Delta t}' },
   { name:'\\Phi_B = B_\\perp A', cat:'Electricity', kw:'magnetic flux, flux, area, faraday, generation', latex:'\\Phi_{B}=B_{\\perp}A' },
   { name:'V_{drop} = I_{line} R_{line}', cat:'Electricity', kw:'transmission, voltage drop, power lines, line current, line resistance, generation', latex:'V_{drop}=I_{line}R_{line}' },
   { name:'P_{loss} = I_{line}^2 R_{line}', cat:'Electricity', kw:'transmission, power loss, power lines, line current, line resistance, heat loss, generation', latex:'P_{loss}=I_{line}^{2}R_{line}' },
@@ -2412,6 +2413,7 @@ function tokenize(s) {
       }
       let outName = name;
       if (name === 'E') outName = 'E_usr';
+      else if (name === 'Δt') outName = 't';   // elapsed time: Δt IS t
       toks.push({ t:'name', v:outName, display:name, fn:false }); i = j; continue;
     }
     if (c === '(') { toks.push({ t:'lparen', v:c }); i++; continue; }
@@ -3865,7 +3867,10 @@ function tagSolveTargets(field, targetName) {
     container.querySelectorAll('var:not(.mq-operator-name)').forEach(v => {
       if (v.closest('.mq-sub, .mq-sup')) return;
       const s = sig(v);
-      if (s.base === target.base && s.sub === target.sub) s.els.forEach(el => el.classList.add('mq-solve-target'));
+      const baseMatch = s.base === target.base ||
+        // Δt is the same variable as t, so either spelling matches the other
+        (!s.sub && !target.sub && ((s.base === 'Δt' && target.base === 't') || (s.base === 't' && target.base === 'Δt')));
+      if (baseMatch && s.sub === target.sub) s.els.forEach(el => el.classList.add('mq-solve-target'));
     });
   };
   // find operator-name runs spelling solve/cSolve followed by a bracket group
@@ -4647,7 +4652,7 @@ window.addEventListener('keydown', (e) => {
     const n = subjHintVars.length; if (!n) return;
     subjActiveIdx = (subjActiveIdx + (e.key === 'ArrowDown' ? 1 : -1) + n) % n;
     highlightSubjRows();
-  } else if (e.key === 'Enter') {
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
     e.preventDefault(); e.stopImmediatePropagation();
     pickSubject(subjHintVars[subjActiveIdx]);
   } else if (e.key === 'Escape') {
