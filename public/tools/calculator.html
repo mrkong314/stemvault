@@ -901,9 +901,11 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     font-style: normal; text-align: left;
   }
   #fnHint .fn-subj-row.active { background: rgba(10,132,255,0.14); color: var(--accent); }
-  /* metric-prefix rows: name left, power right */
-  #fnHint.prefix-mode .fn-subj-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.8rem; }
-  #fnHint .pfx-pow { opacity: 0.72; font-size: 0.85em; }
+  /* metric-prefix rows: name | symbol | power */
+  #fnHint.prefix-mode .fn-subj-row { display: flex; align-items: baseline; gap: 0.7rem; }
+  #fnHint .pfx-name { flex: 1 1 auto; }
+  #fnHint .pfx-sym { flex: 0 0 1.1em; text-align: center; font-weight: 600; }
+  #fnHint .pfx-pow { flex: 0 0 auto; opacity: 0.72; font-size: 0.85em; }
   /* the visible filter typed into the prefix dropdown */
   #fnHint .pfx-search {
     font-family: inherit; font-style: normal; font-size: 0.72rem;
@@ -4394,6 +4396,17 @@ function focusLineSafe(lineObj) {
 }
 function totalLines() { return folders.reduce((n,f) => n + f.lines.length, 0); }
 
+/* If the caret sits in an EMPTY fraction numerator (nothing was pulled in when
+   "/" was typed), hop to the denominator: the next number typed belongs there. */
+function hopToDenomIfEmptyNumerator(mq, fieldEl) {
+  const cur = fieldEl.querySelector('.mq-cursor');
+  const numBlock = cur && cur.closest('.mq-numerator');
+  if (!numBlock) return;
+  const hasContent = [...numBlock.querySelectorAll('*')].some(el =>
+    !el.classList.contains('mq-cursor') && el.textContent.replace(/[​\s]/g, '') !== '');
+  if (!hasContent) mq.keystroke('Down');
+}
+
 /* After a fraction is formed, remove parentheses that wrap an ENTIRE numerator
    or denominator -- the fraction bar already groups them, so "(25x10^3)/3"
    should display as the bare fraction. Operates on the field latex, rewrites
@@ -4807,13 +4820,13 @@ function renderSubjectDropdown(line, pure) {
    is passive until an arrow key engages it (so digits and minus type normally
    and Enter keeps meaning "new line" until a prefix is highlighted). */
 const SCI_PREFIXES = [
-  { name: 'nano',  exp: '-9' },
-  { name: 'micro', exp: '-6' },
-  { name: 'milli', exp: '-3' },
-  { name: 'centi', exp: '-2' },
-  { name: 'kilo',  exp: '3'  },
-  { name: 'mega',  exp: '6'  },
-  { name: 'giga',  exp: '9'  },
+  { name: 'nano',  sym: 'n',      exp: '-9' },
+  { name: 'micro', sym: 'µ', exp: '-6' },
+  { name: 'milli', sym: 'm',      exp: '-3' },
+  { name: 'centi', sym: 'c',      exp: '-2' },
+  { name: 'kilo',  sym: 'k',      exp: '3'  },
+  { name: 'mega',  sym: 'M',      exp: '6'  },
+  { name: 'giga',  sym: 'G',      exp: '9'  },
 ];
 let prefixLine = null, prefixIdx = -1, prefixKey = '', prefixSuppressKey = '';
 let prefixSearch = '', prefixItems = [];
@@ -4871,10 +4884,11 @@ function renderPrefixDropdown(line) {
   prefixItems.forEach((p, i) => {
     const row = document.createElement('div');
     row.className = 'fn-subj-row' + (i === prefixIdx ? ' active' : '');
-    const nm = document.createElement('span'); nm.textContent = p.name;
+    const nm = document.createElement('span'); nm.className = 'pfx-name'; nm.textContent = p.name;
+    const sy = document.createElement('span'); sy.className = 'pfx-sym'; sy.textContent = p.sym;
     const pw = document.createElement('span'); pw.className = 'pfx-pow';
     try { katex.render('\\times10^{' + p.exp + '}', pw, { throwOnError: false }); } catch (e) { pw.textContent = 'x10^' + p.exp; }
-    row.appendChild(nm); row.appendChild(pw);
+    row.appendChild(nm); row.appendChild(sy); row.appendChild(pw);
     row.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); prefixIdx = i; pickPrefix(p); });
     row.addEventListener('mouseenter', () => { prefixIdx = i; highlightPrefixRows(); });
     fnHintEl.appendChild(row);
@@ -5296,14 +5310,32 @@ function createLine(folder, afterLine = null, initialLatex = '') {
       if (breakOut) {
         e.preventDefault(); e.stopPropagation();
         mq.keystroke('Right');                 // exit the exponent first
-        if (e.key === '/') { mq.typedText('/'); stripFracParens(mq); }
+        if (e.key === '/') { mq.typedText('/'); stripFracParens(mq); hopToDenomIfEmptyNumerator(mq, fieldEl); }
         else mq.typedText(e.key);               // + - =
         recompute(); return;
       }
     }
-    // keyboard "/" (not breaking out) builds a fraction; strip wrapping parens
+    // "/" pressed LEFT of a number (23*|8): the number to the right becomes the
+    // denominator, numerator left empty with the caret in it
     if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      setTimeout(() => stripFracParens(mq), 0);
+      const cur2 = fieldEl.querySelector('.mq-cursor');
+      let el = cur2 && cur2.nextElementSibling, num = '';
+      while (el && el.childElementCount === 0 && /^[0-9.]$/.test(el.textContent)) { num += el.textContent; el = el.nextElementSibling; }
+      if (num) {
+        e.preventDefault(); e.stopPropagation();
+        for (let i = 0; i < num.length; i++) mq.keystroke('Del');
+        mq.cmd('\\frac');            // caret lands in the empty numerator
+        mq.keystroke('Down');        // fill the denominator with the number
+        mq.typedText(num);
+        mq.keystroke('Up');          // caret back in the numerator, untouched
+        recompute(); return;
+      }
+    }
+    // keyboard "/" (not breaking out) builds a fraction; strip wrapping parens.
+    // When nothing was pulled into the numerator, the caret hops to the
+    // denominator so the next typed number lands there (23* /8 -> 23×□/8).
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      setTimeout(() => { stripFracParens(mq); hopToDenomIfEmptyNumerator(mq, fieldEl); }, 0);
     }
     // keyboard ")" can auto-grow a \left( back across an "="; pull it forward so
     // the bracket holds only the expression to the right of the equals.
