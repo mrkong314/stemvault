@@ -3427,21 +3427,18 @@ function exactLatex(value) {
     const parts = arr.map(el => { const inner = exactLatex(el); return inner === null ? (decimalLatex(el) || String(el)) : inner; });
     return '\\left[' + parts.join(',\\ ') + '\\right]';
   }
-  // complex numbers in Exact mode -> Euler/polar form  r·e^{iθ}.  The angle is
-  // ALWAYS in radians (e^{iθ} is radians-based) regardless of the deg/rad setting.
-  // r and θ each use an exact real form where possible (integer/surd/fraction, or
-  // π-multiples for θ), falling back to decimal.
+  // complex numbers in Exact mode -> rectangular a + bi with each part exact
+  // where possible (integer/surd/fraction), falling back to decimal parts.
+  // polar() still returns its [r, theta] list of reals, so an explicit
+  // ->polar conversion is untouched by this.
   if (value && typeof value === 'object' && typeof value.re === 'number' && typeof value.im === 'number') {
     const re = value.re, im = value.im;
     if (Math.abs(im) < 1e-12) return exactLatex(re);          // purely real -> normal exact
-    const snap = (x) => { const k = Math.round(x); return Math.abs(x - k) < 1e-9 ? k : x; };
-    const r = snap(Math.hypot(re, im));
-    const theta = Math.atan2(im, re);                          // radians (always)
-    const rTex = exactLatex(r) ?? decimalLatex(r) ?? String(r);
-    // θ = 0 would be purely real (handled above); θ = exact value where possible
-    const thetaTex = exactLatex(theta) ?? decimalLatex(theta) ?? String(theta);
-    // parenthesise the exponent so a compound angle reads clearly: e^{i(3π/4)}
-    return rTex + ' e^{i\\left(' + thetaTex + '\\right)}';
+    const part = (x) => exactLatex(x) ?? decimalLatex(x) ?? String(x);
+    const imAbs = Math.abs(im);
+    const imTex = (Math.abs(imAbs - 1) < 1e-12 ? '' : part(imAbs)) + 'i';
+    if (Math.abs(re) < 1e-12) return (im < 0 ? '-' : '') + imTex;   // purely imaginary
+    return part(re) + (im < 0 ? '-' : '+') + imTex;
   }
   if (typeof value !== 'number' || !isFinite(value)) return null;
   if (Number.isInteger(value)) {
