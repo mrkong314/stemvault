@@ -5890,6 +5890,7 @@ function createLine(folder, afterLine = null, initialLatex = '') {
   sliderBtn.addEventListener('click', () => {
     lineObj.lineEl.classList.toggle('slider-shown');
     if (typeof alignIdx === 'function') alignIdx(lineObj);
+    recompute();   // sparklines on every driven row appear/retire immediately
   });
   attachDrag(handle, lineObj, 'line');
 
@@ -7237,9 +7238,10 @@ function openPresentRow(line) {
     };
     row.appendChild(inp);
     const hasAns = srcLine.resultEl && (srcLine.resultEl.textContent.trim() !== '' || srcLine.resultEl.children.length > 0);
+    let ans = null;
     if (hasAns) {
       const wrap = document.createElement('span'); wrap.className = 'pr-ans';
-      const ans = document.createElement('span'); ans.className = 'pr-ans-val';
+      ans = document.createElement('span'); ans.className = 'pr-ans-val';
       ans.appendChild(srcLine.resultEl.cloneNode(true));
       ans.title = 'Click to hide';
       ans.addEventListener('click', () => wrap.classList.add('pr-hidden'));
@@ -7247,26 +7249,38 @@ function openPresentRow(line) {
       pill.addEventListener('click', () => wrap.classList.remove('pr-hidden'));
       wrap.appendChild(ans); wrap.appendChild(pill);
       row.appendChild(wrap);
-      ansRefs.push({ srcLine, ans, updIn });
-    } else {
-      ansRefs.push({ srcLine, ans: null, updIn });
     }
+    // supporting rows carry their own mini sparkline when relevant
+    let updSpark = () => {};
+    if (!big) {
+      const sparkSpan = document.createElement('span'); sparkSpan.className = 'line-spark pr-rowspark';
+      row.appendChild(sparkSpan);
+      updSpark = () => {
+        const sd = srcLine._sparkData;
+        sparkSpan.innerHTML = sd ? (sparkSVG(sd, { W: 150, H: 44, fsz: 7 }) || '') : '';
+      };
+      updSpark();
+    }
+    ansRefs.push({ srcLine, ans, updIn, updSpark });
     rowByLine.set(srcLine, row);
     return row;
   };
 
   body.appendChild(addRow(line, true));
 
-  // large plot when the row carries a sparkline; kept live under slider drags
-  let plotDiv = null;
-  if (line._sparkData) {
-    const svg = sparkSVG(line._sparkData, BIG);
-    if (svg) {
-      plotDiv = document.createElement('div'); plotDiv.className = 'pr-plot';
-      plotDiv.innerHTML = svg;
-      body.appendChild(plotDiv);
-    }
-  }
+  // the large plot lives in a persistent container: it appears whenever the
+  // focused row's expression gains sparkline data (a relevant slider opened),
+  // and retires when that data goes away
+  const plotDiv = document.createElement('div');
+  plotDiv.className = 'pr-plot'; plotDiv.style.display = 'none';
+  body.appendChild(plotDiv);
+  const updPlot = () => {
+    const sd = line._sparkData;
+    const s = sd ? sparkSVG(sd, BIG) : null;
+    if (s) { plotDiv.innerHTML = s; plotDiv.style.display = ''; }
+    else { plotDiv.style.display = 'none'; }
+  };
+  updPlot();
 
   // what this line uses: variables (simple or calculated) and constants
   let expr = '';
@@ -7328,11 +7342,9 @@ function openPresentRow(line) {
     ansRefs.forEach(ref => {
       ref.updIn();
       if (ref.ans) { ref.ans.innerHTML = ''; ref.ans.appendChild(ref.srcLine.resultEl.cloneNode(true)); }
+      ref.updSpark();
     });
-    if (plotDiv && line._sparkData) {
-      const s = sparkSVG(line._sparkData, BIG);
-      if (s) plotDiv.innerHTML = s;
-    }
+    updPlot();
     sliderLabelUpdaters.forEach(f => f());
   };
   const sliderDefs = [];
@@ -7369,7 +7381,16 @@ function openPresentRow(line) {
       const tog = document.createElement('button');
       tog.className = 'pr-slide-btn'; tog.title = 'Toggle slider';
       tog.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="9" x2="21" y2="9"/><circle cx="9" cy="9" r="3" fill="var(--surface)"/><line x1="3" y1="16" x2="21" y2="16"/><circle cx="15" cy="16" r="3" fill="var(--surface)"/></svg>';
-      tog.addEventListener('click', (e) => { e.stopPropagation(); wrap.classList.toggle('pr-open'); });
+      tog.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = !wrap.classList.contains('pr-open');
+        wrap.classList.toggle('pr-open', open);
+        // shared state with the main view: opening here opens there, and any
+        // relevant plots (big and per-row) appear via the recompute
+        dl.lineEl.classList.toggle('slider-shown', open);
+        recompute();
+        refresh();
+      });
       host.appendChild(tog);
       host.insertAdjacentElement('afterend', wrap);
     } else body.appendChild(wrap);
