@@ -7453,12 +7453,9 @@ function openPresentRow(line) {
   };
   updPlot();
 
-  // what this line uses: variables (simple or calculated) and constants
-  let expr = '';
-  try { expr = prepareExpr(latex); } catch (e) {}
-  let refs = [], phys = [];
-  try { refs = referencedVars(expr); } catch (e) {}
-  try { phys = referencedPhys(expr); } catch (e) {}
+  // what this line uses: variables (simple or calculated) and constants,
+  // followed transitively — a referenced definition that itself relies on
+  // other rows (a solve fed by a value defined elsewhere) pulls those in too
   const NAME_RE = /^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)/;
   const findDef = (name) => {
     for (const l of line.folder.lines) {
@@ -7481,15 +7478,50 @@ function openPresentRow(line) {
   };
   const used = document.createElement('div'); used.className = 'pr-used';
   let anyUsed = false;
-  refs.forEach(v => {
-    const def = findDef(v);
-    if (!def) return;
-    anyUsed = true;
-    used.appendChild(addRow(def, false));   // simple defs echo quietly; calculated show their working
-  });
-  phys.forEach(p => {
-    const defd = (line.folder.definedNamesList || []).includes(p);
-    if (defd) { const dl = findDef(p); if (dl) { used.appendChild(addRow(dl, false)); anyUsed = true; } return; }
+  const lineDeps = (l) => {
+    let e2 = '';
+    try { e2 = prepareExpr(l.mq.latex()); } catch (e3) {}
+    let rv = [], pp = [];
+    try { rv = referencedVars(e2); } catch (e3) {}
+    try { pp = referencedPhys(e2); } catch (e3) {}
+    const free = l.freeNames || [];
+    return { rv, pp: pp.filter(p => !free.includes(p)) };
+  };
+  // breadth-first from the focus row: direct dependencies first, then the
+  // rows those depend on; constants gather across every level and list last
+  const visited = new Set([line]);
+  const constNames = [];
+  const seenConst = new Set();
+  const queue = [line];
+  while (queue.length) {
+    const cur = queue.shift();
+    const { rv, pp } = lineDeps(cur);
+    rv.forEach(v => {
+      const def = findDef(v);
+      if (!def || visited.has(def)) return;
+      visited.add(def);
+      anyUsed = true;
+      used.appendChild(addRow(def, false));   // simple defs echo quietly; calculated show their working
+      queue.push(def);
+    });
+    pp.forEach(p => {
+      if (seenConst.has(p)) return;
+      seenConst.add(p);
+      const defd = (line.folder.definedNamesList || []).includes(p);
+      if (defd) {
+        const dl = findDef(p);
+        if (dl && !visited.has(dl)) {
+          visited.add(dl);
+          used.appendChild(addRow(dl, false));
+          anyUsed = true;
+          queue.push(dl);
+        }
+        return;
+      }
+      constNames.push(p);
+    });
+  }
+  constNames.forEach(p => {
     const info = PHYS_INFO[p]; if (!info) return;
     anyUsed = true;
     const row = document.createElement('div'); row.className = 'pr-row pr-sub pr-const';
@@ -7525,9 +7557,7 @@ function openPresentRow(line) {
       seenDef.add(l); sliderDefs.push(l);
     }
   };
-  considerSlider(line);
-  refs.forEach(v => considerSlider(findDef(v)));
-  phys.forEach(p => { if ((line.folder.definedNamesList || []).includes(p)) considerSlider(findDef(p)); });
+  visited.forEach(l => considerSlider(l));   // the focus row plus every dependency it pulled in
   // each slider sits directly under its own row. Like the main view: a toggle
   // button appears on row hover, the slider shows once clicked -- or straight
   // away when that line's panel was already open in the main view.
