@@ -968,6 +968,15 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     color: var(--ink-dim);
     cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="20" viewBox="0 0 14 20"><path d="M1 1 L1 15.5 L4.6 12.2 L7.1 18 L9.6 16.9 L7.1 11.2 L12 11 Z" fill="rgba(255,255,255,0.35)" stroke="rgba(40,40,45,0.45)" stroke-width="1.1"/></svg>') 1 1, auto;
   }
+  /* section-defined variables at a point of use read in the definition-echo
+     dark grey: darker than constants, quieter than unknowns, and hoverable
+     (same see-through pointer) to reveal the row that defines them */
+  .mq-field .mq-varref {
+    color: var(--def-echo);
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="20" viewBox="0 0 14 20"><path d="M1 1 L1 15.5 L4.6 12.2 L7.1 18 L9.6 16.9 L7.1 11.2 L12 11 Z" fill="rgba(255,255,255,0.35)" stroke="rgba(40,40,45,0.45)" stroke-width="1.1"/></svg>') 1 1, auto;
+  }
+  /* hovering a used variable softly lights its defining row */
+  .line.ref-glow { background: rgba(10,132,255,0.08); border-radius: 10px; }
   /* hover card describing a predefined constant (name, value, units) */
   #constTip {
     position: fixed; z-index: 70;
@@ -980,6 +989,10 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   }
   #constTip .ct-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); margin-bottom: 0.12rem; }
   #constTip .ct-eq { font-size: 0.92rem; }
+  #constTip .ct-val { margin-top: 0.1rem; }
+  /* the cloned answer keeps the tab's colour conventions inside the card */
+  #constTip .ct-val .result { color: var(--accent); }
+  #constTip .ct-val .result.assign-echo { color: var(--def-echo); }
   #constTip .ct-action {
     display: inline-block; margin-top: 0.35rem; padding: 0.18rem 0.6rem;
     border: 1px solid var(--accent); border-radius: 7px;
@@ -4274,6 +4287,70 @@ function tagSolveTargets(field, targetName) {
   }
 }
 
+/* The row in `folder` that defines `name`: a leading assignment, a trailing
+   assignment, or any solve form whose subject it is. `exclude` is never
+   returned — a row is not its own reference. */
+function findDefRow(folder, name, exclude) {
+  const NAME_RE = /^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)/;
+  for (const l of folder.lines) {
+    if (l.isSystem || l === exclude) continue;
+    if (l.solveTargetName === name) return l;
+    try {
+      const e2 = prepareExpr(l.mq.latex());
+      const m = e2.match(NAME_RE);
+      if (m && m[1] === name) return l;
+      const t = trailingAssign(e2);
+      if (t && t.name === name) return l;
+      const ps = pureSolveCall(e2);
+      if (ps && ps.varName) {
+        const flat = ps.varName.replace(/[()\s]/g, '');
+        const rb = flat.match(/^(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)(?:\/c)?$/);
+        if (rb && rb[1] === name) return l;
+      }
+    } catch (e3) {}
+  }
+  return null;
+}
+
+/* Tag occurrences of section-defined variables where they are USED — never in
+   the row that defines them. Hovering one shows a card with the defining row
+   and softly highlights that row in place. */
+function tagVarRefs(field, line) {
+  const root = field && field.querySelector('.mq-root-block');
+  if (!root) return;
+  root.querySelectorAll('.mq-varref').forEach(el => { el.classList.remove('mq-varref'); delete el.dataset.varName; });
+  const folder = line && line.folder;
+  if (!folder) return;
+  const defined = new Set(folder.definedNamesList || []);
+  if (!defined.size) return;
+  const defCache = new Map();
+  const defOf = (n) => {
+    if (!defCache.has(n)) defCache.set(n, findDefRow(folder, n, null));
+    return defCache.get(n);
+  };
+  root.querySelectorAll('var:not(.mq-operator-name)').forEach(v => {
+    if (v.closest('.mq-sub, .mq-sup')) return;
+    if (v.classList.contains('mq-solve-target')) return;
+    let name = v.textContent, els = [v];
+    // a Δ prefix renders as a classless <span>Δ</span> before the letter
+    const pv = v.previousElementSibling;
+    if (pv && pv.tagName === 'SPAN' && pv.childElementCount === 0 && pv.textContent === 'Δ') { name = 'Δ' + name; els.unshift(pv); }
+    const next = v.nextElementSibling;
+    if (next && next.classList && next.classList.contains('mq-supsub')) {
+      const sub = next.querySelector(':scope > .mq-sub');
+      const sup = next.querySelector(':scope > .mq-sup');
+      if (sub && !sup) { name = name + '_' + sub.textContent; els.push(next); }
+    }
+    const key = defined.has(name) ? name :
+      (name === 'Δt' && defined.has('t')) ? 't' :
+      (name === 't' && defined.has('Δt')) ? 'Δt' : null;
+    if (!key) return;
+    const def = defOf(key);
+    if (!def || def === line) return;   // uses only
+    els.forEach(el => { el.classList.add('mq-varref'); el.dataset.varName = key; });
+  });
+}
+
 /* Render predefined constants used in an input (h_J, c, q_e, ...) in a quiet
    dark grey: their values are known, so they read as given, not unknown. A
    constant the user redefines in the section keeps full ink. */
@@ -4328,9 +4405,14 @@ const constTip = document.createElement('div');
 constTip.id = 'constTip'; constTip.hidden = true;
 document.body.appendChild(constTip);
 let constTipHideT = null, constTipFolder = null, constTipName = null;
+/* hovering a used variable softly lights the row that defines it */
+let varTipDefLine = null;
+function clearRefGlow() {
+  if (varTipDefLine) { try { varTipDefLine.lineEl.classList.remove('ref-glow'); } catch (e) {} varTipDefLine = null; }
+}
 function scheduleConstTipHide() {
   clearTimeout(constTipHideT);
-  constTipHideT = setTimeout(() => { constTip.hidden = true; }, 250);
+  constTipHideT = setTimeout(() => { constTip.hidden = true; clearRefGlow(); }, 250);
 }
 /* click-through from the hover card: create (or jump to) a row in the hovered
    line's section that redefines the constant, seeded with its current value */
@@ -4353,6 +4435,7 @@ function redefineConstant(folder, name) {
   line.mq.focus(); line.mq.moveToRightEnd();
 }
 function showConstTip(t) {
+  clearRefGlow();
   const name = t.dataset.constName, info = PHYS_INFO[name];
   if (!info) { constTip.hidden = true; return; }
   const row = t.closest('.line');
@@ -4384,26 +4467,67 @@ function showConstTip(t) {
   constTip.style.left = left + 'px';
   constTip.style.top = top + 'px';
 }
+/* the same card, for a section-defined variable at a point of USE: shows the
+   defining row (and its value when that adds anything) and lights that row */
+function showVarTip(t) {
+  const name = t.dataset.varName;
+  const row = t.closest('.line');
+  const lineObj = row ? lineObjFromEl(row) : null;
+  const folder = lineObj && lineObj.folder;
+  const def = folder ? findDefRow(folder, name, null) : null;
+  if (!def || def === lineObj) { constTip.hidden = true; clearRefGlow(); return; }
+  clearRefGlow();
+  varTipDefLine = def;
+  try { def.lineEl.classList.add('ref-glow'); } catch (e) {}
+  constTip.innerHTML = '';
+  const lab = document.createElement('div'); lab.className = 'ct-label'; lab.textContent = 'Defined in this section';
+  const eq = document.createElement('div'); eq.className = 'ct-eq';
+  let defLx = ''; try { defLx = def.mq.latex(); } catch (e) {}
+  try { katex.render(defLx, eq, { throwOnError: false }); } catch (e) { eq.textContent = defLx; }
+  constTip.appendChild(lab); constTip.appendChild(eq);
+  // the defining row's rendered answer, unless the definition already reads
+  // as name = literal (then the answer only repeats it)
+  let simple = false;
+  try {
+    const pe = prepareExpr(defLx);
+    simple = pe.split('=').length === 2 && /^[^=]*=\s*[-+0-9.*^()e\s]+$/.test(pe);
+  } catch (e) {}
+  const hasAns = def.resultEl && (def.resultEl.textContent.trim() !== '' || def.resultEl.children.length > 0);
+  if (!simple && hasAns) {
+    const vq = document.createElement('div'); vq.className = 'ct-eq ct-val';
+    vq.appendChild(def.resultEl.cloneNode(true));
+    constTip.appendChild(vq);
+  }
+  constTip.hidden = false;
+  const r = t.getBoundingClientRect();
+  const tw = constTip.offsetWidth, th = constTip.offsetHeight;
+  let left = Math.min(Math.max(8, r.left - 10), window.innerWidth - tw - 8);
+  let top = r.top - th - 6;
+  if (top < 8) top = r.bottom + 6;
+  constTip.style.left = left + 'px';
+  constTip.style.top = top + 'px';
+}
 document.addEventListener('mouseover', (e) => {
   if (e.target.closest && e.target.closest('#constTip')) { clearTimeout(constTipHideT); return; }
-  const t = e.target.closest && e.target.closest('.mq-const');
-  if (!t || !t.dataset.constName) { if (!constTip.hidden) scheduleConstTipHide(); return; }
+  const t = e.target.closest && e.target.closest('.mq-const, .mq-varref');
+  if (!t) { if (!constTip.hidden || varTipDefLine) scheduleConstTipHide(); return; }
   clearTimeout(constTipHideT);
-  showConstTip(t);
+  if (t.dataset.constName) showConstTip(t);
+  else if (t.dataset.varName) showVarTip(t);
 });
 /* touch: long-press a greyed constant for the same card (hover never fires) */
 let constLPTimer = null;
 document.addEventListener('touchstart', (e) => {
-  const t = e.target.closest && e.target.closest('.mq-const');
-  if (!t || !t.dataset.constName) {
-    if (!constTip.hidden && !(e.target.closest && e.target.closest('#constTip'))) constTip.hidden = true;
+  const t = e.target.closest && e.target.closest('.mq-const, .mq-varref');
+  if (!t) {
+    if (!constTip.hidden && !(e.target.closest && e.target.closest('#constTip'))) { constTip.hidden = true; clearRefGlow(); }
     return;
   }
   clearTimeout(constLPTimer);
-  constLPTimer = setTimeout(() => { showConstTip(t); }, 450);
+  constLPTimer = setTimeout(() => { t.dataset.constName ? showConstTip(t) : showVarTip(t); }, 450);
 }, { passive: true });
 document.addEventListener('touchend', (e) => {
-  if (!(e.target.closest && e.target.closest('.mq-const'))) return;
+  if (!(e.target.closest && e.target.closest('.mq-const, .mq-varref'))) return;
   clearTimeout(constLPTimer);
 }, { passive: true });
 document.addEventListener('touchmove', () => clearTimeout(constLPTimer), { passive: true });
@@ -4418,6 +4542,7 @@ function updateLineLayout(line) {
   tagCommas(field);
   tagSolveTargets(field, line.solveTargetName);
   tagConstants(field, line);
+  tagVarRefs(field, line);
   const measure = () => {
     const hasResult = res.textContent.trim() !== '' || res.children.length > 0;
     if (hasResult) {
@@ -7377,6 +7502,7 @@ function openPresentRow(line) {
         tagCommas(fEl);
         tagSolveTargets(fEl, srcLine.solveTargetName);
         tagConstants(fEl, srcLine);
+        tagVarRefs(fEl, srcLine);
       } catch (e2) {}
     };
     decorate();
@@ -7456,26 +7582,7 @@ function openPresentRow(line) {
   // what this line uses: variables (simple or calculated) and constants,
   // followed transitively — a referenced definition that itself relies on
   // other rows (a solve fed by a value defined elsewhere) pulls those in too
-  const NAME_RE = /^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)/;
-  const findDef = (name) => {
-    for (const l of line.folder.lines) {
-      if (l.isSystem || l === line) continue;
-      try {
-        const e2 = prepareExpr(l.mq.latex());
-        const m = e2.match(NAME_RE);
-        if (m && m[1] === name) return l;
-        const t = trailingAssign(e2);
-        if (t && t.name === name) return l;
-        const ps = pureSolveCall(e2);
-        if (ps && ps.varName) {
-          const flat = ps.varName.replace(/[()\s]/g, '');
-          const rb = flat.match(/^(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)(?:\/c)?$/);
-          if (rb && rb[1] === name) return l;
-        }
-      } catch (e3) {}
-    }
-    return null;
-  };
+  const findDef = (name) => findDefRow(line.folder, name, line);
   const used = document.createElement('div'); used.className = 'pr-used';
   let anyUsed = false;
   const lineDeps = (l) => {
