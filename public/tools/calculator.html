@@ -1027,6 +1027,8 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   #presentOverlay .pr-in { flex: 1 1 auto; }
   #presentOverlay .pr-ans-val { color: var(--accent); font-weight: 500; cursor: pointer; }
   #presentOverlay .pr-ans-val .result { color: var(--accent); }
+  /* answers keep the tab's colour conventions: definition echoes stay grey */
+  #presentOverlay .pr-ans-val .result.assign-echo { color: var(--def-echo); }
   #presentOverlay .pr-pill {
     display: none; border: 1.5px dashed var(--accent); color: var(--accent);
     border-radius: 999px; padding: 0.15em 0.9em; font-size: 0.5em; font-weight: 600;
@@ -1036,6 +1038,11 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   #presentOverlay .pr-ans.pr-hidden .pr-pill { display: inline-block; }
   /* single-row focus: supporting rows smaller, plot centred, constants grey */
   #presentOverlay .pr-body.pr-focus { max-width: 60rem; margin: 0 auto; }
+  /* the focused row stands out on its own tinted card */
+  #presentOverlay .pr-body.pr-focus > .pr-row:not(.pr-sub) {
+    background: var(--focus-bg); border-radius: 16px; border-bottom: none;
+    padding: 0.5em 0.8em; margin-bottom: 0.4em;
+  }
   #presentOverlay .pr-row.pr-sub { font-size: 0.62em; border-bottom: none; padding: 0.25em 0; }
   #presentOverlay .pr-plot { display: flex; justify-content: center; padding: 0.8em 0 0.4em; }
   #presentOverlay .pr-plot svg { border: 1px solid var(--rule); border-radius: 12px; background: var(--key-bg); max-width: 100%; }
