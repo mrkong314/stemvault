@@ -6999,6 +6999,18 @@ document.addEventListener('keydown', (e) => {
     navigateLine(focusedLineObj, e.shiftKey ? -1 : +1);
     return;
   }
+  // Return with nothing focused (fresh tab, or after clicking empty space)
+  // drops into the bottom row of the tab
+  if (e.key === 'Enter' && !mod && !e.shiftKey && !e.altKey && !keyTargetIsTyping() &&
+      !selectedLines.size &&
+      !(document.activeElement && document.activeElement.tagName === 'BUTTON')) {
+    const all = flatLines();
+    if (all.length) {
+      e.preventDefault();
+      focusNavTarget({ kind: 'line', line: all[all.length - 1] });
+      return;
+    }
+  }
   // plain arrows with nothing focused: step between rows, across sections.
   // Resumes from the last-focused line; with no history, ArrowDown enters at
   // the top of the tab and ArrowUp at the bottom. When a field, input or note
