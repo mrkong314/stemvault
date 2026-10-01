@@ -3587,6 +3587,16 @@ function mathmlToLatex(text) {
   } catch (e) { return null; }
 }
 
+/* lazy BigNumber math instance: used only when a result overflows doubles */
+let MBIG = null;
+function bigMath() {
+  if (MBIG === null) {
+    try { MBIG = math.create(); MBIG.config({ number: 'BigNumber', precision: 24 }); }
+    catch (e) { MBIG = false; }
+  }
+  return MBIG || null;
+}
+
 function latexToPlain(valLatex, value) {
   if (valLatex == null) {
     if (typeof value === 'number' && isFinite(value)) return trimNum ? String(value) : String(value);
@@ -3634,8 +3644,34 @@ function renderResult(resEl, opts, value) {
     if (valLatex === null && opts.srcLatex) valLatex = cleanEchoLatex(opts.srcLatex);
   }
   if (valLatex === null) valLatex = decimalLatex(value);
-  // division by zero (1/0, γ at v = c, ...) reads as undefined, typeset upright
-  if (typeof value === 'number' && !isFinite(value)) valLatex = '\\text{undefined}';
+  // A non-finite double is either a genuine division by zero (undefined) or a
+  // finite value that overflowed the float range: re-evaluate with BigNumbers
+  // and, when the true value exists, show it as m×10^n.
+  if (typeof value === 'number' && !isFinite(value)) {
+    valLatex = '\\text{undefined}';
+    if (!isNaN(value) && opts.srcExpr) {
+      try {
+        const mb = bigMath();
+        if (mb) {
+          const bscope = {};
+          const sc = opts.scope || {};
+          for (const k in sc) {
+            const sv = sc[k];
+            if (typeof sv === 'number' && isFinite(sv)) bscope[k] = mb.bignumber(sv);
+            else if (typeof sv === 'function') bscope[k] = sv;
+          }
+          const bv = mb.evaluate(opts.srcExpr, bscope);
+          if (bv && bv.isBigNumber && bv.isFinite() && !bv.isNaN()) {
+            const ex = bv.e;
+            const mant = bv.div(mb.bignumber(10).pow(ex)).toSignificantDigits(6).toString();
+            valLatex = (mant === '1') ? '10^{' + ex + '}'
+                     : (mant === '-1') ? '-10^{' + ex + '}'
+                     : mant + '\\times10^{' + ex + '}';
+          }
+        }
+      } catch (e) {}
+    }
+  }
 
   // copy data: text/plain = LaTeX (calculator paste-back + LaTeX editors),
   // text/html = MathML (pastes into Word as a real, editable equation).
@@ -4098,7 +4134,7 @@ function recomputeImpl() {
             const eqAt = fullLatex.indexOf('=');
             rhsLatex = eqAt >= 0 ? fullLatex.slice(eqAt + 1) : fullLatex;
           }
-          renderResult(resEl, { prefixLatex: varToLatex(info.name) + ' =', srcLatex: rhsLatex, srcExpr: info.rhs }, value);
+          renderResult(resEl, { prefixLatex: varToLatex(info.name) + ' =', srcLatex: rhsLatex, srcExpr: info.rhs, scope }, value);
           // simple definition: a bare number, a predefined constant, or a
           // number times one (v = c, v = 0.5c) -- grey echo, smaller input
           const rhsTrim = (info.rhs || '').trim();
@@ -4114,7 +4150,7 @@ function recomputeImpl() {
         } else {
           value = evalExpr(info.expr, { ...scope });
           line.lastValue = value;
-          renderResult(resEl, { plainPrefix: '= ', srcLatex: fullLatex, srcExpr: info.expr }, value);
+          renderResult(resEl, { plainPrefix: '= ', srcLatex: fullLatex, srcExpr: info.expr, scope }, value);
         }
       } catch (err) {
         resEl.textContent = ''; // errors not shown
