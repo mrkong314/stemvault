@@ -4864,11 +4864,7 @@ function pickSubject(v) {
 function renderSubjectDropdown(line, pure) {
   let vars = [];
   try { vars = referencedVars(pure.eqText); } catch (e) {}
-  // when the equation involves the speed of light, offer each variable as a
-  // fraction of c too (v/c -- the usual relativity question)
-  try {
-    if (referencedPhys(pure.eqText).includes('c')) vars = vars.concat(vars.map(v => v + '/c'));
-  } catch (e) {}
+  try { vars = vars.concat(ratioCVars(pure.eqText, vars)); } catch (e) {}
   if (!vars.length) return false;
   const key = subjKeyFor(line);
   if (key === subjSuppressKey) return false;
@@ -6489,9 +6485,25 @@ function filterFormulas(q) {
 function formulaVars(f) {
   if (f._vars) return f._vars;
   let vars = [];
-  try { vars = referencedVars(prepareExpr(f.latex)); } catch (e) {}
+  try {
+    const expr = prepareExpr(f.latex);
+    vars = referencedVars(expr);
+    vars = vars.concat(ratioCVars(expr, vars));   // v/c where the equation divides by c
+  } catch (e) {}
   f._vars = vars;
   return vars;
+}
+
+/* variables that appear DIVIDED by the speed of light in a prepared
+   expression -- each is offered as an "X/c" ratio subject. Only the actual
+   ratio shapes count ((v)/(c), or squared), so γ in the Lorentz equation is
+   never offered as γ/c. */
+function ratioCVars(expr, vars) {
+  const out = [];
+  for (const v of vars) {
+    if (expr.includes('(' + v + ')/(c)') || expr.includes('(' + v + '^(2))/(c^(2))')) out.push(v + '/c');
+  }
+  return out;
 }
 /* solve() needs exactly one top-level '=' (chained forms like a=b=c can't). */
 function formulaSolvable(f) {
@@ -6610,7 +6622,7 @@ function renderSubjectChips() {
     const chip = document.createElement('span');
     chip.className = 'fml-chip' + (k === it.subjIdx ? ' on' : '');
     chip.dataset.k = k;
-    try { katex.render(varToLatex(v), chip, { throwOnError:false }); } catch (e) { chip.textContent = v; }
+    try { katex.render(subjectTex(v), chip, { throwOnError:false }); } catch (e) { chip.textContent = v; }
     c.appendChild(chip);
   });
   const hint = document.createElement('span'); hint.className = 'fml-subj-hint'; hint.textContent = 'Tab';
@@ -6633,7 +6645,7 @@ function chooseFormula(f, subject) {
   const mq = formulaTargetMQ || (formulaTargetLine && formulaTargetLine.mq);
   if (mq) {
     mq.focus();
-    if (subject) mq.write(f.latex + '\\Rightarrow ' + varToLatex(subject));
+    if (subject) mq.write(f.latex + '\\Rightarrow ' + subjectTex(subject));
     else mq.write(f.latex);
   }
   closeFormulaPicker();
