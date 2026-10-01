@@ -1021,9 +1021,6 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .line-spark svg { border: 1px solid var(--rule); border-radius: 7px; background: var(--line-hover); }
 
   /* presentation mode: entry button revealed on header hover */
-  #presentBtn { opacity: 0; transition: opacity 0.15s; }
-  header:hover #presentBtn, #presentBtn:focus-visible { opacity: 1; }
-  @media (hover: none) { #presentBtn { opacity: 0.6; } }
   #presentOverlay {
     position: fixed; inset: 0; z-index: 10002; overflow-y: auto;
     background: var(--bg, #f5f6f8); color: var(--ink);
@@ -1839,6 +1836,12 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .sc-ex {
     display: block; margin-top: 0.3rem; padding: 0.3rem 0.6rem;
     background: var(--surface); border-radius: 8px; font-size: 0.95em; overflow-x: auto;
+  }
+  .sc-ico {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.5em; height: 1.35em; vertical-align: -0.28em;
+    border: 1px solid var(--rule-strong); border-radius: 5px;
+    background: var(--surface); color: var(--ink-dim);
   }
   .sc-plot { display: flex; justify-content: center; padding: 0.5rem 0 0.2rem; }
   .sc-plot svg { border: 1px solid var(--rule); border-radius: 10px; background: var(--key-bg); max-width: 100%; }
@@ -7429,75 +7432,15 @@ document.addEventListener('click', () => { if (!settingsPopover.hidden) closeSet
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !settingsPopover.hidden) closeSettings(); });
 
 /* --- undo / redo --- */
-/* ---- presentation mode: full-screen enlarged view for screensharing ----
-   Every answer starts VISIBLE with a Hide toggle; hidden answers show a
-   dashed Show pill. The entry button lives in the header, revealed on hover. */
-const presentBtn = document.createElement('button');
-presentBtn.id = 'presentBtn'; presentBtn.className = 'hdr-gear';
-presentBtn.title = 'Present (full screen)'; presentBtn.setAttribute('aria-label', 'Present');
-presentBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
-(() => { const sw = document.querySelector('.settings-wrap'); if (sw) sw.parentNode.insertBefore(presentBtn, sw); })();
-
+/* ---- presentation: the single-row focus view (below) is the one
+   presentation surface; whole-tab mode was removed as it flattened
+   sections and lost granularity ---- */
 let presentFS = 1.7;   // rem; A-/A+ adjust
 let presentCleanup = null;
 function closePresent() {
   const ov = document.getElementById('presentOverlay'); if (ov) ov.remove();
   if (presentCleanup) { try { presentCleanup(); } catch (e) {} presentCleanup = null; }
 }
-function openPresent() {
-  closePresent();
-  const ov = document.createElement('div'); ov.id = 'presentOverlay';
-  const bar = document.createElement('div'); bar.className = 'pr-bar';
-  const mkBtn = (label, fn, cls) => {
-    const b = document.createElement('button'); b.className = 'pr-btn' + (cls ? ' ' + cls : '');
-    b.textContent = label; b.addEventListener('click', fn); return b;
-  };
-  const body = document.createElement('div'); body.className = 'pr-body';
-  const applyFS = () => { body.style.fontSize = presentFS + 'rem'; };
-  bar.appendChild(mkBtn('A−', () => { presentFS = Math.max(1.1, presentFS - 0.2); applyFS(); }));
-  bar.appendChild(mkBtn('A+', () => { presentFS = Math.min(3, presentFS + 0.2); applyFS(); }));
-  const spacer = document.createElement('span'); spacer.style.flex = '1 1 auto'; bar.appendChild(spacer);
-  const setAll = (show) => ov.querySelectorAll('.pr-ans').forEach(w => w.classList.toggle('pr-hidden', !show));
-  bar.appendChild(mkBtn('Hide all', () => setAll(false)));
-  bar.appendChild(mkBtn('Show all', () => setAll(true), 'pr-accent'));
-  bar.appendChild(mkBtn('×', closePresent, 'pr-close'));
-  ov.appendChild(bar);
-  folders.forEach(f => {
-    if (f.name && f.name.trim()) {
-      const h = document.createElement('div'); h.className = 'pr-section'; h.textContent = f.name;
-      body.appendChild(h);
-    }
-    f.lines.forEach(line => {
-      if (line.isSystem) return;
-      let latex = '';
-      try { latex = line.mq.latex(); } catch (e) {}
-      if (!latex.trim()) return;
-      const row = document.createElement('div'); row.className = 'pr-row';
-      const inp = document.createElement('span'); inp.className = 'pr-in';
-      try { katex.render(latex, inp, { throwOnError: false }); } catch (e) { inp.textContent = latex; }
-      row.appendChild(inp);
-      const hasAns = line.resultEl && (line.resultEl.textContent.trim() !== '' || line.resultEl.children.length > 0);
-      if (hasAns) {
-        const wrap = document.createElement('span'); wrap.className = 'pr-ans';   // visible by default
-        const ans = document.createElement('span'); ans.className = 'pr-ans-val';
-        ans.appendChild(line.resultEl.cloneNode(true));
-        ans.title = 'Click to hide';
-        ans.addEventListener('click', () => wrap.classList.add('pr-hidden'));
-        const pill = document.createElement('span'); pill.className = 'pr-pill'; pill.textContent = 'Show';
-        pill.addEventListener('click', () => wrap.classList.remove('pr-hidden'));
-        wrap.appendChild(ans); wrap.appendChild(pill);
-        row.appendChild(wrap);
-      }
-      body.appendChild(row);
-    });
-  });
-  applyFS();
-  ov.appendChild(body);
-  document.body.appendChild(ov);
-}
-presentBtn.addEventListener('click', (e) => { e.stopPropagation(); openPresent(); });
-
-/* (single-row focus presentation below attaches, then reflows its fields) */
 
 /* Single-row focus presentation: one line full screen -- its answer (shown by
    default, click to hide), the mini-plot drawn large when present, and every
@@ -8182,6 +8125,20 @@ function openShortcuts() {
   top.appendChild(title); top.appendChild(x); card.appendChild(top);
 
   const tex = (latex) => { const s = document.createElement('span'); try { katex.render(latex, s, { throwOnError: false }); } catch (e) { s.textContent = latex; } return s; };
+  // the guide shows the app's real colours: resolved from the current theme
+  // at open time, so dark mode renders its own greys
+  const rootCS = getComputedStyle(document.documentElement);
+  const C_ACC = (rootCS.getPropertyValue('--accent') || '#0a84ff').trim();
+  const C_DIM = (rootCS.getPropertyValue('--ink-dim') || '#86868b').trim();
+  const C_DEF = (rootCS.getPropertyValue('--def-echo') || '#5c5c61').trim();
+  const col = (c, s) => '\\textcolor{' + c + '}{' + s + '}';
+  // the app's own button icons, shown inline where a tip names one
+  const SC_ICONS = {
+    gear: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+    expand: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>',
+    slider: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="9" x2="21" y2="9"/><circle cx="9" cy="9" r="3" fill="var(--surface)"/><line x1="3" y1="16" x2="21" y2="16"/><circle cx="15" cy="16" r="3" fill="var(--surface)"/></svg>',
+    share: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>'
+  };
   const h = (t) => { const d = document.createElement('div'); d.className = 'sc-h'; d.textContent = t; card.appendChild(d); };
   const tip = (name, parts) => {
     const row = document.createElement('div'); row.className = 'sc-tip';
@@ -8190,6 +8147,7 @@ function openShortcuts() {
     parts.forEach(p => {
       if (typeof p === 'string') { bd.appendChild(document.createTextNode(p)); return; }
       if (p.k !== undefined) { const k = document.createElement('span'); k.className = 'sc-kbd'; k.textContent = p.k; bd.appendChild(k); return; }
+      if (p.ico !== undefined) { const s = document.createElement('span'); s.className = 'sc-ico'; s.innerHTML = SC_ICONS[p.ico] || ''; bd.appendChild(s); return; }
       if (p.x !== undefined) { bd.appendChild(tex(p.x)); return; }
       if (p.ex !== undefined) { const e = document.createElement('span'); e.className = 'sc-ex'; e.appendChild(tex(p.ex)); bd.appendChild(e); return; }
       if (p.node) bd.appendChild(p.node);
@@ -8198,13 +8156,15 @@ function openShortcuts() {
   };
 
   h('Solving');
-  tip('Arrow solve', ['Type ', { k: '=>' }, ' after an equation to solve it.', { ex: 'E=mc^2\\;\\Rightarrow\\;m' },
-    'The subject shows in blue and becomes a defined variable that later rows can use.']);
-  tip('Other forms', [{ x: '\\operatorname{solve}(E=mc^2,\\,m)' }, ' and the comma form ', { x: 'E=mc^2,\\,m' },
+  tip('Arrow solve', ['Type ', { k: '=>' }, ' after an equation to solve it.',
+    { ex: 'E=' + col(C_ACC, 'm') + col(C_DIM, 'c') + '^2\\;' + col(C_ACC, '\\Rightarrow') + '\\;' + col(C_ACC, 'm') },
+    'The subject shows in blue everywhere it appears and becomes a defined variable that later rows can use.']);
+  tip('Other forms', [{ x: '\\operatorname{solve}(E=' + col(C_ACC, 'm') + col(C_DIM, 'c') + '^2,\\,' + col(C_ACC, 'm') + ')' },
+    ' and the comma form ', { x: 'E=' + col(C_ACC, 'm') + col(C_DIM, 'c') + '^2,\\,' + col(C_ACC, 'm') },
     ' do the same. A complete equation with exactly one unknown solves itself.']);
   tip('Change subject', ['Click into the variable after the ', { x: '\\Rightarrow' },
     ' and a dropdown of the equation’s variables opens: ', { k: '↑' }, ' ', { k: '↓' }, ' then ', { k: 'Enter' }, ' or ', { k: 'Tab' }, '.']);
-  tip('Multiple roots', ['With Solve set to All in the settings (gear icon), every real root is listed. On First, one answer shows and positive roots are preferred.']);
+  tip('Multiple roots', ['With Solve set to All in the settings ', { ico: 'gear' }, ' in the header, every real root is listed. On First, one answer shows and positive roots are preferred.']);
 
   h('Formula picker');
   tip('Open it', [{ k: '@' }, ' anywhere, or ', { k: 'Space' }, ' on an empty row.']);
@@ -8226,11 +8186,13 @@ function openShortcuts() {
     ' goes back. Both sit on the f(x) keypad and follow the Deg / Rad setting.']);
 
   h('Constants and colour');
-  tip('Colour code', ['Blue is the variable being solved, light grey a built-in constant, dark grey a variable defined in this section, and black an unknown, or the row where something is defined.']);
+  tip('Colour code', ['Blue ', { x: col(C_ACC, 'v') }, ' is the variable being solved, light grey ', { x: col(C_DIM, 'c') },
+    ' a built-in constant, dark grey ', { x: col(C_DEF, 'm') },
+    ' a variable defined in this section, and full ink ', { x: 'x' }, ' an unknown, or the row where something is defined.']);
   tip('Hover cards', ['Hover any grey symbol (long-press on touch). Constants show their name, value and units with a redefine button. Your own variables show their defining row and ring it in the tab.']);
-  tip('Planck constants', [{ x: 'h_J' }, ' is in J s and ', { x: 'h_e' }, ' in eV s, so the right one is a subscript away.']);
-  tip('Thermal values', ['Specific heats: ', { x: 'c_w' }, ' water, ', { x: 'c_{ice}' }, ' ice, ', { x: 'c_{steam}' }, ' steam, ', { x: 'c_{iron}' },
-    ' solid iron. Latent heats of water: ', { x: 'L_{fw}' }, ' fusion, ', { x: 'L_{vw}' }, ' vaporisation.']);
+  tip('Planck constants', [{ x: col(C_DIM, 'h_J') }, ' is in J s and ', { x: col(C_DIM, 'h_e') }, ' in eV s, so the right one is a subscript away.']);
+  tip('Thermal values', ['Specific heats: ', { x: col(C_DIM, 'c_w') }, ' water, ', { x: col(C_DIM, 'c_{ice}') }, ' ice, ', { x: col(C_DIM, 'c_{steam}') }, ' steam, ', { x: col(C_DIM, 'c_{iron}') },
+    ' solid iron. Latent heats of water: ', { x: col(C_DIM, 'L_{fw}') }, ' fusion, ', { x: col(C_DIM, 'L_{vw}') }, ' vaporisation.']);
   tip('Override', ['Assigning to a constant’s name, like ', { x: 'c=340' }, ', replaces it for that section only. And ', { x: '24=a' },
     ' works just like ', { x: 'a=24' }, '.']);
 
@@ -8243,8 +8205,20 @@ function openShortcuts() {
     { k: 'Ctrl+A' }, ' ', { k: 'Ctrl+A' }, ' ', { k: 'Delete' }, ' clears everything.']);
   tip('Undo', [{ k: 'Ctrl/Cmd' }, '+', { k: 'Z' }, ' undoes, add ', { k: 'Shift' }, ' to redo. Works while typing in a field.']);
 
+  h('Tabs, groups and naming');
+  tip('Sections', ['Sections number themselves 1, 2, 3. Click the number to type a name instead ("Lorentz Factor"); the name shows in a row’s expanded view. Each section is its own scope, so the same symbol can mean different things in different sections.']);
+  tip('Tabs', ['The sidebar (hamburger, top left) holds your tabs. Click the tab name in the header to rename it. Right-click a tab in the list for Rename, Close, Close others and more; the copy button duplicates a whole tab.']);
+  tip('Favourites', ['Star a tab to pin it to a Favourites list at the top of the sidebar.']);
+  tip('Groups', ['Right-click a tab and choose Move to group to file tabs under a coloured, collapsible heading. Right-click the group header to rename, recolour, ungroup or close the lot; clicking the grey group prefix in the main header also renames it.']);
+  tip('Reorder', ['Drag rows between sections and drag sections up or down by their handles. A section header’s copy button duplicates the section, and ', { k: 'Ctrl/Cmd' }, '+', { k: 'D' }, ' duplicates the selected rows.']);
+
+  h('Sharing');
+  tip('Share a tab', ['Hover a tab in the sidebar and click the share button ', { ico: 'share' },
+    '. Copy share link packs the whole tab into a link: anyone opening it gets their own copy as a new tab. Save to file downloads it as a file instead.']);
+  tip('Open a file', ['Open file in the sidebar loads a saved tab back in. Everything lives in your browser, so a link or file is the way to move work between devices or hand it to students.']);
+
   h('Sliders and plots');
-  tip('Sliders', ['Define a number, like ', { x: 'm=5' }, ', then hover the row and click the slider button. Bounds and step fit what you typed: 5 gives 0 to 12.5, and 9.81 steps by 0.01. The min, max and step boxes stay editable.']);
+  tip('Sliders', ['Define a number, like ', { x: 'm=5' }, ', then hover the row and click the slider button ', { ico: 'slider' }, '. Bounds and step fit what you typed: 5 gives 0 to 12.5, and 9.81 steps by 0.01. The min, max and step boxes stay editable.']);
   (() => {
     const row = document.createElement('div'); row.className = 'sc-tip';
     const nm = document.createElement('div'); nm.className = 'sc-tip-name'; nm.textContent = 'Live plots';
@@ -8264,9 +8238,8 @@ function openShortcuts() {
   tip('Expanded plot', ['In the expanded row view the plot is large and labels the current point as a coordinate.']);
 
   h('Presenting');
-  tip('Whole tab', ['Hover the tab header and click the expand button. ', { k: 'A−' }, ' ', { k: 'A+' },
-    ' resize, pills hide or show each answer, ', { k: 'Esc' }, ' leaves.']);
-  tip('Single row', ['Hover a row and click the expand icon left of the quote button: the result shows large with its working laid out knowns first, constants and given values before derivations, all live and editable, sliders included. The row’s note becomes the title.']);
+  tip('Expand a row', ['Hover a row and click the expand icon ', { ico: 'expand' }, ' left of the quote button: the result shows large with its working laid out knowns first, constants and given values before derivations, all live and editable, sliders included. The row’s note becomes the title.']);
+  tip('In the view', [{ k: 'A−' }, ' ', { k: 'A+' }, ' resize, clicking an answer hides it behind a Show pill, and ', { k: 'Esc' }, ' leaves.']);
 
   document.body.appendChild(ov);
 }
