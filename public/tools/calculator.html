@@ -2223,6 +2223,10 @@ const FORMULA_LIST = [
   { name:'\\phi = h_J f_0', cat:'Light and Matter', kw:'work function, phi, threshold frequency, cutoff frequency, planck, photoelectric', latex:'\\phi=h_{J}f_{0}' },
   { name:'eV_0 = E_{kmax}', cat:'Light and Matter', kw:'stopping voltage, stopping potential, photoelectric, photocurrent, max kinetic energy', latex:'eV_{0}=E_{kmax}' },
   { name:'V_0 = h_e f - \\phi', cat:'Light and Matter', kw:'stopping voltage, stopping potential, cutoff voltage, photoelectric, planck ev, work function in ev, phi, frequency', latex:'V_{0}=h_{e}f-\\phi' },
+  { name:'E_{kmax} = h_J c/\\lambda - \\phi', cat:'Light and Matter', kw:'photoelectric, max kinetic energy, wavelength, lambda, work function, phi, planck, speed of light', latex:'E_{kmax}=\\frac{h_{J}c}{\\lambda}-\\phi' },
+  { name:'E_{kmax} = h_J(f - f_0)', cat:'Light and Matter', kw:'photoelectric, max kinetic energy, expanded work function, threshold frequency, cutoff frequency, planck', latex:'E_{kmax}=h_{J}\\left(f-f_{0}\\right)' },
+  { name:'V_0 = h_e c/\\lambda - \\phi', cat:'Light and Matter', kw:'stopping voltage, stopping potential, wavelength, lambda, photoelectric, work function in ev, phi, planck ev', latex:'V_{0}=\\frac{h_{e}c}{\\lambda}-\\phi' },
+  { name:'V_0 = h_e(f - f_0)', cat:'Light and Matter', kw:'stopping voltage, stopping potential, expanded work function, threshold frequency, cutoff frequency, photoelectric, planck ev', latex:'V_{0}=h_{e}\\left(f-f_{0}\\right)' },
   { name:'E = h_J f', cat:'Light and Matter', kw:'photon energy, planck, frequency, quantum', latex:'E=h_{J}f' },
   { name:'E = h_J c/\\lambda', cat:'Light and Matter', kw:'photon energy, planck, wavelength, lambda, speed of light, quantum', latex:'E=\\frac{h_{J}c}{\\lambda}' },
   { name:'E_{d} = E_{high} - E_{low} = h_J f', cat:'Light and Matter', kw:'energy levels, atomic transition, emission, absorption, spectral line, photon, planck, delta', latex:'E_{d}=E_{high}-E_{low}=h_{J}f' },
@@ -2556,6 +2560,10 @@ function solveEquation(eqText, varName, scope) {
   const m = f1 - f0, m2 = f2 - f1;
   if (isFinite(m) && Math.abs(m - m2) < 1e-9 && Math.abs(m) > 1e-12) return cleanRoot(-f0 / m, f);
 
+  // the equation's own magnitude: physics expressions can live at 1e-19, where
+  // any absolute residual test would call every point a root
+  const fScale = fnScale(f);
+
   // Newton from a spread of seeds; derivative step scales with |x| so it stays
   // meaningful at large magnitudes. A positive root is returned as soon as one
   // converges; negative roots are kept as fallbacks (physics answers are
@@ -2570,7 +2578,7 @@ function solveEquation(eqText, varName, scope) {
       if (!isFinite(d) || d === 0) break;
       const nx = x - fx / d; if (!isFinite(nx)) break;
       if (Math.abs(nx - x) < 1e-12 * Math.max(1, Math.abs(x))) {
-        if (Math.abs(f(nx)) < 1e-6 * Math.max(1, Math.abs(nx))) {
+        if (Math.abs(f(nx)) < 1e-6 * fScale) {
           const r = cleanRoot(nx, f);
           if (r >= 0) return r;
           negatives.push(r);
@@ -2643,6 +2651,18 @@ function buildScanGrid(hi, linBand, linStep, perDecade) {
   return [...pts].sort((a, b) => a - b);
 }
 
+/* Typical magnitude of |f| over moderate probe points -- the reference scale
+   for every residual test, so equations living at 1e-19 behave like ones at 1. */
+function fnScale(f) {
+  const PROBES = [0.01, 0.1, 0.5, 1, 2, 5, 10, 100, 1e4, 1e6, -0.5, -1, -10, -100, -1e4];
+  let s = 0;
+  for (const p of PROBES) {
+    const v = f(p);
+    if (isFinite(v)) { const a = Math.abs(v); if (a > s) s = a; }
+  }
+  return (s && isFinite(s)) ? s : 1;
+}
+
 function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
   let L, R;
   if (eqText.includes('=')) { const i = eqText.indexOf('='); L = eqText.slice(0,i); R = eqText.slice(i+1); }
@@ -2658,6 +2678,7 @@ function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
     ? (x => { fscope[varName] = x; try { return compiled.evaluate(fscope); } catch (e) { return NaN; } })
     : (x => { try { return math.evaluate('(' + L + ')-(' + R + ')', { ...scope, [varName]: x }); } catch (e) { return NaN; } });
 
+  const fScale = fnScale(f);
   const roots = [];
   const add = r => {
     if (!isFinite(r)) return;
@@ -2671,7 +2692,7 @@ function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
       const h = Math.max(1e-9, Math.abs(x) * 1e-7), d = (f(x+h) - f(x-h)) / (2*h);
       if (!isFinite(d) || d === 0) break;
       const nx = x - fx / d; if (!isFinite(nx)) break;
-      if (Math.abs(nx - x) < 1e-12 * Math.max(1, Math.abs(x))) { if (Math.abs(f(nx)) < 1e-6 * Math.max(1, Math.abs(nx))) return nx; break; }
+      if (Math.abs(nx - x) < 1e-12 * Math.max(1, Math.abs(x))) { if (Math.abs(f(nx)) < 1e-6 * fScale) return nx; break; }
       x = nx;
     }
     return undefined;
@@ -2695,11 +2716,11 @@ function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
     else { lo = 0; hi = 2 * Math.PI; steps = 4000; }
     const dx = (hi - lo) / steps;
     let prev = f(lo);
-    if (isFinite(prev) && Math.abs(prev) < 1e-9) add(lo);
+    if (isFinite(prev) && Math.abs(prev) < 1e-9 * fScale) add(lo);
     for (let i = 1; i <= steps; i++) {
       const x = lo + dx * i, cur = f(x);
       if (isFinite(prev) && isFinite(cur) && (prev < 0) !== (cur < 0)) { const r = newton(x - dx/2); if (r !== undefined && r >= lo - 1e-6 && r <= hi + 1e-6) add(r); }
-      else if (isFinite(cur) && Math.abs(cur) < 1e-9) add(x);
+      else if (isFinite(cur) && Math.abs(cur) < 1e-9 * fScale) add(x);
       prev = cur;
     }
     return { roots: roots.sort((a,b)=>a-b), trig, mode, lo, hi };
@@ -2735,13 +2756,14 @@ function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
   // grid: dense linear band near zero + geometric spacing out to `limit`
   const grid = buildScanGrid(limit, 200, 0.5, 40);
   let pa = grid[0], pf = f(pa);
-  if (isFinite(pf) && Math.abs(pf) < 1e-12) add(pa);
+  if (isFinite(pf) && Math.abs(pf) < 1e-12 * fScale) add(pa);
   for (let i = 1; i < grid.length; i++) {
     const a = grid[i], fa = f(a);
     if (isFinite(pf) && isFinite(fa) && (pf < 0) !== (fa < 0)) {
       let r = bisect(pa, a);
       if (r !== undefined) { const nr = newton(r); if (nr !== undefined && Math.abs(f(nr)) <= Math.abs(f(r)) + 1e-12) r = nr; add(r); }
-    } else if (isFinite(fa) && Math.abs(fa) < 1e-12) {
+    } else if (isFinite(fa) && isFinite(pf) && Math.abs(fa) < 1e-9 * Math.abs(pf)) {
+      // tangency root (no sign change): |f| collapses relative to its neighbour
       add(a);
     } else if (isFinite(pf) && !isFinite(fa)) {
       edgeRoot(pa, a);
