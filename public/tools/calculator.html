@@ -7435,6 +7435,12 @@ if (ptName) {
       const seq = navSequence();           // tabname is index 0; go to next target
       focusNavTarget(seq[1]);
     }
+    else if (e.key === 'ArrowUp') {
+      // from the very top, wrap around to the bottom row entry
+      e.preventDefault(); ptName.blur();
+      const all = flatLines();
+      if (all.length) focusNavTarget({ kind: 'line', line: all[all.length - 1] });
+    }
   });
 }
 const hdrStarEl = document.getElementById('hdrStar');
