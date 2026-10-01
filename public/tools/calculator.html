@@ -950,9 +950,12 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .mq-field .mq-arrow { padding: 0 0.35em; }
   /* predefined constants used in an input read as given values: a lighter grey
      than the definition echoes, so they contrast clearly with surrounding ink */
-  /* no cursor glyph over a constant: the pointer would cover the small symbol
-     being inspected, and the hover card is already showing */
-  .mq-field .mq-const { color: var(--ink-dim); cursor: none; }
+  /* a see-through pointer over a constant: position stays visible without the
+     solid cursor covering the small symbol being inspected */
+  .mq-field .mq-const {
+    color: var(--ink-dim);
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="20" viewBox="0 0 14 20"><path d="M1 1 L1 15.5 L4.6 12.2 L7.1 18 L9.6 16.9 L7.1 11.2 L12 11 Z" fill="rgba(255,255,255,0.35)" stroke="rgba(40,40,45,0.45)" stroke-width="1.1"/></svg>') 1 1, auto;
+  }
   /* hover card describing a predefined constant (name, value, units) */
   #constTip {
     position: fixed; z-index: 70;
@@ -5202,6 +5205,15 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     // The first press performs its normal action; the second, within the window,
     // is recognised here, the first press's effect is undone, and the shortcut
     // runs instead.
+    // a held "*" auto-repeats after ** has already produced ×10^□: while the
+    // caret sits in that still-empty exponent, further "*" presses are
+    // swallowed (one scaffold at a time -- type or pick the exponent first)
+    if (e.key === '*' && !e.ctrlKey && !e.metaKey && !e.altKey &&
+        typeof sciPrefixContext === 'function' && sciPrefixContext(fieldEl)) {
+      e.preventDefault(); e.stopPropagation();
+      lineObj._dblKey = null;
+      return;
+    }
     if (!e.ctrlKey && !e.metaKey && !e.altKey &&
         (e.key === '*' || e.key === '+' || e.key === '\\')) {
       const now = Date.now();
