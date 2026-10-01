@@ -901,6 +901,9 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     font-style: normal; text-align: left;
   }
   #fnHint .fn-subj-row.active { background: rgba(10,132,255,0.14); color: var(--accent); }
+  /* metric-prefix rows: name left, power right */
+  #fnHint.prefix-mode .fn-subj-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.8rem; }
+  #fnHint .pfx-pow { opacity: 0.72; font-size: 0.85em; }
   #fnHint .fn-arg { opacity: 0.55; }
   #fnHint .fn-arg.active { opacity: 1; color: var(--accent); font-weight: 700; }
   /* Let a long expression wrap onto the next line instead of overflowing the row
@@ -4729,29 +4732,123 @@ function renderSubjectDropdown(line, pure) {
   });
   return true;
 }
-/* keyboard control while the dropdown is showing (capture phase, so the arrows
+/* Metric-prefix dropdown for an EMPTY ×10^□ exponent. Small to big; the list
+   is passive until an arrow key engages it (so digits and minus type normally
+   and Enter keeps meaning "new line" until a prefix is highlighted). */
+const SCI_PREFIXES = [
+  { name: 'nano',  exp: '-9' },
+  { name: 'micro', exp: '-6' },
+  { name: 'milli', exp: '-3' },
+  { name: 'centi', exp: '-2' },
+  { name: 'kilo',  exp: '3'  },
+  { name: 'mega',  exp: '6'  },
+  { name: 'giga',  exp: '9'  },
+];
+let prefixLine = null, prefixIdx = -1, prefixKey = '', prefixSuppressKey = '';
+/* caret sitting in the empty exponent of a ×10^□ construct? */
+function sciPrefixContext(fieldEl) {
+  const cur = fieldEl.querySelector('.mq-cursor');
+  if (!cur) return false;
+  const sup = cur.closest('.mq-sup');
+  if (!sup) return false;
+  const hasContent = [...sup.querySelectorAll('*')].some(el =>
+    !el.classList.contains('mq-cursor') && el.textContent.replace(/[​\s]/g, '') !== '');
+  if (hasContent) return false;
+  const supsub = sup.closest('.mq-supsub');
+  if (!supsub) return false;
+  const p0 = supsub.previousElementSibling;
+  const p1 = p0 && p0.previousElementSibling;
+  const px = p1 && p1.previousElementSibling;
+  return !!(p0 && p0.textContent === '0' && p1 && p1.textContent === '1' &&
+            px && px.textContent === '×');
+}
+function highlightPrefixRows() {
+  [...fnHintEl.querySelectorAll('.fn-subj-row')].forEach((r, i) => r.classList.toggle('active', i === prefixIdx));
+}
+function pickPrefix(p) {
+  if (!prefixLine || !p) return;
+  const mq = prefixLine.mq;
+  try { mq.focus(); mq.typedText(p.exp); mq.keystroke('Right'); } catch (e) {}
+  fnHintEl.style.display = 'none';
+  fnHintEl.classList.remove('subj-mode', 'prefix-mode');
+}
+function renderPrefixDropdown(line) {
+  const key = subjKeyFor(line);
+  if (key === prefixSuppressKey) return false;
+  if (key !== prefixKey) { prefixKey = key; prefixIdx = -1; }   // passive until arrowed
+  prefixLine = line;
+  fnHintEl.innerHTML = '';
+  fnHintEl.classList.add('subj-mode', 'prefix-mode');
+  SCI_PREFIXES.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'fn-subj-row' + (i === prefixIdx ? ' active' : '');
+    const nm = document.createElement('span'); nm.textContent = p.name;
+    const pw = document.createElement('span'); pw.className = 'pfx-pow';
+    try { katex.render('\\times10^{' + p.exp + '}', pw, { throwOnError: false }); } catch (e) { pw.textContent = 'x10^' + p.exp; }
+    row.appendChild(nm); row.appendChild(pw);
+    row.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); prefixIdx = i; pickPrefix(p); });
+    row.addEventListener('mouseenter', () => { prefixIdx = i; highlightPrefixRows(); });
+    fnHintEl.appendChild(row);
+  });
+  return true;
+}
+
+/* keyboard control while a dropdown is showing (capture phase, so the arrows
    never reach MathQuill's caret navigation) */
 window.addEventListener('keydown', (e) => {
   if (!fnHintEl || fnHintEl.style.display === 'none' || !fnHintEl.classList.contains('subj-mode')) return;
+  const isPrefix = fnHintEl.classList.contains('prefix-mode');
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault(); e.stopImmediatePropagation();
-    const n = subjHintVars.length; if (!n) return;
-    subjActiveIdx = (subjActiveIdx + (e.key === 'ArrowDown' ? 1 : -1) + n) % n;
-    highlightSubjRows();
+    if (isPrefix) {
+      const n = SCI_PREFIXES.length;
+      prefixIdx = (prefixIdx === -1)
+        ? (e.key === 'ArrowDown' ? 0 : n - 1)
+        : (prefixIdx + (e.key === 'ArrowDown' ? 1 : -1) + n) % n;
+      highlightPrefixRows();
+    } else {
+      const n = subjHintVars.length; if (!n) return;
+      subjActiveIdx = (subjActiveIdx + (e.key === 'ArrowDown' ? 1 : -1) + n) % n;
+      highlightSubjRows();
+    }
   } else if (e.key === 'Enter' || e.key === 'Tab') {
-    e.preventDefault(); e.stopImmediatePropagation();
-    pickSubject(subjHintVars[subjActiveIdx]);
+    if (isPrefix) {
+      if (prefixIdx < 0) return;              // not engaged: Enter still makes a line
+      e.preventDefault(); e.stopImmediatePropagation();
+      pickPrefix(SCI_PREFIXES[prefixIdx]);
+    } else {
+      e.preventDefault(); e.stopImmediatePropagation();
+      pickSubject(subjHintVars[subjActiveIdx]);
+    }
   } else if (e.key === 'Escape') {
     e.preventDefault(); e.stopImmediatePropagation();
-    hideSubjDropdown(true);
+    if (isPrefix) {
+      if (prefixLine) prefixSuppressKey = subjKeyFor(prefixLine);
+      fnHintEl.style.display = 'none'; fnHintEl.classList.remove('subj-mode', 'prefix-mode');
+    } else {
+      hideSubjDropdown(true);
+    }
   }
 }, true);
 
 function updateFnHint(line) {
   if (!fnHintEl) return;
-  fnHintEl.classList.remove('subj-mode');
+  fnHintEl.classList.remove('subj-mode', 'prefix-mode');
   const fieldEl = line && line.fieldEl;
   if (!fieldEl || !fieldEl.querySelector('.mq-cursor')) { fnHintEl.style.display = 'none'; return; }
+  // empty ×10^□ exponent: the metric-prefix dropdown
+  if (!line.isSystem && sciPrefixContext(fieldEl) && renderPrefixDropdown(line)) {
+    fnHintEl.style.display = 'block';
+    const cur0 = fieldEl.querySelector('.mq-cursor');
+    const r0 = cur0.getBoundingClientRect();
+    const hw0 = fnHintEl.offsetWidth, hh0 = fnHintEl.offsetHeight;
+    let left0 = Math.min(Math.max(8, r0.left), window.innerWidth - hw0 - 8);
+    let top0 = r0.bottom + 6;
+    if (top0 + hh0 > window.innerHeight - 8) top0 = r0.top - hh0 - 6;
+    fnHintEl.style.left = left0 + 'px';
+    fnHintEl.style.top = top0 + 'px';
+    return;
+  }
   const before = textBeforeCaret(fieldEl);
   const ctx = activeFnContext(before);
   // subject-editing position? (solve's 2nd argument, or anywhere after a ⇒)
