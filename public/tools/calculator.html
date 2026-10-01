@@ -1079,6 +1079,11 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   #presentOverlay .pr-slider-lab { flex: 0 0 auto; min-width: 7em; }
   #presentOverlay .pr-slider-bound { flex: 0 0 auto; color: var(--ink-dim); font-size: 0.8em; }
   #presentOverlay .pr-slider input[type=range] { flex: 1 1 auto; accent-color: var(--accent); }
+  #presentOverlay .pr-bound {
+    flex: 0 0 auto; width: 5.5em; text-align: center; font-size: 0.8em;
+    border: 1px solid var(--rule-strong); border-radius: 7px; background: var(--key-bg);
+    color: var(--ink); padding: 0.12em 0.3em;
+  }
   /* the variable a solve() call is solving for, everywhere it appears in the call */
   .mq-field .mq-solve-target { color: var(--accent); }
 
@@ -4682,23 +4687,32 @@ function sparkSVG(data, o) {
         const supify = (s) => esc(s).replace(/\^(-?\d+)/g,
           '<tspan font-size="' + (axf * 0.68).toFixed(1) + '" dy="-' + (axf * 0.35).toFixed(1) + '">$1</tspan>' +
           '<tspan dy="' + (axf * 0.35).toFixed(1) + '">​</tspan>');
-        coord = '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" font-size="' + axf + '" ' + MATHFONT +
+        // digits and brackets stay upright (KaTeX_Main); only variables are italic
+        coord = '<text x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '" font-size="' + axf + '"' +
+          ' font-family="KaTeX_Main, \'Times New Roman\', serif"' +
           ' fill="var(--accent)" text-anchor="' + anchor + '">(' + supify(numToPlainLabel(cur)) + ', ' + supify(numToPlainLabel(cy)) + ')</text>';
       }
     }
   }
-  const ax = H - PB, ayTop = PT;
-  const xEnd = W - 4, yEnd = ayTop;
+  // axes cross at the true origin when (0,0) is inside the window, clamping
+  // to the nearest edge otherwise
+  const clampN = (v, a, b) => Math.min(b, Math.max(a, v));
+  const axY = Y(clampN(0, ymin, ymax));          // x-axis height (y = 0)
+  const axX = X(clampN(0, data.lo, data.hi));    // y-axis position (x = 0)
+  const xEnd = W - 4, yEnd = PT;
+  const xLabY = (axY - 6 - axf < PT) ? (axY + axf + 6) : (axY - 6);
+  const yLabAnchor = axX > W - 40 ? 'end' : 'start';
+  const yLabX = yLabAnchor === 'end' ? (axX - 7) : (axX + 7);
   return '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
-    // axes with arrowheads
-    '<path d="M' + PX + ' ' + ax + ' L' + (xEnd - 7) + ' ' + ax + '" stroke="var(--ink-dim)" stroke-width="1"/>' +
-    '<path d="M' + (xEnd - 7) + ' ' + (ax - 3.5) + ' L' + xEnd + ' ' + ax + ' L' + (xEnd - 7) + ' ' + (ax + 3.5) + ' Z" fill="var(--ink-dim)"/>' +
-    '<path d="M' + PX + ' ' + ax + ' L' + PX + ' ' + (yEnd + 7) + '" stroke="var(--ink-dim)" stroke-width="1"/>' +
-    '<path d="M' + (PX - 3.5) + ' ' + (yEnd + 7) + ' L' + PX + ' ' + yEnd + ' L' + (PX + 3.5) + ' ' + (yEnd + 7) + ' Z" fill="var(--ink-dim)"/>' +
+    // axes with arrowheads, crossing at the (clamped) origin
+    '<path d="M' + PX + ' ' + axY.toFixed(1) + ' L' + (xEnd - 7) + ' ' + axY.toFixed(1) + '" stroke="var(--ink-dim)" stroke-width="1"/>' +
+    '<path d="M' + (xEnd - 7) + ' ' + (axY - 3.5).toFixed(1) + ' L' + xEnd + ' ' + axY.toFixed(1) + ' L' + (xEnd - 7) + ' ' + (axY + 3.5).toFixed(1) + ' Z" fill="var(--ink-dim)"/>' +
+    '<path d="M' + axX.toFixed(1) + ' ' + (H - PB) + ' L' + axX.toFixed(1) + ' ' + (yEnd + 7) + '" stroke="var(--ink-dim)" stroke-width="1"/>' +
+    '<path d="M' + (axX - 3.5).toFixed(1) + ' ' + (yEnd + 7) + ' L' + axX.toFixed(1) + ' ' + yEnd + ' L' + (axX + 3.5).toFixed(1) + ' ' + (yEnd + 7) + ' Z" fill="var(--ink-dim)"/>' +
     '<path d="' + d.trim() + '" fill="none" stroke="var(--accent)" stroke-width="' + sw + '"/>' + dot + coord +
-    // axis variables in maths style: x at the arrow tip (above the axis), y beside its arrow
-    '<text x="' + (xEnd - 2) + '" y="' + (ax - 6) + '" font-size="' + axf + '" ' + MATHFONT + ' fill="var(--ink)" text-anchor="end">' + varLbl(data.dv) + '</text>' +
-    '<text x="' + (PX + 7) + '" y="' + (yEnd + axf) + '" font-size="' + axf + '" ' + MATHFONT + ' fill="var(--ink)">' + varLbl(data.name) + '</text>' +
+    // axis variables in maths style: x at the arrow tip, y beside its arrow
+    '<text x="' + (xEnd - 2) + '" y="' + xLabY.toFixed(1) + '" font-size="' + axf + '" ' + MATHFONT + ' fill="var(--ink)" text-anchor="end">' + varLbl(data.dv) + '</text>' +
+    '<text x="' + yLabX.toFixed(1) + '" y="' + (yEnd + axf) + '" font-size="' + axf + '" ' + MATHFONT + ' fill="var(--ink)" text-anchor="' + yLabAnchor + '">' + varLbl(data.name) + '</text>' +
     '</svg>';
 }
 
@@ -7389,11 +7403,8 @@ function openPresentRow(line) {
   sliderDefs.forEach(dl => {
     const wrap = document.createElement('div'); wrap.className = 'pr-slider';
     if (dl.lineEl.classList.contains('slider-shown')) wrap.classList.add('pr-open');
-    const lab = document.createElement('span'); lab.className = 'pr-slider-lab';
-    const updLab = () => { try { katex.render(dl.mq.latex(), lab, { throwOnError: false }); } catch (e) { lab.textContent = dl.mq.latex(); } };
-    sliderLabelUpdaters.push(updLab); updLab();
-    const lo = document.createElement('span'); lo.className = 'pr-slider-bound'; lo.textContent = fmtBound(parseFloat(dl.range.min));
-    const hiB = document.createElement('span'); hiB.className = 'pr-slider-bound'; hiB.textContent = fmtBound(parseFloat(dl.range.max));
+    // no label: the slider sits directly under its own row, whose live field
+    // already shows the variable and its current value
     const rg = document.createElement('input'); rg.type = 'range';
     rg.min = dl.range.min; rg.max = dl.range.max; rg.step = dl.range.step; rg.value = dl.range.value;
     rg.addEventListener('input', () => {
@@ -7401,7 +7412,37 @@ function openPresentRow(line) {
       dl.range.dispatchEvent(new Event('input', { bubbles: true }));
       refresh();
     });
-    wrap.appendChild(lab); wrap.appendChild(lo); wrap.appendChild(rg); wrap.appendChild(hiB);
+    // editable bounds and step, mirroring the main view's slider config
+    const mkBound = (val) => {
+      const b = document.createElement('input'); b.type = 'text'; b.className = 'pr-bound';
+      b.value = fmtBound(val); b.spellcheck = false;
+      return b;
+    };
+    const loI = mkBound(parseFloat(dl.range.min));
+    const hiI = mkBound(parseFloat(dl.range.max));
+    const stI = mkBound(parseFloat(dl.range.step) || 1);
+    const syncRange = () => {
+      rg.min = dl.range.min; rg.max = dl.range.max; rg.step = dl.range.step; rg.value = dl.range.value;
+      loI.value = fmtBound(parseFloat(dl.range.min)); hiI.value = fmtBound(parseFloat(dl.range.max));
+      stI.value = fmtBound(parseFloat(dl.range.step) || 1);
+    };
+    const applyBounds = () => {
+      const mn = parseBound(loI.value), mx = parseBound(hiI.value), st = parseBound(stI.value);
+      if (isFinite(mn)) dl.sliderMin = mn;
+      if (isFinite(mx)) dl.sliderMax = mx;
+      dl.sliderUserBounds = true;
+      if (isFinite(st) && st > 0) dl.sliderStep = st;
+      recompute();
+      syncRange();
+      refresh();
+    };
+    [loI, hiI, stI].forEach(b => {
+      b.addEventListener('change', applyBounds);
+      b.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); b.blur(); } e.stopPropagation(); });
+    });
+    const stLab = document.createElement('span'); stLab.className = 'pr-slider-bound'; stLab.textContent = 'step';
+    wrap.appendChild(loI); wrap.appendChild(rg); wrap.appendChild(hiI);
+    wrap.appendChild(stLab); wrap.appendChild(stI);
     const host = rowByLine.get(dl) || rowByLine.get(line);
     if (host) {
       const tog = document.createElement('button');
