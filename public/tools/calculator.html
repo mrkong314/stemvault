@@ -904,6 +904,14 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   /* metric-prefix rows: name left, power right */
   #fnHint.prefix-mode .fn-subj-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.8rem; }
   #fnHint .pfx-pow { opacity: 0.72; font-size: 0.85em; }
+  /* the visible filter typed into the prefix dropdown */
+  #fnHint .pfx-search {
+    font-family: inherit; font-style: normal; font-size: 0.72rem;
+    padding: 0.12rem 0.8rem 0.25rem; margin-bottom: 0.15rem;
+    border-bottom: 1px solid var(--glass-border); color: var(--ink);
+  }
+  #fnHint .pfx-search.empty { color: var(--ink-dim); font-style: italic; }
+  #fnHint .pfx-none { padding: 0.2rem 0.8rem; color: var(--ink-dim); font-style: italic; font-size: 0.78rem; }
   #fnHint .fn-arg { opacity: 0.55; }
   #fnHint .fn-arg.active { opacity: 1; color: var(--accent); font-weight: 700; }
   /* Let a long expression wrap onto the next line instead of overflowing the row
@@ -4808,7 +4816,7 @@ const SCI_PREFIXES = [
   { name: 'giga',  exp: '9'  },
 ];
 let prefixLine = null, prefixIdx = -1, prefixKey = '', prefixSuppressKey = '';
-let prefixSearch = '', prefixSearchAt = 0;
+let prefixSearch = '', prefixItems = [];
 /* caret sitting in the empty exponent of a ×10^□ construct? */
 function sciPrefixContext(fieldEl) {
   const cur = fieldEl.querySelector('.mq-cursor');
@@ -4833,17 +4841,34 @@ function pickPrefix(p) {
   if (!prefixLine || !p) return;
   const mq = prefixLine.mq;
   try { mq.focus(); mq.typedText(p.exp); mq.keystroke('Right'); } catch (e) {}
+  prefixSearch = '';
   fnHintEl.style.display = 'none';
   fnHintEl.classList.remove('subj-mode', 'prefix-mode');
 }
 function renderPrefixDropdown(line) {
   const key = subjKeyFor(line);
   if (key === prefixSuppressKey) return false;
-  if (key !== prefixKey) { prefixKey = key; prefixIdx = -1; }   // passive until arrowed
+  if (key !== prefixKey) { prefixKey = key; prefixIdx = -1; prefixSearch = ''; }   // passive until touched
   prefixLine = line;
+  prefixItems = prefixSearch
+    ? SCI_PREFIXES.filter(p => p.name.startsWith(prefixSearch))
+    : SCI_PREFIXES.slice();
+  if (prefixSearch) prefixIdx = Math.min(Math.max(prefixIdx, 0), Math.max(prefixItems.length - 1, 0));
+  else if (prefixIdx >= prefixItems.length) prefixIdx = -1;
   fnHintEl.innerHTML = '';
   fnHintEl.classList.add('subj-mode', 'prefix-mode');
-  SCI_PREFIXES.forEach((p, i) => {
+  // visible search row: what has been typed so far filters the list
+  const srch = document.createElement('div');
+  srch.className = 'pfx-search' + (prefixSearch ? '' : ' empty');
+  srch.textContent = prefixSearch || 'type to filter';
+  fnHintEl.appendChild(srch);
+  if (!prefixItems.length) {
+    const none = document.createElement('div');
+    none.className = 'pfx-none'; none.textContent = 'no match';
+    fnHintEl.appendChild(none);
+    return true;
+  }
+  prefixItems.forEach((p, i) => {
     const row = document.createElement('div');
     row.className = 'fn-subj-row' + (i === prefixIdx ? ' active' : '');
     const nm = document.createElement('span'); nm.textContent = p.name;
@@ -4865,7 +4890,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault(); e.stopImmediatePropagation();
     if (isPrefix) {
-      const n = SCI_PREFIXES.length;
+      const n = prefixItems.length; if (!n) return;
       prefixIdx = (prefixIdx === -1)
         ? (e.key === 'ArrowDown' ? 0 : n - 1)
         : (prefixIdx + (e.key === 'ArrowDown' ? 1 : -1) + n) % n;
@@ -4877,23 +4902,26 @@ window.addEventListener('keydown', (e) => {
     }
   } else if (e.key === 'Enter' || e.key === 'Tab') {
     if (isPrefix) {
-      if (prefixIdx < 0) return;              // not engaged: Enter still makes a line
+      if (prefixIdx < 0 || !prefixItems[prefixIdx]) return;   // not engaged: Enter still makes a line
       e.preventDefault(); e.stopImmediatePropagation();
-      pickPrefix(SCI_PREFIXES[prefixIdx]);
+      pickPrefix(prefixItems[prefixIdx]);
     } else {
       e.preventDefault(); e.stopImmediatePropagation();
       pickSubject(subjHintVars[subjActiveIdx]);
     }
   } else if (isPrefix && /^[a-z]$/i.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    // type-search: "c" jumps to centi, "mi"/"mil"/"me" disambiguate the m's
+    // visible type-search: letters build the filter shown at the top of the
+    // dropdown ("mi" narrows to micro/milli); first match is highlighted
     e.preventDefault(); e.stopImmediatePropagation();
-    const now = Date.now();
-    if (now - prefixSearchAt > 1000) prefixSearch = '';
-    prefixSearchAt = now;
     prefixSearch += e.key.toLowerCase();
-    let idx = SCI_PREFIXES.findIndex(p => p.name.startsWith(prefixSearch));
-    if (idx === -1) { prefixSearch = e.key.toLowerCase(); idx = SCI_PREFIXES.findIndex(p => p.name.startsWith(prefixSearch)); }
-    if (idx !== -1) { prefixIdx = idx; highlightPrefixRows(); }
+    prefixIdx = 0;
+    if (prefixLine) renderPrefixDropdown(prefixLine);
+  } else if (isPrefix && e.key === 'Backspace' && prefixSearch) {
+    // edit the filter; with an empty filter Backspace falls through to the field
+    e.preventDefault(); e.stopImmediatePropagation();
+    prefixSearch = prefixSearch.slice(0, -1);
+    prefixIdx = prefixSearch ? 0 : -1;
+    if (prefixLine) renderPrefixDropdown(prefixLine);
   } else if (e.key === 'Escape') {
     e.preventDefault(); e.stopImmediatePropagation();
     if (isPrefix) {
