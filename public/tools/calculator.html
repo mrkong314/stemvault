@@ -985,6 +985,8 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   /* a simple definition's echo (T = 1000) carries no new information; show it
      in a quiet dark grey so computed results keep the visual emphasis */
   .line .result.assign-echo { color: var(--def-echo); }
+  /* ...and the definition's own input renders a step smaller than working lines */
+  .line.def-line .mq-field { font-size: 0.93rem; }
   .line .result .katex { font-size: 1.05rem; color: inherit; }
   /* list/matrix/root-list results can be very wide; they always stack on their
      own line (see updateLineLayout) and render as block-level wrapping content so
@@ -1246,6 +1248,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     .pad-tab { font-size: clamp(0.95rem, 1.1vw, 1.2rem); }
     /* scale the entries up so they fill the larger canvas comfortably */
     .mq-field { font-size: clamp(1.05rem, 1.3vw, 1.5rem); }
+    .line.def-line .mq-field { font-size: clamp(0.93rem, 1.15vw, 1.32rem); }
     .line .result { font-size: clamp(1rem, 1.25vw, 1.45rem); }
     .folder { margin: 0.7rem 1rem; }
   }
@@ -3726,6 +3729,7 @@ function recomputeImpl() {
       line.undefVars = [];
       line.undefPhys = [];
       line.solveTargetName = (info.solveDef && info.solveDef.varName) || null;
+      line.lineEl.classList.remove('def-line');
 
       if (info.expr === '') { updateChip(line); continue; }
 
@@ -3812,9 +3816,12 @@ function recomputeImpl() {
             rhsLatex = eqAt >= 0 ? fullLatex.slice(eqAt + 1) : fullLatex;
           }
           renderResult(resEl, { prefixLatex: varToLatex(info.name) + ' =', srcLatex: rhsLatex, srcExpr: info.rhs }, value);
-          // simple definition (RHS is a bare number): the echo is quiet grey
+          // simple definition (RHS is a bare number): grey echo, smaller input
           const rhsTrim = (info.rhs || '').trim();
-          if (/^-?\d*\.?\d+$/.test(rhsTrim) || /^-?\d*\.?\d+\*10\^\(?-?\d+\)?$/.test(rhsTrim)) resEl.classList.add('assign-echo');
+          if (/^-?\d*\.?\d+$/.test(rhsTrim) || /^-?\d*\.?\d+\*10\^\(?-?\d+\)?$/.test(rhsTrim)) {
+            resEl.classList.add('assign-echo');
+            line.lineEl.classList.add('def-line');
+          }
         } else {
           value = evalExpr(info.expr, { ...scope });
           line.lastValue = value;
