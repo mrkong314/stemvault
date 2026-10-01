@@ -5285,8 +5285,10 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     lineObj.sliderUserValue = v;
     const expr = prepareExpr(mq.latex());
     const m = expr.match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=/);
-    const nm = m ? varToLatex(m[1]) : null;
-    if (nm) { mq.latex(nm + '=' + numToLatex(v)); recompute(); }
+    if (m) { mq.latex(varToLatex(m[1]) + '=' + numToLatex(v)); recompute(); return; }
+    // trailing form (24 = a): update the value, keep the user's orientation
+    const t = trailingAssign(expr);
+    if (t) { mq.latex(numToLatex(v) + '=' + varToLatex(t.name)); recompute(); }
   });
   function applyBounds() {
     // capture pre-change state so a bounds edit can be undone; only push if a
