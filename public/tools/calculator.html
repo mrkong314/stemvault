@@ -1059,6 +1059,10 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   #presentOverlay .pr-used { border-top: 1px solid var(--rule); }
   #presentOverlay .pr-const .pr-in { color: var(--ink-dim); }
   #presentOverlay .pr-const-label { font-size: 0.55em; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+  #presentOverlay .pr-note-head {
+    font-size: 0.85em; font-weight: 700; color: var(--ink);
+    margin: 0 0 0.4em 0.1em; letter-spacing: 0.01em;
+  }
   /* live sliders in the focus view: a toggle button appears on row hover,
      the slider itself shows once toggled open */
   #presentOverlay .pr-slider { display: none; align-items: center; gap: 0.9rem; padding: 0.3em 0; font-size: 0.6em; }
@@ -2240,8 +2244,8 @@ const SYMBOL_LIST = [
    `name` is the displayed/rendered formula (also rendered via KaTeX). */
 const FORMULA_LIST = [
   // Thermal
-  { name:'Q = mc\\Delta T', cat:'Thermal', kw:'heat, specific heat capacity, temperature change, mass, calorimetry, thermal energy, delta', latex:'Q=mc\\Delta T' },
-  { name:'Q = mc(T_f - T_i)', cat:'Thermal', kw:'heat, specific heat capacity, temperature change, final, initial, expanded, mass, calorimetry, thermal energy, delta', latex:'Q=mc\\left(T_{f}-T_{i}\\right)' },
+  { name:'Q = mc\\Delta T', cat:'Thermal', kw:'heat, specific heat capacity, temperature change, mass, calorimetry, thermal energy, delta', latex:'Q=mc\\Delta T', free:['c'] },
+  { name:'Q = mc(T_f - T_i)', cat:'Thermal', kw:'heat, specific heat capacity, temperature change, final, initial, expanded, mass, calorimetry, thermal energy, delta', latex:'Q=mc\\left(T_{f}-T_{i}\\right)', free:['c'] },
   { name:'Q = mL_F', cat:'Thermal', kw:'latent heat, latent heat of fusion, melting, freezing, phase change, mass, heat', latex:'Q=mL_{F}' },
   { name:'Q = mL_V', cat:'Thermal', kw:'latent heat, latent heat of vaporisation, boiling, condensing, evaporation, phase change, mass, heat', latex:'Q=mL_{V}' },
   { name:'T_K = T_C + 273', cat:'Thermal', kw:'temperature, kelvin, celsius, absolute zero, conversion', latex:'T_{K}=T_{C}+273' },
@@ -2267,11 +2271,11 @@ const FORMULA_LIST = [
   { name:'F_{net} = ma', cat:'Motion', kw:'newton, second law, net force, resultant force, mass, acceleration', latex:'F_{net}=ma' },
   { name:'a = v^2/r', cat:'Motion', kw:'circular motion, centripetal acceleration, orbit, radius, period, pi', latex:'a=\\frac{v^{2}}{r}' },
   { name:'a = 4\\pi^2 r/T^2', cat:'Motion', kw:'circular motion, centripetal acceleration, orbit, radius, period, pi', latex:'a=\\frac{4\\pi^{2}r}{T^{2}}' },
-  { name:'F = -kx', cat:'Motion', kw:'hooke, spring, restoring force, spring constant, extension, compression', latex:'F=-kx' },
-  { name:'mg = kx', cat:'Motion', kw:'oscillation, mass spring, equilibrium, hooke, weight, spring constant, extension', latex:'mg=kx' },
-  { name:'T = 2\\pi\\sqrt{m/k}', cat:'Motion', kw:'oscillation, shm, simple harmonic motion, period, mass spring, spring constant, pi', latex:'T=2\\pi\\sqrt{\\frac{m}{k}}' },
+  { name:'F = kx', cat:'Motion', kw:'hooke, spring, restoring force, spring constant, extension, compression', latex:'F=kx', free:['k'] },
+  { name:'mg = kx', cat:'Motion', kw:'oscillation, mass spring, equilibrium, hooke, weight, spring constant, extension', latex:'mg=kx', free:['k'] },
+  { name:'T = 2\\pi\\sqrt{m/k}', cat:'Motion', kw:'oscillation, shm, simple harmonic motion, period, mass spring, spring constant, pi', latex:'T=2\\pi\\sqrt{\\frac{m}{k}}', free:['k'] },
   { name:'T = 2\\pi\\sqrt{L/g}', cat:'Motion', kw:'oscillation, shm, simple harmonic motion, period, pendulum, length, gravity, pi', latex:'T=2\\pi\\sqrt{\\frac{L}{g}}' },
-  { name:'E_s = \\frac12 kx^2', cat:'Motion', kw:'elastic potential energy, spring energy, strain energy, hooke, spring constant', latex:'E_{s}=\\frac{1}{2}kx^{2}' },
+  { name:'E_s = \\frac12 kx^2', cat:'Motion', kw:'elastic potential energy, spring energy, strain energy, hooke, spring constant', latex:'E_{s}=\\frac{1}{2}kx^{2}', free:['k'] },
   { name:'E_g = mgh', cat:'Motion', kw:'gravitational potential energy, gpe, height, mass, gravity', latex:'E_{g}=mgh' },
   { name:'E_k = \\frac12 mv^2', cat:'Motion', kw:'kinetic energy, ke, mass, velocity, speed', latex:'E_{k}=\\frac{1}{2}mv^{2}' },
   { name:'W = Fs', cat:'Motion', kw:'work, work done, force, displacement, energy transfer', latex:'W=Fs' },
@@ -3872,9 +3876,18 @@ function evalExpr(text, scope) {
    Order-independent evaluation per folder. Returns, per line, its value and the
    set of variables it references that are nowhere defined in the folder.
 --------------------------------------------------------------------------- */
-function recompute() {
-  try { recomputeImpl(); }
+function recompute(onlyFolder) {
+  try { recomputeImpl(onlyFolder); }
   catch (e) { /* never let a single bad line break the whole calculator */ }
+}
+
+/* Per-line evaluation scope: a line's formula-local names (spring k, specific
+   heat c) are stripped from the constants unless the section defines them. */
+function effScopeFor(line, scope, definedNames) {
+  if (!line || !line.freeNames || !line.freeNames.length) return { ...scope };
+  const s2 = { ...scope };
+  line.freeNames.forEach(n => { if (!definedNames.has(n)) delete s2[n]; });
+  return s2;
 }
 /* Trailing assignment: "2.5*12 = m" defines m, mirroring "m = 2.5*12". Applies
    only when the line has exactly one top-level "=", the right side is a single
@@ -3900,9 +3913,12 @@ function trailingAssign(expr) {
   return { name, rhs: lhs };
 }
 
-function recomputeImpl() {
+function recomputeImpl(onlyFolder) {
   const angleFns = angleScope();
   for (const folder of folders) {
+    // typing recomputes just the edited section: folder scopes are fully
+    // independent, so the others stay valid untouched
+    if (onlyFolder && folder !== onlyFolder) continue;
     const scope = { ...angleFns, ...physConstants(), ...CALC_FUNCS };
     const definedNames = new Set();
 
@@ -3966,28 +3982,29 @@ function recomputeImpl() {
       progressed = false; const still = [];
       for (const info of pending) {
         try {
+          const pScope = effScopeFor(info.line, scope, definedNames);
           if (info.solveDef) {
             const sd = info.solveDef;
             let val;
             if (sd.complex) {
-              const res = cSolveAll(sd.eqText, sd.varName, { ...scope });
+              const res = cSolveAll(sd.eqText, sd.varName, pScope);
               const roots = (res && res.roots) || [];
               if (!roots.length) throw new Error('no roots');
               val = roots.length === 1 ? roots[0] : roots;
               info._solveRes = { roots, meta: (res && res.meta) || {} };
             } else if (solveAllMode) {
-              const res = solveEquationAll(sd.eqText, sd.varName, { ...scope });
+              const res = solveEquationAll(sd.eqText, sd.varName, pScope);
               const roots = (res && res.roots) || [];
               if (!roots.length) throw new Error('no roots');
               val = roots.length === 1 ? roots[0] : roots;
               info._solveRes = { roots, meta: res || {} };
             } else {
-              val = solveEquation(sd.eqText, sd.varName, { ...scope });
+              val = solveEquation(sd.eqText, sd.varName, pScope);
               if (val === undefined || (typeof val === 'number' && !isFinite(val))) throw new Error('no root');
             }
             scope[sd.varName] = val; info.solved = val; progressed = true;
           } else {
-            scope[info.name] = evalExpr(info.rhs, scope); progressed = true;
+            scope[info.name] = evalExpr(info.rhs, pScope); progressed = true;
           }
         }
         catch (e) { still.push(info); }
@@ -4052,6 +4069,14 @@ function recomputeImpl() {
       // operation) shouldn't prompt to add itself -- it's just a reference
       const bareVar = /^\s*Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?\s*$/.test(info.expr);
       if (bareVar) undef = [];
+      // formula-local names (spring k, specific-heat c) count as unknowns on
+      // this line until the section defines them
+      if (line.freeNames && line.freeNames.length && !bareVar) {
+        const physUsed = referencedPhys(refExpr);
+        line.freeNames.forEach(n => {
+          if (!definedNames.has(n) && physUsed.includes(n) && !undef.includes(n)) undef.push(n);
+        });
+      }
       line.undefVars = undef;
       // predefined constants used but not explicitly defined in this folder
       // predefined constants are always in scope and show in the evaluated
@@ -4060,17 +4085,18 @@ function recomputeImpl() {
 
       try {
         const fullLatex = line.mq.latex();
+        const eScope = effScopeFor(line, scope, definedNames);
         let value;
         // cSolve(eq,var): list every complex root (always all-roots, regardless
         // of the solve-all toggle). Must be the whole RHS, like the solve path.
         const cSolveSrc = info.isAssign ? info.rhs : info.expr;
         const pureC = pureCSolveCall(cSolveSrc);
         if (pureC) {
-          const res = cSolveAll(pureC.eqText, pureC.varName, { ...scope });
+          const res = cSolveAll(pureC.eqText, pureC.varName, eScope);
           const roots = res.roots;
           line.lastValue = (roots.length === 1) ? roots[0] : undefined;
           renderRootList(resEl, pureC.varName, roots, info.isAssign ? info.name : null, res.meta || {});
-          updateChip(line); updateSlider(line, info); updateSparkline(line, info, scope); updateLineLayout(line);
+          updateChip(line); updateSlider(line, info); updateSparkline(line, info, eScope); updateLineLayout(line);
           continue;
         }
         // all-solutions mode: if the (RHS of the) line is exactly solve(eq,var),
@@ -4078,11 +4104,11 @@ function recomputeImpl() {
         const solveSrc = info.isAssign ? info.rhs : info.expr;
         const pure = solveAllMode ? pureSolveCall(solveSrc) : null;
         if (pure) {
-          const res = solveEquationAll(pure.eqText, pure.varName, { ...scope });
+          const res = solveEquationAll(pure.eqText, pure.varName, eScope);
           const roots = res.roots;
           line.lastValue = (roots.length === 1) ? roots[0] : undefined;
           renderRootList(resEl, pure.varName, roots, info.isAssign ? info.name : null, res);
-          updateChip(line); updateSlider(line, info); updateSparkline(line, info, scope); updateLineLayout(line);
+          updateChip(line); updateSlider(line, info); updateSparkline(line, info, eScope); updateLineLayout(line);
           continue;
         }
         // bare/implicit/arrow solve line: the subject is now a defined variable,
@@ -4104,7 +4130,7 @@ function recomputeImpl() {
             line.lastValue = val;
             renderResult(resEl, { prefixLatex: prefix }, val);
           }
-          updateChip(line); updateSlider(line, info); updateSparkline(line, info, scope); updateLineLayout(line);
+          updateChip(line); updateSlider(line, info); updateSparkline(line, info, eScope); updateLineLayout(line);
           continue;
         }
         // a solve with every input defined but no root found says so plainly --
@@ -4122,7 +4148,7 @@ function recomputeImpl() {
           continue;
         }
         if (info.isAssign) {
-          value = evalExpr(info.rhs, { ...scope });
+          value = evalExpr(info.rhs, eScope);
           line.lastValue = value;
           // value latex = everything after the first '=' (leading form, so the
           // echo omits "name ="), or before the last '=' (trailing "expr = m")
@@ -4134,7 +4160,7 @@ function recomputeImpl() {
             const eqAt = fullLatex.indexOf('=');
             rhsLatex = eqAt >= 0 ? fullLatex.slice(eqAt + 1) : fullLatex;
           }
-          renderResult(resEl, { prefixLatex: varToLatex(info.name) + ' =', srcLatex: rhsLatex, srcExpr: info.rhs, scope }, value);
+          renderResult(resEl, { prefixLatex: varToLatex(info.name) + ' =', srcLatex: rhsLatex, srcExpr: info.rhs, scope: eScope }, value);
           // simple definition: a bare number, a predefined constant, or a
           // number times one (v = c, v = 0.5c) -- grey echo, smaller input
           const rhsTrim = (info.rhs || '').trim();
@@ -4148,9 +4174,9 @@ function recomputeImpl() {
             line.lineEl.classList.add('def-line');
           }
         } else {
-          value = evalExpr(info.expr, { ...scope });
+          value = evalExpr(info.expr, eScope);
           line.lastValue = value;
-          renderResult(resEl, { plainPrefix: '= ', srcLatex: fullLatex, srcExpr: info.expr, scope }, value);
+          renderResult(resEl, { plainPrefix: '= ', srcLatex: fullLatex, srcExpr: info.expr, scope: eScope }, value);
         }
       } catch (err) {
         resEl.textContent = ''; // errors not shown
@@ -4247,11 +4273,13 @@ function tagSolveTargets(field, targetName) {
 /* Render predefined constants used in an input (h_J, c, q_e, ...) in a quiet
    dark grey: their values are known, so they read as given, not unknown. A
    constant the user redefines in the section keeps full ink. */
-function tagConstants(field, folder) {
+function tagConstants(field, line) {
   const root = field && field.querySelector('.mq-root-block');
   if (!root) return;
   root.querySelectorAll('.mq-const').forEach(el => el.classList.remove('mq-const'));
+  const folder = line && line.folder;
   const userDefined = new Set((folder && folder.definedNamesList) || []);
+  (line && line.freeNames || []).forEach(n => userDefined.add(n));   // formula-local names are not constants here
   root.querySelectorAll('var:not(.mq-operator-name)').forEach(v => {
     if (v.closest('.mq-sub, .mq-sup')) return;
     if (v.classList.contains('mq-solve-target')) return;
@@ -4385,7 +4413,7 @@ function updateLineLayout(line) {
   if (!field || !res) return;
   tagCommas(field);
   tagSolveTargets(field, line.solveTargetName);
-  tagConstants(field, line.folder);
+  tagConstants(field, line);
   const measure = () => {
     const hasResult = res.textContent.trim() !== '' || res.children.length > 0;
     if (hasResult) {
@@ -5677,7 +5705,7 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ' +
                        'ln log exp abs floor ceil sign deg ans solve Re Im Arg cSolve conj polar',
     handlers: {
-      edit: () => { expandSciShortcut(mq, lineObj); expandArrowShortcut(mq); recompute(); if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(lineObj)); },
+      edit: () => { expandSciShortcut(mq, lineObj); expandArrowShortcut(mq); recompute(lineObj.folder); if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(lineObj)); },
       enter: () => { insertAdjacentLine(lineObj, 'after'); },
       // up/down at the top/bottom of a field (i.e. NOT navigating inside a
       // fraction/superscript/subscript) move between lines instead.
@@ -5936,6 +5964,11 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     if (e.key === '?') { e.preventDefault(); openSymbolPicker(lineObj); return; }
     if (e.key === '@') { e.preventDefault(); openFormulaPicker(lineObj); return; }
     if (e.key === '?') { e.preventDefault(); openSymbolPicker(lineObj, mq); return; }
+    // space on an EMPTY row opens the formula picker directly (Escape closes)
+    if (e.key === ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      let empty = false; try { empty = mq.latex().trim() === ''; } catch (err) {}
+      if (empty) { e.preventDefault(); e.stopPropagation(); openFormulaPicker(lineObj); return; }
+    }
     if (e.key === '"') { e.preventDefault(); openNote(); return; }
     if (e.key === '{' && mq.latex().trim() === '') {
       // empty line + "{" -> convert to a simultaneous-equation system block
@@ -6031,7 +6064,7 @@ function addSystemRow(lineObj, initialLatex = '', focusIt = true) {
     autoCommands: 'pi sqrt sum nthroot int ' + GREEK_AUTOCOMMANDS,
     autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ln log exp abs floor ceil sign deg Re Im Arg cSolve conj polar',
     handlers: {
-      edit: () => recompute(),
+      edit: () => recompute(lineObj.folder),
       enter: () => {
         const i = lineObj.eqFields.indexOf(entry);
         const next = lineObj.eqFields[i + 1];
@@ -7058,6 +7091,9 @@ function chooseFormula(f, subject) {
     mq.focus();
     if (subject) mq.write(f.latex + '\\Rightarrow ' + subjectTex(subject));
     else mq.write(f.latex);
+    // formula-local symbols (spring k, specific-heat c) are NOT the predefined
+    // constants on this line: they prompt as unknowns until defined
+    if (formulaTargetLine) formulaTargetLine.freeNames = f.free ? f.free.slice() : formulaTargetLine.freeNames;
   }
   closeFormulaPicker();
   recompute();
@@ -7365,6 +7401,14 @@ function openPresentRow(line) {
     rowByLine.set(srcLine, row);
     return row;
   };
+
+  // the row's note is the view's header
+  const noteTxt = (line.noteArea && line.noteArea.value || '').trim();
+  if (noteTxt) {
+    const head = document.createElement('div'); head.className = 'pr-note-head';
+    head.textContent = noteTxt;
+    body.appendChild(head);
+  }
 
   body.appendChild(addRow(line, true));
 
@@ -7926,7 +7970,8 @@ function snapshotActive() {
           hasNote: l.lineEl.classList.contains('has-note'),
           sliderMin: (l.sliderMin !== undefined && isFinite(l.sliderMin)) ? l.sliderMin : null,
           sliderMax: (l.sliderMax !== undefined && isFinite(l.sliderMax)) ? l.sliderMax : null,
-          sliderStep: (l.sliderStep !== undefined && isFinite(l.sliderStep)) ? l.sliderStep : null
+          sliderStep: (l.sliderStep !== undefined && isFinite(l.sliderStep)) ? l.sliderStep : null,
+          free: (l.freeNames && l.freeNames.length) ? l.freeNames : undefined
         };
       })
     }))
@@ -7968,6 +8013,7 @@ function loadSnapshot(data, keepHistory = false) {
       const line = createLine(folder, folder.lines[folder.lines.length-1] || null, ld.latex || '');
       if (ld.note) { line.noteArea.value = ld.note; line.lineEl.classList.add('has-note'); if (ld.noteCollapsed) line.lineEl.classList.add('note-collapsed'); }
       else if (ld.hasNote) { line.lineEl.classList.add('has-note'); }
+      if (ld.free && ld.free.length) line.freeNames = ld.free.slice();
       if (ld.sliderMin !== null && ld.sliderMin !== undefined) { line.sliderMin = ld.sliderMin; line.sliderUserBounds = true; }
       if (ld.sliderMax !== null && ld.sliderMax !== undefined) { line.sliderMax = ld.sliderMax; line.sliderUserBounds = true; }
       if (ld.sliderStep !== null && ld.sliderStep !== undefined) line.sliderStep = ld.sliderStep;
