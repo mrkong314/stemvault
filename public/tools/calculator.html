@@ -4025,32 +4025,38 @@ function alignIdx(line) {
    Enter) also auto-adds any undefined variables/constants the current line
    references, matching the long-standing Enter behaviour; dir='before'
    (Shift+Enter) just opens a line above without that side effect. */
+/* Create the line's pending variable suggestions (the "Add variable" chips) as
+   real rows, without focusing them. Returns the first new row, or null. */
+function materializeSuggestions(lineObj) {
+  if (!lineObj || lineObj.isSystem) return null;
+  const f = lineObj.folder;
+  let firstNew = null, added = false;
+  if (lineObj.undefVars && lineObj.undefVars.length) {
+    lineObj.undefVars.slice().forEach(v => {
+      const nl = addVariable(f, v, false);
+      if (nl) { added = true; if (!firstNew) firstNew = nl; }
+    });
+  }
+  if (lineObj.undefPhys && lineObj.undefPhys.length) {
+    lineObj.undefPhys.slice().forEach(v => {
+      const nl = addVariable(f, v, false, PHYS_CONSTANTS[v]);
+      if (nl) { added = true; if (!firstNew) firstNew = nl; }
+    });
+  }
+  if (added) recompute();
+  return firstNew;
+}
+
 function insertAdjacentLine(lineObj, dir) {
   normalizeSciNotation(lineObj.mq);   // turn any literal 7E-9 into upright 7×10^{-9}
   const f = lineObj.folder;
   if (dir === 'after') {
-    let added = false;
-    let firstNew = null;
-    if (lineObj.undefVars && lineObj.undefVars.length) {
-      lineObj.undefVars.slice().forEach(v => {
-        const nl = addVariable(f, v, false);
-        if (nl) { added = true; if (!firstNew) firstNew = nl; }
-      });
-    }
-    if (lineObj.undefPhys && lineObj.undefPhys.length) {
-      lineObj.undefPhys.slice().forEach(v => {
-        const nl = addVariable(f, v, false, PHYS_CONSTANTS[v]);
-        if (nl) { added = true; if (!firstNew) firstNew = nl; }
-      });
-    }
-    if (added) {
-      recompute();
+    const firstNew = materializeSuggestions(lineObj);
+    if (firstNew) {
       // land on the first newly-added variable so its value can be set straight
       // away; caret goes to the right end (just after the default value)
-      if (firstNew) {
-        firstNew.mq.focus();
-        firstNew.mq.moveToRightEnd();
-      }
+      firstNew.mq.focus();
+      firstNew.mq.moveToRightEnd();
       return;
     }
     createLine(f, lineObj).mq.focus();
@@ -4855,6 +4861,10 @@ function focusNavTarget(t) {
 /* Move up (dir=-1) or down (dir=+1) through the sequence from a line. Called
    from a field's up/downOutOf handler (caret at the field edge). */
 function navigateLine(lineObj, dir) {
+  // leaving a line with pending "Add variable" chips creates them; moving
+  // down (or Tab) lands on the first new row, moving up continues upward
+  const firstNew = materializeSuggestions(lineObj);
+  if (firstNew && dir > 0) { firstNew.mq.focus(); firstNew.mq.moveToRightEnd(); return; }
   const seq = navSequence();
   const i = seq.findIndex(s => s.kind === 'line' && s.line === lineObj);
   if (i === -1) return;
