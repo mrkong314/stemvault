@@ -950,7 +950,19 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .mq-field .mq-arrow { padding: 0 0.35em; }
   /* predefined constants used in an input read as given values: a lighter grey
      than the definition echoes, so they contrast clearly with surrounding ink */
-  .mq-field .mq-const { color: var(--ink-dim); }
+  .mq-field .mq-const { color: var(--ink-dim); cursor: help; }
+  /* hover card describing a predefined constant (name, value, units) */
+  #constTip {
+    position: fixed; z-index: 70;
+    background: var(--glass-strong, rgba(255,255,255,0.96)); color: var(--ink);
+    border: 1px solid var(--glass-border); border-radius: 9px;
+    padding: 0.35rem 0.6rem; font-size: 0.78rem;
+    box-shadow: 0 6px 20px rgba(31,45,80,0.18), inset 0 1px 0 var(--glass-edge);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    white-space: nowrap; pointer-events: none;
+  }
+  #constTip .ct-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); margin-bottom: 0.12rem; }
+  #constTip .ct-eq { font-size: 0.92rem; }
   /* the variable a solve() call is solving for, everywhere it appears in the call */
   .mq-field .mq-solve-target { color: var(--accent); }
 
@@ -3972,9 +3984,55 @@ function tagConstants(field, folder) {
       if (sub && !sup) { name = name + '_' + sub.textContent; els.push(next); }
       // a constant with an exponent (c^2) is still the constant
     }
-    if (PHYS_NAMES.has(name) && !userDefined.has(name)) els.forEach(el => el.classList.add('mq-const'));
+    if (PHYS_NAMES.has(name) && !userDefined.has(name)) {
+      els.forEach(el => { el.classList.add('mq-const'); el.dataset.constName = name; });
+    }
   });
 }
+
+/* descriptions + units for the constant hover card */
+const PHYS_INFO = {
+  g:   { label: 'Gravitational acceleration', units: 'm\\,s^{-2}' },
+  c:   { label: 'Speed of light',             units: 'm\\,s^{-1}' },
+  k:   { label: 'Coulomb constant',           units: 'N\\,m^{2}\\,C^{-2}' },
+  G:   { label: 'Gravitational constant',     units: 'N\\,m^{2}\\,kg^{-2}' },
+  h_J: { label: 'Planck constant',            units: 'J\\,s' },
+  h_e: { label: 'Planck constant',            units: 'eV\\,s' },
+  q_e: { label: 'Electron charge magnitude',  units: 'C' },
+  q_p: { label: 'Proton charge',              units: 'C' },
+  m_e: { label: 'Electron mass',              units: 'kg' },
+  m_p: { label: 'Proton mass',                units: 'kg' },
+  M_E: { label: 'Mass of the Earth',          units: 'kg' },
+  m_E: { label: 'Mass of the Earth',          units: 'kg' },
+  r_E: { label: 'Radius of the Earth',        units: 'm' },
+};
+const constTip = document.createElement('div');
+constTip.id = 'constTip'; constTip.hidden = true;
+document.body.appendChild(constTip);
+document.addEventListener('mouseover', (e) => {
+  const t = e.target.closest && e.target.closest('.mq-const');
+  if (!t || !t.dataset.constName) { if (!constTip.hidden) constTip.hidden = true; return; }
+  const name = t.dataset.constName, info = PHYS_INFO[name];
+  if (!info) { constTip.hidden = true; return; }
+  const val = physConstants()[name];
+  constTip.innerHTML = '';
+  const lab = document.createElement('div'); lab.className = 'ct-label'; lab.textContent = info.label;
+  const eq = document.createElement('div'); eq.className = 'ct-eq';
+  let vtex = null;
+  try { vtex = decimalLatex(val); } catch (err) {}
+  if (vtex === null) vtex = String(val);
+  try { katex.render(varToLatex(name) + ' = ' + vtex + '\\ \\mathrm{' + info.units + '}', eq, { throwOnError: false }); }
+  catch (err) { eq.textContent = name + ' = ' + val; }
+  constTip.appendChild(lab); constTip.appendChild(eq);
+  constTip.hidden = false;
+  const r = t.getBoundingClientRect();
+  const tw = constTip.offsetWidth, th = constTip.offsetHeight;
+  let left = Math.min(Math.max(8, r.left - 10), window.innerWidth - tw - 8);
+  let top = r.top - th - 8;
+  if (top < 8) top = r.bottom + 8;
+  constTip.style.left = left + 'px';
+  constTip.style.top = top + 'px';
+});
 
 /* Decide whether a line's result sits inline (to the right of the input) or
    stacked below it. Inline saves vertical space; we stack when the input is long
@@ -4745,6 +4803,7 @@ const SCI_PREFIXES = [
   { name: 'giga',  exp: '9'  },
 ];
 let prefixLine = null, prefixIdx = -1, prefixKey = '', prefixSuppressKey = '';
+let prefixSearch = '', prefixSearchAt = 0;
 /* caret sitting in the empty exponent of a ×10^□ construct? */
 function sciPrefixContext(fieldEl) {
   const cur = fieldEl.querySelector('.mq-cursor');
@@ -4820,6 +4879,16 @@ window.addEventListener('keydown', (e) => {
       e.preventDefault(); e.stopImmediatePropagation();
       pickSubject(subjHintVars[subjActiveIdx]);
     }
+  } else if (isPrefix && /^[a-z]$/i.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    // type-search: "c" jumps to centi, "mi"/"mil"/"me" disambiguate the m's
+    e.preventDefault(); e.stopImmediatePropagation();
+    const now = Date.now();
+    if (now - prefixSearchAt > 1000) prefixSearch = '';
+    prefixSearchAt = now;
+    prefixSearch += e.key.toLowerCase();
+    let idx = SCI_PREFIXES.findIndex(p => p.name.startsWith(prefixSearch));
+    if (idx === -1) { prefixSearch = e.key.toLowerCase(); idx = SCI_PREFIXES.findIndex(p => p.name.startsWith(prefixSearch)); }
+    if (idx !== -1) { prefixIdx = idx; highlightPrefixRows(); }
   } else if (e.key === 'Escape') {
     e.preventDefault(); e.stopImmediatePropagation();
     if (isPrefix) {
@@ -5818,6 +5887,32 @@ function makeKey(k) {
   if (k.span) b.style.gridColumn = 'span ' + k.span;
   if (k.letter) letterButtons.push({ btn: b, ch: k.v });
   if (k.t === 'caps') b.classList.add('capskey');
+  // long-press on × inserts the full ×10^□ scaffold (caret in the exponent,
+  // which also raises the metric-prefix dropdown); a fired long-press
+  // suppresses the button's normal × insert
+  if (k.t === 'cmd' && k.v === '\\times') {
+    let lpTimer = null, lpFired = false;
+    const lpStart = () => {
+      lpFired = false;
+      lpTimer = setTimeout(() => {
+        lpTimer = null; lpFired = true;
+        const mq = activeMQ();
+        if (mq) {
+          mq.focus(); insertSciExp(mq);
+          const line = activeLine();
+          if (line && typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(line));
+        }
+      }, 450);
+    };
+    const lpCancel = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } };
+    b.addEventListener('pointerdown', lpStart);
+    b.addEventListener('pointerup', lpCancel);
+    b.addEventListener('pointerleave', lpCancel);
+    b.addEventListener('pointercancel', lpCancel);
+    b.addEventListener('click', (e) => {
+      if (lpFired) { e.preventDefault(); e.stopImmediatePropagation(); lpFired = false; }
+    });
+  }
   b.addEventListener('click', () => {
     // system block: works regardless of the active line type
     if (k.t === 'system') { insertSystemBlock(); return; }
