@@ -1034,6 +1034,14 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   }
   #presentOverlay .pr-ans.pr-hidden .pr-ans-val { display: none; }
   #presentOverlay .pr-ans.pr-hidden .pr-pill { display: inline-block; }
+  /* single-row focus: supporting rows smaller, plot centred, constants grey */
+  #presentOverlay .pr-body.pr-focus { max-width: 60rem; margin: 0 auto; }
+  #presentOverlay .pr-row.pr-sub { font-size: 0.62em; border-bottom: none; padding: 0.25em 0; }
+  #presentOverlay .pr-plot { display: flex; justify-content: center; padding: 0.8em 0 0.4em; }
+  #presentOverlay .pr-plot svg { border: 1px solid var(--rule); border-radius: 12px; background: var(--key-bg); max-width: 100%; }
+  #presentOverlay .pr-used { border-top: 1px solid var(--rule); }
+  #presentOverlay .pr-const .pr-in { color: var(--ink-dim); }
+  #presentOverlay .pr-const-label { font-size: 0.55em; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.06em; }
   /* the variable a solve() call is solving for, everywhere it appears in the call */
   .mq-field .mq-solve-target { color: var(--accent); }
 
@@ -4560,17 +4568,15 @@ function updateSlider(line, info) {
   line.range.value = Math.min(Math.max(val, min), max);
 }
 
-/* Mini-plot: when an assignment's expression is driven by exactly one
-   slider variable in the section, a sparkline of the relationship renders at
-   the row's right edge, with a dot at the slider's current position. */
-function updateSparkline(line, info, scope) {
-  const remove = () => { if (line.sparkEl) { line.sparkEl.remove(); line.sparkEl = null; } };
-  if (!info || !info.isAssign || !info.rhs || line.isSystem) { remove(); return; }
+/* Mini-plot: when an assignment's expression is driven by a slider variable
+   whose panel is open, a sparkline of the relationship renders at the row's
+   right edge, with a dot at the slider's current position. The computed data
+   is kept on the line so the single-row presentation can draw it large. */
+function sparklineData(line, info, scope) {
+  if (!info || !info.isAssign || !info.rhs || line.isSystem) return null;
   let vars;
-  try { vars = referencedVars(info.rhs); } catch (e) { remove(); return; }
-  if (!vars.length) { remove(); return; }
-  // the driver is the variable whose slider panel is OPEN (every numeric
-  // definition has a collapsed slider, so "open" is the signal of intent)
+  try { vars = referencedVars(info.rhs); } catch (e) { return null; }
+  if (!vars.length) return null;
   const NAME_RE = /^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=/;
   const sliders = {};
   line.folder.lines.forEach(l => {
@@ -4578,27 +4584,36 @@ function updateSparkline(line, info, scope) {
     try { const m = prepareExpr(l.mq.latex()).match(NAME_RE); if (m) sliders[m[1]] = l; } catch (e) {}
   });
   const drivers = vars.filter(v => sliders[v]);
-  if (drivers.length !== 1 || !vars.every(v => v in scope)) { remove(); return; }
+  if (drivers.length !== 1 || !vars.every(v => v in scope)) return null;
   const dv = drivers[0], dLine = sliders[dv];
   const lo = isFinite(dLine.sliderMin) ? dLine.sliderMin : -10;
   const hi = isFinite(dLine.sliderMax) ? dLine.sliderMax : 10;
-  if (!(hi > lo)) { remove(); return; }
+  if (!(hi > lo)) return null;
+  const base = {};
+  vars.forEach(v => { base[v] = scope[v]; });
+  return { rhs: info.rhs, name: info.name || '', dv, lo, hi, base };
+}
+
+/* Render sparkline data as an SVG string at any size. */
+function sparkSVG(data, o) {
+  o = o || {};
+  const W = o.W || 150, H = o.H || 44, PX = o.PX || 8, PT = o.PT || 6, PB = o.PB || 6;
+  const fsz = o.fsz || 7, sw = o.sw || 1.8, r = o.r || 3.2;
   let compiled;
-  try { compiled = math.compile(info.rhs); } catch (e) { remove(); return; }
-  const fscope = { ...scope };
-  const N = 60, pts = [];
+  try { compiled = math.compile(data.rhs); } catch (e) { return null; }
+  const fscope = { ...angleScope(), ...physConstants(), ...CALC_FUNCS, ...data.base };
+  const N = o.N || 60, pts = [];
   let ymin = Infinity, ymax = -Infinity;
   for (let i = 0; i < N; i++) {
-    const x = lo + (hi - lo) * i / (N - 1);
-    let y; try { fscope[dv] = x; y = compiled.evaluate(fscope); } catch (e) { y = NaN; }
+    const x = data.lo + (data.hi - data.lo) * i / (N - 1);
+    let y; try { fscope[data.dv] = x; y = compiled.evaluate(fscope); } catch (e) { y = NaN; }
     if (typeof y !== 'number' || !isFinite(y)) y = NaN;
     else { if (y < ymin) ymin = y; if (y > ymax) ymax = y; }
     pts.push([x, y]);
   }
-  if (!isFinite(ymin)) { remove(); return; }
+  if (!isFinite(ymin)) return null;
   if (ymax - ymin < 1e-12) { const pad = Math.max(1, Math.abs(ymax)) * 0.5; ymin -= pad; ymax += pad; }
-  const W = 150, H = 44, PX = 8, PT = 6, PB = 6;
-  const X = x => PX + (W - 2 * PX) * (x - lo) / (hi - lo);
+  const X = x => PX + (W - 2 * PX) * (x - data.lo) / (data.hi - data.lo);
   const Y = y => H - PB - (H - PT - PB) * (y - ymin) / (ymax - ymin);
   let d = '', pen = false;
   pts.forEach(([x, y]) => {
@@ -4606,29 +4621,37 @@ function updateSparkline(line, info, scope) {
     d += (pen ? 'L' : 'M') + X(x).toFixed(1) + ' ' + Y(y).toFixed(1) + ' ';
     pen = true;
   });
-  // dot at the slider's current value
   let dot = '';
-  const cur = scope[dv];
-  if (typeof cur === 'number' && cur >= lo && cur <= hi) {
-    let cy; try { fscope[dv] = cur; cy = compiled.evaluate(fscope); } catch (e) { cy = NaN; }
+  const cur = data.base[data.dv];
+  if (typeof cur === 'number' && cur >= data.lo && cur <= data.hi) {
+    let cy; try { fscope[data.dv] = cur; cy = compiled.evaluate(fscope); } catch (e) { cy = NaN; }
     if (typeof cy === 'number' && isFinite(cy) && cy >= ymin && cy <= ymax) {
-      dot = '<circle cx="' + X(cur).toFixed(1) + '" cy="' + Y(cy).toFixed(1) + '" r="3.2" fill="var(--accent)"/>';
+      dot = '<circle cx="' + X(cur).toFixed(1) + '" cy="' + Y(cy).toFixed(1) + '" r="' + r + '" fill="var(--accent)"/>';
     }
   }
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  return '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
+    '<path d="M' + PX + ' ' + (H - PB) + ' L' + (W - PX) + ' ' + (H - PB) + '" stroke="var(--rule)" stroke-width="1"/>' +
+    '<path d="M' + PX + ' ' + (H - PB) + ' L' + PX + ' ' + PT + '" stroke="var(--rule)" stroke-width="1"/>' +
+    '<path d="' + d.trim() + '" fill="none" stroke="var(--accent)" stroke-width="' + sw + '"/>' + dot +
+    '<text x="' + (W - PX) + '" y="' + (H - PB + fsz + 2) + '" font-size="' + fsz + '" fill="var(--ink-dim)" text-anchor="end">' + esc(prettyVarLabel(data.dv)) + '</text>' +
+    '<text x="' + (PX + 3) + '" y="' + (PT + fsz) + '" font-size="' + fsz + '" fill="var(--ink-dim)">' + esc(prettyVarLabel(data.name)) + '</text>' +
+    '</svg>';
+}
+
+function updateSparkline(line, info, scope) {
+  const remove = () => { if (line.sparkEl) { line.sparkEl.remove(); line.sparkEl = null; } line._sparkData = null; };
+  const data = sparklineData(line, info, scope);
+  if (!data) { remove(); return; }
+  const svg = sparkSVG(data, { W: 150, H: 44, fsz: 7 });
+  if (!svg) { remove(); return; }
+  line._sparkData = data;
   if (!line.sparkEl) {
     line.sparkEl = document.createElement('span');
     line.sparkEl.className = 'line-spark';
     line.mainRow.appendChild(line.sparkEl);
   }
-  line.sparkEl.innerHTML =
-    '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' +
-    '<path d="M' + PX + ' ' + (H - PB) + ' L' + (W - PX) + ' ' + (H - PB) + '" stroke="var(--rule)" stroke-width="1"/>' +
-    '<path d="M' + PX + ' ' + (H - PB) + ' L' + PX + ' ' + PT + '" stroke="var(--rule)" stroke-width="1"/>' +
-    '<path d="' + d.trim() + '" fill="none" stroke="var(--accent)" stroke-width="1.8"/>' + dot +
-    '<text x="' + (W - PX) + '" y="' + (H - 1) + '" font-size="7" fill="var(--ink-dim)" text-anchor="end">' + esc(prettyVarLabel(dv)) + '</text>' +
-    '<text x="' + (PX + 2) + '" y="' + (PT + 4) + '" font-size="7" fill="var(--ink-dim)">' + esc(prettyVarLabel(info.name || '')) + '</text>' +
-    '</svg>';
+  line.sparkEl.innerHTML = svg;
 }
 
 function trimNum(n) { return parseFloat(n.toPrecision(6)).toString(); }
@@ -5492,7 +5515,11 @@ function createLine(folder, afterLine = null, initialLatex = '') {
   noteBtn.innerHTML = '&#8220;'; noteBtn.title = 'Toggle note (or type ")';
   const delBtn = document.createElement('button'); delBtn.className = 'actbtn del';
   delBtn.innerHTML = '&times;'; delBtn.title = 'Delete line';
-  actions.appendChild(sliderBtn); actions.appendChild(noteBtn); actions.appendChild(delBtn);
+  const presRowBtn = document.createElement('button'); presRowBtn.className = 'actbtn present';
+  presRowBtn.title = 'Present this row (full screen)';
+  presRowBtn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-15M21 3l-7 7M3 21l7-7"/></svg>';
+  presRowBtn.addEventListener('click', (e) => { e.stopPropagation(); openPresentRow(lineObj); });
+  actions.appendChild(sliderBtn); actions.appendChild(presRowBtn); actions.appendChild(noteBtn); actions.appendChild(delBtn);
 
   lineEl.appendChild(handle); lineEl.appendChild(idxEl);
   lineEl.appendChild(bodyEl); lineEl.appendChild(actions);
@@ -7088,6 +7115,124 @@ function openPresent() {
   document.body.appendChild(ov);
 }
 presentBtn.addEventListener('click', (e) => { e.stopPropagation(); openPresent(); });
+
+/* Single-row focus presentation: one line full screen -- its answer (shown by
+   default, click to hide), the mini-plot drawn large when present, and every
+   variable the line uses: constants with values, simple definitions inline,
+   and calculated definitions shown WITH their originating row's working. */
+function openPresentRow(line) {
+  closePresent();
+  if (!line || line.isSystem) return;
+  let latex = '';
+  try { latex = line.mq.latex(); } catch (e) {}
+  if (!latex.trim()) return;
+  const ov = document.createElement('div'); ov.id = 'presentOverlay';
+  const bar = document.createElement('div'); bar.className = 'pr-bar';
+  const mkBtn = (label, fn, cls) => {
+    const b = document.createElement('button'); b.className = 'pr-btn' + (cls ? ' ' + cls : '');
+    b.textContent = label; b.addEventListener('click', fn); return b;
+  };
+  const body = document.createElement('div'); body.className = 'pr-body pr-focus';
+  const applyFS = () => { body.style.fontSize = presentFS + 'rem'; };
+  bar.appendChild(mkBtn('A−', () => { presentFS = Math.max(1.1, presentFS - 0.2); applyFS(); }));
+  bar.appendChild(mkBtn('A+', () => { presentFS = Math.min(3, presentFS + 0.2); applyFS(); }));
+  const spacer = document.createElement('span'); spacer.style.flex = '1 1 auto'; bar.appendChild(spacer);
+  const setAll = (show) => ov.querySelectorAll('.pr-ans').forEach(w => w.classList.toggle('pr-hidden', !show));
+  bar.appendChild(mkBtn('Hide all', () => setAll(false)));
+  bar.appendChild(mkBtn('Show all', () => setAll(true), 'pr-accent'));
+  bar.appendChild(mkBtn('×', closePresent, 'pr-close'));
+  ov.appendChild(bar);
+
+  const addRow = (srcLine, big) => {
+    let lx = '';
+    try { lx = srcLine.mq.latex(); } catch (e) {}
+    const row = document.createElement('div'); row.className = 'pr-row' + (big ? '' : ' pr-sub');
+    const inp = document.createElement('span'); inp.className = 'pr-in';
+    try { katex.render(lx, inp, { throwOnError: false }); } catch (e) { inp.textContent = lx; }
+    row.appendChild(inp);
+    const hasAns = srcLine.resultEl && (srcLine.resultEl.textContent.trim() !== '' || srcLine.resultEl.children.length > 0);
+    if (hasAns) {
+      const wrap = document.createElement('span'); wrap.className = 'pr-ans';
+      const ans = document.createElement('span'); ans.className = 'pr-ans-val';
+      ans.appendChild(srcLine.resultEl.cloneNode(true));
+      ans.title = 'Click to hide';
+      ans.addEventListener('click', () => wrap.classList.add('pr-hidden'));
+      const pill = document.createElement('span'); pill.className = 'pr-pill'; pill.textContent = 'Show';
+      pill.addEventListener('click', () => wrap.classList.remove('pr-hidden'));
+      wrap.appendChild(ans); wrap.appendChild(pill);
+      row.appendChild(wrap);
+    }
+    return row;
+  };
+
+  body.appendChild(addRow(line, true));
+
+  // large plot when the row carries a sparkline
+  if (line._sparkData) {
+    const svg = sparkSVG(line._sparkData, { W: 680, H: 300, PX: 34, PT: 18, PB: 22, fsz: 13, sw: 2.6, r: 5.5, N: 120 });
+    if (svg) {
+      const plot = document.createElement('div'); plot.className = 'pr-plot';
+      plot.innerHTML = svg;
+      body.appendChild(plot);
+    }
+  }
+
+  // what this line uses: variables (simple or calculated) and constants
+  let expr = '';
+  try { expr = prepareExpr(latex); } catch (e) {}
+  let refs = [], phys = [];
+  try { refs = referencedVars(expr); } catch (e) {}
+  try { phys = referencedPhys(expr); } catch (e) {}
+  const NAME_RE = /^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)/;
+  const findDef = (name) => {
+    for (const l of line.folder.lines) {
+      if (l.isSystem || l === line) continue;
+      try {
+        const e2 = prepareExpr(l.mq.latex());
+        const m = e2.match(NAME_RE);
+        if (m && m[1] === name) return l;
+        const t = trailingAssign(e2);
+        if (t && t.name === name) return l;
+        const ps = pureSolveCall(e2);
+        if (ps && ps.varName) {
+          const flat = ps.varName.replace(/[()\s]/g, '');
+          const rb = flat.match(/^(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)(?:\/c)?$/);
+          if (rb && rb[1] === name) return l;
+        }
+      } catch (e3) {}
+    }
+    return null;
+  };
+  const used = document.createElement('div'); used.className = 'pr-used';
+  let anyUsed = false;
+  refs.forEach(v => {
+    const def = findDef(v);
+    if (!def) return;
+    anyUsed = true;
+    used.appendChild(addRow(def, false));   // simple defs echo quietly; calculated show their working
+  });
+  phys.forEach(p => {
+    const defd = (line.folder.definedNamesList || []).includes(p);
+    if (defd) { const dl = findDef(p); if (dl) { used.appendChild(addRow(dl, false)); anyUsed = true; } return; }
+    const info = PHYS_INFO[p]; if (!info) return;
+    anyUsed = true;
+    const row = document.createElement('div'); row.className = 'pr-row pr-sub pr-const';
+    const inp = document.createElement('span'); inp.className = 'pr-in';
+    let vtex = null; try { vtex = decimalLatex(physConstants()[p]); } catch (e) {}
+    try { katex.render(varToLatex(p) + '=' + (vtex || String(physConstants()[p])) + '\\ \\mathrm{' + info.units + '}', inp, { throwOnError: false }); }
+    catch (e) { inp.textContent = p; }
+    const lab = document.createElement('span'); lab.className = 'pr-const-label'; lab.textContent = info.label;
+    row.appendChild(inp); row.appendChild(lab);
+    used.appendChild(row);
+  });
+  if (anyUsed) {
+    const h = document.createElement('div'); h.className = 'pr-section'; h.textContent = 'Uses';
+    body.appendChild(h); body.appendChild(used);
+  }
+  applyFS();
+  ov.appendChild(body);
+  document.body.appendChild(ov);
+}
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.getElementById('presentOverlay')) {
     e.preventDefault(); e.stopImmediatePropagation(); closePresent();
