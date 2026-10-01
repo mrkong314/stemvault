@@ -933,8 +933,13 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .mq-field var.mq-operator-name + .mq-non-leaf { margin-left: 0.14em; }
   .mq-field .mq-paren + .mq-non-leaf { padding: 0 0.12em; }
   .mq-field .mq-comma { padding-right: 0.4em; }
+  /* the solve arrow gets air on both sides: 2v+1=9 ⇒ v */
+  .mq-field .mq-arrow { padding: 0 0.35em; }
   /* the variable a solve() call is solving for, everywhere it appears in the call */
   .mq-field .mq-solve-target { color: var(--accent); }
+  /* solve's plumbing (the word, its brackets, the argument comma) fades to a
+     readable grey -- same size, just quieter than the mathematics */
+  .mq-field .mq-solve-dim { color: var(--ink-dim); }
 
   /* Bracket groups too: MathQuill scales the bracket glyph to the measured height
      of the enclosed block, so if that block wraps (its min-content collapses under
@@ -2414,7 +2419,23 @@ function insertImplicitMult(s) {
   return out;
 }
 
-function prepareExpr(latex) { return insertImplicitMult(latexToMath(latex)); }
+/* "equation => v" sugar: a top-level \Rightarrow rewrites the line into
+   solve(equation, subject) before parsing, so "2v+1=9 => v" IS solve(2v+1=9,v).
+   An incomplete arrow (no subject yet, or no '=' on the left) is dropped so the
+   remaining equation still parses while the line is being typed. */
+function rewriteArrowSolve(latex) {
+  const TAG = '\\Rightarrow';
+  const i = latex.lastIndexOf(TAG);
+  if (i === -1) return latex;
+  const lhs = latex.slice(0, i).trim();
+  const rhs = latex.slice(i + TAG.length).trim();
+  if (lhs && rhs && lhs.indexOf('=') !== -1) {
+    return '\\operatorname{solve}\\left(' + lhs + ',' + rhs + '\\right)';
+  }
+  return (lhs + ' ' + rhs).trim();
+}
+
+function prepareExpr(latex) { return insertImplicitMult(latexToMath(rewriteArrowSolve(latex))); }
 
 /* ---- numeric equation solver for solve(equation, variable) ----
    Builds f(x) = LHS - RHS with all other variables taken from the folder scope,
@@ -3585,15 +3606,36 @@ function recomputeImpl() {
       // a bare solve()/cSolve() line defines its subject for the whole section
       // (multiple solutions define it as a list)
       let solveDef = null;
+      let equation = false;
       if (!m && !t && expr) {
         const ps = pureSolveCall(expr);
         const pc = ps ? null : pureCSolveCall(expr);
         if (ps) solveDef = { eqText: ps.eqText, varName: ps.varName, complex: false };
         else if (pc) solveDef = { eqText: pc.eqText, varName: pc.varName, complex: true };
         if (solveDef) definedNames.add(solveDef.varName);
+        else {
+          // a plain equation (one top-level '=') may auto-solve -- decided
+          // below once every line's definitions are known
+          let d = 0, n = 0;
+          for (const ch of expr) { if (ch === '(') d++; else if (ch === ')') { if (d > 0) d--; } else if (ch === '=' && d === 0) n++; }
+          equation = (n === 1);
+        }
       }
-      return { line, expr, isAssign: !!(m || t), trailing: !!t, name, rhs, solveDef };
+      return { line, expr, isAssign: !!(m || t), trailing: !!t, name, rhs, solveDef, equation };
     });
+
+    // implicit solving: a plain equation whose variables are all defined except
+    // ONE auto-solves for that unknown, and defines it like a solve() would
+    for (const info of infos) {
+      if (!info.equation || info.solveDef) continue;
+      try {
+        const unknowns = referencedVars(info.expr).filter(v => !definedNames.has(v));
+        if (unknowns.length === 1) {
+          info.solveDef = { eqText: info.expr, varName: unknowns[0], complex: false, implicit: true };
+          definedNames.add(unknowns[0]);
+        }
+      } catch (e) {}
+    }
 
     // Pass 1: resolve assignments (and bare solve lines' subjects) order-independently
     let pending = infos.filter(i => (i.isAssign || i.solveDef) && i.expr !== '');
@@ -3610,11 +3652,13 @@ function recomputeImpl() {
               const roots = (res && res.roots) || [];
               if (!roots.length) throw new Error('no roots');
               val = roots.length === 1 ? roots[0] : roots;
+              info._solveRes = { roots, meta: (res && res.meta) || {} };
             } else if (solveAllMode) {
               const res = solveEquationAll(sd.eqText, sd.varName, { ...scope });
               const roots = (res && res.roots) || [];
               if (!roots.length) throw new Error('no roots');
               val = roots.length === 1 ? roots[0] : roots;
+              info._solveRes = { roots, meta: res || {} };
             } else {
               val = solveEquation(sd.eqText, sd.varName, { ...scope });
               if (val === undefined || (typeof val === 'number' && !isFinite(val))) throw new Error('no root');
@@ -3653,6 +3697,7 @@ function recomputeImpl() {
       line.lastValue = undefined;
       line.undefVars = [];
       line.undefPhys = [];
+      line.solveTargetName = (info.solveDef && info.solveDef.varName) || null;
 
       if (info.expr === '') { updateChip(line); continue; }
 
@@ -3710,11 +3755,18 @@ function recomputeImpl() {
           updateChip(line); updateSlider(line, info); updateLineLayout(line);
           continue;
         }
-        // bare solve line (first-root mode): show "v = root" -- the subject is
-        // now a defined variable, so the result reads like the assignment it is
-        if (info.solveDef && !info.solveDef.complex && !solveAllMode && info.solved !== undefined && !Array.isArray(info.solved)) {
-          line.lastValue = info.solved;
-          renderResult(resEl, { prefixLatex: varToLatex(info.solveDef.varName) + ' =' }, info.solved);
+        // bare/implicit/arrow solve line: the subject is now a defined variable,
+        // so the result reads like the assignment it is -- "v = root", or a
+        // root list when there are several solutions
+        if (info.solveDef && info.solved !== undefined) {
+          if (info._solveRes) {
+            const roots = info._solveRes.roots;
+            line.lastValue = (roots.length === 1) ? roots[0] : undefined;
+            renderRootList(resEl, info.solveDef.varName, roots, null, info._solveRes.meta);
+          } else {
+            line.lastValue = info.solved;
+            renderResult(resEl, { prefixLatex: varToLatex(info.solveDef.varName) + ' =' }, info.solved);
+          }
           updateChip(line); updateSlider(line, info); updateLineLayout(line);
           continue;
         }
@@ -3756,8 +3808,10 @@ function recomputeImpl() {
 function tagCommas(field) {
   const root = field && field.querySelector('.mq-root-block');
   if (!root) return;
-  root.querySelectorAll('span:not(.mq-comma)').forEach(s => {
-    if (s.childElementCount === 0 && s.textContent === ',') s.classList.add('mq-comma');
+  root.querySelectorAll('span:not(.mq-comma):not(.mq-arrow)').forEach(s => {
+    if (s.childElementCount !== 0) return;
+    if (s.textContent === ',') s.classList.add('mq-comma');
+    else if (s.textContent === '⇒') s.classList.add('mq-arrow');
   });
 }
 
@@ -3765,10 +3819,11 @@ function tagCommas(field) {
    after the last comma, and every occurrence of it inside the equation. Works
    on the rendered DOM: a subject is a <var> (plus a subscript-only supsub),
    matched by base letter + subscript text. Runs with tagCommas on recompute. */
-function tagSolveTargets(field) {
+function tagSolveTargets(field, targetName) {
   const root = field && field.querySelector('.mq-root-block');
   if (!root) return;
   root.querySelectorAll('.mq-solve-target').forEach(el => el.classList.remove('mq-solve-target'));
+  root.querySelectorAll('.mq-solve-dim').forEach(el => el.classList.remove('mq-solve-dim'));
   // signature of the variable starting at <var> element el
   const sig = (el) => {
     const next = el.nextElementSibling;
@@ -3779,33 +3834,43 @@ function tagSolveTargets(field) {
     }
     return { base: el.textContent, sub: null, els: [el] };
   };
+  const tagMatches = (container, target) => {
+    container.querySelectorAll('var:not(.mq-operator-name)').forEach(v => {
+      if (v.closest('.mq-sub, .mq-sup')) return;
+      const s = sig(v);
+      if (s.base === target.base && s.sub === target.sub) s.els.forEach(el => el.classList.add('mq-solve-target'));
+    });
+  };
   // find operator-name runs spelling solve/cSolve followed by a bracket group
   const kids = [...root.children];
   for (let i = 0; i < kids.length; i++) {
     if (!(kids[i].tagName === 'VAR' && kids[i].classList.contains('mq-operator-name'))) continue;
     let name = '', j = i;
-    while (j < kids.length && kids[j].tagName === 'VAR' && kids[j].classList.contains('mq-operator-name')) { name += kids[j].textContent; j++; }
+    const nameEls = [];
+    while (j < kids.length && kids[j].tagName === 'VAR' && kids[j].classList.contains('mq-operator-name')) { name += kids[j].textContent; nameEls.push(kids[j]); j++; }
     if ((name === 'solve' || name === 'cSolve') && kids[j] && kids[j].classList.contains('mq-non-leaf')) {
+      // fade the plumbing: the word, its brackets and the argument comma
+      nameEls.forEach(el => el.classList.add('mq-solve-dim'));
+      kids[j].querySelectorAll(':scope > .mq-paren').forEach(p => p.classList.add('mq-solve-dim'));
       const content = kids[j].querySelector(':scope > .mq-non-leaf');
       if (content) {
         const cc = [...content.children];
         const lastComma = cc.map(c => c.textContent === ',' && c.childElementCount === 0).lastIndexOf(true);
         if (lastComma !== -1) {
+          cc[lastComma].classList.add('mq-solve-dim');
           const subjEl = cc.slice(lastComma + 1).find(c => c.tagName === 'VAR' && !c.classList.contains('mq-operator-name'));
-          if (subjEl) {
-            const target = sig(subjEl);
-            // every matching occurrence inside the call (equation + subject),
-            // skipping letters that are themselves subscripts/superscripts
-            content.querySelectorAll('var:not(.mq-operator-name)').forEach(v => {
-              if (v.closest('.mq-sub, .mq-sup')) return;
-              const s = sig(v);
-              if (s.base === target.base && s.sub === target.sub) s.els.forEach(el => el.classList.add('mq-solve-target'));
-            });
-          }
+          if (subjEl) tagMatches(content, sig(subjEl));
         }
       }
     }
     i = j - 1;
+  }
+  // arrow form and implicit equations carry no solve() call in the DOM; the
+  // line's computed subject name says what to highlight across the whole field
+  if (targetName) {
+    let base = targetName, sub = null;
+    try { const p = splitVar(targetName); base = p.base; sub = p.sub; } catch (e) {}
+    tagMatches(root, { base, sub });
   }
 }
 
@@ -3817,7 +3882,7 @@ function updateLineLayout(line) {
   const field = line.fieldEl, res = line.resultEl;
   if (!field || !res) return;
   tagCommas(field);
-  tagSolveTargets(field);
+  tagSolveTargets(field, line.solveTargetName);
   const measure = () => {
     const hasResult = res.textContent.trim() !== '' || res.children.length > 0;
     if (hasResult) {
@@ -4244,6 +4309,14 @@ function stripFracParens(mq) {
    Driven from the edit handler: it fires the instant the second caret creates
    the nested empty sup, before any exponent digits are entered. A re-entrancy
    guard stops the programmatic rewrite below from recursing through edit. */
+/* typing "=>" becomes the solve arrow: "2v+1=9 => v" shows as 2v+1=9 ⇒ v */
+function expandArrowShortcut(mq) {
+  if (!mq) return;
+  let latex; try { latex = mq.latex(); } catch (e) { return; }
+  if (latex.indexOf('=>') === -1) return;
+  try { mq.latex(latex.replace(/=>/g, '\\Rightarrow ')); mq.moveToRightEnd(); } catch (e) {}
+}
+
 function expandSciShortcut(mq, lineObj) {
   if (!mq || lineObj._sciExpanding) return;
   let latex;
@@ -4669,7 +4742,7 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ' +
                        'ln log exp abs floor ceil sign deg ans solve Re Im Arg cSolve conj polar',
     handlers: {
-      edit: () => { expandSciShortcut(mq, lineObj); recompute(); if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(lineObj)); },
+      edit: () => { expandSciShortcut(mq, lineObj); expandArrowShortcut(mq); recompute(); if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(lineObj)); },
       enter: () => { insertAdjacentLine(lineObj, 'after'); },
       // up/down at the top/bottom of a field (i.e. NOT navigating inside a
       // fraction/superscript/subscript) move between lines instead.
@@ -5894,15 +5967,16 @@ function setFormulaActive(i) {
   renderSubjectChips();
   const el = [...rows].find(r => +r.dataset.idx === i); if (el) el.scrollIntoView({ block:'nearest' });
 }
-/* Insert a formula. With a subject it goes in as solve(formula, subject) --
-   the default subject is the left-hand side -- so filling in the knowns (via
-   the undefined-variable chips) solves it immediately. Without a subject
-   (Shift+Enter, or an unsolvable chained form) the bare formula is written. */
+/* Insert a formula. With a subject it goes in as "formula ⇒ subject" (the
+   arrow form of solve; the default subject is the left-hand side) -- so
+   filling in the knowns via the undefined-variable chips solves immediately.
+   Without a subject (Shift+Enter, or an unsolvable chained form) the bare
+   formula is written. */
 function chooseFormula(f, subject) {
   const mq = formulaTargetMQ || (formulaTargetLine && formulaTargetLine.mq);
   if (mq) {
     mq.focus();
-    if (subject) mq.write('\\operatorname{solve}\\left(' + f.latex + ',' + varToLatex(subject) + '\\right)');
+    if (subject) mq.write(f.latex + '\\Rightarrow ' + varToLatex(subject));
     else mq.write(f.latex);
   }
   closeFormulaPicker();
@@ -6038,18 +6112,25 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !setting
 /* --- undo / redo --- */
 document.getElementById('undoBtn').addEventListener('click', (e) => { e.stopPropagation(); doUndo(); });
 document.getElementById('redoBtn').addEventListener('click', (e) => { e.stopPropagation(); doRedo(); });
-/* Ctrl/Cmd+Z = undo, Ctrl/Cmd+Shift+Z (or Ctrl+Y) = redo. While a math field is
-   focused, defer to MathQuill's own in-field undo and do nothing global. */
+/* Ctrl/Cmd+Z = undo, Ctrl/Cmd+Shift+Z (or Ctrl+Y) = redo. MathQuill has no
+   undo of its own, so these run the app's snapshot undo even while a math
+   field is focused (any in-progress edit is committed first so it is undone
+   as its own step). Plain notes and name inputs keep the browser's native
+   text undo. */
 document.addEventListener('keydown', (e) => {
   const z = e.key === 'z' || e.key === 'Z';
   const y = e.key === 'y' || e.key === 'Y';
   if (!((e.ctrlKey || e.metaKey) && (z || y))) return;
-  // a focused MathQuill field keeps its native undo/redo
   const ae = document.activeElement;
-  if (ae && ae.closest && ae.closest('.mq-field, .mq-editable-field, textarea, input')) return;
-  e.preventDefault();
+  const inMq = ae && ae.closest && ae.closest('.mq-field');
+  if (!inMq && ae && ae.closest && ae.closest('textarea, input')) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (inMq && typeof focusedLineObj !== 'undefined' && focusedLineObj &&
+      typeof commitEditCapture === 'function') {
+    try { commitEditCapture(focusedLineObj); } catch (err) {}
+  }
   if (y || (z && e.shiftKey)) doRedo(); else doUndo();
-});
+}, true);
 
 /* --- mode toggles usable from the keyboard --- */
 function setSeg(seg, attr, value) {
@@ -6120,6 +6201,7 @@ function selectAllRows() {
 }
 function deleteSelectedRows() {
   if (!selectedLines.size) return;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   pushUndo();
   const all = flatLines();
   const doomed = all.filter(l => selectedLines.has(l));
@@ -6211,7 +6293,12 @@ document.addEventListener('keydown', (e) => {
       const rb = fEl.querySelector('.mq-root-block');
       const kids = rb ? [...rb.children].filter(c => !c.classList.contains('mq-cursor')) : [];
       const fullySelected = kids.length > 0 && kids.every(c => c.classList.contains('mq-selection'));
-      if (fullySelected || kids.length === 0) { e.preventDefault(); selectAllRows(); return; }
+      if (fullySelected || kids.length === 0) {
+        // stop the event here: MathQuill's own Ctrl+A handler would refocus
+        // the field, stealing the Backspace that should delete the rows
+        e.preventDefault(); e.stopImmediatePropagation();
+        selectAllRows(); return;
+      }
     }
   }
   // Ctrl/Cmd+D duplicates the selected rows, or the focused row
