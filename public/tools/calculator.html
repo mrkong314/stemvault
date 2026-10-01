@@ -4265,10 +4265,14 @@ function updateChip(line) {
   const label = document.createElement('span');
   label.textContent = (total === 1 ? 'Add variable' : 'Add variables') + ':';
   chip.appendChild(label);
+  const mathChip = (b, latexStr, fallback) => {
+    try { katex.render(latexStr, b, { throwOnError: false }); }
+    catch (e) { b.textContent = fallback; }
+  };
   undef.forEach(v => {
     const b = document.createElement('button');
     b.className = 'addvar';
-    b.textContent = prettyVarLabel(v) + ' = 1';
+    mathChip(b, varToLatex(v) + '=1', prettyVarLabel(v) + ' = 1');
     b.addEventListener('click', () => addVariable(line.folder, v));
     chip.appendChild(b);
   });
@@ -4278,7 +4282,7 @@ function updateChip(line) {
     const val = PHYS_CONSTANTS[v];
     const b = document.createElement('button');
     b.className = 'addvar';
-    b.textContent = prettyVarLabel(v) + ' = ' + numToPlainLabel(val);
+    mathChip(b, varToLatex(v) + '=' + numToLatex(val), prettyVarLabel(v) + ' = ' + numToPlainLabel(val));
     b.addEventListener('click', () => addVariable(line.folder, v, true, val));
     chip.appendChild(b);
   });
