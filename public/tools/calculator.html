@@ -4044,7 +4044,7 @@ function recomputeImpl(onlyFolder) {
       line.solveTargetName = (info.solveDef && info.solveDef.varName) || null;
       line.lineEl.classList.remove('def-line');
 
-      if (info.expr === '') { updateChip(line); continue; }
+      if (info.expr === '') { line.freeNames = null; updateChip(line); continue; }
 
       // unexpanded "..." means expandEllipsisLists couldn't read a clear integer
       // pattern (uneven step, unreachable endpoint, non-integer terms, etc.)
@@ -7366,11 +7366,25 @@ function openPresentRow(line) {
       syncing = true; ovMq.latex(lx); syncing = false;
       ovFields.push(ovMq);
     } catch (e) { ovMq = null; }
+    // same visual grammar as the main view: accent ⇒ and solve subject,
+    // greyed constants, comma spacing
+    const decorate = () => {
+      try {
+        tagCommas(fEl);
+        tagSolveTargets(fEl, srcLine.solveTargetName);
+        tagConstants(fEl, srcLine);
+      } catch (e2) {}
+    };
+    decorate();
     const updIn = () => {
       let src = ''; try { src = srcLine.mq.latex(); } catch (e2) {}
       if (!ovMq) { try { katex.render(src, inp, { throwOnError: false }); } catch (e2) { inp.textContent = src; } return; }
-      if (document.activeElement && fEl.contains(document.activeElement)) return;   // never clobber live typing
+      if (document.activeElement && fEl.contains(document.activeElement)) {
+        decorate();                            // retag around the caret's own edits
+        return;
+      }
       if (ovMq.latex() !== src) { syncing = true; try { ovMq.latex(src); } catch (e2) {} syncing = false; }
+      decorate();
     };
     row.appendChild(inp);
     const hasAns = srcLine.resultEl && (srcLine.resultEl.textContent.trim() !== '' || srcLine.resultEl.children.length > 0);
