@@ -1036,22 +1036,33 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   }
   #presentOverlay .pr-ans.pr-hidden .pr-ans-val { display: none; }
   #presentOverlay .pr-ans.pr-hidden .pr-pill { display: inline-block; }
-  /* single-row focus: supporting rows smaller, plot centred, constants grey */
-  #presentOverlay .pr-body.pr-focus { max-width: 60rem; margin: 0 auto; }
-  /* the focused row stands out on its own tinted card */
+  /* single-row focus: the main row spans the width at larger size on a white
+     card; supporting content stays centred and smaller */
+  #presentOverlay .pr-body.pr-focus { max-width: none; }
   #presentOverlay .pr-body.pr-focus > .pr-row:not(.pr-sub) {
-    background: var(--focus-bg); border-radius: 16px; border-bottom: none;
-    padding: 0.5em 0.8em; margin-bottom: 0.4em;
+    background: var(--key-bg); border: 1px solid var(--glass-border);
+    box-shadow: 0 3px 14px rgba(31,45,80,0.08);
+    border-radius: 18px; border-bottom-style: solid;
+    font-size: 1.35em; padding: 0.5em 0.9em; margin-bottom: 0.45em;
   }
+  #presentOverlay .pr-body.pr-focus .pr-plot,
+  #presentOverlay .pr-body.pr-focus .pr-used,
+  #presentOverlay .pr-body.pr-focus .pr-section,
+  #presentOverlay .pr-body.pr-focus .pr-used .pr-slider {
+    max-width: 60rem; margin-left: auto; margin-right: auto;
+  }
+  /* live overlay fields inherit the presentation size */
+  #presentOverlay .mq-field { font-size: inherit; min-height: 0; }
   #presentOverlay .pr-row.pr-sub { font-size: 0.62em; border-bottom: none; padding: 0.25em 0; }
   #presentOverlay .pr-plot { display: flex; justify-content: center; padding: 0.8em 0 0.4em; }
   #presentOverlay .pr-plot svg { border: 1px solid var(--rule); border-radius: 12px; background: var(--key-bg); max-width: 100%; }
   #presentOverlay .pr-used { border-top: 1px solid var(--rule); }
   #presentOverlay .pr-const .pr-in { color: var(--ink-dim); }
   #presentOverlay .pr-const-label { font-size: 0.55em; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.06em; }
-  /* live sliders in the focus view */
-  #presentOverlay .pr-sliders { border-top: 1px solid var(--rule); margin-top: 0.4em; padding-top: 0.3em; }
-  #presentOverlay .pr-slider { display: flex; align-items: center; gap: 0.9rem; padding: 0.3em 0; font-size: 0.6em; }
+  /* live sliders in the focus view: hidden until their row (or the slider
+     itself) is hovered, matching the main view's quiet controls */
+  #presentOverlay .pr-slider { display: none; align-items: center; gap: 0.9rem; padding: 0.3em 0; font-size: 0.6em; }
+  #presentOverlay .pr-row:hover + .pr-slider, #presentOverlay .pr-slider:hover { display: flex; }
   #presentOverlay .pr-slider-lab { flex: 0 0 auto; min-width: 7em; }
   #presentOverlay .pr-slider-bound { flex: 0 0 auto; color: var(--ink-dim); font-size: 0.8em; }
   #presentOverlay .pr-slider input[type=range] { flex: 1 1 auto; accent-color: var(--accent); }
@@ -7161,14 +7172,49 @@ function openPresentRow(line) {
   ov.appendChild(bar);
 
   const ansRefs = [], sliderLabelUpdaters = [];
+  const rowByLine = new Map();
   const BIG = { W: 680, H: 300, PX: 34, PT: 18, PB: 22, fsz: 13, sw: 2.6, r: 5.5, N: 120 };
+  let refresh = () => {};   // assigned below; rows close over it
   const addRow = (srcLine, big) => {
     let lx = '';
     try { lx = srcLine.mq.latex(); } catch (e) {}
     const row = document.createElement('div'); row.className = 'pr-row' + (big ? '' : ' pr-sub');
     const inp = document.createElement('span'); inp.className = 'pr-in';
-    const updIn = () => { try { katex.render(srcLine.mq.latex(), inp, { throwOnError: false }); } catch (e) { inp.textContent = srcLine.mq.latex(); } };
-    updIn();
+    // a LIVE MathQuill field, two-way bound to the real row: edits here rewrite
+    // the underlying line (which recomputes), and outside changes (sliders)
+    // flow back in unless this field holds the caret
+    const fEl = document.createElement('span'); fEl.className = 'mq-field pr-mq';
+    inp.appendChild(fEl);
+    let ovMq = null, syncing = false;
+    try {
+      ovMq = MQ.MathField(fEl, {
+        spaceBehavesLikeTab: false,
+        typingSlashWritesDivisionSymbol: false,
+        charsThatBreakOutOfSupSub: '+-*/=',
+        autoCommands: 'pi sqrt sum nthroot int ' + GREEK_AUTOCOMMANDS,
+        autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ' +
+                           'ln log exp abs floor ceil sign deg ans solve Re Im Arg cSolve conj polar',
+        handlers: {
+          edit: () => {
+            if (syncing || !ovMq) return;
+            expandArrowShortcut(ovMq);
+            const nl = ovMq.latex();
+            let cur = ''; try { cur = srcLine.mq.latex(); } catch (e) {}
+            if (nl !== cur) {
+              try { srcLine.mq.latex(nl); } catch (e) {}   // line's own edit handler recomputes
+              refresh();
+            }
+          }
+        }
+      });
+      syncing = true; ovMq.latex(lx); syncing = false;
+    } catch (e) { ovMq = null; }
+    const updIn = () => {
+      let src = ''; try { src = srcLine.mq.latex(); } catch (e2) {}
+      if (!ovMq) { try { katex.render(src, inp, { throwOnError: false }); } catch (e2) { inp.textContent = src; } return; }
+      if (document.activeElement && fEl.contains(document.activeElement)) return;   // never clobber live typing
+      if (ovMq.latex() !== src) { syncing = true; try { ovMq.latex(src); } catch (e2) {} syncing = false; }
+    };
     row.appendChild(inp);
     const hasAns = srcLine.resultEl && (srcLine.resultEl.textContent.trim() !== '' || srcLine.resultEl.children.length > 0);
     if (hasAns) {
@@ -7185,6 +7231,7 @@ function openPresentRow(line) {
     } else {
       ansRefs.push({ srcLine, ans: null, updIn });
     }
+    rowByLine.set(srcLine, row);
     return row;
   };
 
@@ -7257,7 +7304,7 @@ function openPresentRow(line) {
   // live sliders: every slider-capable definition this view involves gets a
   // working control; drags drive the REAL row (same input event), recompute,
   // and refresh the answers, equations and the big plot in place
-  const refresh = () => {
+  refresh = () => {
     ansRefs.forEach(ref => {
       ref.updIn();
       if (ref.ans) { ref.ans.innerHTML = ''; ref.ans.appendChild(ref.srcLine.resultEl.cloneNode(true)); }
@@ -7278,27 +7325,27 @@ function openPresentRow(line) {
   considerSlider(line);
   refs.forEach(v => considerSlider(findDef(v)));
   phys.forEach(p => { if ((line.folder.definedNamesList || []).includes(p)) considerSlider(findDef(p)); });
-  if (sliderDefs.length) {
-    const sect = document.createElement('div'); sect.className = 'pr-sliders';
-    sliderDefs.forEach(dl => {
-      const wrap = document.createElement('div'); wrap.className = 'pr-slider';
-      const lab = document.createElement('span'); lab.className = 'pr-slider-lab';
-      const updLab = () => { try { katex.render(dl.mq.latex(), lab, { throwOnError: false }); } catch (e) { lab.textContent = dl.mq.latex(); } };
-      sliderLabelUpdaters.push(updLab); updLab();
-      const lo = document.createElement('span'); lo.className = 'pr-slider-bound'; lo.textContent = fmtBound(parseFloat(dl.range.min));
-      const hiB = document.createElement('span'); hiB.className = 'pr-slider-bound'; hiB.textContent = fmtBound(parseFloat(dl.range.max));
-      const rg = document.createElement('input'); rg.type = 'range';
-      rg.min = dl.range.min; rg.max = dl.range.max; rg.step = dl.range.step; rg.value = dl.range.value;
-      rg.addEventListener('input', () => {
-        dl.range.value = rg.value;
-        dl.range.dispatchEvent(new Event('input', { bubbles: true }));
-        refresh();
-      });
-      wrap.appendChild(lab); wrap.appendChild(lo); wrap.appendChild(rg); wrap.appendChild(hiB);
-      sect.appendChild(wrap);
+  // each slider sits directly under its own row, hidden until that row (or
+  // the slider itself) is hovered -- matching the main view's quiet controls
+  sliderDefs.forEach(dl => {
+    const wrap = document.createElement('div'); wrap.className = 'pr-slider';
+    const lab = document.createElement('span'); lab.className = 'pr-slider-lab';
+    const updLab = () => { try { katex.render(dl.mq.latex(), lab, { throwOnError: false }); } catch (e) { lab.textContent = dl.mq.latex(); } };
+    sliderLabelUpdaters.push(updLab); updLab();
+    const lo = document.createElement('span'); lo.className = 'pr-slider-bound'; lo.textContent = fmtBound(parseFloat(dl.range.min));
+    const hiB = document.createElement('span'); hiB.className = 'pr-slider-bound'; hiB.textContent = fmtBound(parseFloat(dl.range.max));
+    const rg = document.createElement('input'); rg.type = 'range';
+    rg.min = dl.range.min; rg.max = dl.range.max; rg.step = dl.range.step; rg.value = dl.range.value;
+    rg.addEventListener('input', () => {
+      dl.range.value = rg.value;
+      dl.range.dispatchEvent(new Event('input', { bubbles: true }));
+      refresh();
     });
-    body.appendChild(sect);
-  }
+    wrap.appendChild(lab); wrap.appendChild(lo); wrap.appendChild(rg); wrap.appendChild(hiB);
+    const host = rowByLine.get(dl) || rowByLine.get(line);
+    if (host) host.insertAdjacentElement('afterend', wrap);
+    else body.appendChild(wrap);
+  });
   // keep the plot's data refreshing while the overlay is open: the driver's
   // slider panel must count as open for updateSparkline
   let addedShown = null;
