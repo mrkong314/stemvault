@@ -1802,6 +1802,47 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .fml-chip.on { background: rgba(10,132,255,0.14); border-color: var(--accent); color: var(--accent); }
   .fml-subj-hint { margin-left: auto; font-size: 0.62rem; color: var(--ink-mute);
     border: 1px solid var(--glass-border); border-radius: 4px; padding: 0 0.3rem; }
+  /* tips & shortcuts overlay (opened from the sidebar) */
+  #shortcutsOverlay {
+    position: fixed; inset: 0; z-index: 80; display: flex;
+    align-items: flex-start; justify-content: center; padding: 4vh 1rem;
+    background: rgba(0,0,0,0.3); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  }
+  .sc-card {
+    width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto;
+    background: var(--panel); color: var(--ink);
+    border: 1px solid var(--glass-border); border-radius: 18px;
+    box-shadow: var(--glass-shadow); padding: 1.3rem 1.7rem 1.8rem;
+  }
+  .sc-top { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.4rem; }
+  .sc-title { font-size: 1.15rem; font-weight: 700; flex: 1 1 auto; }
+  .sc-close {
+    border: 1px solid var(--glass-border); background: transparent; color: var(--ink);
+    border-radius: 8px; font-size: 1rem; line-height: 1; padding: 0.25rem 0.6rem; cursor: pointer;
+  }
+  .sc-close:hover { border-color: var(--accent); color: var(--accent); }
+  .sc-h {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--accent); margin: 1.3rem 0 0.35rem; padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .sc-tip { display: flex; gap: 0.7rem; padding: 0.4rem 0; font-size: 0.86rem; line-height: 1.5; }
+  .sc-tip-name { flex: 0 0 8.5rem; font-weight: 600; color: var(--ink); }
+  .sc-tip-body { flex: 1 1 auto; color: var(--ink); }
+  .sc-tip-body .dim { color: var(--ink-dim); }
+  .sc-kbd {
+    display: inline-block; border: 1px solid var(--rule-strong); border-bottom-width: 2px;
+    border-radius: 5px; background: var(--surface); padding: 0 0.38em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78em;
+    white-space: nowrap;
+  }
+  .sc-ex {
+    display: block; margin-top: 0.3rem; padding: 0.3rem 0.6rem;
+    background: var(--surface); border-radius: 8px; font-size: 0.95em; overflow-x: auto;
+  }
+  .sc-plot { display: flex; justify-content: center; padding: 0.5rem 0 0.2rem; }
+  .sc-plot svg { border: 1px solid var(--rule); border-radius: 10px; background: var(--key-bg); max-width: 100%; }
+  @media (max-width: 600px) { .sc-tip { flex-direction: column; gap: 0.15rem; } .sc-tip-name { flex-basis: auto; } }
 </style>
 </head>
 <body>
@@ -1825,6 +1866,10 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
         <svg class="sp-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div id="formulasList" class="vars-list" hidden></div>
+      <button id="shortcutsToggle" class="sp-act" title="Tips and shortcuts">
+        <svg class="sp-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M18 14h.01M9 14h6"/></svg>
+        <span class="sp-act-label">Shortcuts</span>
+      </button>
       <button id="importFile" class="sp-act" title="Open a saved file as a new tab">
         <svg class="sp-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
         <span class="sp-act-label">Open file</span>
@@ -2093,7 +2138,7 @@ const FUNCS = ['sin','cos','tan','sec','csc','cot','sinh','cosh','tanh',
   'gcd','lcm','factorial','solve','integrate','summation',
   'nCr','nPr','normCDF','invNorm','binomPDF','binomCDF','sumlist','add','zscore',
   'stdev','mean','median','mod','round',
-  'Re','Im','Arg','cSolve','conj','polar'];
+  'Re','Im','Arg','cSolve','conj','polar','rect'];
 const CONSTS = ['pi','e'];
 const RESERVED = [...FUNCS, ...CONSTS];
 
@@ -2211,6 +2256,18 @@ const CALC_FUNCS = {
     if (angleMode === 'deg') theta = theta / DEG;
     return [r, theta];
   },
+  // polar -> rect: rect(r, theta) returns r cos(theta) + r sin(theta) i.
+  // Also accepts the [r, theta] pair that polar() returns, so rect(polar(z))
+  // round-trips. theta follows the current angle mode, matching polar.
+  rect: (r, theta) => {
+    if (theta === undefined) {
+      const a = (r && typeof r.toArray === 'function') ? r.toArray() : r;
+      if (Array.isArray(a) && a.length >= 2) { theta = Number(a[1]); r = Number(a[0]); }
+    }
+    r = Number(r); theta = Number(theta);
+    if (angleMode === 'deg') theta = theta * DEG;
+    return math.complex(r * Math.cos(theta), r * Math.sin(theta));
+  },
 };
 
 /* Parameter signatures for the Excel-style live hint shown while the caret is
@@ -2239,6 +2296,7 @@ const FUNC_SIGNATURES = {
   max: [{ name: 'value', rest: true }],
   mod: ['a', 'b'],
   polar: ['z'],
+  rect: ['r', 'θ'],
   solve: ['equation', 'variable'],
   cSolve: ['equation', 'variable'],
   Re: ['z'], Im: ['z'], Arg: ['z'], conj: ['z'],
@@ -5848,7 +5906,7 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     charsThatBreakOutOfSupSub: '+-*/=',       // typing an operator exits a superscript/subscript (key on mobile, no arrow keys)
     autoCommands: 'pi sqrt sum nthroot int ' + GREEK_AUTOCOMMANDS,
     autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ' +
-                       'ln log exp abs floor ceil sign deg ans solve Re Im Arg cSolve conj polar',
+                       'ln log exp abs floor ceil sign deg ans solve Re Im Arg cSolve conj polar rect',
     handlers: {
       edit: () => { expandSciShortcut(mq, lineObj); expandArrowShortcut(mq); recompute(lineObj.folder); if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(lineObj)); },
       enter: () => { insertAdjacentLine(lineObj, 'after'); },
@@ -6207,7 +6265,7 @@ function addSystemRow(lineObj, initialLatex = '', focusIt = true) {
     typingSlashWritesDivisionSymbol: false,
     charsThatBreakOutOfSupSub: '+-*/=',
     autoCommands: 'pi sqrt sum nthroot int ' + GREEK_AUTOCOMMANDS,
-    autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ln log exp abs floor ceil sign deg Re Im Arg cSolve conj polar',
+    autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ln log exp abs floor ceil sign deg Re Im Arg cSolve conj polar rect',
     handlers: {
       edit: () => recompute(lineObj.folder),
       enter: () => {
@@ -6832,7 +6890,7 @@ const PAGE_FNS = [
   {l:'n!', t:'type', v:'!', c:'fn'}, {l:'nCr', t:'fn', v:'nCr', c:'fn', opname:true}, {l:'nPr', t:'fn', v:'nPr', c:'fn', opname:true}, {l:'\u03A3', t:'sumkey', v:'', c:'fn', katex:'\\sum'}, {l:'add', t:'fn', v:'add', c:'fn', opname:true},
   {l:'normCDF', t:'fn', v:'normCDF', c:'fn', opname:true}, {l:'invNorm', t:'fn', v:'invNorm', c:'fn', opname:true}, {l:'binPDF', t:'fn', v:'binomPDF', c:'fn', opname:true}, {l:'binCDF', t:'fn', v:'binomCDF', c:'fn', opname:true}, {l:'mean', t:'fn', v:'mean', c:'fn', opname:true},
   {l:'i', t:'write', v:'i', c:'fn'}, {l:'Re', t:'fn', v:'Re', c:'fn', opname:true}, {l:'Im', t:'fn', v:'Im', c:'fn', opname:true}, {l:'Arg', t:'fn', v:'Arg', c:'fn', opname:true}, {l:'cSolve', t:'fn', v:'cSolve', c:'fn', opname:true},
-  {l:'\u2192polar', t:'fn', v:'polar', c:'fn', opname:true}, {l:'sys', t:'system', v:'', c:'fn', katex:'\\begin{cases}\\square\\\\\\square\\end{cases}'}, {l:'@', t:'act', v:'formula', c:'act'}, {l:'solve', t:'solve', v:'', c:'solvebtn'}, {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
+  {l:'\u2192polar', t:'fn', v:'polar', c:'fn', opname:true}, {l:'\u2192rect', t:'fn', v:'rect', c:'fn', opname:true}, {l:'sys', t:'system', v:'', c:'fn', katex:'\\begin{cases}\\square\\\\\\square\\end{cases}'}, {l:'solve', t:'solve', v:'', c:'solvebtn'}, {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
 ];
 
 const portraitPad = document.createElement('div'); portraitPad.id = 'portraitPad';
@@ -7494,7 +7552,7 @@ function openPresentRow(line) {
         charsThatBreakOutOfSupSub: '+-*/=',
         autoCommands: 'pi sqrt sum nthroot int ' + GREEK_AUTOCOMMANDS,
         autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ' +
-                           'ln log exp abs floor ceil sign deg ans solve Re Im Arg cSolve conj polar',
+                           'ln log exp abs floor ceil sign deg ans solve Re Im Arg cSolve conj polar rect',
         handlers: {
           edit: () => {
             if (syncing || !ovMq) return;
@@ -8101,6 +8159,122 @@ function buildFormulasList() {
     formulasListEl.appendChild(row);
   });
 }
+
+/* Tips & shortcuts: a quick-reference guide opened from the sidebar. The
+   sidebar is narrow, so the guide itself is a centred overlay with rendered
+   examples and a live demo plot. */
+const shortcutsToggle = document.getElementById('shortcutsToggle');
+shortcutsToggle.addEventListener('click', () => {
+  document.getElementById('app').classList.remove('panel-open');
+  openShortcuts();
+});
+function closeShortcuts() { const ov = document.getElementById('shortcutsOverlay'); if (ov) ov.remove(); }
+function openShortcuts() {
+  if (document.getElementById('shortcutsOverlay')) return;
+  const ov = document.createElement('div'); ov.id = 'shortcutsOverlay';
+  ov.addEventListener('mousedown', (e) => { if (e.target === ov) closeShortcuts(); });
+  const card = document.createElement('div'); card.className = 'sc-card';
+  ov.appendChild(card);
+  const top = document.createElement('div'); top.className = 'sc-top';
+  const title = document.createElement('div'); title.className = 'sc-title'; title.textContent = 'Tips & shortcuts';
+  const x = document.createElement('button'); x.className = 'sc-close'; x.textContent = '×';
+  x.addEventListener('click', closeShortcuts);
+  top.appendChild(title); top.appendChild(x); card.appendChild(top);
+
+  const tex = (latex) => { const s = document.createElement('span'); try { katex.render(latex, s, { throwOnError: false }); } catch (e) { s.textContent = latex; } return s; };
+  const h = (t) => { const d = document.createElement('div'); d.className = 'sc-h'; d.textContent = t; card.appendChild(d); };
+  const tip = (name, parts) => {
+    const row = document.createElement('div'); row.className = 'sc-tip';
+    const nm = document.createElement('div'); nm.className = 'sc-tip-name'; nm.textContent = name;
+    const bd = document.createElement('div'); bd.className = 'sc-tip-body';
+    parts.forEach(p => {
+      if (typeof p === 'string') { bd.appendChild(document.createTextNode(p)); return; }
+      if (p.k !== undefined) { const k = document.createElement('span'); k.className = 'sc-kbd'; k.textContent = p.k; bd.appendChild(k); return; }
+      if (p.x !== undefined) { bd.appendChild(tex(p.x)); return; }
+      if (p.ex !== undefined) { const e = document.createElement('span'); e.className = 'sc-ex'; e.appendChild(tex(p.ex)); bd.appendChild(e); return; }
+      if (p.node) bd.appendChild(p.node);
+    });
+    row.appendChild(nm); row.appendChild(bd); card.appendChild(row);
+  };
+
+  h('Solving');
+  tip('Arrow solve', ['Type ', { k: '=>' }, ' after an equation to solve it.', { ex: 'E=mc^2\\;\\Rightarrow\\;m' },
+    'The subject shows in blue and becomes a defined variable that later rows can use.']);
+  tip('Other forms', [{ x: '\\operatorname{solve}(E=mc^2,\\,m)' }, ' and the comma form ', { x: 'E=mc^2,\\,m' },
+    ' do the same. A complete equation with exactly one unknown solves itself.']);
+  tip('Change subject', ['Click into the variable after the ', { x: '\\Rightarrow' },
+    ' and a dropdown of the equation’s variables opens: ', { k: '↑' }, ' ', { k: '↓' }, ' then ', { k: 'Enter' }, ' or ', { k: 'Tab' }, '.']);
+  tip('Multiple roots', ['With Solve set to All in the settings (gear icon), every real root is listed. On First, one answer shows and positive roots are preferred.']);
+
+  h('Formula picker');
+  tip('Open it', [{ k: '@' }, ' anywhere, or ', { k: 'Space' }, ' on an empty row.']);
+  tip('Search', ['By topic ("momentum", "photoelectric", "energy conservation") or start typing the equation itself ("E=").']);
+  tip('Pick a subject', ['End the query with a variable ("de broglie p") or name it after ', { k: '>' },
+    ' ("lorentz > v"). ', { k: 'Tab' }, ' cycles the subject chips; ', { k: 'Enter' }, ' inserts the formula set up to solve.']);
+  tip('Fill the unknowns', ['Blue chips appear for each unknown variable. ', { k: 'Enter' }, ', ', { k: 'Tab' },
+    ' or an arrow key turns one into a ready row to type the value into.']);
+
+  h('Fast input');
+  tip('Powers of ten', [{ k: '**' }, ' becomes ', { x: '\\times10^{\\square}' }, '. Holding ', { k: '×' }, ' on the keypad does the same.']);
+  tip('Metric prefixes', ['While the exponent is empty, a prefix list opens: arrow from nano up to giga, or type the name ("milli", or "c" for centi).']);
+  tip('Quick denominator', ['Place the caret just before a number or bracket that is already typed, then press ', { k: '/' },
+    '. That term drops below the bar and the caret lands in the empty numerator: with the caret before the 8 in ',
+    { x: '23\\times8' }, ', pressing ', { k: '/' }, ' gives ', { x: '23\\times\\frac{\\square}{8}' }, '.']);
+  tip('Symbol search', [{ k: '?' }, ' opens a symbol list: this section’s variables first, with their values, then Greek letters.']);
+  tip('Delta names', ['Typing ', { k: 'Delta' }, ' before a letter makes a single variable: ', { x: '\\Delta v' }, '.']);
+  tip('Polar and rect', [{ x: '\\operatorname{polar}(z)' }, ' gives ', { x: '[r,\\,\\theta]' }, ' and ', { x: '\\operatorname{rect}(r,\\theta)' },
+    ' goes back. Both sit on the f(x) keypad and follow the Deg / Rad setting.']);
+
+  h('Constants and colour');
+  tip('Colour code', ['Blue is the variable being solved, light grey a built-in constant, dark grey a variable defined in this section, and black an unknown, or the row where something is defined.']);
+  tip('Hover cards', ['Hover any grey symbol (long-press on touch). Constants show their name, value and units with a redefine button. Your own variables show their defining row and ring it in the tab.']);
+  tip('Planck constants', [{ x: 'h_J' }, ' is in J s and ', { x: 'h_e' }, ' in eV s, so the right one is a subscript away.']);
+  tip('Thermal values', ['Specific heats: ', { x: 'c_w' }, ' water, ', { x: 'c_{ice}' }, ' ice, ', { x: 'c_{steam}' }, ' steam, ', { x: 'c_{iron}' },
+    ' solid iron. Latent heats of water: ', { x: 'L_{fw}' }, ' fusion, ', { x: 'L_{vw}' }, ' vaporisation.']);
+  tip('Override', ['Assigning to a constant’s name, like ', { x: 'c=340' }, ', replaces it for that section only. And ', { x: '24=a' },
+    ' works just like ', { x: 'a=24' }, '.']);
+
+  h('Navigate and edit');
+  tip('Move around', [{ k: '↑' }, ' ', { k: '↓' }, ' move between rows from anywhere. ', { k: 'Enter' },
+    ' with nothing focused jumps to the last row. Click the space below the last section to start a new one.']);
+  tip('Select rows', [{ k: 'Shift' }, '+click or ', { k: 'Shift' }, '+', { k: '↑' }, '/', { k: '↓' },
+    ' selects several rows; ', { k: 'Backspace' }, ' deletes them. A fully selected section deletes the whole section.']);
+  tip('Select all', [{ k: 'Ctrl/Cmd' }, '+', { k: 'A' }, ' selects the current field; pressing it again selects the whole tab. So ',
+    { k: 'Ctrl+A' }, ' ', { k: 'Ctrl+A' }, ' ', { k: 'Delete' }, ' clears everything.']);
+  tip('Undo', [{ k: 'Ctrl/Cmd' }, '+', { k: 'Z' }, ' undoes, add ', { k: 'Shift' }, ' to redo. Works while typing in a field.']);
+
+  h('Sliders and plots');
+  tip('Sliders', ['Define a number, like ', { x: 'm=5' }, ', then hover the row and click the slider button. Bounds and step fit what you typed: 5 gives 0 to 12.5, and 9.81 steps by 0.01. The min, max and step boxes stay editable.']);
+  (() => {
+    const row = document.createElement('div'); row.className = 'sc-tip';
+    const nm = document.createElement('div'); nm.className = 'sc-tip-name'; nm.textContent = 'Live plots';
+    const bd = document.createElement('div'); bd.className = 'sc-tip-body';
+    bd.appendChild(document.createTextNode('While a slider is open, every row that uses its variable grows a plot. Here '));
+    bd.appendChild(tex('E_k=\\frac{1}{2}mv^2'));
+    bd.appendChild(document.createTextNode(' with m = 5 and a slider on v sitting at 6:'));
+    const pd = document.createElement('div'); pd.className = 'sc-plot';
+    try {
+      const svg = sparkSVG({ rhs: '((1)/(2))*5*v^2', name: 'E_k', dv: 'v', lo: 0, hi: 10, base: { v: 6 } },
+        { W: 360, H: 160, PX: 32, PT: 16, PB: 20, fsz: 10, axFsz: 14, sw: 2.2, r: 4.5, N: 80 });
+      if (svg) pd.innerHTML = svg;
+    } catch (e) {}
+    bd.appendChild(pd);
+    row.appendChild(nm); row.appendChild(bd); card.appendChild(row);
+  })();
+  tip('Expanded plot', ['In the expanded row view the plot is large and labels the current point as a coordinate.']);
+
+  h('Presenting');
+  tip('Whole tab', ['Hover the tab header and click the expand button. ', { k: 'A−' }, ' ', { k: 'A+' },
+    ' resize, pills hide or show each answer, ', { k: 'Esc' }, ' leaves.']);
+  tip('Single row', ['Hover a row and click the expand icon left of the quote button: the result shows large with its working laid out knowns first, constants and given values before derivations, all live and editable, sliders included. The row’s note becomes the title.']);
+
+  document.body.appendChild(ov);
+}
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('shortcutsOverlay')) {
+    e.preventDefault(); e.stopImmediatePropagation(); closeShortcuts();
+  }
+}, true);
 
 /* Collect user-defined variables across the active tab's folders, plus the
    predefined physics constants, and render them alphabetically. */
