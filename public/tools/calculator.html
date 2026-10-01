@@ -3262,6 +3262,12 @@ let sigFigs = 'auto';   // 'auto' | 3  (set from the header; default Auto)
 let solveAllMode = false;   // when on, solve(eq,var) lists all real roots in a window
 
 function decimalLatex(value) {
+  // non-finite numbers typeset properly (∞ appears inside lists; a whole-line
+  // non-finite result renders as "undefined" in renderResult instead)
+  if (typeof value === 'number' && !isFinite(value)) {
+    if (isNaN(value)) return null;
+    return value > 0 ? '\\infty' : '-\\infty';
+  }
   // lists/matrices: format each element the same way, render as [a, b, c]
   if (value && typeof value === 'object' && (Array.isArray(value) || typeof value.toArray === 'function')) {
     const arr = Array.isArray(value) ? value : value.toArray();
@@ -3594,6 +3600,7 @@ function latexToPlain(valLatex, value) {
   } while (s !== prev);
   s = s.replace(/\\sqrt\[((?:[^{}]|\{[^{}]*\})*)\]\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'nthroot($2,$1)');
   s = s.replace(/\\sqrt\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'sqrt($1)');
+  s = s.replace(/\\infty/g, '∞');
   s = s.replace(/\\times\s*10\^\{(-?\d+)\}/g, ' x10^$1');   // scientific
   s = s.replace(/\\times\s*10\^(-?\d+)/g, ' x10^$1');
   s = s.replace(/\\cdot|\\times/g, '*');
@@ -3627,6 +3634,8 @@ function renderResult(resEl, opts, value) {
     if (valLatex === null && opts.srcLatex) valLatex = cleanEchoLatex(opts.srcLatex);
   }
   if (valLatex === null) valLatex = decimalLatex(value);
+  // division by zero (1/0, γ at v = c, ...) reads as undefined, typeset upright
+  if (typeof value === 'number' && !isFinite(value)) valLatex = '\\text{undefined}';
 
   // copy data: text/plain = LaTeX (calculator paste-back + LaTeX editors),
   // text/html = MathML (pastes into Word as a real, editable equation).
