@@ -8196,27 +8196,6 @@ function openShortcuts() {
   tip('Override', ['Assigning to a constant’s name, like ', { x: 'c=340' }, ', replaces it for that section only. And ', { x: '24=a' },
     ' works just like ', { x: 'a=24' }, '.']);
 
-  h('Navigate and edit');
-  tip('Move around', [{ k: '↑' }, ' ', { k: '↓' }, ' move between rows from anywhere. ', { k: 'Enter' },
-    ' with nothing focused jumps to the last row. Click the space below the last section to start a new one.']);
-  tip('Select rows', [{ k: 'Shift' }, '+click or ', { k: 'Shift' }, '+', { k: '↑' }, '/', { k: '↓' },
-    ' selects several rows; ', { k: 'Backspace' }, ' deletes them. A fully selected section deletes the whole section.']);
-  tip('Select all', [{ k: 'Ctrl/Cmd' }, '+', { k: 'A' }, ' selects the current field; pressing it again selects the whole tab. So ',
-    { k: 'Ctrl+A' }, ' ', { k: 'Ctrl+A' }, ' ', { k: 'Delete' }, ' clears everything.']);
-  tip('Undo', [{ k: 'Ctrl/Cmd' }, '+', { k: 'Z' }, ' undoes, add ', { k: 'Shift' }, ' to redo. Works while typing in a field.']);
-
-  h('Tabs, groups and naming');
-  tip('Sections', ['Sections number themselves 1, 2, 3. Click the number to type a name instead ("Lorentz Factor"); the name shows in a row’s expanded view. Each section is its own scope, so the same symbol can mean different things in different sections.']);
-  tip('Tabs', ['The sidebar (hamburger, top left) holds your tabs. Click the tab name in the header to rename it. Right-click a tab in the list for Rename, Close, Close others and more; the copy button duplicates a whole tab.']);
-  tip('Favourites', ['Star a tab to pin it to a Favourites list at the top of the sidebar.']);
-  tip('Groups', ['Right-click a tab and choose Move to group to file tabs under a coloured, collapsible heading. Right-click the group header to rename, recolour, ungroup or close the lot; clicking the grey group prefix in the main header also renames it.']);
-  tip('Reorder', ['Drag rows between sections and drag sections up or down by their handles. A section header’s copy button duplicates the section, and ', { k: 'Ctrl/Cmd' }, '+', { k: 'D' }, ' duplicates the selected rows.']);
-
-  h('Sharing');
-  tip('Share a tab', ['Hover a tab in the sidebar and click the share button ', { ico: 'share' },
-    '. Copy share link packs the whole tab into a link: anyone opening it gets their own copy as a new tab. Save to file downloads it as a file instead.']);
-  tip('Open a file', ['Open file in the sidebar loads a saved tab back in. Everything lives in your browser, so a link or file is the way to move work between devices or hand it to students.']);
-
   h('Sliders and plots');
   tip('Sliders', ['Define a number, like ', { x: 'm=5' }, ', then hover the row and click the slider button ', { ico: 'slider' }, '. Bounds and step fit what you typed: 5 gives 0 to 12.5, and 9.81 steps by 0.01. The min, max and step boxes stay editable.']);
   (() => {
@@ -8240,6 +8219,27 @@ function openShortcuts() {
   h('Presenting');
   tip('Expand a row', ['Hover a row and click the expand icon ', { ico: 'expand' }, ' left of the quote button: the result shows large with its working laid out knowns first, constants and given values before derivations, all live and editable, sliders included. The row’s note becomes the title.']);
   tip('In the view', [{ k: 'A−' }, ' ', { k: 'A+' }, ' resize, clicking an answer hides it behind a Show pill, and ', { k: 'Esc' }, ' leaves.']);
+
+  h('Navigate and edit');
+  tip('Move around', [{ k: '↑' }, ' ', { k: '↓' }, ' move between rows from anywhere. ', { k: 'Enter' },
+    ' with nothing focused jumps to the last row. Click the space below the last section to start a new one.']);
+  tip('Select rows', [{ k: 'Shift' }, '+click or ', { k: 'Shift' }, '+', { k: '↑' }, '/', { k: '↓' },
+    ' selects several rows; ', { k: 'Backspace' }, ' deletes them. A fully selected section deletes the whole section.']);
+  tip('Select all', [{ k: 'Ctrl/Cmd' }, '+', { k: 'A' }, ' selects the current field; pressing it again selects the whole tab. So ',
+    { k: 'Ctrl+A' }, ' ', { k: 'Ctrl+A' }, ' ', { k: 'Delete' }, ' clears everything.']);
+  tip('Undo', [{ k: 'Ctrl/Cmd' }, '+', { k: 'Z' }, ' undoes, add ', { k: 'Shift' }, ' to redo. Works while typing in a field.']);
+
+  h('Tabs, groups and naming');
+  tip('Sections', ['Sections number themselves 1, 2, 3. Click the number to type a name instead ("Lorentz Factor"); the name shows in a row’s expanded view. Each section is its own scope, so the same symbol can mean different things in different sections.']);
+  tip('Tabs', ['The sidebar (hamburger, top left) holds your tabs. Click the tab name in the header to rename it. Right-click a tab in the list for Rename, Close, Close others and more; the copy button duplicates a whole tab.']);
+  tip('Favourites', ['Star a tab to pin it to a Favourites list at the top of the sidebar.']);
+  tip('Groups', ['Right-click a tab and choose Move to group to file tabs under a coloured, collapsible heading. Right-click the group header to rename, recolour, ungroup or close the lot; clicking the grey group prefix in the main header also renames it.']);
+  tip('Reorder', ['Drag rows between sections and drag sections up or down by their handles. A section header’s copy button duplicates the section, and ', { k: 'Ctrl/Cmd' }, '+', { k: 'D' }, ' duplicates the selected rows.']);
+
+  h('Sharing');
+  tip('Share a tab', ['Hover a tab in the sidebar and click the share button ', { ico: 'share' },
+    '. Copy share link packs the whole tab into a link: anyone opening it gets their own copy as a new tab. Save to file downloads it as a file instead.']);
+  tip('Open a file', ['Open file in the sidebar loads a saved tab back in. Everything lives in your browser, so a link or file is the way to move work between devices or hand it to students.']);
 
   document.body.appendChild(ov);
 }
