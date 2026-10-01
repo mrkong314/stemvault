@@ -3590,9 +3590,8 @@ function renderRootList(resEl, varName, roots, assignName, meta, vTexOverride) {
   resEl.textContent = '';
   meta = meta || {};
   if (!roots || roots.length === 0) {
-    resEl.classList.add('assign');
     const s = document.createElement('span'); s.textContent = 'no solutions';
-    s.style.opacity = '0.7'; s.style.fontSize = '0.85em'; resEl.appendChild(s);
+    resEl.appendChild(s);
     return;
   }
   const vTex = vTexOverride || (() => { try { return varToLatex(varName); } catch (e) { return varName; } })();
@@ -3808,6 +3807,9 @@ function recomputeImpl() {
     for (const info of infos) {
       if (!info.equation || info.solveDef) continue;
       try {
+        // only a COMPLETE equation (both sides written) can auto-solve
+        const eqi = info.expr.indexOf('=');
+        if (eqi <= 0 || info.expr.slice(0, eqi).trim() === '' || info.expr.slice(eqi + 1).trim() === '') continue;
         const unknowns = referencedVars(info.expr).filter(v => !definedNames.has(v));
         if (unknowns.length === 1) {
           info.solveDef = { eqText: info.expr, varName: unknowns[0], complex: false, implicit: true };
@@ -3964,11 +3966,17 @@ function recomputeImpl() {
           updateChip(line); updateSlider(line, info); updateLineLayout(line);
           continue;
         }
-        // a solve with every input defined but no root found says so plainly
+        // a solve with every input defined but no root found says so plainly --
+        // but only once the equation is complete (both sides of its '=' written)
         if (info.solveDef && !info.isAssign && info.solved === undefined && line.undefVars.length === 0) {
-          resEl.classList.add('assign');
-          const s = document.createElement('span'); s.textContent = 'no solutions';
-          s.style.opacity = '0.7'; s.style.fontSize = '0.85em'; resEl.appendChild(s);
+          const eqi = (info.solveDef.eqText || '').indexOf('=');
+          const complete = eqi > 0 &&
+            info.solveDef.eqText.slice(0, eqi).trim() !== '' &&
+            info.solveDef.eqText.slice(eqi + 1).trim() !== '';
+          if (complete) {
+            const s = document.createElement('span'); s.textContent = 'no solutions';
+            resEl.appendChild(s);
+          }
           updateChip(line); updateLineLayout(line);
           continue;
         }
@@ -4170,11 +4178,7 @@ function redefineConstant(folder, name) {
   recompute();
   line.mq.focus(); line.mq.moveToRightEnd();
 }
-document.addEventListener('mouseover', (e) => {
-  if (e.target.closest && e.target.closest('#constTip')) { clearTimeout(constTipHideT); return; }
-  const t = e.target.closest && e.target.closest('.mq-const');
-  if (!t || !t.dataset.constName) { if (!constTip.hidden) scheduleConstTipHide(); return; }
-  clearTimeout(constTipHideT);
+function showConstTip(t) {
   const name = t.dataset.constName, info = PHYS_INFO[name];
   if (!info) { constTip.hidden = true; return; }
   const row = t.closest('.line');
@@ -4195,6 +4199,7 @@ document.addEventListener('mouseover', (e) => {
   act.className = 'ct-action';
   act.textContent = '✎ redefine in this section';
   act.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); redefineConstant(constTipFolder, constTipName); });
+  act.addEventListener('touchend', (ev) => { ev.preventDefault(); ev.stopPropagation(); redefineConstant(constTipFolder, constTipName); });
   constTip.appendChild(act);
   constTip.hidden = false;
   const r = t.getBoundingClientRect();
@@ -4204,7 +4209,30 @@ document.addEventListener('mouseover', (e) => {
   if (top < 8) top = r.bottom + 6;
   constTip.style.left = left + 'px';
   constTip.style.top = top + 'px';
+}
+document.addEventListener('mouseover', (e) => {
+  if (e.target.closest && e.target.closest('#constTip')) { clearTimeout(constTipHideT); return; }
+  const t = e.target.closest && e.target.closest('.mq-const');
+  if (!t || !t.dataset.constName) { if (!constTip.hidden) scheduleConstTipHide(); return; }
+  clearTimeout(constTipHideT);
+  showConstTip(t);
 });
+/* touch: long-press a greyed constant for the same card (hover never fires) */
+let constLPTimer = null;
+document.addEventListener('touchstart', (e) => {
+  const t = e.target.closest && e.target.closest('.mq-const');
+  if (!t || !t.dataset.constName) {
+    if (!constTip.hidden && !(e.target.closest && e.target.closest('#constTip'))) constTip.hidden = true;
+    return;
+  }
+  clearTimeout(constLPTimer);
+  constLPTimer = setTimeout(() => { showConstTip(t); }, 450);
+}, { passive: true });
+document.addEventListener('touchend', (e) => {
+  if (!(e.target.closest && e.target.closest('.mq-const'))) return;
+  clearTimeout(constLPTimer);
+}, { passive: true });
+document.addEventListener('touchmove', () => clearTimeout(constLPTimer), { passive: true });
 
 /* Decide whether a line's result sits inline (to the right of the input) or
    stacked below it. Inline saves vertical space; we stack when the input is long
