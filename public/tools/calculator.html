@@ -1063,6 +1063,10 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     font-size: 0.85em; font-weight: 700; color: var(--ink);
     margin: 0 0 0.4em 0.1em; letter-spacing: 0.01em;
   }
+  #presentOverlay .pr-sec-head {
+    font-size: 0.55em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-dim); margin: 0 0 0.3em 0.15em;
+  }
   /* live sliders in the focus view: a toggle button appears on row hover,
      the slider itself shows once toggled open */
   #presentOverlay .pr-slider { display: none; align-items: center; gap: 0.9rem; padding: 0.3em 0; font-size: 0.6em; }
@@ -7416,11 +7420,20 @@ function openPresentRow(line) {
     return row;
   };
 
-  // the row's note is the view's header
+  // the section name and the row's note head the view: with a note the
+  // section renders as a small eyebrow above it; alone it takes the
+  // prominent header style itself
+  const secTxt = (((line.folder.nameEl && line.folder.nameEl.value) || line.folder.name || '')).trim();
   const noteTxt = (line.noteArea && line.noteArea.value || '').trim();
-  if (noteTxt) {
+  if (secTxt && noteTxt) {
+    const sec = document.createElement('div'); sec.className = 'pr-sec-head';
+    sec.textContent = secTxt;
+    body.appendChild(sec);
+  }
+  const headTxt = noteTxt || secTxt;
+  if (headTxt) {
     const head = document.createElement('div'); head.className = 'pr-note-head';
-    head.textContent = noteTxt;
+    head.textContent = headTxt;
     body.appendChild(head);
   }
 
