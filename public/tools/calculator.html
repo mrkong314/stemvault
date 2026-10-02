@@ -1236,6 +1236,11 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     -webkit-tap-highlight-color: transparent;
   }
   .line .undef-chip .addvar:active { opacity: 0.7; }
+  /* one-tap "Add all": dashed accent outline, distinct from the filled chips */
+  .line .undef-chip .addvar.addall {
+    background: rgba(10,132,255,0.06); color: var(--accent);
+    border: 1.5px dashed var(--accent); font-family: inherit;
+  }
 
   /* inline slider for numeric assignments */
   /* slider sits on its own row below the input and is shown only when the user
@@ -4787,6 +4792,27 @@ function updateChip(line) {
   const label = document.createElement('span');
   label.textContent = (total === 1 ? 'Add variable' : 'Add variables') + ':';
   chip.appendChild(label);
+  // one tap creates every suggestion at once (variables at 1, constants
+  // seeded with their real values) and lands on the first new row's value
+  if (total > 1) {
+    const all = document.createElement('button');
+    all.className = 'addvar addall';
+    all.textContent = 'Add all';
+    all.addEventListener('click', () => {
+      let firstNew = null;
+      (line.undefVars || []).slice().forEach(v => {
+        const nl = addVariable(line.folder, v, false);
+        if (nl && !firstNew) firstNew = nl;
+      });
+      (line.undefPhys || []).slice().forEach(v => {
+        const nl = addVariable(line.folder, v, false, PHYS_CONSTANTS[v]);
+        if (nl && !firstNew) firstNew = nl;
+      });
+      recompute();
+      if (firstNew) { firstNew.mq.focus(); firstNew.mq.moveToRightEnd(); }
+    });
+    chip.appendChild(all);
+  }
   const mathChip = (b, latexStr, fallback) => {
     try { katex.render(latexStr, b, { throwOnError: false }); }
     catch (e) { b.textContent = fallback; }
