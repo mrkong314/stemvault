@@ -1090,7 +1090,19 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     font-size: 0.55em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
     color: var(--ink-dim); margin: 0 0 0.3em 0.15em;
   }
-  /* worked algebra below Uses: labelled steps, toggled from the header bar */
+  /* worked algebra below Uses: labelled steps with a hover-revealed toggle
+     (the toggle stays visible while the section is collapsed) */
+  #presentOverlay .pr-wk-headrow { display: flex; align-items: center; gap: 0.8em; }
+  #presentOverlay .pr-wk-hidebtn {
+    border: 1px solid var(--glass-border); background: transparent; color: var(--ink-dim);
+    border-radius: 999px; font-size: 0.85em; padding: 0.02em 0.8em; cursor: pointer;
+    opacity: 0; transition: opacity 0.12s; letter-spacing: normal; text-transform: none;
+  }
+  #presentOverlay .pr-wk-wrap:hover .pr-wk-hidebtn,
+  #presentOverlay .pr-wk-wrap.wk-collapsed .pr-wk-hidebtn,
+  #presentOverlay .pr-wk-hidebtn:focus-visible { opacity: 1; }
+  #presentOverlay .pr-wk-hidebtn:hover { color: var(--accent); border-color: var(--accent); }
+  @media (hover: none) { #presentOverlay .pr-wk-hidebtn { opacity: 0.7; } }
   #presentOverlay .pr-working { border-top: 1px solid var(--rule); }
   #presentOverlay .pr-wk-step {
     display: flex; align-items: flex-start; gap: 1.2rem; padding: 0.35em 0;
@@ -8174,8 +8186,11 @@ function openPresentRow(line) {
   let wkRefresh = () => {};
   if (buildWorking(line)) {
     const wkWrap = document.createElement('div'); wkWrap.className = 'pr-wk-wrap';
-    const wkHead = document.createElement('div'); wkHead.className = 'pr-section';
-    wkHead.textContent = 'Working';
+    const wkHead = document.createElement('div'); wkHead.className = 'pr-section pr-wk-headrow';
+    const wkTitle = document.createElement('span'); wkTitle.textContent = 'Working';
+    // hover-revealed toggle for just this section (stays visible while hidden)
+    const wkHideBtn = document.createElement('button'); wkHideBtn.className = 'pr-wk-hidebtn'; wkHideBtn.textContent = 'Hide';
+    wkHead.appendChild(wkTitle); wkHead.appendChild(wkHideBtn);
     const wkBox = document.createElement('div'); wkBox.className = 'pr-working';
     const renderWk = () => {
       wkBox.innerHTML = '';
@@ -8205,13 +8220,19 @@ function openPresentRow(line) {
     renderWk();
     wkWrap.appendChild(wkHead); wkWrap.appendChild(wkBox);
     body.appendChild(wkWrap);
-    let wkShown = true;
-    setWorking = (show) => {
-      wkShown = show;
-      wkWrap.style.display = show ? '' : 'none';
-      if (show) renderWk();
+    let wkShown = true, boxShown = true;
+    const applyBox = () => {
+      wkBox.style.display = boxShown ? '' : 'none';
+      wkWrap.classList.toggle('wk-collapsed', !boxShown);
+      wkHideBtn.textContent = boxShown ? 'Hide' : 'Show';
+      if (boxShown) renderWk();
     };
-    wkRefresh = () => { if (wkShown) renderWk(); };
+    wkHideBtn.addEventListener('click', () => { boxShown = !boxShown; applyBox(); });
+    setWorking = (show) => {
+      boxShown = show;      // Hide all / Show all drive the same state
+      applyBox();
+    };
+    wkRefresh = () => { if (wkShown && boxShown) renderWk(); };
   }
 
   // live sliders: every slider-capable definition this view involves gets a
