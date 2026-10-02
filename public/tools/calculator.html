@@ -1070,6 +1070,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   #presentOverlay .pr-body.pr-focus .pr-plot,
   #presentOverlay .pr-body.pr-focus .pr-used,
   #presentOverlay .pr-body.pr-focus .pr-section,
+  #presentOverlay .pr-body.pr-focus .pr-working,
   #presentOverlay .pr-body.pr-focus .pr-used .pr-slider {
     max-width: 60rem; margin-left: auto; margin-right: auto;
   }
@@ -1089,6 +1090,21 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     font-size: 0.55em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
     color: var(--ink-dim); margin: 0 0 0.3em 0.15em;
   }
+  /* worked algebra below Uses: labelled steps behind a Show Algebra toggle */
+  #presentOverlay .pr-wk-head { display: flex; align-items: center; gap: 0.8em; }
+  #presentOverlay .pr-wk-toggle { display: inline-block; }
+  #presentOverlay .pr-working { border-top: 1px solid var(--rule); }
+  #presentOverlay .pr-wk-step {
+    display: flex; align-items: center; gap: 1.2rem; padding: 0.35em 0;
+    font-size: 0.72em;
+  }
+  #presentOverlay .pr-wk-label {
+    flex: 0 0 9em; font-size: 0.62em; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--ink-dim);
+  }
+  #presentOverlay .pr-wk-math { flex: 1 1 auto; overflow-x: auto; }
+  #presentOverlay .pr-wk-math .result { color: var(--accent); }
+  #presentOverlay .pr-wk-math .result.assign-echo { color: var(--def-echo); }
   /* live sliders in the focus view: a toggle button appears on row hover,
      the slider itself shows once toggled open */
   #presentOverlay .pr-slider { display: none; align-items: center; gap: 0.9rem; padding: 0.3em 0; font-size: 0.6em; }
@@ -7664,6 +7680,254 @@ function closePresent() {
    default, click to hide), the mini-plot drawn large when present, and every
    variable the line uses: constants with values, simple definitions inline,
    and calculated definitions shown WITH their originating row's working. */
+/* ===== worked algebra for the expanded row view =====
+   Formula / Substitution / Rearrangement / Answer. The rearrangement comes
+   from inversion peeling of the substituted equation: valid whenever the
+   subject appears exactly once and every operation wrapping it is invertible
+   (+ - × ÷, powers and roots, exponentials and logs, sin/cos/tan). Anything
+   else -- quadratic-in-subject suvat, both-sides conservation equations,
+   ratio subjects -- omits the line; the numeric answer is what the solver
+   found either way. */
+const WK_FNS = ['arcsin', 'arccos', 'arctan', 'sqrt', 'sin', 'cos', 'tan', 'ln', 'log', 'exp', 'abs'];
+function wkTokenize(s) {
+  const toks = [];
+  const nameRe = /^Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?/;
+  let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (ch === ' ') { i++; continue; }
+    if ('+-*/^()='.includes(ch)) { toks.push({ t: ch }); i++; continue; }
+    if (/[0-9.]/.test(ch)) {
+      let j = i; while (j < s.length && /[0-9.]/.test(s[j])) j++;
+      toks.push({ t: 'num', v: parseFloat(s.slice(i, j)) }); i = j; continue;
+    }
+    const mFn = /^[A-Za-z]{2,}/.exec(s.slice(i));
+    if (mFn && (WK_FNS.includes(mFn[0]) || mFn[0] === 'pi' || mFn[0] === 'ans')) {
+      toks.push(mFn[0] === 'pi' || mFn[0] === 'ans' ? { t: 'name', v: mFn[0] } : { t: 'fn', v: mFn[0] });
+      i += mFn[0].length; continue;
+    }
+    const mName = nameRe.exec(s.slice(i));
+    if (mName) { toks.push({ t: 'name', v: mName[0] }); i += mName[0].length; continue; }
+    throw new Error('wk-tok');
+  }
+  return toks;
+}
+function wkParse(s) {
+  const toks = wkTokenize(s);
+  let p = 0;
+  const peek = () => toks[p];
+  const eat = (t) => { if (!toks[p] || toks[p].t !== t) throw new Error('wk-parse'); return toks[p++]; };
+  function parseExpr() {
+    let n = parseTerm();
+    while (peek() && (peek().t === '+' || peek().t === '-')) {
+      const op = toks[p++].t;
+      n = { k: op === '+' ? 'add' : 'sub', a: n, b: parseTerm() };
+    }
+    return n;
+  }
+  function parseTerm() {
+    let n = parseUnary();
+    while (peek() && (peek().t === '*' || peek().t === '/')) {
+      const op = toks[p++].t;
+      n = { k: op === '*' ? 'mul' : 'div', a: n, b: parseUnary() };
+    }
+    return n;
+  }
+  function parseUnary() {
+    if (peek() && peek().t === '-') { p++; return { k: 'neg', a: parseUnary() }; }
+    if (peek() && peek().t === '+') { p++; return parseUnary(); }
+    return parsePow();
+  }
+  function parsePow() {
+    const base = parseAtom();
+    if (peek() && peek().t === '^') { p++; return { k: 'pow', a: base, b: parseUnary() }; }
+    return base;
+  }
+  function parseAtom() {
+    const t = peek();
+    if (!t) throw new Error('wk-parse');
+    if (t.t === 'num') { p++; return { k: 'num', v: t.v }; }
+    if (t.t === 'name') { p++; return { k: 'var', v: t.v }; }
+    if (t.t === 'fn') { p++; eat('('); const a = parseExpr(); eat(')'); return { k: 'fn', f: t.v, a }; }
+    if (t.t === '(') { p++; const n = parseExpr(); eat(')'); return n; }
+    throw new Error('wk-parse');
+  }
+  const l = parseExpr();
+  let r = null;
+  if (peek() && peek().t === '=') { p++; r = parseExpr(); }
+  if (p !== toks.length) throw new Error('wk-parse');
+  return { l, r };
+}
+function wkCount(n, name) {
+  if (!n) return 0;
+  if (n.k === 'var') return n.v === name ? 1 : 0;
+  return wkCount(n.a, name) + wkCount(n.b, name);
+}
+function wkVarNames(n, out) {
+  out = out || new Set();
+  if (!n) return out;
+  if (n.k === 'var' && n.v !== 'pi' && n.v !== 'e' && n.v !== 'ans') out.add(n.v);
+  wkVarNames(n.a, out); wkVarNames(n.b, out);
+  return out;
+}
+function wkSubstitute(n, subject, lookup) {
+  if (n.k === 'var') {
+    if (n.v === subject || n.v === 'pi' || n.v === 'e') return n;
+    const v = lookup(n.v);
+    if (typeof v !== 'number' || !isFinite(v)) throw new Error('wk-missing');
+    return { k: 'num', v };
+  }
+  const c = { k: n.k, f: n.f, v: n.v };
+  if (n.a) c.a = wkSubstitute(n.a, subject, lookup);
+  if (n.b) c.b = wkSubstitute(n.b, subject, lookup);
+  return c;
+}
+/* isolate `name` by inverting the operations around it, one layer at a time */
+function wkPeel(eq, name) {
+  if (!eq.r) return null;
+  let L = eq.l, R = eq.r;
+  if (wkCount(L, name) + wkCount(R, name) !== 1) return null;
+  if (wkCount(R, name) === 1) { const t = L; L = R; R = t; }
+  let guard = 0;
+  while (!(L.k === 'var' && L.v === name)) {
+    if (++guard > 60) return null;
+    const inA = L.a ? wkCount(L.a, name) > 0 : false;
+    switch (L.k) {
+      case 'add': R = { k: 'sub', a: R, b: inA ? L.b : L.a }; L = inA ? L.a : L.b; break;
+      case 'sub':
+        if (inA) { R = { k: 'add', a: R, b: L.b }; L = L.a; }
+        else { R = { k: 'sub', a: L.a, b: R }; L = L.b; }
+        break;
+      case 'mul': R = { k: 'div', a: R, b: inA ? L.b : L.a }; L = inA ? L.a : L.b; break;
+      case 'div':
+        if (inA) { R = { k: 'mul', a: R, b: L.b }; L = L.a; }
+        else { R = { k: 'div', a: L.a, b: R }; L = L.b; }
+        break;
+      case 'neg': R = { k: 'neg', a: R }; L = L.a; break;
+      case 'pow':
+        if (inA) {
+          // subject in the base: n-th root (the positive branch for even
+          // powers, matching the solver's positive-root preference)
+          R = (L.b.k === 'num' && L.b.v === 2) ? { k: 'fn', f: 'sqrt', a: R }
+            : { k: 'pow', a: R, b: { k: 'div', a: { k: 'num', v: 1 }, b: L.b } };
+          L = L.a;
+        } else {
+          // subject in the exponent: logarithm
+          R = { k: 'div', a: { k: 'fn', f: 'ln', a: R }, b: { k: 'fn', f: 'ln', a: L.a } };
+          L = L.b;
+        }
+        break;
+      case 'fn':
+        switch (L.f) {
+          case 'sqrt': R = { k: 'pow', a: R, b: { k: 'num', v: 2 } }; break;
+          case 'sin': R = { k: 'fn', f: 'arcsin', a: R }; break;
+          case 'cos': R = { k: 'fn', f: 'arccos', a: R }; break;
+          case 'tan': R = { k: 'fn', f: 'arctan', a: R }; break;
+          case 'ln': R = { k: 'pow', a: { k: 'var', v: 'e' }, b: R }; break;
+          case 'log': R = { k: 'pow', a: { k: 'num', v: 10 }, b: R }; break;
+          case 'exp': R = { k: 'fn', f: 'ln', a: R }; break;
+          default: return null;   // abs and friends are not invertible
+        }
+        L = L.a; break;
+      default: return null;
+    }
+  }
+  return R;
+}
+/* AST -> LaTeX. The subject renders in the accent colour everywhere. */
+function wkTex(n, subject) {
+  const P_ADD = 1, P_MUL = 2;
+  const prec = (x) => {
+    if (x.k === 'add' || x.k === 'sub' || x.k === 'neg') return P_ADD;
+    if (x.k === 'num' && x.v < 0) return P_ADD;
+    if (x.k === 'mul') return P_MUL;
+    return 9;   // div renders as \frac (self-grouping); atoms and fns too
+  };
+  const atomic = (x) => x.k === 'num' && x.v >= 0 || x.k === 'var' || x.k === 'fn';
+  const wrap = (x, minP) => prec(x) < minP ? '\\left(' + tex(x) + '\\right)' : tex(x);
+  const tex = (x) => {
+    switch (x.k) {
+      case 'num': { const t = numToLatex(x.v); return t; }
+      case 'var': {
+        if (x.v === 'pi') return '\\pi';
+        let vt; try { vt = varToLatex(x.v); } catch (e) { vt = x.v; }
+        return x.v === subject ? '\\textcolor{#0a84ff}{' + vt + '}' : vt;
+      }
+      case 'add': return tex(x.a) + '+' + tex(x.b);
+      case 'sub': return tex(x.a) + '-' + wrap(x.b, P_MUL);
+      case 'neg': return '-' + wrap(x.a, P_MUL);
+      case 'mul': return wrap(x.a, P_MUL) + '\\times ' + wrap(x.b, P_MUL);
+      case 'div': return '\\frac{' + tex(x.a) + '}{' + tex(x.b) + '}';
+      case 'pow': {
+        // parenthesise any base that is not a bare variable or a plainly
+        // rendered number (a ×10^n mantissa would double the superscript)
+        let bt = tex(x.a);
+        const plain = x.a.k === 'var' || (x.a.k === 'num' && /^[0-9.]+$/.test(bt));
+        if (!plain) bt = '\\left(' + bt + '\\right)';
+        return bt + '^{' + tex(x.b) + '}';
+      }
+      case 'fn': {
+        if (x.f === 'sqrt') return '\\sqrt{' + tex(x.a) + '}';
+        if (x.f === 'abs') return '\\left|' + tex(x.a) + '\\right|';
+        const nm = { arcsin: '\\arcsin', arccos: '\\arccos', arctan: '\\arctan', sin: '\\sin', cos: '\\cos', tan: '\\tan', ln: '\\ln', log: '\\log', exp: '\\exp' }[x.f] || ('\\operatorname{' + x.f + '}');
+        return nm + '\\left(' + tex(x.a) + '\\right)';
+      }
+    }
+    return '';
+  };
+  return tex(n);
+}
+/* Assemble the four steps for a row, or null when working makes no sense
+   (definition rows, unparseable input). Each piece may be independently null. */
+function buildWorking(line) {
+  if (!line || line.isSystem) return null;
+  let expr = '';
+  try { expr = prepareExpr(line.mq.latex()); } catch (e) { return null; }
+  if (!expr.trim()) return null;
+  let subject = line.solveTargetName || null;
+  let eqSrc = expr;
+  try {
+    const ps = pureSolveCall(expr);
+    if (ps) { eqSrc = ps.eqText; if (!subject) subject = ps.varName; }
+  } catch (e) {}
+  const ratio = subject && subject.indexOf('/') !== -1;
+  if (ratio) subject = null;   // v/c ratio subjects: show steps, skip rearranging
+  let eq;
+  try { eq = wkParse(eqSrc); } catch (e) { return null; }
+  // a definition row (name = numbers) has no working to show
+  const allNames = wkVarNames(eq.l); wkVarNames(eq.r, allNames);
+  const refNames = [...allNames].filter(n => n !== subject);
+  if (!subject && refNames.length === 0) return null;
+  if (eq.r && !subject) {
+    const bareVar = (x) => x && x.k === 'var';
+    if ((bareVar(eq.l) && wkVarNames(eq.r).size === 0) || (bareVar(eq.r) && wkVarNames(eq.l).size === 0)) return null;
+  }
+  const out = { formula: null, substitution: null, rearrangement: null };
+  const full = (a, b) => b ? a + '=' + b : a;
+  try { out.formula = full(wkTex(eq.l, subject), eq.r && wkTex(eq.r, subject)); } catch (e) {}
+  const lookup = (nm) => {
+    const f = line.folder;
+    if (f && f.definedValues && typeof f.definedValues[nm] === 'number') return f.definedValues[nm];
+    if (!(line.freeNames || []).includes(nm)) {
+      try { const pc = physConstants(); if (typeof pc[nm] === 'number') return pc[nm]; } catch (e) {}
+    }
+    return undefined;
+  };
+  let sub = null;
+  try {
+    sub = { l: wkSubstitute(eq.l, subject, lookup), r: eq.r ? wkSubstitute(eq.r, subject, lookup) : null };
+    out.substitution = full(wkTex(sub.l, subject), sub.r && wkTex(sub.r, subject));
+  } catch (e) { sub = null; }
+  if (subject && sub && sub.r) {
+    try {
+      const iso = wkPeel(sub, subject);
+      if (iso) out.rearrangement = wkTex({ k: 'var', v: subject }, subject) + '=' + wkTex(iso, subject);
+    } catch (e) {}
+  }
+  if (!out.formula && !out.substitution) return null;
+  return out;
+}
+
 function openPresentRow(line) {
   closePresent();
   if (!line || line.isSystem) return;
@@ -7894,6 +8158,44 @@ function openPresentRow(line) {
     body.appendChild(h); body.appendChild(used);
   }
 
+  // ---- worked algebra: Formula / Substitution / Rearrangement / Answer,
+  // behind a toggle (default off), regenerating live with slider drags ----
+  let wkRefresh = () => {};
+  if (buildWorking(line)) {
+    const wkHead = document.createElement('div'); wkHead.className = 'pr-section pr-wk-head';
+    const wkLab = document.createElement('span'); wkLab.textContent = 'Working';
+    const wkBtn = document.createElement('button'); wkBtn.className = 'pr-pill pr-wk-toggle'; wkBtn.textContent = 'Show Algebra';
+    wkHead.appendChild(wkLab); wkHead.appendChild(wkBtn);
+    const wkBox = document.createElement('div'); wkBox.className = 'pr-working'; wkBox.style.display = 'none';
+    const renderWk = () => {
+      wkBox.innerHTML = '';
+      const w = buildWorking(line);
+      if (!w) return;
+      const step = (label, texStr, node) => {
+        if (!texStr && !node) return;
+        const row = document.createElement('div'); row.className = 'pr-wk-step';
+        const lab = document.createElement('span'); lab.className = 'pr-wk-label'; lab.textContent = label;
+        const bodyEl = document.createElement('span'); bodyEl.className = 'pr-wk-math';
+        if (node) bodyEl.appendChild(node);
+        else { try { katex.render(texStr, bodyEl, { throwOnError: false }); } catch (e) { bodyEl.textContent = texStr; } }
+        row.appendChild(lab); row.appendChild(bodyEl); wkBox.appendChild(row);
+      };
+      step('Formula', w.formula);
+      step('Substitution', w.substitution);
+      step('Rearrangement', w.rearrangement);
+      const hasAns = line.resultEl && (line.resultEl.textContent.trim() !== '' || line.resultEl.children.length > 0);
+      if (hasAns) step('Answer', null, line.resultEl.cloneNode(true));
+    };
+    wkBtn.addEventListener('click', () => {
+      const show = wkBox.style.display === 'none';
+      wkBox.style.display = show ? '' : 'none';
+      wkBtn.textContent = show ? 'Hide Algebra' : 'Show Algebra';
+      if (show) renderWk();
+    });
+    body.appendChild(wkHead); body.appendChild(wkBox);
+    wkRefresh = () => { if (wkBox.style.display !== 'none') renderWk(); };
+  }
+
   // live sliders: every slider-capable definition this view involves gets a
   // working control; drags drive the REAL row (same input event), recompute,
   // and refresh the answers, equations and the big plot in place
@@ -7905,6 +8207,7 @@ function openPresentRow(line) {
     });
     updPlot();
     sliderLabelUpdaters.forEach(f => f());
+    wkRefresh();
   };
   const sliderDefs = [];
   const seenDef = new Set();
@@ -8440,6 +8743,7 @@ function openShortcuts() {
   h('Presenting');
   tip('Expand a row', ['Hover a row and click the expand icon ', { ico: 'expand' }, ' left of the quote button: the result shows large with its working laid out knowns first, constants and given values before derivations, all live and editable, sliders included. The row’s note becomes the title.']);
   tip('In the view', [{ k: 'A−' }, ' ', { k: 'A+' }, ' resize, clicking an answer hides it behind a Show pill, and ', { k: 'Esc' }, ' leaves.']);
+  tip('Show Algebra', ['The Show Algebra toggle below Uses lays out the working: Formula, Substitution, Rearrangement, Answer. The rearrangement shows whenever the subject can be isolated step by step; otherwise the numeric steps stand alone.']);
 
   h('Navigate and edit');
   tip('Move around', [{ k: '↑' }, ' ', { k: '↓' }, ' move between rows from anywhere. ', { k: 'Enter' },
