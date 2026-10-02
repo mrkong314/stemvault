@@ -1383,6 +1383,18 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   /* all abc-page buttons render in the normal ink colour (not accent blue) */
   #portraitPad .page-vars button, #portraitPad .page-vars button.greekkey { color: var(--ink); }
   #portraitPad .page-vars button .katex, #portraitPad .page-vars button .katex * { color: var(--ink) !important; }
+  /* abc page layers: Latin and Greek share one grid; the αβγ key flips them
+     in place (positions stay stable for muscle memory) */
+  #portraitPad .page-vars .lyr-greek, .page-vars .lyr-greek { display: none; }
+  #portraitPad .page-vars.greek-on .lyr-greek, .page-vars.greek-on .lyr-greek { display: block; }
+  #portraitPad .page-vars.greek-on .lyr-latin, .page-vars.greek-on .lyr-latin { display: none; }
+  .page-vars button { padding-left: 0; padding-right: 0; }
+  /* the ⇒ key reads as the solve arrow, in the same accent as in the field */
+  #keypad button.arrowkey { color: var(--accent); }
+  /* persistent caret/edit bar under every keypad page */
+  .pad-nav { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; margin-top: 7px; }
+  #keypad .pad-nav button { color: var(--ink); font-size: 1.05rem; }
+  #keypad .pad-nav button.act { color: var(--ink-dim); }
 
   /* fraction glyph on the a/b key */
   .frac-glyph {
@@ -1755,6 +1767,35 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   }
   .sym-name { flex: 1 1 auto; font-size: 0.85rem; color: var(--ink); }
   .sym-empty { padding: 0.8rem; text-align: center; color: var(--ink-dim); font-size: 0.85rem; }
+  /* default view: section-variable chips and tappable symbol grids */
+  .sym-chiprow { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.15rem 0.4rem 0.4rem; }
+  .sym-chip {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    border: 1px solid var(--glass-border); border-radius: 999px; background: transparent;
+    padding: 0.12rem 0.6rem; font-size: 0.88rem; color: var(--ink);
+    font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .sym-chip:hover { border-color: var(--accent); }
+  .sym-chip .katex { font-size: 1em; }
+  .sym-chip .sym-chip-val { color: var(--ink-dim); font-size: 0.78em; }
+  .sym-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding: 0.1rem 0.4rem 0.4rem; }
+  .sym-cell {
+    border: 1px solid transparent; border-radius: 8px; background: transparent;
+    padding: 0.3rem 0; text-align: center; font-size: 1.05rem; color: var(--ink);
+    font-family: 'KaTeX_Math','Cambria Math',serif; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sym-cell:hover { background: rgba(10,132,255,0.1); }
+  .sym-cell:active { background: rgba(10,132,255,0.18); }
+  /* touch: roomier targets, and a 16px search font so iOS doesn't zoom */
+  @media (hover: none) {
+    #symbolPicker { width: 320px; }
+    #symbolSearch { font-size: 16px; }
+    #symbolResults { max-height: 320px; }
+    .sym-row { padding: 0.6rem 0.5rem; }
+    .sym-cell { padding: 0.55rem 0; font-size: 1.25rem; }
+    .sym-chip { padding: 0.3rem 0.75rem; font-size: 0.95rem; }
+  }
 
   /* formula picker (f(x) @ button) */
   #formulaPicker {
@@ -6679,9 +6720,9 @@ function normalizeSciNotation(mq) {
 // caps/shift state for the letters page; letter buttons register here so their
 // labels flip live when caps is toggled.
 let capsOn = false;
-const letterButtons = [];   // { btn, ch }
+const letterButtons = [];   // { btn, lo, up } -- Latin letters and Greek keys alike
 function applyCaps() {
-  letterButtons.forEach(({ btn, ch }) => { btn.textContent = capsOn ? ch.toUpperCase() : ch; });
+  letterButtons.forEach(({ btn, lo, up }) => { btn.textContent = capsOn ? up : lo; });
   document.querySelectorAll('.capskey').forEach(b => b.classList.toggle('on', capsOn));
 }
 
@@ -6699,7 +6740,8 @@ function makeKey(k) {
   }
   if (k.c) k.c.split(' ').forEach(c => b.classList.add(c));
   if (k.span) b.style.gridColumn = 'span ' + k.span;
-  if (k.letter) letterButtons.push({ btn: b, ch: k.v });
+  if (k.letter) letterButtons.push({ btn: b, lo: k.v, up: k.v.toUpperCase() });
+  if (k.t === 'greek' && k.capL) letterButtons.push({ btn: b, lo: k.l, up: k.capL });
   if (k.t === 'caps') b.classList.add('capskey');
   // long-press on × inserts the full ×10^□ scaffold (caret in the exponent,
   // which also raises the metric-prefix dropdown); a fired long-press
@@ -6727,9 +6769,53 @@ function makeKey(k) {
       if (lpFired) { e.preventDefault(); e.stopImmediatePropagation(); lpFired = false; }
     });
   }
+  // long-press a letter key (Latin or Greek) to insert it with its subscript
+  // open: hold v, tap 1 -> v_1. Mirrors the long-press ×10^ gesture.
+  if (((k.t === 'var' && k.letter) || k.t === 'greek') && !k.nolp) {
+    let subTimer = null, subFired = false;
+    const subStart = () => {
+      subFired = false;
+      subTimer = setTimeout(() => {
+        subTimer = null; subFired = true;
+        const mq = activeMQ();
+        if (!mq) return;
+        mq.focus();
+        if (k.t === 'greek') {
+          if (capsOn && k.capV) {
+            if (k.capV.startsWith('\\')) mq.cmd(k.capV); else mq.typedText(k.capV);
+            capsOn = false; applyCaps();
+          } else mq.cmd(k.v);
+        } else {
+          const ch = capsOn ? k.v.toUpperCase() : k.v;
+          mq.typedText(ch);
+          if (capsOn) { capsOn = false; applyCaps(); }
+        }
+        mq.cmd('_');   // caret lands inside the fresh subscript
+        const line = activeLine();
+        if (line && typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(line));
+      }, 450);
+    };
+    const subCancel = () => { if (subTimer) { clearTimeout(subTimer); subTimer = null; } };
+    b.addEventListener('pointerdown', subStart);
+    b.addEventListener('pointerup', subCancel);
+    b.addEventListener('pointerleave', subCancel);
+    b.addEventListener('pointercancel', subCancel);
+    b.addEventListener('click', (e) => {
+      if (subFired) { e.preventDefault(); e.stopImmediatePropagation(); subFired = false; }
+    });
+  }
   b.addEventListener('click', () => {
     // system block: works regardless of the active line type
     if (k.t === 'system') { insertSystemBlock(); return; }
+    // the αβγ/abc layer flip needs no active line and inserts nothing
+    if (k.t === 'layer') {
+      const pg = b.closest('.pad-page');
+      if (pg) {
+        const on = pg.classList.toggle('greek-on');
+        b.textContent = on ? 'abc' : 'αβγ';
+      }
+      return;
+    }
     const line = activeLine();
     if (!line) return;
     // resolve the target MathField: a normal line's field, or the focused
@@ -6768,7 +6854,14 @@ function makeKey(k) {
       case 'subscript':
         scriptKey(mq, '_', null);   // editable subscript; placeholder base if nothing precedes
         break;
-      case 'greek': mq.cmd(k.v); break;
+      case 'greek':
+        if (capsOn && k.capV) {
+          // proper Greek capital where LaTeX has one; the identical Latin
+          // letterform otherwise (capital alpha IS "A")
+          if (k.capV.startsWith('\\')) mq.cmd(k.capV); else mq.typedText(k.capV);
+          capsOn = false; applyCaps();
+        } else mq.cmd(k.v);
+        break;
       case 'fn':
         if (k.opname) {
           // multi-letter custom functions render upright (non-italic) via
@@ -6852,22 +6945,46 @@ KEYS.forEach(k => { const b = makeKey(k); b.classList.add('landscape-key'); keyp
 const PAGE_CALC = [
   // numpad on the left three columns, operators in col 4, structures in col 5.
   // bottom row carries the frequently-used extras (? search, x, subscript, @, comma).
-  {l:'(', t:'type', v:'('}, {l:')', t:'type', v:')'}, {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'}, {l:'\u221A', t:'cmd', v:'\\sqrt', c:'op', katex:'\\sqrt{\\phantom{x}}'}, {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
+  {l:'(', t:'type', v:'('}, {l:')', t:'type', v:')'}, {l:'x\u02B8', t:'pow', v:'', c:'op', katex:'x^{y}'}, {l:'\u221A', t:'cmd', v:'\\sqrt', c:'op', katex:'\\sqrt{\\phantom{x}}'}, {l:'\u21D2', t:'cmd', v:'\\Rightarrow', c:'op arrowkey'},
   {l:'7', t:'write', v:'7'}, {l:'8', t:'write', v:'8'}, {l:'9', t:'write', v:'9'}, {l:'frac', t:'type', v:'/', c:'op', frac:true}, {l:'\u00D710\u207F', t:'exp10', v:'', c:'op', katex:'\\times 10^{n}'},
   {l:'4', t:'write', v:'4'}, {l:'5', t:'write', v:'5'}, {l:'6', t:'write', v:'6'}, {l:'\u00D7', t:'cmd', v:'\\times', c:'op'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'},
   {l:'1', t:'write', v:'1'}, {l:'2', t:'write', v:'2'}, {l:'3', t:'write', v:'3'}, {l:'\u2212', t:'type', v:'-', c:'op'}, {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'},
   {l:'0', t:'write', v:'0'}, {l:'.', t:'write', v:'.'}, {l:'=', t:'write', v:'=', c:'op'}, {l:'+', t:'type', v:'+', c:'op'}, {l:'ans', t:'write', v:'ans', c:'act'},
-  {l:'?', t:'act', v:'symbol', c:'act'}, {l:'x', t:'var', v:'x', c:'varkey', letter:true}, {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}'}, {l:'@', t:'act', v:'formula', c:'act'}, {l:'\u21B5', t:'act', v:'enter', c:'act op'},
+  {l:'?', t:'act', v:'symbol', c:'act'}, {l:'x', t:'var', v:'x', c:'varkey', letter:true}, {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}'}, {l:'@', t:'act', v:'formula', c:'act'}, {l:',', t:'write', v:',', c:'op'},
 ];
+/* abc page: the FULL lowercase alphabet (constants like c render grey with
+   hover cards now, so an accidental tap is visible and self-explaining), with
+   an in-place Greek layer behind the \u03B1\u03B2\u03B3 key. Shift capitalises either layer:
+   proper Greek capitals where LaTeX has them, the identical Latin letterform
+   otherwise. Long-pressing any letter inserts it with its subscript open. */
+const GREEK_CAPS = {   // lowercase command name -> capital insert (cmd or plain text)
+  alpha:'A', beta:'B', gamma:'\\Gamma', delta:'\\Delta', epsilon:'E', zeta:'Z', eta:'H',
+  theta:'\\Theta', iota:'I', kappa:'K', lambda:'\\Lambda', mu:'M', nu:'N', xi:'\\Xi',
+  pi:'\\Pi', rho:'P', sigma:'\\Sigma', tau:'T', upsilon:'\\Upsilon', phi:'\\Phi', chi:'X',
+  psi:'\\Psi', omega:'\\Omega', varphi:'\\Phi', vartheta:'\\Theta', varepsilon:'E',
+};
+const latinKey = (ch) => ({ l: ch, t: 'var', v: ch, c: 'varkey lyr-latin', letter: true });
+const greekKey = (name) => {
+  const capV = GREEK_CAPS[name];
+  const capL = capV.startsWith('\\') ? GREEK[capV.slice(1)] : capV;
+  // pi is not in the GREEK variable map (it stays the constant), but it still
+  // belongs on the Greek layer; no subscript long-press on a constant
+  const glyph = name === 'pi' ? 'π' : GREEK[name];
+  return { l: glyph, t: 'greek', v: '\\' + name, c: 'varkey greekkey lyr-greek', capV, capL, nolp: name === 'pi' };
+};
+const GREEK_ORDER = ['alpha','beta','gamma','delta','epsilon','zeta','eta',
+  'theta','iota','kappa','lambda','mu','nu','xi',
+  'pi','rho','sigma','tau','upsilon','phi','chi',
+  'psi','omega','varphi','vartheta','varepsilon'];   // omicron lives in ? search
 const PAGE_VARS = [
-  // only non-predefined letters appear here (predefined constants c, e, h, k are
-  // omitted so a tap never inserts a constant by accident; g is kept as the one
-  // useful exception). Every other letter and all Greek live in the ? search.
-  {l:'a', t:'var', v:'a', c:'varkey', letter:true}, {l:'b', t:'var', v:'b', c:'varkey', letter:true}, {l:'d', t:'var', v:'d', c:'varkey', letter:true}, {l:'f', t:'var', v:'f', c:'varkey', letter:true}, {l:'g', t:'var', v:'g', c:'varkey', letter:true},
-  {l:'i', t:'var', v:'i', c:'varkey', letter:true}, {l:'j', t:'var', v:'j', c:'varkey', letter:true}, {l:'m', t:'var', v:'m', c:'varkey', letter:true}, {l:'n', t:'var', v:'n', c:'varkey', letter:true}, {l:'p', t:'var', v:'p', c:'varkey', letter:true},
-  {l:'r', t:'var', v:'r', c:'varkey', letter:true}, {l:'s', t:'var', v:'s', c:'varkey', letter:true}, {l:'t', t:'var', v:'t', c:'varkey', letter:true}, {l:'v', t:'var', v:'v', c:'varkey', letter:true}, {l:'x', t:'var', v:'x', c:'varkey', letter:true},
-  {l:'y', t:'var', v:'y', c:'varkey', letter:true}, {l:'z', t:'var', v:'z', c:'varkey', letter:true}, {l:'\u03B8', t:'greek', v:'\\theta', c:'greekkey'}, {l:'\u03C0', t:'cmd', v:'\\pi', c:'greekkey', katex:'\\pi'}, {l:',', t:'write', v:',', c:'op'},
-  {l:'\u21E7', t:'caps', v:'', c:'act'}, {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}'}, {l:'?', t:'act', v:'symbol', c:'act'}, {l:'[', t:'write', v:'[', c:'op'}, {l:']', t:'write', v:']', c:'op'},
+  ...'abcdefghijklmnopqrstuvwxyz'.split('').map(latinKey),
+  {l:'x\u25A1', t:'subscript', v:'', c:'op lyr-latin', katex:'x_{n}'}, {l:',', t:'write', v:',', c:'op lyr-latin'},
+  ...GREEK_ORDER.map(greekKey),
+  {l:'x\u25A1', t:'subscript', v:'', c:'op lyr-greek', katex:'x_{n}'}, {l:',', t:'write', v:',', c:'op lyr-greek'},
+  // shared bottom row, identical on both layers
+  {l:'\u21E7', t:'caps', v:'', c:'act'}, {l:'\u03B1\u03B2\u03B3', t:'layer', v:'', c:'act layerkey'},
+  {l:'\u0394', t:'greek', v:'\\Delta', c:'varkey', nolp:true}, {l:'?', t:'act', v:'symbol', c:'act'},
+  {l:'(', t:'type', v:'(', c:'op'}, {l:')', t:'type', v:')', c:'op'}, {l:'=', t:'write', v:'=', c:'op'},
 ];
 const PAGE_FNS = [
   // trig sits at the top (most-used); structures and grouping in the middle;
@@ -6879,7 +6996,7 @@ const PAGE_FNS = [
   {l:'n!', t:'type', v:'!', c:'fn'}, {l:'nCr', t:'fn', v:'nCr', c:'fn', opname:true}, {l:'nPr', t:'fn', v:'nPr', c:'fn', opname:true}, {l:'\u03A3', t:'sumkey', v:'', c:'fn', katex:'\\sum'}, {l:'add', t:'fn', v:'add', c:'fn', opname:true},
   {l:'normCDF', t:'fn', v:'normCDF', c:'fn', opname:true}, {l:'invNorm', t:'fn', v:'invNorm', c:'fn', opname:true}, {l:'binPDF', t:'fn', v:'binomPDF', c:'fn', opname:true}, {l:'binCDF', t:'fn', v:'binomCDF', c:'fn', opname:true}, {l:'mean', t:'fn', v:'mean', c:'fn', opname:true},
   {l:'i', t:'write', v:'i', c:'fn'}, {l:'Re', t:'fn', v:'Re', c:'fn', opname:true}, {l:'Im', t:'fn', v:'Im', c:'fn', opname:true}, {l:'Arg', t:'fn', v:'Arg', c:'fn', opname:true}, {l:'cSolve', t:'fn', v:'cSolve', c:'fn', opname:true},
-  {l:'\u2192polar', t:'fn', v:'polar', c:'fn', opname:true}, {l:'\u2192rect', t:'fn', v:'rect', c:'fn', opname:true}, {l:'sys', t:'system', v:'', c:'fn', katex:'\\begin{cases}\\square\\\\\\square\\end{cases}'}, {l:'solve', t:'solve', v:'', c:'solvebtn'}, {l:'\u232B', t:'keystroke', v:'Backspace', c:'act'},
+  {l:'\u2192polar', t:'fn', v:'polar', c:'fn', opname:true}, {l:'\u2192rect', t:'fn', v:'rect', c:'fn', opname:true}, {l:'sys', t:'system', v:'', c:'fn', katex:'\\begin{cases}\\square\\\\\\square\\end{cases}'}, {l:'solve', t:'solve', v:'', c:'solvebtn'}, {l:',', t:'write', v:',', c:'op'},
 ];
 
 const portraitPad = document.createElement('div'); portraitPad.id = 'portraitPad';
@@ -6887,7 +7004,7 @@ const padTabs = document.createElement('div'); padTabs.className = 'pad-tabs';
 const pagesWrap = document.createElement('div'); pagesWrap.className = 'pad-pages';
 const PAGES = [
   { name:'123',  math:'123',    cls:'page-calc', keys:PAGE_CALC, cols:5 },
-  { name:'abc',  math:'abc',    cls:'page-vars', keys:PAGE_VARS, cols:5 },
+  { name:'abc',  math:'abc',    cls:'page-vars', keys:PAGE_VARS, cols:7 },
   { name:'f(x)', math:'f(x)',   cls:'page-fns',  keys:PAGE_FNS,  cols:5 },
 ];
 const pageEls = [];
@@ -6907,6 +7024,38 @@ function setPadPage(idx) {
   pageEls.forEach((p, i) => { p.tab.classList.toggle('on', i===idx); p.page.classList.toggle('on', i===idx); });
 }
 portraitPad.appendChild(padTabs); portraitPad.appendChild(pagesWrap);
+
+/* persistent navigation bar under the pages: caret arrows (hold to repeat),
+   backspace and return, identical on every page -- touch's arrow keys.
+   Up/Down at a field edge hand over to row navigation via MathQuill's
+   up/downOutOf handlers, exactly like the physical keys. */
+const padNav = document.createElement('div'); padNav.className = 'pad-nav';
+const navKey = (label, fire, opts = {}) => {
+  const b = document.createElement('button');
+  b.className = 'navkey' + (opts.c ? ' ' + opts.c : '');
+  b.textContent = label;
+  let delayT = null, repT = null;
+  const stop = () => { clearTimeout(delayT); clearInterval(repT); delayT = repT = null; };
+  b.addEventListener('pointerdown', (e) => {
+    e.preventDefault();          // keep the caret in the math field
+    fire();
+    if (opts.repeat) delayT = setTimeout(() => { repT = setInterval(fire, 90); }, 420);
+  });
+  b.addEventListener('mousedown', (e) => e.preventDefault());
+  b.addEventListener('pointerup', stop);
+  b.addEventListener('pointerleave', stop);
+  b.addEventListener('pointercancel', stop);
+  padNav.appendChild(b);
+  return b;
+};
+const navStroke = (ks) => () => { const mq = activeMQ(); if (mq) { mq.focus(); mq.keystroke(ks); } };
+navKey('←', navStroke('Left'), { repeat: true });
+navKey('↓', navStroke('Down'), { repeat: true });
+navKey('↑', navStroke('Up'), { repeat: true });
+navKey('→', navStroke('Right'), { repeat: true });
+navKey('⌫', navStroke('Backspace'), { repeat: true, c: 'act' });
+navKey('↵', () => { const line = activeLine(); if (line) insertAdjacentLine(line, 'after'); }, { c: 'act' });
+portraitPad.appendChild(padNav);
 keypadEl.appendChild(portraitPad);
 
 /* ---- symbol picker (@) ---- */
@@ -6977,10 +7126,66 @@ function chooseSymbolItem(it) {
     chooseSymbol(it.s);
   }
 }
+/* a small memory of recently inserted symbols, shown as the picker's first grid */
+const RECENT_SYMS_KEY = 'calc-recent-symbols';
+function recentSymbols() {
+  try { const a = JSON.parse(localStorage.getItem(RECENT_SYMS_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+}
+function recordRecentSymbol(name) {
+  try {
+    const a = recentSymbols().filter(n => n !== name); a.unshift(name);
+    localStorage.setItem(RECENT_SYMS_KEY, JSON.stringify(a.slice(0, 8)));
+  } catch (e) {}
+}
+/* default (no query) view: tap-oriented -- the section's variables as chips
+   with values, recent symbols, then Greek and letter grids. Typing switches
+   to the filtered list with arrow-key navigation as before. */
+function renderSymbolHome() {
+  const folder = (symbolTargetLine && symbolTargetLine.folder) || null;
+  const names = (folder && folder.definedNamesList) || [];
+  const head = (t) => { const h = document.createElement('div'); h.className = 'fml-cat'; h.textContent = t; symbolResults.appendChild(h); };
+  if (names.length) {
+    head('In this section');
+    const row = document.createElement('div'); row.className = 'sym-chiprow';
+    names.forEach(n => {
+      const chip = document.createElement('button'); chip.className = 'sym-chip';
+      const g = document.createElement('span');
+      try { katex.render(varToLatex(n), g, { throwOnError: false }); } catch (e) { g.textContent = prettyVarLabel(n); }
+      chip.appendChild(g);
+      let valTxt = '';
+      try { const v = folder.definedValues ? folder.definedValues[n] : undefined; if (v !== undefined && typeof numToPlainLabel === 'function') valTxt = numToPlainLabel(v); } catch (e) {}
+      if (valTxt) { const vs = document.createElement('span'); vs.className = 'sym-chip-val'; vs.textContent = valTxt; chip.appendChild(vs); }
+      chip.addEventListener('mousedown', (ev) => { ev.preventDefault(); chooseSymbolItem({ kind: 'var', name: n }); });
+      row.appendChild(chip);
+    });
+    symbolResults.appendChild(row);
+  }
+  const cellGrid = (syms) => {
+    const grid = document.createElement('div'); grid.className = 'sym-grid';
+    syms.forEach(s => {
+      const c = document.createElement('button'); c.className = 'sym-cell'; c.textContent = s.glyph; c.title = s.name;
+      c.addEventListener('mousedown', (ev) => { ev.preventDefault(); chooseSymbol(s); });
+      grid.appendChild(c);
+    });
+    symbolResults.appendChild(grid);
+  };
+  const byName = new Map(SYMBOL_LIST.map(s => [s.name, s]));
+  const rec = recentSymbols().map(n => byName.get(n)).filter(Boolean);
+  if (rec.length) { head('Recent'); cellGrid(rec); }
+  head('Greek');
+  cellGrid(SYMBOL_LIST.filter(s => s.kind === 'cmd'));
+  head('Letters');
+  cellGrid(SYMBOL_LIST.filter(s => s.kind === 'text'));
+}
 function renderSymbolResults(q) {
-  symbolItems = buildSymbolItems(q);
   symbolActiveIdx = 0;
   symbolResults.innerHTML = '';
+  if (!(q || '').trim()) {
+    symbolItems = [];   // grid mode: Enter closes, arrows are inert
+    renderSymbolHome();
+    return;
+  }
+  symbolItems = buildSymbolItems(q);
   if (symbolItems.length === 0) {
     const e = document.createElement('div'); e.className = 'sym-empty'; e.textContent = 'No symbols match';
     symbolResults.appendChild(e); return;
@@ -7017,6 +7222,7 @@ function setSymbolActive(i) {
   const el = rows[i]; if (el) el.scrollIntoView({ block:'nearest' });
 }
 function chooseSymbol(s) {
+  recordRecentSymbol(s.name);
   const mq = symbolTargetMQ || (symbolTargetLine && symbolTargetLine.mq);
   if (mq) { mq.focus(); if (s.kind === 'text') mq.typedText(s.latex); else mq.cmd(s.latex); }
   closeSymbolPicker();
@@ -8166,8 +8372,11 @@ function openShortcuts() {
   tip('Quick denominator', ['Place the caret just before a number or bracket that is already typed, then press ', { k: '/' },
     '. That term drops below the bar and the caret lands in the empty numerator: with the caret before the 8 in ',
     { x: '23\\times8' }, ', pressing ', { k: '/' }, ' gives ', { x: '23\\times\\frac{\\square}{8}' }, '.']);
-  tip('Symbol search', [{ k: '?' }, ' opens a symbol list: this section’s variables first, with their values, then Greek letters.']);
-  tip('Delta names', ['Typing ', { k: 'Delta' }, ' before a letter makes a single variable: ', { x: '\\Delta v' }, '.']);
+  tip('Symbol search', [{ k: '?' }, ' opens a symbol panel: this section’s variables as chips with values, your recent symbols, then tappable Greek and letter grids. Typing still filters by name.']);
+  tip('Greek keyboard', ['The abc keypad page holds the full alphabet; ', { k: 'αβγ' }, ' flips it to Greek in place, and ', { k: '⇧' }, ' capitalises either layer.']);
+  tip('Quick subscripts', ['Long-press any letter key to insert it with its subscript open: hold ', { x: 'v' }, ', tap 1 for ', { x: 'v_1' }, '.']);
+  tip('Caret keys', ['The bar under the keypad moves the caret: ', { k: '←' }, ' ', { k: '↓' }, ' ', { k: '↑' }, ' ', { k: '→' }, ' (hold to repeat), plus backspace and return, on every page. The ', { x: col(C_ACC, '\\Rightarrow') }, ' key on the 123 page types the solve arrow directly.']);
+  tip('Delta names', ['Typing ', { k: 'Delta' }, ' before a letter makes a single variable: ', { x: '\\Delta v' }, '. The ', { k: 'Δ' }, ' key on the abc page does the same.']);
   tip('Polar and rect', [{ x: '\\operatorname{polar}(z)' }, ' gives ', { x: '[r,\\,\\theta]' }, ' and ', { x: '\\operatorname{rect}(r,\\theta)' },
     ' goes back. Both sit on the f(x) keypad and follow the Deg / Rad setting.']);
 
