@@ -5093,17 +5093,6 @@ function focusLineSafe(lineObj) {
 }
 function totalLines() { return folders.reduce((n,f) => n + f.lines.length, 0); }
 
-/* If the caret sits in an EMPTY fraction numerator (nothing was pulled in when
-   "/" was typed), hop to the denominator: the next number typed belongs there. */
-function hopToDenomIfEmptyNumerator(mq, fieldEl) {
-  const cur = fieldEl.querySelector('.mq-cursor');
-  const numBlock = cur && cur.closest('.mq-numerator');
-  if (!numBlock) return;
-  const hasContent = [...numBlock.querySelectorAll('*')].some(el =>
-    !el.classList.contains('mq-cursor') && el.textContent.replace(/[​\s]/g, '') !== '');
-  if (!hasContent) mq.keystroke('Down');
-}
-
 /* After a fraction is formed, remove parentheses that wrap an ENTIRE numerator
    or denominator -- the fraction bar already groups them, so "(25x10^3)/3"
    should display as the bare fraction. Operates on the field latex, rewrites
@@ -6020,7 +6009,7 @@ function createLine(folder, afterLine = null, initialLatex = '') {
       if (breakOut) {
         e.preventDefault(); e.stopPropagation();
         mq.keystroke('Right');                 // exit the exponent first
-        if (e.key === '/') { mq.typedText('/'); stripFracParens(mq); hopToDenomIfEmptyNumerator(mq, fieldEl); }
+        if (e.key === '/') { mq.typedText('/'); stripFracParens(mq); }
         else mq.typedText(e.key);               // + - =
         recompute(); return;
       }
@@ -6074,10 +6063,10 @@ function createLine(folder, afterLine = null, initialLatex = '') {
       }
     }
     // keyboard "/" (not breaking out) builds a fraction; strip wrapping parens.
-    // When nothing was pulled into the numerator, the caret hops to the
-    // denominator so the next typed number lands there (23* /8 -> 23×□/8).
+    // When nothing was pulled into the numerator, MathQuill leaves the caret
+    // in the empty numerator, which is where typing should continue.
     if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      setTimeout(() => { stripFracParens(mq); hopToDenomIfEmptyNumerator(mq, fieldEl); }, 0);
+      setTimeout(() => stripFracParens(mq), 0);
     }
     // keyboard ")" can auto-grow a \left( back across an "="; pull it forward so
     // the bracket holds only the expression to the right of the equals.
