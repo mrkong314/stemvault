@@ -1090,18 +1090,17 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     font-size: 0.55em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
     color: var(--ink-dim); margin: 0 0 0.3em 0.15em;
   }
-  /* worked algebra below Uses: labelled steps behind a Show Algebra toggle */
-  #presentOverlay .pr-wk-head { display: flex; align-items: center; gap: 0.8em; }
-  #presentOverlay .pr-wk-toggle { display: inline-block; }
+  /* worked algebra below Uses: labelled steps, toggled from the header bar */
   #presentOverlay .pr-working { border-top: 1px solid var(--rule); }
   #presentOverlay .pr-wk-step {
-    display: flex; align-items: center; gap: 1.2rem; padding: 0.35em 0;
+    display: flex; align-items: flex-start; gap: 1.2rem; padding: 0.35em 0;
     font-size: 0.72em;
   }
   #presentOverlay .pr-wk-label {
     flex: 0 0 9em; font-size: 0.62em; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.07em; color: var(--ink-dim);
+    letter-spacing: 0.07em; color: var(--ink-dim); padding-top: 0.55em;
   }
+  #presentOverlay .pr-wk-line { padding: 0.14em 0; }
   #presentOverlay .pr-wk-math { flex: 1 1 auto; overflow-x: auto; }
   #presentOverlay .pr-wk-math .result { color: var(--accent); }
   #presentOverlay .pr-wk-math .result.assign-echo { color: var(--def-echo); }
@@ -7782,12 +7781,16 @@ function wkSubstitute(n, subject, lookup) {
   if (n.b) c.b = wkSubstitute(n.b, subject, lookup);
   return c;
 }
-/* isolate `name` by inverting the operations around it, one layer at a time */
+/* Isolate `name` by inverting the operations around it, one layer at a time.
+   Returns the list of intermediate equation states {l, r} -- one per
+   inversion, ending with the isolated form -- so the working can show every
+   algebraic step, not just the result. Null when peeling is impossible. */
 function wkPeel(eq, name) {
   if (!eq.r) return null;
   let L = eq.l, R = eq.r;
   if (wkCount(L, name) + wkCount(R, name) !== 1) return null;
   if (wkCount(R, name) === 1) { const t = L; L = R; R = t; }
+  const steps = [];
   let guard = 0;
   while (!(L.k === 'var' && L.v === name)) {
     if (++guard > 60) return null;
@@ -7831,8 +7834,9 @@ function wkPeel(eq, name) {
         L = L.a; break;
       default: return null;
     }
+    steps.push({ l: L, r: R });
   }
-  return R;
+  return steps;
 }
 /* AST -> LaTeX. The subject renders in the accent colour everywhere. */
 function wkTex(n, subject) {
@@ -7920,8 +7924,10 @@ function buildWorking(line) {
   } catch (e) { sub = null; }
   if (subject && sub && sub.r) {
     try {
-      const iso = wkPeel(sub, subject);
-      if (iso) out.rearrangement = wkTex({ k: 'var', v: subject }, subject) + '=' + wkTex(iso, subject);
+      const steps = wkPeel(sub, subject);
+      if (steps && steps.length) {
+        out.rearrangement = steps.map(st => wkTex(st.l, subject) + '=' + wkTex(st.r, subject));
+      }
     } catch (e) {}
   }
   if (!out.formula && !out.substitution) return null;
@@ -7948,7 +7954,12 @@ function openPresentRow(line) {
   bar.appendChild(mkBtn('A−', () => { presentFS = Math.max(1.1, presentFS - 0.2); applyFS(); }));
   bar.appendChild(mkBtn('A+', () => { presentFS = Math.min(3, presentFS + 0.2); applyFS(); }));
   const spacer = document.createElement('span'); spacer.style.flex = '1 1 auto'; bar.appendChild(spacer);
-  const setAll = (show) => ov.querySelectorAll('.pr-ans').forEach(w => w.classList.toggle('pr-hidden', !show));
+  // Hide all / Show all cover the answers AND the working block below
+  let setWorking = () => {};
+  const setAll = (show) => {
+    ov.querySelectorAll('.pr-ans').forEach(w => w.classList.toggle('pr-hidden', !show));
+    setWorking(show);
+  };
   bar.appendChild(mkBtn('Hide all', () => setAll(false)));
   bar.appendChild(mkBtn('Show all', () => setAll(true), 'pr-accent'));
   bar.appendChild(mkBtn('×', closePresent, 'pr-close'));
@@ -8159,25 +8170,30 @@ function openPresentRow(line) {
   }
 
   // ---- worked algebra: Formula / Substitution / Rearrangement / Answer,
-  // behind a toggle (default off), regenerating live with slider drags ----
+  // shown by default, toggled from the header bar, regenerating live ----
   let wkRefresh = () => {};
   if (buildWorking(line)) {
-    const wkHead = document.createElement('div'); wkHead.className = 'pr-section pr-wk-head';
-    const wkLab = document.createElement('span'); wkLab.textContent = 'Working';
-    const wkBtn = document.createElement('button'); wkBtn.className = 'pr-pill pr-wk-toggle'; wkBtn.textContent = 'Show Algebra';
-    wkHead.appendChild(wkLab); wkHead.appendChild(wkBtn);
-    const wkBox = document.createElement('div'); wkBox.className = 'pr-working'; wkBox.style.display = 'none';
+    const wkWrap = document.createElement('div'); wkWrap.className = 'pr-wk-wrap';
+    const wkHead = document.createElement('div'); wkHead.className = 'pr-section';
+    wkHead.textContent = 'Working';
+    const wkBox = document.createElement('div'); wkBox.className = 'pr-working';
     const renderWk = () => {
       wkBox.innerHTML = '';
       const w = buildWorking(line);
       if (!w) return;
-      const step = (label, texStr, node) => {
-        if (!texStr && !node) return;
+      const step = (label, texOrList, node) => {
+        if (!texOrList && !node) return;
         const row = document.createElement('div'); row.className = 'pr-wk-step';
         const lab = document.createElement('span'); lab.className = 'pr-wk-label'; lab.textContent = label;
         const bodyEl = document.createElement('span'); bodyEl.className = 'pr-wk-math';
         if (node) bodyEl.appendChild(node);
-        else { try { katex.render(texStr, bodyEl, { throwOnError: false }); } catch (e) { bodyEl.textContent = texStr; } }
+        else {
+          (Array.isArray(texOrList) ? texOrList : [texOrList]).forEach(ts => {
+            const ln = document.createElement('div'); ln.className = 'pr-wk-line';
+            try { katex.render(ts, ln, { throwOnError: false }); } catch (e) { ln.textContent = ts; }
+            bodyEl.appendChild(ln);
+          });
+        }
         row.appendChild(lab); row.appendChild(bodyEl); wkBox.appendChild(row);
       };
       step('Formula', w.formula);
@@ -8186,14 +8202,16 @@ function openPresentRow(line) {
       const hasAns = line.resultEl && (line.resultEl.textContent.trim() !== '' || line.resultEl.children.length > 0);
       if (hasAns) step('Answer', null, line.resultEl.cloneNode(true));
     };
-    wkBtn.addEventListener('click', () => {
-      const show = wkBox.style.display === 'none';
-      wkBox.style.display = show ? '' : 'none';
-      wkBtn.textContent = show ? 'Hide Algebra' : 'Show Algebra';
+    renderWk();
+    wkWrap.appendChild(wkHead); wkWrap.appendChild(wkBox);
+    body.appendChild(wkWrap);
+    let wkShown = true;
+    setWorking = (show) => {
+      wkShown = show;
+      wkWrap.style.display = show ? '' : 'none';
       if (show) renderWk();
-    });
-    body.appendChild(wkHead); body.appendChild(wkBox);
-    wkRefresh = () => { if (wkBox.style.display !== 'none') renderWk(); };
+    };
+    wkRefresh = () => { if (wkShown) renderWk(); };
   }
 
   // live sliders: every slider-capable definition this view involves gets a
@@ -8743,7 +8761,7 @@ function openShortcuts() {
   h('Presenting');
   tip('Expand a row', ['Hover a row and click the expand icon ', { ico: 'expand' }, ' left of the quote button: the result shows large with its working laid out knowns first, constants and given values before derivations, all live and editable, sliders included. The row’s note becomes the title.']);
   tip('In the view', [{ k: 'A−' }, ' ', { k: 'A+' }, ' resize, clicking an answer hides it behind a Show pill, and ', { k: 'Esc' }, ' leaves.']);
-  tip('Show Algebra', ['The Show Algebra toggle below Uses lays out the working: Formula, Substitution, Rearrangement, Answer. The rearrangement shows whenever the subject can be isolated step by step; otherwise the numeric steps stand alone.']);
+  tip('Working steps', ['Below Uses, the working lays out Formula, Substitution, Rearrangement (one line per algebraic step) and Answer. Hide all and Show all cover the working too. The rearrangement appears whenever the subject can be isolated step by step; otherwise the numeric steps stand alone.']);
 
   h('Navigate and edit');
   tip('Move around', [{ k: '↑' }, ' ', { k: '↓' }, ' move between rows from anywhere. ', { k: 'Enter' },
