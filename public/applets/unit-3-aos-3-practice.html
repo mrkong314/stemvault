@@ -326,6 +326,20 @@ const ML_KEYBOARD = { label: "123", id: "physics", displayEditToolbar: false, ro
 // to a parent page that has no MathLive; sandboxed is manual, so focus shows it on touch devices.
 // Physical keyboard: a second * within 600 ms turns the times sign just typed into x10^n (same
 // gesture as the StemVault calculator app).
+// Operators typed or tapped while the caret sits in an exponent land after it (as in the StemVault
+// calculator app), unless the exponent is still empty and the operator is a leading minus or slash
+// (x^{-1}, x^{1/2}). Roots, fractions and bracket groups are left alone. Returns true if the caret moved.
+function mlLeaveExponent(mf, op) {
+  if (mf.tagName !== "MATH-FIELD") return false;
+  const p = mf.position, info = mf.getElementInfo(p);
+  if (!info || !(info.depth > 0)) return false;
+  const empty = !info.latex || info.latex === "\\placeholder{}";
+  if (empty && (op === "-" || op === "/")) return false;
+  mf.executeCommand("moveAfterParent");
+  const parent = mf.getElementInfo(mf.position);
+  if (parent && /^\^/.test(parent.latex || "")) return true;
+  mf.position = p; return false;
+}
 function mlField(mf, calc) {
   mf.menuItems = []; mf.smartSuperscript = false; mf.smartFence = !!calc;
   mf.mathVirtualKeyboardPolicy = calc ? "manual" : (ML_IN_IFRAME ? "sandboxed" : "auto");
@@ -333,15 +347,18 @@ function mlField(mf, calc) {
   if (kb && !kb.physicsLayout) { kb.physicsLayout = true; kb.layouts = [ML_KEYBOARD]; kb.editToolbar = "none"; }
   let star = 0;
   mf.addEventListener("keydown", e => {
-    if (e.key !== "*" || e.ctrlKey || e.metaKey || e.altKey) { star = 0; return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) { star = 0; return; }
+    const op = { "*": "*", "x": "*", "X": "*", "+": "+", "-": "-", "/": "/" }[e.key];
+    if (!op) { star = 0; return; }
     const now = Date.now(), p = mf.position;
-    if (now - star < 600 && p > 0 && mf.getValue(p - 1, p, "latex").trim() === "\\times") {
+    if (e.key === "*" && now - star < 600 && p > 0 && mf.getValue(p - 1, p, "latex").trim() === "\\times") {
       e.preventDefault(); e.stopImmediatePropagation(); star = 0;
       mf.executeCommand("deleteBackward"); mf.executeCommand(["insert", ML_SCI, { format: "latex" }]);
       mf.dispatchEvent(new Event("input"));
       return;
     }
-    star = now;
+    mlLeaveExponent(mf, op);
+    star = e.key === "*" ? now : 0;
   }, true);
   if (calc) mf.addEventListener("focusin", () => { if (window.mathVirtualKeyboard) window.mathVirtualKeyboard.hide(); });
   else if (ML_IN_IFRAME) {
@@ -473,9 +490,11 @@ function calcNormalise(s) {
     .replace(/\*\*/g, "^").replace(/\\times|\\cdot|×|·/g, "*").replace(/\\div|÷/g, "/").replace(/−|–/g, "-")
     .replace(/\\pi|π/g, " pi ").replace(/\\%|%/g, "/100");
   for (let i = 0; i < 30; i++) {
-    const t = s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, "(($1)/($2))")
+    // MathLive writes one-token arguments without braces (\frac34, \frac3{10}, \sqrt2), so each argument is a braced group or a single digit/letter
+    const arg = "(\\{[^{}]*\\}|\\d|[a-zA-Z])", strip = x => x.replace(/^\{|\}$/g, "");
+    const t = s.replace(new RegExp("\\\\frac" + arg + arg, "g"), (m, a, b) => "((" + strip(a) + ")/(" + strip(b) + "))")
       .replace(/\\sqrt\[([^\[\]{}]*)\]\{([^{}]*)\}/g, "(($2)^(1/($1)))")
-      .replace(/\\sqrt\{([^{}]*)\}/g, " sqrt($1)")
+      .replace(new RegExp("\\\\sqrt" + arg, "g"), (m, a) => " sqrt(" + strip(a) + ")")
       .replace(/\^\{([^{}]*)\}/g, "^($1)")
       .replace(/_\{[^{}]*\}/g, "");
     if (t === s) break; s = t;
@@ -536,14 +555,19 @@ function calcFormat(v) {
 }
 function calcRender(el, tex) { if (window.katex) { try { katex.render(tex, el, { throwOnError: false, strict: "ignore" }); return; } catch (e) {} } el.textContent = tex; }
 function calcValue() { return calcField.tagName === "MATH-FIELD" ? calcField.value : calcField.value; }
-function calcUpdate() {
+function calcUpdate(final) {
   const res = calcEl.querySelector(".calc-res"); const src = calcValue();
   if (!src.trim()) { res.textContent = ""; res.className = "calc-res"; return null; }
-  try { const v = calcEval(src); calcRender(res, "= " + calcFormat(v)); res.className = "calc-res"; return v; }
-  catch (e) { res.textContent = e.message; res.className = "calc-res err"; return null; }
+  const pending = /\\placeholder\{\}/.test(src);                 // an empty box is still being filled in
+  try { if (pending) throw new Error("Incomplete expression"); const v = calcEval(src); calcRender(res, "= " + calcFormat(v)); res.className = "calc-res"; return v; }
+  catch (e) {
+    const typing = pending || /^(Incomplete expression|Missing \))$/.test(e.message);
+    if (typing && !final) { res.textContent = ""; res.className = "calc-res"; return null; }
+    res.textContent = pending ? "Fill in the empty box" : e.message; res.className = "calc-res err"; return null;
+  }
 }
 function calcCommit() {
-  const v = calcUpdate(); if (v === null) return;
+  const v = calcUpdate(true); if (v === null) return;
   calcAns = v; const src = calcValue(); calcField.value = ""; calcEl.querySelector(".calc-res").textContent = "";
   calcHist.unshift({ src, v }); calcHist = calcHist.slice(0, 20);
   calcHistRender();
@@ -563,9 +587,13 @@ function calcHistRender() {
   });
 }
 function calcInsert(latex, plain) {
-  if (calcField.tagName === "MATH-FIELD") { calcField.executeCommand(["insert", latex, { format: "latex" }]); }
+  calcField.focus();                                                  // insert into the focused field so the caret lands in the placeholder
+  if (calcField.tagName === "MATH-FIELD") {
+    if (/^[+\-*\/]$/.test(plain)) mlLeaveExponent(calcField, plain); // operators land after an exponent, as in the StemVault calculator app
+    calcField.executeCommand(["insert", latex, { format: "latex" }]);
+  }
   else { const f = calcField, s = f.selectionStart, e = f.selectionEnd; f.value = f.value.slice(0, s) + plain + f.value.slice(e); f.selectionStart = f.selectionEnd = s + plain.length; }
-  calcField.focus(); calcUpdate();
+  calcUpdate();
 }
 // [label, LaTeX insert, plain-input insert, css class, hold LaTeX, hold plain]. An insert of "@name" is an
 // action (data-k="name"); others get data-k=index. Rows of six: three function rows, then a numeric pad so
@@ -574,7 +602,7 @@ function calcInsert(latex, plain) {
 const CALC_KEYS = [
   ["sin", "\\sin(#?)", "sin("], ["cos", "\\cos(#?)", "cos("], ["tan", "\\tan(#?)", "tan("], ["√", "\\sqrt{#?}", "sqrt("], ["x²", "^2", "^2"], ["xʸ", "^{#?}", "^("],
   ["sin⁻¹", "\\sin^{-1}(#?)", "asin("], ["cos⁻¹", "\\cos^{-1}(#?)", "acos("], ["tan⁻¹", "\\tan^{-1}(#?)", "atan("], ["π", "\\pi", "pi"], ["e", "e", "e"], ["×10ⁿ", ML_SCI, "*10^("],
-  ["(", "(", "("], [")", ")", ")"], ["ln", "\\ln(#?)", "ln("], ["log", "\\log(#?)", "log("], ["a/b", "\\frac{#?}{#0}", "/"], ["x⁻¹", "^{-1}", "^(-1)"],
+  ["(", "(", "("], [")", ")", ")"], ["ln", "\\ln(#?)", "ln("], ["log", "\\log(#?)", "log("], ["a/b", "\\frac{#@}{#?}", "/"], ["x⁻¹", "^{-1}", "^(-1)"],
   ["7", "7", "7", "num"], ["8", "8", "8", "num"], ["9", "9", "9", "num"], ["÷", "\\div", "/", "op"], ["⌫", "@del", "", "act"], ["Clear", "@clear", "", "act"],
   ["4", "4", "4", "num"], ["5", "5", "5", "num"], ["6", "6", "6", "num"], ["×", "\\times", "*", "op", ML_SCI, "*10^("], ["←", "@left", "", "act"], ["→", "@right", "", "act"],
   ["1", "1", "1", "num"], ["2", "2", "2", "num"], ["3", "3", "3", "num"], ["−", "-", "-", "op"], ["=", "@eq", "", "eq"],
@@ -602,17 +630,18 @@ function calcBuild() {
     inWrap.appendChild(mf);
     mf.inlineShortcuts = { ...mf.inlineShortcuts, "*": "\\times", "x": "\\times", "X": "\\times", "Ans": "\\mathrm{Ans}", "ans": "\\mathrm{Ans}", "asin": "\\sin^{-1}", "acos": "\\cos^{-1}", "atan": "\\tan^{-1}" };
     mlField(mf, true);
-    mf.addEventListener("input", calcUpdate);
+    mf.addEventListener("input", () => calcUpdate());
     mf.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); calcCommit(); } });
     calcField = mf;
   } else {
     const inp = document.createElement("input"); inp.type = "text"; inp.placeholder = "e.g. 2*10^3*sin(30)"; inp.autocomplete = "off"; inp.setAttribute("aria-label", "calculator input");
-    inWrap.appendChild(inp); inp.addEventListener("input", calcUpdate); inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); calcCommit(); } });
+    inWrap.appendChild(inp); inp.addEventListener("input", () => calcUpdate()); inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); calcCommit(); } });
     calcField = inp;
   }
   calcEl.querySelector(".calc-x").addEventListener("click", () => { calcEl.hidden = true; });
   calcEl.querySelector(".calc-hclear").addEventListener("click", () => { calcHist = []; calcHistRender(); calcField.focus(); });
   calcEl.querySelectorAll("[data-ang]").forEach(b => b.addEventListener("click", () => { calcDeg = b.dataset.ang === "deg"; calcEl.querySelectorAll("[data-ang]").forEach(x => x.classList.toggle("on", x === b)); calcUpdate(); }));
+  calcEl.querySelector(".calc-keys").addEventListener("pointerdown", e => { if (e.target.closest("button")) e.preventDefault(); });
   calcEl.querySelector(".calc-keys").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return; const k = b.dataset.k;
     if (b.held) { b.held = false; return; }                       // a fired hold already inserted its key
