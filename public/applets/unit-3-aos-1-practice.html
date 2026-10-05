@@ -13,6 +13,7 @@
 --t1:#1B3A6B;--t2:#0E7C86;--t3:#C4552F;--t4:#6A4C93;--t5:#2A9D5C;--t6:#D48A00;--t7:#2F7FD8;--t8:#B23A48;
 --sans:"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 *{box-sizing:border-box}
+:root{--keycap-height:34px;--keycap-font-size:17px;--keycap-max-width:76px;--keycap-gap:6px;--keyboard-padding-top:4px;--keyboard-padding-bottom:4px}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5}
 button{font:inherit;cursor:pointer}
 header{background:var(--navy);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 2px 0 var(--sky)}
@@ -128,12 +129,18 @@ main{padding:24px 32px 80px;max-width:880px}
 .calc-in{padding:10px 12px 4px}
 .calc-in math-field{display:block;width:100%;font-size:19px;padding:6px 8px;border:1px solid var(--rule);border-radius:6px;background:#fff;--caret-color:var(--navy)}
 .calc-in math-field::part(menu-toggle){display:none}
+.calc-in math-field::part(virtual-keyboard-toggle){display:none}
 .calc-in input{display:block;width:100%;font:inherit;font-size:16px;padding:8px;border:1px solid var(--rule);border-radius:6px}
 .calc-res{min-height:26px;padding:0 14px 6px;font-size:17px;color:var(--navy)}
 .calc-res.err{font-size:13px;color:var(--miss)}
 .calc-keys{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;padding:4px 12px 8px}
 .calc-keys button{font-size:13.5px;padding:7px 2px;border:1px solid var(--rule);border-radius:6px;background:#F7FAFE;color:var(--ink)}
+.calc-keys button{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .calc-keys button:hover{background:var(--sky-tint)}
+.calc-keys button.num{background:#fff;font-size:15.5px;font-weight:600}
+.calc-keys button.op{font-size:15px}
+.calc-keys button.act{background:var(--sky-tint)}
+.calc-keys button.w2{grid-column:span 2}
 .calc-keys button.eq{grid-column:span 2;background:var(--navy);color:#fff;border-color:var(--navy)}
 .calc-note{font-size:12px;color:var(--muted);padding:0 14px 8px}
 .calc-hh{display:flex;align-items:center;justify-content:space-between;padding:4px 14px;border-top:1px solid var(--rule);font-size:12px;color:var(--muted)}
@@ -307,6 +314,52 @@ function latexToPlain(l) {
     .replace(/\^\{([^}]*)\}/g, "^$1").replace(/[{}]/g, "").replace(/\s+/g, "");
 }
 function fieldValue(f) { return f.tagName === "MATH-FIELD" ? latexToPlain(f.value) : f.value; }
+
+// ---- MathLive set-up shared by the value boxes and the calculator ----
+const ML_SCI = "\\times10^{#?}";                                   // x10^n with the caret left in the exponent
+const ML_IN_IFRAME = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+const ML_TOUCH = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+// Compact on-screen keyboard for numeric answers: digits, point, sign, x10^n, power, caret and delete keys.
+// Replaces MathLive's stock layouts (no toolbar, no layout tabs). Holding the times key offers x10^n.
+const ML_KEYBOARD = { label: "123", id: "physics", displayEditToolbar: false, rows: [
+  ["7", "8", "9", { latex: "\\times10^{n}", insert: ML_SCI, class: "op" }, { label: "[backspace]", width: 1.0 }],
+  ["4", "5", "6", { latex: "x^{n}", insert: "^{#?}", class: "op" }, "[left]"],
+  ["1", "2", "3", { latex: "\\times", insert: "\\times", class: "op", variants: [{ latex: "\\times10^{n}", insert: ML_SCI }] }, "[right]"],
+  [{ latex: "0", width: 2.0 }, ".", { latex: "-", insert: "-", class: "op" }, { label: "[hide-keyboard]", width: 1.0 }],
+] };
+// Common field options. calc=true: the calculator field, which never shows the on-screen keyboard
+// (its own keypad has every key) and hides it if a value box left it open. Value boxes use "auto"
+// (keyboard on focus on touch devices, toggle icon everywhere) when the applet is the page, and
+// "sandboxed" inside an iframe so the keyboard is drawn inside the applet frame rather than handed
+// to a parent page that has no MathLive; sandboxed is manual, so focus shows it on touch devices.
+// Physical keyboard: a second * within 600 ms turns the times sign just typed into x10^n (same
+// gesture as the StemVault calculator app).
+function mlField(mf, calc) {
+  mf.menuItems = []; mf.smartSuperscript = false; mf.smartFence = !!calc;
+  mf.mathVirtualKeyboardPolicy = calc ? "manual" : (ML_IN_IFRAME ? "sandboxed" : "auto");
+  const kb = window.mathVirtualKeyboard;
+  if (kb && !kb.physicsLayout) { kb.physicsLayout = true; kb.layouts = [ML_KEYBOARD]; kb.editToolbar = "none"; }
+  let star = 0;
+  mf.addEventListener("keydown", e => {
+    if (e.key !== "*" || e.ctrlKey || e.metaKey || e.altKey) { star = 0; return; }
+    const now = Date.now(), p = mf.position;
+    if (now - star < 600 && p > 0 && mf.getValue(p - 1, p, "latex").trim() === "\\times") {
+      e.preventDefault(); e.stopImmediatePropagation(); star = 0;
+      mf.executeCommand("deleteBackward"); mf.executeCommand(["insert", ML_SCI, { format: "latex" }]);
+      mf.dispatchEvent(new Event("input"));
+      return;
+    }
+    star = now;
+  }, true);
+  if (calc) mf.addEventListener("focusin", () => { if (window.mathVirtualKeyboard) window.mathVirtualKeyboard.hide(); });
+  else if (ML_IN_IFRAME) {
+    mf.addEventListener("focusin", () => { if (ML_TOUCH && window.mathVirtualKeyboard) window.mathVirtualKeyboard.show(); });
+    mf.addEventListener("focusout", () => setTimeout(() => {
+      const a = document.activeElement;
+      if (window.mathVirtualKeyboard && !(a && a.tagName === "MATH-FIELD" && a.classList.contains("fld"))) window.mathVirtualKeyboard.hide();
+    }, 0));
+  }
+}
 function upgradeFields(root) {
   root.querySelectorAll(".nums input.fld").forEach(inp => {
     const pv = inp.nextElementSibling;
@@ -317,9 +370,7 @@ function upgradeFields(root) {
       const start = inputTex(inp.value).replace(/\\text\{\?\}/, "");
       inp.replaceWith(mf); if (pv) pv.remove();
       mf.inlineShortcuts = { "*": "\\times", "x": "\\times", "X": "\\times" };
-      mf.menuItems = [];
-      mf.smartFence = false; mf.smartSuperscript = false;
-      mf.mathVirtualKeyboardPolicy = "auto";
+      mlField(mf, false);
       if (start) mf.value = start;
     } else {
       const upd = () => { const tex = inputTex(inp.value); if (!tex) { pv.innerHTML = ""; return; } if (window.katex) { try { katex.render(tex, pv, { throwOnError: false, strict: "ignore" }); } catch (e) { pv.textContent = inp.value; } } else pv.textContent = inp.value; };
@@ -525,11 +576,24 @@ function calcInsert(latex, plain) {
   else { const f = calcField, s = f.selectionStart, e = f.selectionEnd; f.value = f.value.slice(0, s) + plain + f.value.slice(e); f.selectionStart = f.selectionEnd = s + plain.length; }
   calcField.focus(); calcUpdate();
 }
+// [label, LaTeX insert, plain-input insert, css class, hold LaTeX, hold plain]. An insert of "@name" is an
+// action (data-k="name"); others get data-k=index. Rows of six: three function rows, then a numeric pad so
+// the calculator works without any on-screen keyboard. Holding the times key inserts x10^n (450 ms, as in
+// the StemVault calculator app).
 const CALC_KEYS = [
   ["sin", "\\sin(#?)", "sin("], ["cos", "\\cos(#?)", "cos("], ["tan", "\\tan(#?)", "tan("], ["√", "\\sqrt{#?}", "sqrt("], ["x²", "^2", "^2"], ["xʸ", "^{#?}", "^("],
-  ["sin⁻¹", "\\sin^{-1}(#?)", "asin("], ["cos⁻¹", "\\cos^{-1}(#?)", "acos("], ["tan⁻¹", "\\tan^{-1}(#?)", "atan("], ["π", "\\pi", "pi"], ["e", "e", "e"], ["×10ⁿ", "\\times10^{#?}", "*10^("],
-  ["(", "(", "("], [")", ")", ")"], ["ln", "\\ln(#?)", "ln("], ["log", "\\log(#?)", "log("], ["a/b", "\\frac{#?}{#0}", "/"], ["Ans", "\\mathrm{Ans}", "Ans"],
+  ["sin⁻¹", "\\sin^{-1}(#?)", "asin("], ["cos⁻¹", "\\cos^{-1}(#?)", "acos("], ["tan⁻¹", "\\tan^{-1}(#?)", "atan("], ["π", "\\pi", "pi"], ["e", "e", "e"], ["×10ⁿ", ML_SCI, "*10^("],
+  ["(", "(", "("], [")", ")", ")"], ["ln", "\\ln(#?)", "ln("], ["log", "\\log(#?)", "log("], ["a/b", "\\frac{#?}{#0}", "/"], ["x⁻¹", "^{-1}", "^(-1)"],
+  ["7", "7", "7", "num"], ["8", "8", "8", "num"], ["9", "9", "9", "num"], ["÷", "\\div", "/", "op"], ["⌫", "@del", "", "act"], ["Clear", "@clear", "", "act"],
+  ["4", "4", "4", "num"], ["5", "5", "5", "num"], ["6", "6", "6", "num"], ["×", "\\times", "*", "op", ML_SCI, "*10^("], ["←", "@left", "", "act"], ["→", "@right", "", "act"],
+  ["1", "1", "1", "num"], ["2", "2", "2", "num"], ["3", "3", "3", "num"], ["−", "-", "-", "op"], ["=", "@eq", "", "eq"],
+  ["0", "0", "0", "num w2"], [".", ".", ".", "num"], ["+", "+", "+", "op"], ["Ans", "\\mathrm{Ans}", "Ans", "op w2"],
 ];
+function calcMove(dir) {
+  if (calcField.tagName === "MATH-FIELD") calcField.executeCommand(dir < 0 ? "moveToPreviousChar" : "moveToNextChar");
+  else { const f = calcField, p = Math.max(0, Math.min(f.value.length, f.selectionStart + dir)); f.selectionStart = f.selectionEnd = p; }
+  calcField.focus();
+}
 function initCalc() {
   const btn = document.getElementById("calcBtn"); if (!btn) return;
   btn.addEventListener("click", () => { if (!calcEl) calcBuild(); calcEl.hidden = !calcEl.hidden; if (!calcEl.hidden) calcField.focus(); });
@@ -538,15 +602,15 @@ function calcBuild() {
   calcEl = document.createElement("div"); calcEl.className = "calc"; calcEl.hidden = true;
   calcEl.innerHTML = '<div class="calc-h"><span class="calc-t">Calculator</span><span class="calc-mode"><button type="button" data-ang="deg" class="on">DEG</button><button type="button" data-ang="rad">RAD</button></span><button type="button" class="calc-x" aria-label="Close">×</button></div>' +
     '<div class="calc-in"></div><div class="calc-res"></div>' +
-    '<div class="calc-keys">' + CALC_KEYS.map((k, i) => '<button type="button" data-k="' + i + '">' + k[0] + '</button>').join("") + '<button type="button" data-k="del">⌫</button><button type="button" data-k="clear">Clear</button><button type="button" data-k="eq" class="eq">=</button></div>' +
-    '<div class="calc-note">Type as you would write it: 2.5×10^3, sin(30), sqrt(2×9.81×5). Use the right arrow key to leave a fraction, root or power. Enter or = stores the result as Ans. Angles in degrees unless RAD is chosen.</div><div class="calc-hh"><span>History</span><button type="button" class="calc-hclear" hidden>Clear history</button></div><div class="calc-hist"></div>';
+    '<div class="calc-keys">' + CALC_KEYS.map((k, i) => '<button type="button" data-k="' + (k[1][0] === "@" ? k[1].slice(1) : i) + '"' + (k[3] ? ' class="' + k[3] + '"' : '') + (k[4] ? ' title="Hold for ×10ⁿ"' : '') + '>' + k[0] + '</button>').join("") + '</div>' +
+    '<div class="calc-note">Type as you would write it: 2.5×10^3, sin(30), sqrt(2×9.81×5). Press * twice, or hold the × key, for ×10ⁿ. Use the arrow keys to leave a fraction, root or power. Enter or = stores the result as Ans. Angles in degrees unless RAD is chosen.</div><div class="calc-hh"><span>History</span><button type="button" class="calc-hclear" hidden>Clear history</button></div><div class="calc-hist"></div>';
   document.body.appendChild(calcEl);
   const inWrap = calcEl.querySelector(".calc-in");
   if (window.customElements && customElements.get("math-field")) {
     const mf = document.createElement("math-field"); mf.setAttribute("aria-label", "calculator input");
     inWrap.appendChild(mf);
     mf.inlineShortcuts = { ...mf.inlineShortcuts, "*": "\\times", "x": "\\times", "X": "\\times", "Ans": "\\mathrm{Ans}", "ans": "\\mathrm{Ans}", "asin": "\\sin^{-1}", "acos": "\\cos^{-1}", "atan": "\\tan^{-1}" };
-    mf.menuItems = []; mf.smartFence = true; mf.smartSuperscript = false; mf.mathVirtualKeyboardPolicy = "auto";
+    mlField(mf, true);
     mf.addEventListener("input", calcUpdate);
     mf.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); calcCommit(); } });
     calcField = mf;
@@ -560,10 +624,20 @@ function calcBuild() {
   calcEl.querySelectorAll("[data-ang]").forEach(b => b.addEventListener("click", () => { calcDeg = b.dataset.ang === "deg"; calcEl.querySelectorAll("[data-ang]").forEach(x => x.classList.toggle("on", x === b)); calcUpdate(); }));
   calcEl.querySelector(".calc-keys").addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return; const k = b.dataset.k;
+    if (b.held) { b.held = false; return; }                       // a fired hold already inserted its key
     if (k === "eq") { calcCommit(); calcField.focus(); return; }
     if (k === "clear") { calcField.value = ""; calcUpdate(); calcField.focus(); return; }
     if (k === "del") { if (calcField.tagName === "MATH-FIELD") calcField.executeCommand("deleteBackward"); else calcField.value = calcField.value.slice(0, -1); calcUpdate(); calcField.focus(); return; }
+    if (k === "left") { calcMove(-1); return; }
+    if (k === "right") { calcMove(1); return; }
     const key = CALC_KEYS[Number(k)]; calcInsert(key[1], key[2]);
+  });
+  // hold a key that has a hold insert (the × key: ×10ⁿ); lifting or sliding off within 450 ms is a normal tap
+  calcEl.querySelectorAll(".calc-keys button").forEach(b => {
+    const key = CALC_KEYS[Number(b.dataset.k)]; if (!key || !key[4]) return;
+    let t = null;
+    b.addEventListener("pointerdown", () => { b.held = false; clearTimeout(t); t = setTimeout(() => { t = null; b.held = true; calcInsert(key[4], key[5]); }, 450); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, () => { if (t) { clearTimeout(t); t = null; } }));
   });
   // drag by the header
   const hd = calcEl.querySelector(".calc-h"); let drag = null;
@@ -1336,7 +1410,7 @@ function renderQ(q) {
   } else {
     if (q.num) {
       h += '<div class="nums">' + q.num.map((n, i) => '<label>' + fmt(n[0]) + '<input class="fld" type="text" inputmode="text" data-i="' + i + '" value="' + esc((st.vals || [])[i] || "") + '" placeholder="e.g. 1.4x10^14" autocomplete="off"><span class="preview"></span></label>').join("") + '</div>' +
-        '<div class="hint">Type the value as you would write it, e.g. 1.4x10^14 (the box formats it as you type). Use the arrow key to leave a power. Checked to about 5%.</div>';
+        '<div class="hint">Type the value as you would write it, e.g. 1.4x10^14 (the box formats it as you type). Press * twice, or hold × on the keypad, for ×10ⁿ. Use the arrow key to leave a power. Checked to about 5%.</div>';
     }
     h += '<div class="actions">' + (q.num ? '<button class="btn primary" data-act="checknum">Check values</button>' : '') + (tools.includes("type") ? '<button class="btn" data-act="type">' + (st.typing ? 'Hide typing' : 'Type answer') + '</button>' : '') + (tools.includes("pad") ? '<button class="btn" data-act="pad">' + (st.pad ? 'Hide scratchpad' : 'Scratchpad') + '</button>' : '') + '<button class="btn" data-act="reveal">' + (st.open ? 'Hide answer' : 'Show answer') + '</button>' + noteBtn(st) + '<span class="verdict"></span></div>' + noteBox(st);
     if (tools.includes("type")) h += '<div class="typed"' + (st.typing ? '' : ' hidden') + '><textarea rows="4" placeholder="Type your answer here (optional)" spellcheck="true">' + esc(st.resp || "") + '</textarea><div class="tnote">Optional. Your typed answer is saved in this browser. Show the answer to compare, then mark yourself.</div></div>';
