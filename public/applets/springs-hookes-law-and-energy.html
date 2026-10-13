@@ -123,7 +123,7 @@
 <body>
 <header>
   <h1>Springs: Hooke's Law and Energy</h1>
-  <span>Drag the mass, then release. Toggle forces and energies in the panel.</span>
+  <span>Drag the mass and release to oscillate, or switch to Stack masses to load the spring one block at a time.</span>
 </header>
 
 <div class="app">
@@ -135,10 +135,20 @@
   </div>
 
   <div class="panel">
-    <h2>Orientation</h2>
+    <h2>Mode</h2>
     <div class="segmented">
+      <button id="viewOsc" class="on">Oscillate</button>
+      <button id="viewStatic">Stack masses</button>
+    </div>
+
+    <h2>Orientation</h2>
+    <div class="segmented" id="orientOsc">
       <button id="modeH" class="on">Horizontal</button>
       <button id="modeV">Vertical</button>
+    </div>
+    <div class="segmented hidden" id="orientStatic">
+      <button id="sHang" class="on">Hanging (stretch)</button>
+      <button id="sStand">Standing (compress)</button>
     </div>
 
     <h2>Spring and mass</h2>
@@ -146,16 +156,32 @@
       <label>Spring constant k <span class="val" id="kVal">50 N/m</span></label>
       <input type="range" id="kSlider" min="10" max="200" step="5" value="50">
     </div>
-    <div class="slider-row">
+    <div class="slider-row" id="mRow">
       <label>Mass m <span class="val" id="mVal">1.00 kg</span></label>
       <input type="range" id="mSlider" min="0.2" max="2.5" step="0.1" value="1">
     </div>
+    <div id="stackRows" class="hidden">
+      <div class="slider-row"><label>Mass of each block</label></div>
+      <div class="segmented" id="unitSeg">
+        <button data-u="0.1">100 g</button>
+        <button data-u="0.2" class="on">200 g</button>
+        <button data-u="0.5">500 g</button>
+        <button data-u="1">1 kg</button>
+      </div>
+      <div class="buttons">
+        <button id="addMass" class="play">+ Add block</button>
+        <button id="remMass">&minus; Remove</button>
+      </div>
+      <p class="hint" id="stackInfo">0 blocks on the spring</p>
+    </div>
 
-    <h2>Energy loss</h2>
-    <label class="check"><input type="checkbox" id="dampOn"> Energy lost to heat and sound</label>
-    <div class="slider-row sub" id="dampRow">
-      <label>Damping b <span class="val" id="bVal">0.5 N s/m</span></label>
-      <input type="range" id="bSlider" min="0.1" max="4" step="0.1" value="0.5">
+    <div id="dampSection">
+      <h2>Energy loss</h2>
+      <label class="check"><input type="checkbox" id="dampOn"> Energy lost to heat and sound</label>
+      <div class="slider-row sub" id="dampRow">
+        <label>Damping b <span class="val" id="bVal">0.5 N s/m</span></label>
+        <input type="range" id="bSlider" min="0.1" max="4" step="0.1" value="0.5">
+      </div>
     </div>
 
     <h2>Forces</h2>
@@ -163,18 +189,20 @@
     <label class="check" id="fWeightRow"><input type="checkbox" id="fWeight" checked> <span class="swatch" style="background:var(--fweight)"></span> Weight (gravity)</label>
     <label class="check" id="fDampRow"><input type="checkbox" id="fDamp" checked> <span class="swatch" style="background:var(--fdamp)"></span> Damping force</label>
     <label class="check"><input type="checkbox" id="fNet"> <span class="swatch" style="background:var(--fnet)"></span> Net force</label>
-    <label class="check"><input type="checkbox" id="vVec"> <span class="swatch" style="background:var(--vel)"></span> Velocity</label>
+    <label class="check" id="vVecRow"><input type="checkbox" id="vVec"> <span class="swatch" style="background:var(--vel)"></span> Velocity</label>
 
     <h2>Display</h2>
-    <label class="check"><input type="checkbox" id="showEq" checked> Equilibrium position</label>
+    <label class="check" id="showEqRow"><input type="checkbox" id="showEq" checked> Equilibrium position</label>
     <label class="check"><input type="checkbox" id="showNat" checked> Natural length</label>
     <label class="check"><input type="checkbox" id="showVals" checked> Values on vectors</label>
 
-    <h2>Speed</h2>
-    <div class="segmented">
-      <button id="spd1" class="on">Normal</button>
-      <button id="spd2">Slow</button>
-      <button id="spd3">Slower</button>
+    <div id="speedSection">
+      <h2>Speed</h2>
+      <div class="segmented">
+        <button id="spd1" class="on">Normal</button>
+        <button id="spd2">Slow</button>
+        <button id="spd3">Slower</button>
+      </div>
     </div>
 
     <div class="buttons">
@@ -185,15 +213,20 @@
 
     <h2>Values</h2>
     <div class="readouts">
-      <div><span>t</span><span id="rT">0.00 s</span></div>
+      <div id="rowT"><span>t</span><span id="rT">0.00 s</span></div>
+      <div id="rowN" class="hidden"><span>blocks</span><span id="rN">0</span></div>
+      <div id="rowM" class="hidden"><span>total mass</span><span id="rM">0.00 kg</span></div>
+      <div id="rowW" class="hidden"><span>weight mg</span><span id="rW">0.0 N</span></div>
       <div><span>extension x</span><span id="rX">0.000 m</span></div>
-      <div><span>from equilibrium</span><span id="rD">0.000 m</span></div>
-      <div><span>velocity v</span><span id="rV">0.00 m/s</span></div>
+      <div id="rowD"><span>from equilibrium</span><span id="rD">0.000 m</span></div>
+      <div id="rowV"><span>velocity v</span><span id="rV">0.00 m/s</span></div>
       <div><span>spring force</span><span id="rFs">0.0 N</span></div>
       <div><span>net force</span><span id="rFn">0.0 N</span></div>
-      <div><span>acceleration</span><span id="rA">0.00 m/s²</span></div>
+      <div id="rowA"><span>acceleration</span><span id="rA">0.00 m/s²</span></div>
+      <div id="rowEs" class="hidden"><span>spring PE ½kx²</span><span id="rEs">0.00 J</span></div>
     </div>
-    <p class="hint">x is measured from the natural length (positive = stretched). In vertical mode, drag the dashed h = 0 line to move the GPE reference.</p>
+    <p class="hint" id="hintOsc">x is measured from the natural length (positive = stretched). In vertical mode, drag the dashed h = 0 line to move the GPE reference.</p>
+    <p class="hint hidden" id="hintStatic">Each block you add settles the spring at a new equilibrium where kx = mg. Positive x = stretched, negative x = compressed. The Hooke's law graph keeps a point for every block count.</p>
   </div>
 </div>
 
@@ -228,14 +261,31 @@
     pRef: 2.9,          // GPE reference: distance below ceiling (m), vertical mode only
     dragging: null,     // 'mass' | 'ref' | null
     barMax: 1,          // for bar scaling
-    barMin: 0
+    barMin: 0,
+    // static "stack masses" mode
+    view: 'osc',        // 'osc' | 'static'
+    sMode: 'hang',      // 'hang' (stretch) | 'stand' (compress)
+    unit: 0.2,          // mass of each block (kg)
+    count: 0            // blocks on the spring
   };
 
   const ui = {};
-  ['modeH','modeV','kSlider','kVal','mSlider','mVal','dampOn','dampRow','bSlider','bVal',
-   'fSpring','fWeight','fWeightRow','fDamp','fDampRow','fNet','vVec','showEq','showNat','showVals',
-   'spd1','spd2','spd3','playBtn','stepBtn','resetBtn',
-   'rT','rX','rD','rV','rFs','rFn','rA'].forEach(id => ui[id] = document.getElementById(id));
+  ['viewOsc','viewStatic','orientOsc','orientStatic','modeH','modeV','sHang','sStand',
+   'kSlider','kVal','mRow','mSlider','mVal','stackRows','unitSeg','addMass','remMass','stackInfo',
+   'dampSection','dampOn','dampRow','bSlider','bVal',
+   'fSpring','fWeight','fWeightRow','fDamp','fDampRow','fNet','vVec','vVecRow','showEq','showEqRow','showNat','showVals',
+   'speedSection','spd1','spd2','spd3','playBtn','stepBtn','resetBtn',
+   'rowT','rowN','rowM','rowW','rowD','rowV','rowA','rowEs',
+   'rT','rN','rM','rW','rX','rD','rV','rFs','rFn','rA','rEs','hintOsc','hintStatic'].forEach(id => ui[id] = document.getElementById(id));
+
+  const STATIC_LIMIT = { hang: 0.6, stand: 0.45 };   // max |x| in metres for each static orientation
+  const MAX_BLOCKS = 10;
+  function isStatic() { return st.view === 'static'; }
+  function staticSign() { return st.sMode === 'hang' ? 1 : -1; }
+  function blockWeight() { return st.unit * g; }
+  function totalWeight() { return st.count * blockWeight(); }
+  function staticX() { return staticSign() * totalWeight() / st.k; }           // equilibrium extension for the current stack
+  function maxBlocks() { return Math.min(MAX_BLOCKS, Math.floor(STATIC_LIMIT[st.sMode] * st.k / blockWeight() + 1e-9)); }
 
   // ---------- canvas setup ----------
   function setupCanvas(id, w, h) {
@@ -253,11 +303,11 @@
   const egraph = setupCanvas('egraph', GR_W, GR_H);
 
   // ---------- physics ----------
-  function xEq() { return st.mode === 'V' ? st.m * g / st.k : 0; }
+  function xEq() { return (!isStatic() && st.mode === 'V') ? st.m * g / st.k : 0; }
   function gravTerm() { return st.mode === 'V' ? st.m * g : 0; }
   // px per metre: shrink in vertical mode so a heavy mass on a weak spring still fits on the canvas
   function sc() {
-    if (st.mode === 'H') return S_MAX;
+    if (isStatic() || st.mode === 'H') return S_MAX;
     return Math.min(S_MAX, (SIM_H - 40 - 70) / (L0 + xEq() + DRAG_RANGE + 0.25));
   }
   function bEff() { return st.dampOn ? st.b : 0; }
@@ -292,8 +342,9 @@
   // energies
   function heightOf(x) { return st.mode === 'V' ? (st.pRef - (L0 + x)) : 0; }
   function energies() {
-    const KE = 0.5 * st.m * st.v * st.v;
     const Es = 0.5 * st.k * st.x * st.x;
+    if (isStatic()) return { KE: 0, Es, GPE: 0, Q: 0, mech: Es, total: Es };
+    const KE = 0.5 * st.m * st.v * st.v;
     const GPE = st.mode === 'V' ? st.m * g * heightOf(st.x) : 0;
     return { KE, Es, GPE, Q: st.Q, mech: KE + Es + GPE, total: KE + Es + GPE + st.Q };
   }
@@ -308,6 +359,13 @@
   }
 
   function resetMotion() {
+    if (isStatic()) {
+      st.count = 0; st.x = 0; st.v = 0; st.Q = 0; st.t = 0;
+      st.playing = false;
+      st.barMax = 0.5; st.barMin = 0;
+      updateStackInfo();
+      return;
+    }
     st.x = xEq() + 0.3;
     // GPE reference just below the lowest point of the default motion
     if (st.mode === 'V') st.pRef = L0 + xEq() + 0.3 + massSide() / (2 * sc()) + 0.08;
@@ -315,6 +373,69 @@
     st.playing = false;
     st.barMax = 1; st.barMin = 0;
     updatePlayBtn();
+  }
+
+  // ----- static "stack masses" mode -----
+  function setView(view) {
+    st.view = view;
+    const s = view === 'static';
+    ui.viewOsc.classList.toggle('on', !s);
+    ui.viewStatic.classList.toggle('on', s);
+    ui.orientOsc.classList.toggle('hidden', s);
+    ui.orientStatic.classList.toggle('hidden', !s);
+    ui.mRow.classList.toggle('hidden', s);
+    ui.stackRows.classList.toggle('hidden', !s);
+    ui.dampSection.classList.toggle('hidden', s);
+    ui.fWeightRow.classList.toggle('hidden', s ? false : st.mode !== 'V');
+    ui.fDampRow.classList.toggle('hidden', s || !st.dampOn);
+    ui.vVecRow.classList.toggle('hidden', s);
+    ui.showEqRow.classList.toggle('hidden', s);
+    ui.speedSection.classList.toggle('hidden', s);
+    ui.playBtn.classList.toggle('hidden', s);
+    ui.stepBtn.classList.toggle('hidden', s);
+    ['rowT', 'rowD', 'rowV', 'rowA'].forEach(id => ui[id].classList.toggle('hidden', s));
+    ['rowN', 'rowM', 'rowW', 'rowEs'].forEach(id => ui[id].classList.toggle('hidden', !s));
+    ui.hintOsc.classList.toggle('hidden', s);
+    ui.hintStatic.classList.toggle('hidden', !s);
+    st.dragging = null;
+    sim.c.style.cursor = 'default';
+    resetMotion();
+  }
+
+  function setSMode(mode) {
+    st.sMode = mode;
+    ui.sHang.classList.toggle('on', mode === 'hang');
+    ui.sStand.classList.toggle('on', mode === 'stand');
+    resetMotion();
+  }
+
+  function setUnit(u, btn) {
+    st.unit = u;
+    Array.from(ui.unitSeg.querySelectorAll('button')).forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    clampCount();
+  }
+
+  // k or block mass changed: drop blocks that no longer fit within the allowed extension
+  function clampCount() {
+    if (!isStatic()) return;
+    st.count = Math.min(st.count, maxBlocks());
+    updateStackInfo();
+  }
+
+  function unitLabel() { return st.unit < 1 ? Math.round(st.unit * 1000) + ' g' : st.unit.toFixed(0) + ' kg'; }
+
+  function updateStackInfo() {
+    if (!isStatic()) return;
+    const n = st.count, max = maxBlocks();
+    let txt = n === 0 ? 'No blocks on the spring' : n + (n === 1 ? ' block' : ' blocks') + ', ' + (n * st.unit).toFixed(2) + ' kg, weight ' + fmt(totalWeight(), 1) + ' N';
+    if (max === 0) txt = 'These blocks are too heavy for this spring. Use lighter blocks or a stiffer spring.';
+    else if (n >= max) txt += ' (maximum for this spring)';
+    ui.stackInfo.textContent = txt;
+    ui.addMass.disabled = n >= max;
+    ui.remMass.disabled = n <= 0;
+    ui.addMass.style.opacity = n >= max ? 0.5 : 1;
+    ui.remMass.style.opacity = n <= 0 ? 0.5 : 1;
   }
 
   function updatePlayBtn() { ui.playBtn.textContent = st.playing ? 'Pause' : 'Play'; }
@@ -326,9 +447,16 @@
   }
 
   // ---------- UI wiring ----------
+  ui.viewOsc.addEventListener('click', () => setView('osc'));
+  ui.viewStatic.addEventListener('click', () => setView('static'));
   ui.modeH.addEventListener('click', () => setMode('H'));
   ui.modeV.addEventListener('click', () => setMode('V'));
-  ui.kSlider.addEventListener('input', () => { st.k = +ui.kSlider.value; ui.kVal.textContent = st.k + ' N/m'; });
+  ui.sHang.addEventListener('click', () => setSMode('hang'));
+  ui.sStand.addEventListener('click', () => setSMode('stand'));
+  Array.from(ui.unitSeg.querySelectorAll('button')).forEach(b => b.addEventListener('click', () => setUnit(+b.dataset.u, b)));
+  ui.addMass.addEventListener('click', () => { if (st.count < maxBlocks()) { st.count++; updateStackInfo(); } });
+  ui.remMass.addEventListener('click', () => { if (st.count > 0) { st.count--; updateStackInfo(); } });
+  ui.kSlider.addEventListener('input', () => { st.k = +ui.kSlider.value; ui.kVal.textContent = st.k + ' N/m'; clampCount(); });
   ui.mSlider.addEventListener('input', () => { st.m = +ui.mSlider.value; ui.mVal.textContent = st.m.toFixed(2) + ' kg'; });
   ui.bSlider.addEventListener('input', () => { st.b = +ui.bSlider.value; ui.bVal.textContent = st.b.toFixed(1) + ' N s/m'; });
   function syncDamp() {
@@ -359,6 +487,7 @@
   }
 
   sim.c.addEventListener('pointerdown', e => {
+    if (isStatic()) return;
     const p = pointerPos(e);
     const mc = massCentrePx();
     const half = massSide() / 2 + 6;
@@ -373,6 +502,7 @@
     }
   });
   sim.c.addEventListener('pointermove', e => {
+    if (isStatic()) return;
     const p = pointerPos(e);
     if (st.dragging === 'mass') dragMassTo(p);
     else if (st.dragging === 'ref') {
@@ -500,6 +630,7 @@
     const bg = ctx.createLinearGradient(0, 0, 0, SIM_H);
     bg.addColorStop(0, '#fbfdff'); bg.addColorStop(1, '#eef4f9');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, SIM_W, SIM_H);
+    if (isStatic()) { drawStatic(ctx); return; }
 
     const side = massSide();
     const mc = massCentrePx();
@@ -627,6 +758,112 @@
     }
   }
 
+  // Static mode: blocks hang from (stretch) or rest on (compress) the spring at equilibrium
+  function drawStatic(ctx) {
+    const down = st.sMode === 'hang';
+    const dir = down ? 1 : -1;
+    const cx = SIM_W * 0.5;
+    const s = sc();
+    const fixedY = down ? 40 : SIM_H - 40;
+    const natY = fixedY + dir * L0 * s;
+    const endY = fixedY + dir * (L0 + st.x) * s;
+    const W = totalWeight();
+    const BW = 78, BH = 22;
+    const lineX0 = 30, lineX1 = SIM_W - 30;
+
+    // support: ceiling (hanging) or floor (standing)
+    const supY = down ? 22 : SIM_H - 40;
+    ctx.fillStyle = '#9a9a9a'; ctx.fillRect(cx - 110, supY, 220, 18);
+    ctx.fillStyle = '#7a7a7a';
+    for (let x = cx - 104; x < cx + 110; x += 14) ctx.fillRect(x, supY, 2, 18);
+
+    // natural length line
+    if (ui.showNat.checked) {
+      dashed(ctx, lineX0, natY, lineX1, natY, '#888');
+      ctx.fillStyle = '#666'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'right';
+      ctx.textBaseline = down ? 'bottom' : 'top';
+      ctx.fillText('natural length (x = 0)', lineX1, natY + (down ? -3 : 3));
+    }
+
+    // extension marker on the left
+    if (Math.abs(st.x) > 0.003) {
+      const mx = cx - BW / 2 - 30;
+      dashed(ctx, mx, natY, mx, endY, '#666', [3, 3]);
+      dashed(ctx, mx - 5, endY, cx - BW / 2 - 2, endY, '#666', [3, 3]);
+      ctx.fillStyle = '#444'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillText('x = ' + fmt(st.x, 3) + ' m', mx - 5, (natY + endY) / 2);
+    }
+
+    // spring from the support to its free end
+    const compression01 = Math.max(0, Math.min(1, -st.x / STATIC_LIMIT.stand));
+    drawSpring(ctx, cx, fixedY, cx, endY, compression01);
+
+    // hanger / platform plate at the free end, then the blocks
+    ctx.fillStyle = '#777';
+    ctx.fillRect(cx - 36, down ? endY : endY - 6, 72, 6);
+    for (let i = 0; i < st.count; i++) {
+      const top = down ? endY + 6 + i * BH : endY - 6 - (i + 1) * BH;
+      drawBlock(ctx, cx, top, BW, BH, i);
+    }
+
+    // forces act at the centre of the stack; spring force is up in both orientations, weight is down
+    const stackH = st.count * BH;
+    const mcY = down ? endY + 6 + stackH / 2 : endY - 6 - stackH / 2;
+    const Fmax = Math.max(maxBlocks() * blockWeight(), 1);
+    const pxPerN = 150 / Fmax;
+    const FsNow = st.k * Math.abs(st.x);
+    const labelX = cx + BW / 2 + 12;
+    if (st.count > 0 && ui.fSpring.checked && FsNow > 0.02) {
+      const tip = mcY - FsNow * pxPerN;
+      arrow(ctx, cx - 18, mcY, cx - 18, tip, COL.fspring, 3.5);
+      if (ui.showVals.checked) labelBox(ctx, 'spring force = ' + fmt(FsNow, 1) + ' N', labelX, tip, COL.fspring, 'left');
+    }
+    if (st.count > 0 && ui.fWeight.checked && W > 0.02) {
+      const tip = mcY + W * pxPerN;
+      arrow(ctx, cx + 18, mcY, cx + 18, tip, COL.fweight, 3.5);
+      if (ui.showVals.checked) labelBox(ctx, 'weight = ' + fmt(W, 1) + ' N', labelX, tip, COL.fweight, 'left');
+    }
+
+    // force scale legend
+    if (st.count > 0 && (ui.fSpring.checked || ui.fWeight.checked)) {
+      const stepN = niceStep(Fmax / 2, 1);
+      const px = stepN * pxPerN;
+      const x0 = 24, y0 = down ? SIM_H - 22 : 60;
+      ctx.save();
+      ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + px, y0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x0, y0 - 5); ctx.lineTo(x0, y0 + 5); ctx.moveTo(x0 + px, y0 - 5); ctx.lineTo(x0 + px, y0 + 5); ctx.stroke();
+      ctx.fillStyle = '#333'; ctx.font = '12px Arial'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText('force scale: ' + stepN + ' N', x0, y0 - 6);
+      ctx.restore();
+    }
+
+    // captions: top-right when standing (floor at the bottom), bottom-right when hanging (ceiling at the top)
+    const capX = SIM_W - 14;
+    const capY = down ? SIM_H - 60 : 10;
+    ctx.fillStyle = '#333'; ctx.font = 'bold 13px Arial'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    ctx.fillText('Hooke\u2019s law:  F = \u2212kx', capX, capY);
+    ctx.font = '12px Arial';
+    ctx.fillText(down ? 'hanging: stretched, kx = mg' : 'standing: compressed, k|x| = mg', capX, capY + 18);
+    if (ui.fNet.checked) {
+      ctx.fillStyle = COL.fnet;
+      ctx.fillText(st.count > 0 ? 'net force = 0 N at rest' : 'net force = 0 N (no blocks)', capX, capY + 34);
+    }
+  }
+
+  function drawBlock(ctx, cx, top, w, h, i) {
+    ctx.save();
+    const grad = ctx.createLinearGradient(cx - w / 2, top, cx + w / 2, top + h);
+    const light = i % 2 === 0;
+    grad.addColorStop(0, light ? '#f2b14a' : '#e9a23a'); grad.addColorStop(1, light ? '#c97d12' : '#b8700e');
+    ctx.fillStyle = grad; ctx.strokeStyle = '#7a4a05'; ctx.lineWidth = 1.5;
+    roundRect(ctx, cx - w / 2, top + 1, w, h - 2, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#3a2200'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(unitLabel(), cx, top + h / 2);
+    ctx.restore();
+  }
+
   function drawMass(ctx, cx, cy, side) {
     ctx.save();
     const grad = ctx.createLinearGradient(cx - side / 2, cy - side / 2, cx + side / 2, cy + side / 2);
@@ -687,11 +924,11 @@
     ctx.fillText('Energy', BAR_W / 2, 10);
 
     const items = [
-      { label: 'KE', value: E.KE, color: COL.ke, show: true },
+      { label: 'KE', value: E.KE, color: COL.ke, show: !isStatic() },
       { label: 'Spring\nPE', value: E.Es, color: COL.es, show: true },
-      { label: 'GPE', value: E.GPE, color: COL.gpe, show: st.mode === 'V' },
-      { label: 'Heat+\nsound', value: E.Q, color: COL.heat, show: st.dampOn },
-      { label: 'Total', value: E.total, color: COL.total, show: true }
+      { label: 'GPE', value: E.GPE, color: COL.gpe, show: !isStatic() && st.mode === 'V' },
+      { label: 'Heat+\nsound', value: E.Q, color: COL.heat, show: !isStatic() && st.dampOn },
+      { label: 'Total', value: E.total, color: COL.total, show: !isStatic() }
     ].filter(i => i.show);
 
     // autoscale (max grows during the run, resets with the run)
@@ -800,6 +1037,14 @@
     ctx.strokeStyle = COL.fspring; ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.moveTo(X(xmin), Y(st.k * xmin)); ctx.lineTo(X(xmax), Y(st.k * xmax)); ctx.stroke();
     ctx.restore();
+    // static mode: one recorded point per block count (the classic Hooke's law prac)
+    if (isStatic()) {
+      ctx.fillStyle = COL.fspring;
+      for (let i = 0; i <= st.count; i++) {
+        const xi = staticSign() * i * blockWeight() / st.k;
+        ctx.beginPath(); ctx.arc(X(xi), Y(st.k * xi), 3.5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
     // current point
     ctx.fillStyle = '#fff'; ctx.strokeStyle = COL.fspring; ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.arc(X(x), Y(st.k * x), 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -809,7 +1054,8 @@
     ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(ax - 150, ay - 50, 156, 54);
     ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
     ctx.fillStyle = '#444'; ctx.font = '11px Arial';
-    ctx.fillText('|F| = k|x| = ' + fmt(st.k * Math.abs(x), 1) + ' N', ax, ay);
+    if (isStatic()) ctx.fillText('each block: \u0394x = mg/k = ' + fmt(blockWeight() / st.k, 3) + ' m', ax, ay);
+    else ctx.fillText('|F| = k|x| = ' + fmt(st.k * Math.abs(x), 1) + ' N', ax, ay);
     ctx.fillStyle = COL.es; ctx.font = 'bold 12px Arial';
     ctx.fillText('area = ½kx² = ' + fmt(0.5 * st.k * x * x, 2) + ' J', ax, ay - 16);
     ctx.fillStyle = '#222';
@@ -817,7 +1063,45 @@
   }
 
   // ---------- energy vs position graph ----------
+  function drawEgraphStatic() {
+    const E = energies();
+    const xmin = -0.6, xmax = 0.6;
+    const ymax = Math.max(0.5 * st.k * 0.36 * 1.08, 0.5);
+    const fr = frame(egraph, 'Spring PE vs extension', 'extension x (m)', 'energy (J)', xmin, xmax, 0, ymax);
+    const ctx = egraph.ctx;
+    const { X, Y } = fr;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(fr.L, fr.T, GR_W - fr.L - fr.R, GR_H - fr.T - fr.B); ctx.clip();
+    ctx.strokeStyle = COL.es; ctx.lineWidth = 2.5; ctx.beginPath();
+    const N = 160;
+    for (let i = 0; i <= N; i++) {
+      const x = xmin + (xmax - xmin) * i / N;
+      const y = 0.5 * st.k * x * x;
+      if (i === 0) ctx.moveTo(X(x), Y(y)); else ctx.lineTo(X(x), Y(y));
+    }
+    ctx.stroke();
+    // a point for every block count
+    ctx.fillStyle = COL.es;
+    for (let i = 0; i <= st.count; i++) {
+      const xi = staticSign() * i * blockWeight() / st.k;
+      ctx.beginPath(); ctx.arc(X(xi), Y(0.5 * st.k * xi * xi), 3.5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+    // current marker
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = COL.es; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(X(st.x), Y(E.Es), 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    dashed(ctx, X(st.x), fr.T, X(st.x), GR_H - fr.B, '#999', [2, 3]);
+    // legend
+    ctx.font = 'bold 11px Arial'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    const lx = fr.L + 8, ly = fr.T + 8;
+    ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(lx - 4, ly - 8, 170, 32);
+    ctx.fillStyle = COL.es; ctx.fillRect(lx, ly - 2, 14, 4);
+    ctx.fillStyle = '#222'; ctx.fillText('Spring PE = \u00bdkx\u00b2', lx + 18, ly);
+    ctx.fillStyle = COL.es; ctx.fillText('now: ' + fmt(E.Es, 3) + ' J', lx, ly + 14);
+  }
+
   function drawEgraph() {
+    if (isStatic()) { drawEgraphStatic(); return; }
     const E = energies();
     const eq = xEq();
     const xmin = -0.6, xmax = eq + 0.6;
@@ -893,6 +1177,18 @@
 
   // ---------- readouts ----------
   function updateReadouts() {
+    if (isStatic()) {
+      const Fs = -st.k * st.x;                      // along +x (away from the support)
+      const Fn = Fs + staticSign() * totalWeight(); // zero once the stack has settled
+      ui.rN.textContent = st.count;
+      ui.rM.textContent = (st.count * st.unit).toFixed(2) + ' kg';
+      ui.rW.textContent = fmt(totalWeight(), 1) + ' N';
+      ui.rX.textContent = fmt(st.x, 3) + ' m';
+      ui.rFs.textContent = fmt(Fs, 1) + ' N';
+      ui.rFn.textContent = fmt(Fn, 1) + ' N';
+      ui.rEs.textContent = fmt(0.5 * st.k * st.x * st.x, 3) + ' J';
+      return;
+    }
     const Fs = -st.k * st.x;
     const Fn = Fs + gravTerm() - bEff() * st.v;
     ui.rT.textContent = st.t.toFixed(2) + ' s';
@@ -907,18 +1203,25 @@
   // ---------- main loop ----------
   let last = performance.now();
   function loop(now) {
-    let dt = (now - last) / 1000; last = now;
-    if (dt > 0.05) dt = 0.05;
-    if (st.playing && st.dragging !== 'mass') advance(dt * st.speed);
+    const dtRaw = (now - last) / 1000; last = now;
+    let dt = Math.min(dtRaw, 0.05);
+    if (isStatic()) {
+      const xt = staticX();
+      st.x += (xt - st.x) * (1 - Math.exp(-Math.min(dtRaw, 0.5) * 9));
+      if (Math.abs(xt - st.x) < 0.0004) st.x = xt;   // settle exactly at equilibrium
+      st.v = 0;
+    }
+    else if (st.playing && st.dragging !== 'mass') advance(dt * st.speed);
     drawSim(); drawBars(); drawHooke(); drawEgraph(); updateReadouts();
     requestAnimationFrame(loop);
   }
 
   setMode('H');
+  setView('osc');
   requestAnimationFrame(loop);
 
   // expose for testing
-  window.__spring = { st, energies, advance, setMode, xEq };
+  window.__spring = { st, energies, advance, setMode, setView, setSMode, xEq, staticX, maxBlocks };
 })();
 </script>
 </body>
