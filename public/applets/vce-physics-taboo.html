@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VCE Physics Taboo</title>
+<style>
+:root{
+  --bg:#eef3f9; --panel:#ffffff; --ink:#1b2a41; --muted:#5b6b82; --line:#d3dce8;
+  --accent:#1f6feb; --accent-ink:#ffffff; --ok:#1a9c5b; --bad:#d64545; --warn:#e0a000;
+  --banned-bg:#fff1f1; --banned-ink:#b32020; --chip:#e6edf7;
+  --shadow:0 8px 28px rgba(27,42,65,.10);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1622; --panel:#182234; --ink:#e8eef7; --muted:#9fb0c7; --line:#2a3850;
+    --accent:#4c8dff; --accent-ink:#ffffff; --ok:#2fbf74; --bad:#ff6b6b; --warn:#ffc233;
+    --banned-bg:#3a1f24; --banned-ink:#ff9d9d; --chip:#223049;
+    --shadow:0 8px 28px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1622; --panel:#182234; --ink:#e8eef7; --muted:#9fb0c7; --line:#2a3850;
+  --accent:#4c8dff; --accent-ink:#ffffff; --ok:#2fbf74; --bad:#ff6b6b; --warn:#ffc233;
+  --banned-bg:#3a1f24; --banned-ink:#ff9d9d; --chip:#223049;
+  --shadow:0 8px 28px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.35}
+button{font:inherit;color:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:.55rem 1rem}
+button:hover{border-color:var(--accent)}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.ok{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:600}
+button.bad{background:var(--bad);color:#fff;border-color:var(--bad);font-weight:600}
+button.warn{background:var(--warn);color:#1b2a41;border-color:var(--warn);font-weight:600}
+button.big{font-size:clamp(1.1rem,2.4vw,1.6rem);padding:.9rem 1.4rem;border-radius:14px}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select,textarea{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.45rem .6rem}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8em;background:var(--chip);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:.05rem .4rem}
+
+.app{min-height:100%;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:.75rem;padding:.7rem 1rem;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+header h1{font-size:1.15rem;margin:0;font-weight:700;letter-spacing:.01em}
+header .spacer{flex:1}
+header nav{display:flex;gap:.4rem;flex-wrap:wrap}
+header nav button.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+main{flex:1;padding:1rem;max-width:1200px;width:100%;margin:0 auto}
+.screen{display:none}
+.screen.show{display:block}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.1rem 1.25rem;box-shadow:var(--shadow)}
+.panel h2{margin:0 0 .6rem;font-size:1.05rem}
+.muted{color:var(--muted)}
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.topics label{display:flex;align-items:center;gap:.5rem;padding:.35rem 0}
+.topics .count{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+.teams input{width:11rem}
+.field{display:flex;flex-direction:column;gap:.3rem;margin:.5rem 0}
+.field > span{font-size:.9rem;color:var(--muted)}
+.rules p{margin:.4rem 0}
+
+/* Play screen */
+.play{display:grid;gap:1rem;grid-template-columns:1fr 260px}
+@media (max-width:860px){.play{grid-template-columns:1fr}}
+.scoreboard{display:flex;flex-direction:column;gap:.6rem}
+.team{display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;border:2px solid var(--line);border-radius:12px;background:var(--panel)}
+.team.active{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.team .name{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.team .score{font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums;min-width:2.2rem;text-align:right}
+.team .adj{display:flex;flex-direction:column;gap:2px}
+.team .adj button{padding:0 .45rem;line-height:1.3;border-radius:6px;font-size:.8rem}
+
+.stage{display:flex;flex-direction:column;gap:.8rem;min-height:60vh}
+.status{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
+.status .up{font-size:clamp(1.1rem,2.2vw,1.5rem);font-weight:700}
+.status .remaining{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+.timerwrap{position:relative;height:14px;background:var(--chip);border-radius:7px;overflow:hidden}
+.timerbar{position:absolute;inset:0;width:100%;background:var(--accent);transform-origin:left;transition:transform .25s linear,background .3s}
+.timerbar.low{background:var(--bad)}
+.clock{font-size:clamp(2rem,5vw,3.4rem);font-weight:700;font-variant-numeric:tabular-nums;line-height:1;text-align:center}
+.clock.low{color:var(--bad)}
+
+.card{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding:2rem 1.5rem;background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);text-align:center;position:relative}
+.card .topic{position:absolute;top:.9rem;left:1rem;font-size:.85rem;color:var(--muted);background:var(--chip);padding:.2rem .6rem;border-radius:999px}
+.card .term{font-size:clamp(2.2rem,7vw,5rem);font-weight:800;letter-spacing:-.01em;line-height:1.05}
+.card .dont{font-size:clamp(.95rem,1.6vw,1.2rem);color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+.card ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem}
+.card li{font-size:clamp(1.3rem,3.6vw,2.4rem);font-weight:700;background:var(--banned-bg);color:var(--banned-ink);padding:.3rem 1rem;border-radius:12px;text-decoration:line-through;text-decoration-thickness:3px;text-decoration-color:color-mix(in srgb,var(--banned-ink) 55%,transparent)}
+.card.hidden .term,.card.hidden .dont,.card.hidden ul,.card.hidden .topic{display:none}
+.card .placeholder{font-size:clamp(1.2rem,2.6vw,1.8rem);color:var(--muted);max-width:34ch}
+.card:not(.hidden) .placeholder{display:none}
+
+.controls{display:grid;gap:.7rem;grid-template-columns:repeat(3,1fr)}
+@media (max-width:520px){.controls{grid-template-columns:1fr}}
+.controls .hint,.secondary .hint,.modal .hint{display:block;font-size:.8rem;font-weight:400;opacity:.85;margin-top:.15rem}
+.secondary{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center}
+
+/* Overlay */
+.overlay{position:fixed;inset:0;background:rgba(10,16,28,.55);display:none;align-items:center;justify-content:center;padding:1rem;z-index:20}
+.overlay.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:1.4rem 1.6rem;max-width:620px;width:100%;box-shadow:var(--shadow);max-height:90vh;overflow:auto}
+.modal h2{margin:0 0 .4rem;font-size:1.5rem}
+.modal .delta{font-size:2.4rem;font-weight:800}
+.modal ul{list-style:none;padding:0;margin:.8rem 0}
+.modal li{display:flex;gap:.6rem;align-items:center;padding:.3rem 0;border-bottom:1px solid var(--line)}
+.modal li .tag{font-size:.75rem;font-weight:700;padding:.1rem .5rem;border-radius:999px;color:#fff;min-width:4.2rem;text-align:center}
+.tag.got{background:var(--ok)} .tag.pass{background:var(--muted)} .tag.taboo{background:var(--bad)}
+.modal .actions{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap}
+.final{display:flex;flex-direction:column;gap:.4rem;margin:.6rem 0}
+.final div{display:flex;justify-content:space-between;padding:.4rem .6rem;border-radius:8px;background:var(--chip)}
+.final div.win{background:var(--accent);color:var(--accent-ink);font-weight:700}
+
+/* Cards screen */
+.cardlist{display:grid;gap:.6rem;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.cardlist .c{border:1px solid var(--line);border-radius:10px;padding:.6rem .75rem;background:var(--panel)}
+.cardlist .c b{display:block;font-size:1.05rem}
+.cardlist .c span{color:var(--banned-ink);font-size:.9rem}
+.cardlist .c small{display:block;color:var(--muted);margin-top:.2rem}
+textarea{width:100%;min-height:8rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9rem}
+.err{color:var(--bad);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1>VCE Physics Taboo</h1>
+  <span class="muted" id="deckSummary"></span>
+  <span class="spacer"></span>
+  <nav>
+    <button data-nav="setup" class="active">Setup</button>
+    <button data-nav="play">Play</button>
+    <button data-nav="cards">Cards</button>
+    <button id="btnFull" title="Fullscreen (F)">Fullscreen</button>
+    <button id="btnTheme" title="Toggle light/dark">Theme</button>
+  </nav>
+</header>
+
+<main>
+<!-- SETUP -->
+<section class="screen show" id="screen-setup">
+  <div class="grid">
+    <div class="panel">
+      <h2>Topics</h2>
+      <div class="topics" id="topicList"></div>
+      <div class="row" style="margin-top:.5rem">
+        <button id="topicsAll">All</button>
+        <button id="topicsNone">None</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Teams</h2>
+      <div class="field"><span>Number of teams</span>
+        <select id="teamCount"><option>2</option><option>3</option><option>4</option></select>
+      </div>
+      <div class="teams" id="teamNames"></div>
+    </div>
+    <div class="panel">
+      <h2>Rules</h2>
+      <div class="field"><span>Turn length</span>
+        <select id="turnSec"><option value="30">30 s</option><option value="45">45 s</option><option value="60" selected>60 s</option><option value="90">90 s</option><option value="120">120 s</option></select>
+      </div>
+      <div class="field"><span>Passes allowed per turn</span>
+        <select id="passLimit"><option value="-1">Unlimited</option><option value="3" selected>3</option><option value="1">1</option><option value="0">None</option></select>
+      </div>
+      <div class="field"><span>Taboo penalty (banned word said)</span>
+        <select id="tabooPenalty"><option value="-1" selected>Lose 1 point</option><option value="0">No penalty, card is lost</option></select>
+      </div>
+      <div class="field"><span>Sound at end of turn</span>
+        <select id="sound"><option value="1" selected>On</option><option value="0">Off</option></select>
+      </div>
+      <div class="row" style="margin-top:.8rem">
+        <button class="primary big" id="btnStart">Start game</button>
+      </div>
+      <p class="err" id="setupErr"></p>
+    </div>
+    <div class="panel rules">
+      <h2>How to play</h2>
+      <p>One student is the clue-giver and faces the screen. Their team faces away. The clue-giver describes the term without saying it, any part of it, or any of the banned words (plurals and other forms count too). The other teams watch the screen and call "taboo" if a banned word slips out.</p>
+      <p>Correct guess: <b>+1</b>, next card. Taboo: penalty, next card. Pass: no score, next card, limited per turn. The turn ends when the timer runs out.</p>
+      <p>Keyboard: <kbd>G</kbd> or <kbd>→</kbd> got it, <kbd>P</kbd> or <kbd>↓</kbd> pass, <kbd>T</kbd> or <kbd>←</kbd> taboo, <kbd>Space</kbd> start or pause the turn, <kbd>Enter</kbd> next team, <kbd>F</kbd> fullscreen.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PLAY -->
+<section class="screen" id="screen-play">
+  <div class="play">
+    <div class="stage">
+      <div class="status">
+        <span class="up" id="whoseTurn"></span>
+        <span class="remaining" id="remaining"></span>
+      </div>
+      <div class="clock" id="clock">60</div>
+      <div class="timerwrap"><div class="timerbar" id="timerbar"></div></div>
+      <div class="card hidden" id="card">
+        <span class="topic" id="cardTopic"></span>
+        <div class="term" id="cardTerm"></div>
+        <div class="dont">Don't say</div>
+        <ul id="cardBanned"></ul>
+        <div class="placeholder" id="cardPlaceholder">Guessing team faces away. Clue-giver presses Start when ready.</div>
+      </div>
+      <div class="controls" id="turnControls">
+        <button class="ok big" id="btnGot">Got it <span class="hint">G or →</span></button>
+        <button class="big" id="btnPass">Pass <span class="hint" id="passHint">P or ↓</span></button>
+        <button class="bad big" id="btnTaboo">Taboo <span class="hint">T or ←</span></button>
+      </div>
+      <div class="secondary">
+        <button class="primary big" id="btnTurn">Start turn <span class="hint">Space</span></button>
+        <button id="btnEndTurn">End turn early</button>
+        <button id="btnEndGame">End game</button>
+      </div>
+    </div>
+    <aside class="scoreboard" id="scoreboard"></aside>
+  </div>
+</section>
+
+<!-- CARDS -->
+<section class="screen" id="screen-cards">
+  <div class="grid">
+    <div class="panel" style="grid-column:1/-1">
+      <h2>Add your own cards</h2>
+      <p class="muted">One card per line: <code>Term | banned, banned, banned, banned, banned</code>. These are saved in this browser and appear under the "Custom" topic.</p>
+      <textarea id="customText" placeholder="Centre of mass | balance, average, point, weight, pivot"></textarea>
+      <div class="row" style="margin-top:.5rem">
+        <button class="primary" id="btnSaveCustom">Save custom cards</button>
+        <span class="muted" id="customMsg"></span>
+      </div>
+    </div>
+    <div class="panel" style="grid-column:1/-1">
+      <h2>Card bank <span class="muted" id="bankCount"></span></h2>
+      <div class="row" style="margin-bottom:.6rem">
+        <label>Filter <select id="bankFilter"><option value="">All topics</option></select></label>
+        <input id="bankSearch" placeholder="Search terms" style="flex:1;min-width:10rem">
+      </div>
+      <div class="cardlist" id="cardlist"></div>
+    </div>
+  </div>
+</section>
+</main>
+</div>
+
+<!-- Turn summary -->
+<div class="overlay" id="ovTurn">
+  <div class="modal">
+    <h2 id="ovTurnTitle">Turn over</h2>
+    <div class="delta" id="ovTurnDelta"></div>
+    <ul id="ovTurnList"></ul>
+    <div class="actions"><button class="primary big" id="btnNextTeam">Next team <span class="hint">Enter</span></button></div>
+  </div>
+</div>
+
+<!-- Final scores -->
+<div class="overlay" id="ovFinal">
+  <div class="modal">
+    <h2>Final scores</h2>
+    <div class="final" id="finalList"></div>
+    <div class="actions">
+      <button id="btnResume">Keep playing</button>
+      <button class="primary" id="btnNewGame">New game</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- Card bank ---------------- */
+const TOPICS = {
+  motion: "Motion",
+  rel:    "Special relativity",
+  fields: "Fields",
+  em:     "Electromagnetism and generation",
+  light:  "Light and matter",
+  prac:   "Practical investigation",
+  custom: "Custom"
+};
+
+const C = (k,t,b)=>({k,t,b});
+const CARDS = [
+  // Motion
+  C("motion","Momentum",["mass","velocity","p","collision","conserved"]),
+  C("motion","Impulse",["force","time","momentum","change","area"]),
+  C("motion","Inertia",["mass","Newton","first","resist","stay"]),
+  C("motion","Normal force",["surface","perpendicular","reaction","contact","weight"]),
+  C("motion","Projectile",["throw","parabola","gravity","launch","path"]),
+  C("motion","Centripetal acceleration",["circle","centre","inward","radius","v squared"]),
+  C("motion","Banked track",["tilt","angle","curve","friction","car"]),
+  C("motion","Apparent weight",["scale","lift","normal","heavier","lighter"]),
+  C("motion","Elastic collision",["bounce","kinetic","energy","conserved","momentum"]),
+  C("motion","Inelastic collision",["stick","kinetic","lost","momentum","together"]),
+  C("motion","Hooke's law",["spring","extension","k","stretch","proportional"]),
+  C("motion","Spring constant",["stiffness","k","Hooke","force","extension"]),
+  C("motion","Work",["force","distance","energy","joule","displacement"]),
+  C("motion","Power",["watt","rate","energy","time","work"]),
+  C("motion","Kinetic energy",["motion","moving","half","speed","mass"]),
+  C("motion","Gravitational potential energy",["height","mgh","raised","lifted","stored"]),
+  C("motion","Elastic potential energy",["spring","stored","stretched","compressed","half k x squared"]),
+  C("motion","Terminal velocity",["drag","falling","constant","air resistance","skydiver"]),
+  C("motion","Friction",["rough","surface","rub","resist","heat"]),
+  C("motion","Tension",["rope","string","pull","cable","wire"]),
+  C("motion","Newton's third law",["pair","equal","opposite","reaction","action"]),
+  C("motion","Net force",["sum","resultant","total","add","unbalanced"]),
+  C("motion","Free body diagram",["arrows","forces","draw","dot","sketch"]),
+  C("motion","Vector",["direction","magnitude","arrow","scalar","component"]),
+  C("motion","Equilibrium",["balanced","zero","net","rest","constant"]),
+  C("motion","Satellite",["orbit","planet","space","moon","circle"]),
+  C("motion","Geostationary orbit",["satellite","24 hours","fixed","equator","same spot"]),
+  C("motion","Weightlessness",["free fall","orbit","astronaut","float","zero"]),
+  C("motion","Range",["projectile","horizontal","distance","landing","far"]),
+  C("motion","Maximum height",["projectile","top","vertical","zero velocity","peak"]),
+  C("motion","Air resistance",["drag","friction","slow","air","falling"]),
+  C("motion","Conservation of energy",["total","constant","transfer","lost","created"]),
+
+  // Special relativity
+  C("rel","Time dilation",["clock","slow","moving","gamma","longer"]),
+  C("rel","Length contraction",["shorter","moving","ruler","gamma","direction"]),
+  C("rel","Lorentz factor",["gamma","square root","speed","c","formula"]),
+  C("rel","Proper time",["rest","clock","same place","shortest","observer"]),
+  C("rel","Proper length",["rest","ruler","longest","frame","object"]),
+  C("rel","Inertial frame",["constant velocity","acceleration","observer","reference","Newton"]),
+  C("rel","Speed of light",["c","constant","three times ten","invariant","postulate"]),
+  C("rel","Mass-energy equivalence",["E equals m c squared","Einstein","rest","energy","mass"]),
+  C("rel","Muon",["particle","atmosphere","decay","cosmic","time dilation"]),
+  C("rel","Rest mass",["invariant","stationary","frame","energy","m nought"]),
+  C("rel","Postulate",["assumption","Einstein","two","laws","same"]),
+  C("rel","Observer",["frame","see","measure","watch","person"]),
+  C("rel","Relativistic momentum",["gamma","m v","fast","light","increases"]),
+  C("rel","Twin paradox",["rocket","younger","older","travel","return"]),
+
+  // Fields
+  C("fields","Gravitational field",["g","mass","planet","attract","newtons per kilogram"]),
+  C("fields","Electric field",["charge","E","force","test","newtons per coulomb"]),
+  C("fields","Magnetic field",["B","magnet","tesla","pole","compass"]),
+  C("fields","Field lines",["arrows","draw","direction","strength","density"]),
+  C("fields","Inverse square law",["distance","squared","decrease","one over r","gravity"]),
+  C("fields","Coulomb's law",["charge","force","k","distance","electric"]),
+  C("fields","Monopole",["single","pole","magnet","cannot","isolated"]),
+  C("fields","Uniform field",["parallel","equal","constant","plates","lines"]),
+  C("fields","Right-hand rule",["thumb","fingers","palm","direction","force"]),
+  C("fields","Magnetic force on a charge",["q v B","moving","perpendicular","field","circle"]),
+  C("fields","Magnetic force on a wire",["current","B I L","length","field","motor"]),
+  C("fields","Synchrotron",["accelerator","electrons","light","ring","Australian"]),
+  C("fields","Electron gun",["cathode","heated","accelerate","potential","beam"]),
+  C("fields","Potential difference",["volts","energy","charge","per","work"]),
+  C("fields","Kepler's third law",["period","radius","cubed","squared","orbit"]),
+  C("fields","Orbital speed",["satellite","circle","radius","period","gravity"]),
+  C("fields","Attraction",["pull","opposite","toward","unlike","closer"]),
+  C("fields","Repulsion",["push","like","away","same","apart"]),
+  C("fields","Point charge",["single","tiny","radial","Coulomb","source"]),
+  C("fields","Area under a force-distance graph",["work","energy","integrate","shade","curve"]),
+  C("fields","Field strength",["magnitude","how strong","per unit","value","intensity"]),
+
+  // Electromagnetism and generation
+  C("em","Electromagnetic induction",["Faraday","EMF","changing","flux","coil"]),
+  C("em","Magnetic flux",["phi","B","area","through","weber"]),
+  C("em","Faraday's law",["EMF","rate","flux","change","turns"]),
+  C("em","Lenz's law",["oppose","induced","current","change","direction"]),
+  C("em","EMF",["voltage","induced","electromotive","source","volts"]),
+  C("em","Transformer",["coils","step-up","step-down","voltage","turns"]),
+  C("em","Step-up transformer",["more","secondary","voltage","increase","turns"]),
+  C("em","Step-down transformer",["fewer","secondary","voltage","decrease","turns"]),
+  C("em","Commutator",["split ring","DC motor","reverse","brushes","current"]),
+  C("em","Slip rings",["AC","generator","brushes","continuous","rotate"]),
+  C("em","DC motor",["coil","magnet","spin","commutator","torque"]),
+  C("em","Generator",["turn","electricity","coil","induce","magnet"]),
+  C("em","Alternator",["AC","generator","slip rings","car","sine"]),
+  C("em","Alternating current",["AC","direction","changes","sine","50 hertz"]),
+  C("em","Peak voltage",["maximum","amplitude","V p","RMS","top"]),
+  C("em","RMS voltage",["root","mean","square","effective","DC equivalent"]),
+  C("em","Peak-to-peak voltage",["top","bottom","twice","amplitude","difference"]),
+  C("em","Transmission lines",["power","loss","high voltage","wires","grid"]),
+  C("em","Power loss in transmission",["I squared R","heat","wires","resistance","current"]),
+  C("em","Solenoid",["coil","wire","magnet","current","core"]),
+  C("em","Torque",["twist","turn","rotate","force","lever"]),
+  C("em","Eddy currents",["induced","metal","swirl","braking","loop"]),
+  C("em","Back EMF",["motor","oppose","spinning","induced","Lenz"]),
+  C("em","Photovoltaic cell",["solar","sun","light","panel","DC"]),
+  C("em","Rectifier",["AC","DC","diode","convert","one direction"]),
+  C("em","Frequency",["hertz","per second","cycles","period","how often"]),
+  C("em","Period",["time","one cycle","seconds","frequency","repeat"]),
+  C("em","Primary coil",["input","transformer","first","AC","turns"]),
+  C("em","Secondary coil",["output","transformer","second","load","turns"]),
+  C("em","Number of turns",["coil","loops","wraps","transformer","ratio"]),
+  C("em","Wind turbine",["blades","generator","spin","renewable","air"]),
+
+  // Light and matter
+  C("light","Photon",["particle","light","energy","h f","quantum"]),
+  C("light","Photoelectric effect",["electrons","light","metal","emit","frequency"]),
+  C("light","Threshold frequency",["minimum","photoelectric","emit","work function","cut-off"]),
+  C("light","Work function",["minimum energy","electron","escape","metal","electron volt"]),
+  C("light","Stopping voltage",["photoelectric","maximum","kinetic","zero","current"]),
+  C("light","Planck's constant",["h","6.63","joule seconds","photon","quantum"]),
+  C("light","Wave-particle duality",["both","light","electron","interference","photon"]),
+  C("light","de Broglie wavelength",["matter","h over p","electron","momentum","particle"]),
+  C("light","Diffraction",["spread","gap","bend","wavelength","slit"]),
+  C("light","Interference",["superposition","constructive","destructive","pattern","waves"]),
+  C("light","Double slit",["Young","fringes","interference","two","pattern"]),
+  C("light","Path difference",["distance","extra","wavelength","constructive","slits"]),
+  C("light","Constructive interference",["add","bright","in phase","crest","bigger"]),
+  C("light","Destructive interference",["cancel","dark","out of phase","trough","zero"]),
+  C("light","Fringe spacing",["bright","bands","delta x","lambda L over d","pattern"]),
+  C("light","Coherent",["phase","same","laser","constant","waves"]),
+  C("light","Energy level",["electron","orbit","atom","quantised","jump"]),
+  C("light","Emission spectrum",["lines","colours","bright","atom","excited"]),
+  C("light","Absorption spectrum",["dark","lines","missing","gas","continuous"]),
+  C("light","Ground state",["lowest","energy","electron","atom","n equals one"]),
+  C("light","Quantisation",["discrete","steps","allowed","energy","levels"]),
+  C("light","Electron standing wave",["orbit","whole number","wavelength","de Broglie","atom"]),
+  C("light","Heisenberg uncertainty principle",["position","momentum","both","precisely","know"]),
+  C("light","Electron diffraction",["crystal","pattern","wave","rings","X-ray"]),
+  C("light","Electromagnetic spectrum",["radio","gamma","visible","X-ray","wavelength"]),
+  C("light","Polarisation",["transverse","filter","plane","sunglasses","one direction"]),
+  C("light","Electron volt",["unit","energy","eV","1.6 times ten","joule"]),
+  C("light","Intensity",["brightness","number of photons","more","current","amount"]),
+  C("light","Wavelength",["lambda","crest","distance","metres","colour"]),
+  C("light","Frequency of light",["hertz","colour","energy","per second","wave"]),
+  C("light","Refraction",["bend","speed","medium","Snell","water"]),
+  C("light","Monochromatic",["one","single","colour","wavelength","laser"]),
+  C("light","Excited state",["higher","energy","electron","jump","unstable"]),
+  C("light","Ionisation energy",["remove","electron","escape","atom","minimum"]),
+
+  // Practical investigation
+  C("prac","Independent variable",["change","control","x-axis","cause","manipulate"]),
+  C("prac","Dependent variable",["measure","y-axis","result","respond","outcome"]),
+  C("prac","Controlled variable",["constant","same","fair","keep","fixed"]),
+  C("prac","Random error",["scatter","repeat","average","unpredictable","spread"]),
+  C("prac","Systematic error",["calibration","offset","same direction","zero","shift"]),
+  C("prac","Uncertainty",["plus or minus","range","measurement","error","limit"]),
+  C("prac","Precision",["close together","repeat","consistent","spread","agree"]),
+  C("prac","Accuracy",["true value","close","correct","bias","right"]),
+  C("prac","Line of best fit",["trend","graph","straight","points","gradient"]),
+  C("prac","Outlier",["point","far","odd","ignore","anomaly"]),
+  C("prac","Gradient",["slope","rise","run","steep","line"]),
+  C("prac","Hypothesis",["prediction","if then","test","guess","expect"]),
+  C("prac","Validity",["fair","measures","intended","design","controlled"]),
+  C("prac","Repeatability",["same","again","consistent","conditions","result"]),
+  C("prac","Resolution",["smallest","scale","instrument","division","read"]),
+  C("prac","Calibration",["zero","instrument","standard","adjust","known"]),
+  C("prac","Linearise",["straight","graph","square","transform","plot"]),
+  C("prac","Error bar",["uncertainty","graph","line","point","range"]),
+  C("prac","Significant figures",["digits","round","precision","decimal","how many"]),
+  C("prac","Reproducibility",["different","person","equipment","same result","again"]),
+  C("prac","Parallax error",["angle","eye","reading","scale","line up"]),
+  C("prac","Zero error",["offset","instrument","reads","nothing","systematic"])
+];
+
+/* ---------------- Utilities ---------------- */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---------------- Custom cards ---------------- */
+function parseCustom(text){
+  const out = [], errs = [];
+  text.split(/\r?\n/).forEach((line, i) => {
+    const s = line.trim(); if(!s) return;
+    const parts = s.split("|");
+    if(parts.length < 2){ errs.push(`Line ${i+1}: missing "|"`); return; }
+    const t = parts[0].trim();
+    const b = parts.slice(1).join("|").split(",").map(x => x.trim()).filter(Boolean);
+    if(!t || !b.length){ errs.push(`Line ${i+1}: needs a term and at least one banned word`); return; }
+    out.push(C("custom", t, b.slice(0,6)));
+  });
+  return {cards: out, errs};
+}
+let customText = LS.get("taboo.customText", "");
+let customCards = parseCustom(customText).cards;
+function allCards(){ return CARDS.concat(customCards); }
+
+/* ---------------- Settings ---------------- */
+const defaults = {
+  topics: ["motion","rel","fields","em","light"],
+  teamCount: 2, teamNames: ["Team A","Team B","Team C","Team D"],
+  turnSec: 60, passLimit: 3, tabooPenalty: -1, sound: 1
+};
+let settings = Object.assign({}, defaults, LS.get("taboo.settings", {}));
+if(!Array.isArray(settings.teamNames) || settings.teamNames.length < 4) settings.teamNames = defaults.teamNames.slice();
+
+function renderSetup(){
+  const counts = {};
+  allCards().forEach(c => counts[c.k] = (counts[c.k]||0) + 1);
+  const list = $("#topicList"); list.innerHTML = "";
+  Object.keys(TOPICS).forEach(k => {
+    if(k === "custom" && !counts.custom) return;
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="checkbox" value="${k}" ${settings.topics.includes(k) ? "checked" : ""}> <span>${esc(TOPICS[k])}</span><span class="count">${counts[k]||0}</span>`;
+    list.appendChild(l);
+  });
+  $("#teamCount").value = settings.teamCount;
+  renderTeamNames();
+  $("#turnSec").value = settings.turnSec;
+  $("#passLimit").value = settings.passLimit;
+  $("#tabooPenalty").value = settings.tabooPenalty;
+  $("#sound").value = settings.sound;
+  updateDeckSummary();
+}
+function renderTeamNames(){
+  const box = $("#teamNames"); box.innerHTML = "";
+  for(let i=0;i<settings.teamCount;i++){
+    const d = document.createElement("div"); d.className = "field";
+    d.innerHTML = `<span>Team ${i+1}</span><input data-team="${i}" value="${esc(settings.teamNames[i])}" maxlength="24">`;
+    box.appendChild(d);
+  }
+}
+function readSetup(){
+  settings.topics = $$("#topicList input:checked").map(i => i.value);
+  settings.teamCount = +$("#teamCount").value;
+  $$("#teamNames input").forEach(i => settings.teamNames[+i.dataset.team] = i.value.trim() || `Team ${+i.dataset.team+1}`);
+  settings.turnSec = +$("#turnSec").value;
+  settings.passLimit = +$("#passLimit").value;
+  settings.tabooPenalty = +$("#tabooPenalty").value;
+  settings.sound = +$("#sound").value;
+  LS.set("taboo.settings", settings);
+  updateDeckSummary();
+}
+function filteredCards(){ return allCards().filter(c => settings.topics.includes(c.k)); }
+function updateDeckSummary(){
+  const n = filteredCards().length;
+  $("#deckSummary").textContent = n ? `${n} cards in play` : "No topics selected";
+}
+
+/* ---------------- Game state ---------------- */
+let game = null;      // {scores, teamIdx, deck, pos, turn}
+let timer = null;     // interval id
+let audioCtx = null;
+
+function newGame(){
+  const cards = filteredCards();
+  if(!cards.length){ $("#setupErr").textContent = "Select at least one topic."; return false; }
+  $("#setupErr").textContent = "";
+  game = {
+    scores: new Array(settings.teamCount).fill(0),
+    teamIdx: 0,
+    deck: shuffle(cards.slice()),
+    pos: 0,
+    turn: null
+  };
+  return true;
+}
+function nextCard(){
+  if(game.pos >= game.deck.length){ game.deck = shuffle(game.deck); game.pos = 0; }
+  return game.deck[game.pos++];
+}
+function cardsLeft(){ return game.deck.length - game.pos; }
+
+function renderScoreboard(){
+  const sb = $("#scoreboard"); sb.innerHTML = "";
+  game.scores.forEach((s, i) => {
+    const d = document.createElement("div");
+    d.className = "team" + (i === game.teamIdx ? " active" : "");
+    d.innerHTML = `<span class="name">${esc(settings.teamNames[i])}</span><span class="score">${s}</span>
+      <span class="adj"><button data-adj="${i}" data-d="1" title="Add a point">+</button><button data-adj="${i}" data-d="-1" title="Remove a point">&minus;</button></span>`;
+    sb.appendChild(d);
+  });
+}
+function renderPlay(){
+  const t = game.turn;
+  $("#whoseTurn").textContent = t && t.active ? `${settings.teamNames[game.teamIdx]} is guessing` : `${settings.teamNames[game.teamIdx]} is up next`;
+  $("#remaining").textContent = `${cardsLeft()} cards left in deck`;
+  const card = $("#card");
+  if(t && t.active && t.card){
+    card.classList.remove("hidden");
+    $("#cardTopic").textContent = TOPICS[t.card.k];
+    $("#cardTerm").textContent = t.card.t;
+    $("#cardBanned").innerHTML = t.card.b.map(w => `<li>${esc(w)}</li>`).join("");
+  } else {
+    card.classList.add("hidden");
+    $("#cardPlaceholder").textContent = t && t.paused ? "Paused. Press Space to resume." : "Guessing team faces away. Clue-giver presses Start when ready.";
+  }
+  const live = !!(t && t.active && !t.paused);
+  $("#btnGot").disabled = !live;
+  $("#btnTaboo").disabled = !live;
+  const passesLeft = settings.passLimit < 0 ? Infinity : settings.passLimit - (t ? t.passesUsed : 0);
+  $("#btnPass").disabled = !live || passesLeft <= 0;
+  $("#passHint").textContent = settings.passLimit < 0 ? "P or ↓" : `P or ↓ (${Math.max(0,passesLeft)} left)`;
+  $("#btnTurn").innerHTML = !t || !t.active ? 'Start turn <span class="hint">Space</span>' : (t.paused ? 'Resume <span class="hint">Space</span>' : 'Pause <span class="hint">Space</span>');
+  $("#btnEndTurn").disabled = !(t && t.active);
+  renderScoreboard();
+  renderClock();
+}
+function renderClock(){
+  const t = game.turn;
+  const total = settings.turnSec;
+  const left = t && t.active ? Math.max(0, t.remainingMs) : total*1000;
+  const secs = Math.ceil(left/1000);
+  $("#clock").textContent = secs;
+  $("#clock").classList.toggle("low", t && t.active && secs <= 10);
+  const bar = $("#timerbar");
+  bar.style.transform = `scaleX(${left/(total*1000)})`;
+  bar.classList.toggle("low", t && t.active && secs <= 10);
+}
+
+function startTurn(){
+  game.turn = { active:true, paused:false, remainingMs: settings.turnSec*1000, lastTick: performance.now(), card: nextCard(), got:[], pass:[], taboo:[], passesUsed:0 };
+  unlockAudio();
+  timer = setInterval(tick, 100);
+  renderPlay();
+}
+function tick(){
+  const t = game.turn; if(!t || !t.active || t.paused) return;
+  const now = performance.now();
+  t.remainingMs -= now - t.lastTick; t.lastTick = now;
+  if(t.remainingMs <= 0){ t.remainingMs = 0; renderClock(); endTurn(true); return; }
+  renderClock();
+}
+function togglePause(){
+  const t = game.turn; if(!t || !t.active) return;
+  t.paused = !t.paused;
+  if(!t.paused) t.lastTick = performance.now();
+  renderPlay();
+}
+function mark(kind){
+  const t = game.turn; if(!t || !t.active || t.paused) return;
+  if(kind === "pass"){
+    const left = settings.passLimit < 0 ? Infinity : settings.passLimit - t.passesUsed;
+    if(left <= 0) return;
+    t.passesUsed++;
+  }
+  t[kind].push(t.card);
+  t.card = nextCard();
+  renderPlay();
+}
+function turnDelta(t){ return t.got.length + t.taboo.length*settings.tabooPenalty; }
+function endTurn(timedOut){
+  clearInterval(timer); timer = null;
+  const t = game.turn; if(!t || !t.active) return;
+  t.active = false;
+  // Put the unplayed current card back so it isn't lost.
+  if(t.card){ game.pos = Math.max(0, game.pos-1); }
+  const delta = turnDelta(t);
+  game.scores[game.teamIdx] += delta;
+  if(timedOut && settings.sound) beep();
+  $("#ovTurnTitle").textContent = `${settings.teamNames[game.teamIdx]}: turn over`;
+  $("#ovTurnDelta").textContent = (delta >= 0 ? "+" : "") + delta + (Math.abs(delta) === 1 ? " point" : " points");
+  const rows = [];
+  t.got.forEach(c => rows.push(["got","Got it",c]));
+  t.pass.forEach(c => rows.push(["pass","Pass",c]));
+  t.taboo.forEach(c => rows.push(["taboo","Taboo",c]));
+  $("#ovTurnList").innerHTML = rows.length ? rows.map(([cls,lab,c]) => `<li><span class="tag ${cls}">${lab}</span><span>${esc(c.t)}</span></li>`).join("") : '<li class="muted">No cards played.</li>';
+  $("#ovTurn").classList.add("show");
+  $("#btnNextTeam").focus();
+  renderPlay();
+}
+function nextTeam(){
+  $("#ovTurn").classList.remove("show");
+  game.teamIdx = (game.teamIdx + 1) % game.scores.length;
+  game.turn = null;
+  renderPlay();
+}
+function showFinal(){
+  const max = Math.max(...game.scores);
+  $("#finalList").innerHTML = game.scores.map((s,i) => `<div class="${s===max?"win":""}"><span>${esc(settings.teamNames[i])}</span><span>${s}</span></div>`).join("");
+  $("#ovFinal").classList.add("show");
+}
+
+/* ---------------- Audio ---------------- */
+function unlockAudio(){
+  if(!settings.sound) return;
+  try{ audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if(audioCtx.state === "suspended") audioCtx.resume(); }catch(e){}
+}
+function beep(){
+  if(!audioCtx) return;
+  try{
+    const now = audioCtx.currentTime;
+    [0, .18, .36].forEach((off, i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "square"; o.frequency.value = i === 2 ? 1100 : 880;
+      g.gain.setValueAtTime(0.0001, now+off); g.gain.exponentialRampToValueAtTime(0.25, now+off+.01); g.gain.exponentialRampToValueAtTime(0.0001, now+off+.14);
+      o.connect(g).connect(audioCtx.destination); o.start(now+off); o.stop(now+off+.16);
+    });
+  }catch(e){}
+}
+
+/* ---------------- Cards screen ---------------- */
+function renderCards(){
+  $("#customText").value = customText;
+  const sel = $("#bankFilter");
+  if(sel.options.length === 1){
+    Object.keys(TOPICS).forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = TOPICS[k]; sel.appendChild(o); });
+  }
+  const f = sel.value, q = $("#bankSearch").value.trim().toLowerCase();
+  const cards = allCards().filter(c => (!f || c.k === f) && (!q || c.t.toLowerCase().includes(q) || c.b.some(w => w.toLowerCase().includes(q))));
+  $("#bankCount").textContent = `(${cards.length} of ${allCards().length})`;
+  $("#cardlist").innerHTML = cards.map(c => `<div class="c"><b>${esc(c.t)}</b><span>${c.b.map(esc).join(" · ")}</span><small>${esc(TOPICS[c.k])}</small></div>`).join("");
+}
+
+/* ---------------- Navigation ---------------- */
+function show(name){
+  $$(".screen").forEach(s => s.classList.toggle("show", s.id === "screen-"+name));
+  $$("header nav button[data-nav]").forEach(b => b.classList.toggle("active", b.dataset.nav === name));
+  if(name === "cards") renderCards();
+  if(name === "setup") renderSetup();
+  if(name === "play"){ if(!game) { if(!newGame()) { show("setup"); return; } } renderPlay(); }
+}
+
+/* ---------------- Events ---------------- */
+$$("header nav button[data-nav]").forEach(b => b.addEventListener("click", () => show(b.dataset.nav)));
+$("#btnFull").addEventListener("click", toggleFull);
+function toggleFull(){
+  if(document.fullscreenElement) document.exitFullscreen && document.exitFullscreen();
+  else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+}
+$("#btnTheme").addEventListener("click", () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next; LS.set("taboo.theme", next);
+});
+const savedTheme = LS.get("taboo.theme", null); if(savedTheme) document.documentElement.dataset.theme = savedTheme;
+
+$("#topicList").addEventListener("change", readSetup);
+$("#topicsAll").addEventListener("click", () => { $$("#topicList input").forEach(i => i.checked = true); readSetup(); });
+$("#topicsNone").addEventListener("click", () => { $$("#topicList input").forEach(i => i.checked = false); readSetup(); });
+$("#teamCount").addEventListener("change", () => { readSetup(); renderTeamNames(); });
+$("#teamNames").addEventListener("input", readSetup);
+["#turnSec","#passLimit","#tabooPenalty","#sound"].forEach(s => $(s).addEventListener("change", readSetup));
+$("#btnStart").addEventListener("click", () => { readSetup(); if(newGame()) show("play"); });
+
+$("#btnGot").addEventListener("click", () => mark("got"));
+$("#btnPass").addEventListener("click", () => mark("pass"));
+$("#btnTaboo").addEventListener("click", () => mark("taboo"));
+$("#btnTurn").addEventListener("click", () => { if(!game.turn || !game.turn.active) startTurn(); else togglePause(); });
+$("#btnEndTurn").addEventListener("click", () => endTurn(false));
+$("#btnEndGame").addEventListener("click", () => { if(game.turn && game.turn.active) endTurn(false); showFinal(); });
+$("#btnNextTeam").addEventListener("click", nextTeam);
+$("#btnResume").addEventListener("click", () => $("#ovFinal").classList.remove("show"));
+$("#btnNewGame").addEventListener("click", () => { $("#ovFinal").classList.remove("show"); game = null; show("setup"); });
+$("#scoreboard").addEventListener("click", e => {
+  const b = e.target.closest("button[data-adj]"); if(!b) return;
+  game.scores[+b.dataset.adj] += +b.dataset.d; renderScoreboard();
+});
+
+$("#btnSaveCustom").addEventListener("click", () => {
+  const text = $("#customText").value;
+  const {cards, errs} = parseCustom(text);
+  if(errs.length){ $("#customMsg").textContent = errs.join("; "); $("#customMsg").className = "err"; return; }
+  customText = text; customCards = cards; LS.set("taboo.customText", text);
+  if(cards.length && !settings.topics.includes("custom")) settings.topics.push("custom");
+  if(!cards.length) settings.topics = settings.topics.filter(k => k !== "custom");
+  LS.set("taboo.settings", settings);
+  $("#customMsg").textContent = `${cards.length} custom card${cards.length===1?"":"s"} saved.`; $("#customMsg").className = "muted";
+  renderCards(); updateDeckSummary();
+});
+$("#bankFilter").addEventListener("change", renderCards);
+$("#bankSearch").addEventListener("input", renderCards);
+
+document.addEventListener("keydown", e => {
+  const tag = (e.target.tagName || "").toLowerCase();
+  if(tag === "input" || tag === "textarea" || tag === "select") return;
+  if(e.key === "f" || e.key === "F"){ e.preventDefault(); toggleFull(); return; }
+  if($("#ovTurn").classList.contains("show")){ if(e.key === "Enter"){ e.preventDefault(); nextTeam(); } return; }
+  if($("#ovFinal").classList.contains("show")){ if(e.key === "Escape"){ $("#ovFinal").classList.remove("show"); } return; }
+  if(!$("#screen-play").classList.contains("show") || !game) return;
+  switch(e.key){
+    case " ": e.preventDefault(); if(!game.turn || !game.turn.active) startTurn(); else togglePause(); break;
+    case "g": case "G": case "ArrowRight": e.preventDefault(); mark("got"); break;
+    case "p": case "P": case "ArrowDown": e.preventDefault(); mark("pass"); break;
+    case "t": case "T": case "ArrowLeft": e.preventDefault(); mark("taboo"); break;
+  }
+});
+
+renderSetup();
+})();
+</script>
+</body>
+</html>
