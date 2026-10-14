@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binomial Distribution: Tree Diagram</title>
+<style>
+  :root {
+    --s: #1f77b4;
+    --f: #d62728;
+    --hl: #f5a623;
+    --hl-bg: #fff3c4;
+    --panel: #f2f4f7;
+    --border: #cfd6e0;
+    --text: #1d2a35;
+    --muted: #5d6b7a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; color: var(--text); font-family: Arial, Helvetica, sans-serif; }
+  header { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 20px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  main { display: grid; grid-template-columns: 250px 1fr; gap: 16px; padding: 16px 20px; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+
+  #controls { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; align-self: start; position: sticky; top: 12px; }
+  #controls h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; }
+  .ctl { margin-bottom: 14px; }
+  .ctl label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
+  .ctl label span.val { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ctl input[type=range] { width: 100%; accent-color: #2a6fb3; }
+  .ctl select, .ctl input[type=number], .ctl input[type=text] { width: 100%; font-size: 14px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .chk { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 6px 0; }
+  .legend { font-size: 13px; margin-top: 8px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .legend div { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .sw { width: 22px; height: 4px; border-radius: 2px; display: inline-block; }
+  .sw.chip { width: 22px; height: 14px; background: var(--hl-bg); border: 1.5px solid var(--hl); border-radius: 4px; }
+  button { font-size: 13px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: #fff; cursor: pointer; }
+  button:hover { background: #e9eef5; }
+
+  #treePanel { border: 1px solid var(--border); border-radius: 10px; overflow: auto; max-height: 72vh; background: #fff; }
+  #tree { display: block; font-family: Arial, Helvetica, sans-serif; }
+  #tree .edge { fill: none; stroke-linecap: round; }
+  #tree .edge.dim { opacity: .18; }
+  #tree .edge.hl { stroke-width: 3; }
+  #tree .edge.hov { stroke: #111; stroke-width: 4; opacity: 1; }
+  #tree .blab { font-size: 11px; font-weight: 600; }
+  #tree .blab.dim { opacity: .3; }
+  #tree .node { fill: #fff; stroke: #333; stroke-width: 1.2; }
+  #tree .leaf { cursor: default; }
+  #tree .leaf rect { fill: #fff; stroke: none; }
+  #tree .leaf.hl rect { fill: var(--hl-bg); stroke: var(--hl); stroke-width: 1.5; }
+  #tree .leaf text { fill: var(--text); }
+  #tree .leaf.dim text { fill: #9aa5b1; }
+  #tree .leaf.hl text { font-weight: 600; }
+  #tree .leaf:hover rect { stroke: #111; stroke-width: 1.5; }
+
+  #bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 20px 24px; }
+  @media (max-width: 900px) { #bottom { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .card h2 { font-size: 15px; margin: 0 0 10px; font-weight: 600; }
+  .math { font-size: 16px; line-height: 1.9; font-variant-numeric: tabular-nums; }
+  .ital { font-style: italic; }
+  .math .res { font-weight: 700; background: var(--hl-bg); padding: 1px 6px; border-radius: 4px; }
+  .note { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  table.terms { border-collapse: collapse; font-size: 14px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  table.terms th, table.terms td { padding: 4px 10px; text-align: right; border-bottom: 1px solid var(--border); }
+  table.terms th { font-weight: 600; color: var(--muted); }
+  table.terms tr.hl td { background: var(--hl-bg); }
+  table.terms tr.total td { font-weight: 700; border-bottom: none; }
+  #chart { width: 100%; height: auto; display: block; font-family: Arial, Helvetica, sans-serif; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Binomial Distribution: Tree Diagram</h1>
+  <span class="sub"><span class="ital">X</span> ~ Bi(<span class="ital">n</span>, <span class="ital">p</span>). Each path from the root to a leaf is one outcome; highlighted paths are the outcomes counted in the event.</span>
+</header>
+
+<main>
+  <aside id="controls">
+    <h2>Parameters</h2>
+    <div class="ctl">
+      <label>Number of trials <i>n</i> <span class="val" id="nVal">5</span></label>
+      <input type="range" id="n" min="1" max="7" step="1" value="5">
+    </div>
+    <div class="ctl">
+      <label>Probability of success <i>p</i> <span class="val" id="pVal">0.70</span></label>
+      <input type="range" id="p" min="0" max="1" step="0.01" value="0.7">
+      <input type="number" id="pNum" min="0" max="1" step="0.01" value="0.7" style="margin-top:4px">
+    </div>
+    <div class="ctl">
+      <label>Event</label>
+      <div class="row2">
+        <select id="mode">
+          <option value="eq">X = k</option>
+          <option value="le">X &le; k</option>
+          <option value="ge">X &ge; k</option>
+        </select>
+        <select id="k"></select>
+      </div>
+    </div>
+    <div class="ctl">
+      <label>Outcome labels</label>
+      <div class="row2">
+        <input type="text" id="sLab" value="H" maxlength="2" title="Success label">
+        <input type="text" id="fLab" value="H'" maxlength="2" title="Failure label">
+      </div>
+    </div>
+    <div class="chk"><input type="checkbox" id="showBranch" checked><label for="showBranch">Show branch probabilities</label></div>
+    <div class="chk"><input type="checkbox" id="showLeaf" checked><label for="showLeaf">Show outcome probabilities</label></div>
+    <div class="chk"><input type="checkbox" id="fadeOthers" checked><label for="fadeOthers">Fade other outcomes</label></div>
+    <div class="legend">
+      <div><span class="sw" style="background:var(--s)"></span> success (<span id="legS">H</span>), probability <i>p</i></div>
+      <div><span class="sw" style="background:var(--f)"></span> failure (<span id="legF">H'</span>), probability 1 &minus; <i>p</i></div>
+      <div><span class="sw chip"></span> outcome counted in the event</div>
+    </div>
+    <div style="margin-top:12px"><button id="reset">Reset</button></div>
+  </aside>
+
+  <section id="treePanel">
+    <svg id="tree" xmlns="http://www.w3.org/2000/svg"></svg>
+  </section>
+</main>
+
+<section id="bottom">
+  <div class="card">
+    <h2 id="calcTitle">Calculation</h2>
+    <div id="calc" class="math"></div>
+  </div>
+  <div class="card">
+    <h2>Probability distribution of <i>X</i></h2>
+    <svg id="chart" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+</section>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const els = {
+    n: $('n'), nVal: $('nVal'), p: $('p'), pNum: $('pNum'), pVal: $('pVal'),
+    mode: $('mode'), k: $('k'), sLab: $('sLab'), fLab: $('fLab'),
+    showBranch: $('showBranch'), showLeaf: $('showLeaf'), fadeOthers: $('fadeOthers'),
+    tree: $('tree'), calc: $('calc'), calcTitle: $('calcTitle'), chart: $('chart'),
+    legS: $('legS'), legF: $('legF'), reset: $('reset')
+  };
+
+  const DEFAULTS = { n: 5, p: 0.7, k: 2, mode: 'eq', sLab: 'H', fLab: "H'", showBranch: true, showLeaf: true, fadeOthers: true };
+  const state = Object.assign({}, DEFAULTS);
+
+  const SUP = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+  const sup = n => String(n).split('').map(d => SUP[+d]).join('');
+  const SUB = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
+  const subs = n => String(n).split('').map(d => SUB[+d]).join('');
+
+  function nCr(n, r) {
+    if (r < 0 || r > n) return 0;
+    let v = 1;
+    for (let i = 1; i <= r; i++) v = v * (n - r + i) / i;
+    return Math.round(v);
+  }
+  function fmt(v) {
+    if (v === 0) return '0';
+    if (v >= 0.001) return v.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+    return Number(v.toPrecision(3)).toExponential(2).replace('e-', ' × 10⁻').replace(/10⁻(\d+)/, (m, d) => '10⁻' + sup(+d));
+  }
+  const fmtSig = v => v === 0 ? '0' : (v >= 0.001 ? Number(v.toPrecision(4)).toString() : fmt(v));
+  const fmtP = v => v.toFixed(2).replace(/0$/, '').replace(/\.$/, '');
+  function powStr(base, e) { // numeric base, integer exponent
+    if (e === 0) return '';
+    return fmtP(base) + (e === 1 ? '' : sup(e));
+  }
+  function qualifies(s) {
+    if (state.mode === 'eq') return s === state.k;
+    if (state.mode === 'le') return s <= state.k;
+    return s >= state.k;
+  }
+  function anyBelow(sSoFar, remaining) {
+    for (let j = 0; j <= remaining; j++) if (qualifies(sSoFar + j)) return true;
+    return false;
+  }
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function popcount(x) { let c = 0; while (x) { c += x & 1; x >>= 1; } return c; }
+
+  // ---------- Tree ----------
+  function renderTree() {
+    const n = state.n, p = state.p, q = 1 - p;
+    const leaves = 1 << n;
+    const rowH = Math.max(16, Math.min(46, 620 / leaves));
+    const colW = n <= 3 ? 170 : n <= 5 ? 130 : 100;
+    const leftPad = 40, topPad = 18;
+    const fontL = rowH >= 30 ? 13 : rowH >= 20 ? 12 : 10.5;
+    const labelW = state.showLeaf ? (fontL * (n + 18) * 0.62 + 24) : (fontL * (n + 2) * 0.7 + 24);
+    const W = leftPad + n * colW + labelW + 10;
+    const treeH = leaves * rowH;
+    const H = treeH + topPad * 2;
+    const X = d => leftPad + d * colW;
+    const Y = (d, i) => topPad + (i + 0.5) * treeH / (1 << d);
+
+    const dimEdges = [], hlEdges = [], labels = [], nodes = [], leafEls = [];
+    const fade = state.fadeOthers;
+
+    nodes.push(`<circle class="node" cx="${X(0)}" cy="${Y(0, 0)}" r="3.5"/>`);
+    for (let d = 0; d < n; d++) {
+      for (let i = 0; i < (1 << d); i++) {
+        const s = d - popcount(i);
+        const x1 = X(d), y1 = Y(d, i), x2 = X(d + 1);
+        const remaining = n - d - 1;
+        for (let c = 0; c < 2; c++) { // c=0 success (upper), c=1 failure (lower)
+          const ci = 2 * i + c;
+          const y2 = Y(d + 1, ci);
+          const hl = anyBelow(s + (c === 0 ? 1 : 0), remaining);
+          const col = c === 0 ? 'var(--s)' : 'var(--f)';
+          const id = 'e-' + (ci.toString(2).padStart(d + 1, '0'));
+          const cls = 'edge' + (hl ? ' hl' : (fade ? ' dim' : ''));
+          const path = `<path id="${id}" class="${cls}" d="M${x1},${y1} L${x2},${y2}" stroke="${col}" stroke-width="${hl ? 3 : 1.6}"/>`;
+          (hl ? hlEdges : dimEdges).push(path);
+          if (state.showBranch) {
+            const tight = rowH < 20; // rows too close to stack labels above/below: sit them on the line with a white halo
+            const t = tight ? 0.78 : 0.5;
+            const mx = x1 + (x2 - x1) * t, my = y1 + (y2 - y1) * t;
+            const dy = tight ? 3.3 : (c === 0 ? -4 : 10);
+            const bf = tight ? 9.5 : 11;
+            const halo = tight ? ' paint-order="stroke" stroke="#fff" stroke-width="3"' : '';
+            labels.push(`<text class="blab${hl || !fade ? '' : ' dim'}" x="${mx}" y="${my + dy}" text-anchor="middle" font-size="${bf}" fill="${col}"${halo}>${fmtP(c === 0 ? p : q)}</text>`);
+          }
+          if (d + 1 < n) nodes.push(`<circle class="node" cx="${x2}" cy="${y2}" r="${rowH >= 20 ? 3 : 2.2}"/>`);
+        }
+      }
+    }
+
+    // leaves
+    for (let i = 0; i < leaves; i++) {
+      const bits = i.toString(2).padStart(n, '0');
+      const s = n - popcount(i);
+      const outcome = bits.split('').map(b => b === '0' ? state.sLab : state.fLab).join('');
+      const prob = Math.pow(p, s) * Math.pow(q, n - s);
+      const hl = qualifies(s);
+      const x = X(n) + 8, y = Y(n, i);
+      let txt = `<tspan font-weight="700">${esc(outcome)}</tspan>`;
+      if (state.showLeaf) {
+        const parts = [];
+        if (s > 0) parts.push(powStr(p, s));
+        if (n - s > 0) parts.push(powStr(q, n - s));
+        txt += `<tspan dx="10" fill="${hl ? '#333' : '#9aa5b1'}" font-weight="400">${parts.join(' × ')} = ${fmtSig(prob)}</tspan>`;
+      }
+      const rh = Math.min(rowH - 2, 22);
+      const cls = 'leaf' + (hl ? ' hl' : (fade ? ' dim' : ''));
+      leafEls.push(`<g class="${cls}" data-bits="${bits}"><title>${esc(outcome)}: ${s} success${s === 1 ? '' : 'es'}, probability ${fmtSig(prob)}</title>` +
+        `<rect x="${x - 4}" y="${y - rh / 2}" width="${labelW}" height="${rh}" rx="4"/>` +
+        `<text x="${x}" y="${y + fontL * 0.36}" font-size="${fontL}">${txt}</text></g>`);
+    }
+
+    els.tree.setAttribute('width', W);
+    els.tree.setAttribute('height', H);
+    els.tree.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    els.tree.innerHTML = dimEdges.join('') + hlEdges.join('') + labels.join('') + nodes.join('') + leafEls.join('');
+
+    els.tree.querySelectorAll('.leaf').forEach(g => {
+      const bits = g.getAttribute('data-bits');
+      const ids = [];
+      for (let d = 1; d <= bits.length; d++) ids.push('e-' + bits.slice(0, d));
+      g.addEventListener('mouseenter', () => ids.forEach(id => { const e = document.getElementById(id); if (e) e.classList.add('hov'); }));
+      g.addEventListener('mouseleave', () => ids.forEach(id => { const e = document.getElementById(id); if (e) e.classList.remove('hov'); }));
+    });
+  }
+
+  // ---------- Calculation ----------
+  function termHTML(n, x, p, q) {
+    const C = nCr(n, x);
+    const pp = Math.pow(p, x), qq = Math.pow(q, n - x);
+    const pStr = x === 0 ? '' : `${fmtP(p)}${x === 1 ? '' : `<sup>${x}</sup>`}`;
+    const qStr = n - x === 0 ? '' : `${fmtP(q)}${n - x === 1 ? '' : `<sup>${n - x}</sup>`}`;
+    return { C, pp, qq, pStr, qStr, val: C * pp * qq };
+  }
+  function renderCalc() {
+    const n = state.n, p = state.p, q = 1 - p, k = state.k;
+    const sym = state.mode === 'eq' ? '=' : state.mode === 'le' ? '&le;' : '&ge;';
+    els.calcTitle.innerHTML = `Calculation: Pr(<i>X</i> ${sym} ${k})`;
+    const leaves = 1 << n;
+    let html = '';
+    if (state.mode === 'eq') {
+      const t = termHTML(n, k, p, q);
+      const genP = k === 0 ? '' : `<i>p</i>${k === 1 ? '' : `<sup>${k}</sup>`}`;
+      const genQ = n - k === 0 ? '' : `(1 &minus; <i>p</i>)${n - k === 1 ? '' : `<sup>${n - k}</sup>`}`;
+      const parts = [t.pStr, t.qStr].filter(Boolean);
+      html += `Pr(<i>X</i> = ${k}) = <sup>${n}</sup>C<sub>${k}</sub> ${genP} ${genQ}<br>`;
+      html += `&nbsp;&nbsp;= ${t.C} &times; ${parts.join(' &times; ') || '1'}<br>`;
+      html += `&nbsp;&nbsp;= ${t.C} &times; ${fmtSig(t.pp * t.qq)}<br>`;
+      html += `&nbsp;&nbsp;= <span class="res">${fmt(t.val)}</span>`;
+      html += `<div class="note">${t.C} of the ${leaves} outcomes have exactly ${k} success${k === 1 ? '' : 'es'}; each has probability ${fmtSig(t.pp * t.qq)}, so the ${t.C} highlighted paths sum to ${fmt(t.val)}.</div>`;
+    } else {
+      const xs = [];
+      for (let x = 0; x <= n; x++) if (qualifies(x)) xs.push(x);
+      const terms = xs.map(x => termHTML(n, x, p, q));
+      const total = terms.reduce((a, t) => a + t.val, 0);
+      const count = terms.reduce((a, t) => a + t.C, 0);
+      html += `Pr(<i>X</i> ${sym} ${k}) = ${xs.map(x => `Pr(<i>X</i> = ${x})`).join(' + ')}<br>`;
+      html += `<table class="terms"><tr><th><i>x</i></th><th><sup>${n}</sup>C<sub><i>x</i></sub></th><th>one path</th><th>Pr(<i>X</i> = <i>x</i>)</th></tr>`;
+      terms.forEach((t, j) => {
+        const parts = [t.pStr, t.qStr].filter(Boolean).join(' &times; ') || '1';
+        html += `<tr class="hl"><td>${xs[j]}</td><td>${t.C}</td><td>${parts} = ${fmtSig(t.pp * t.qq)}</td><td>${fmt(t.val)}</td></tr>`;
+      });
+      html += `<tr class="total"><td colspan="3">Pr(<i>X</i> ${sym} ${k})</td><td><span class="res">${fmt(total)}</span></td></tr></table>`;
+      html += `<div class="note">${count} of the ${leaves} outcomes are highlighted.</div>`;
+    }
+    els.calc.innerHTML = html;
+  }
+
+  // ---------- Distribution chart ----------
+  function renderChart() {
+    const n = state.n, p = state.p, q = 1 - p;
+    const probs = [];
+    let max = 0;
+    for (let x = 0; x <= n; x++) { const v = nCr(n, x) * Math.pow(p, x) * Math.pow(q, n - x); probs.push(v); if (v > max) max = v; }
+    const W = 520, H = 256, L = 40, R = 10, T = 26, B = 52;
+    const pw = W - L - R, ph = H - T - B;
+    const bw = pw / (n + 1);
+    let s = `<line x1="${L}" y1="${T + ph}" x2="${L + pw}" y2="${T + ph}" stroke="#333"/>`;
+    const yMax = max === 0 ? 1 : max;
+    for (let x = 0; x <= n; x++) {
+      const v = probs[x];
+      const h = v / yMax * (ph - 6);
+      const hl = qualifies(x);
+      const bx = L + x * bw + bw * 0.15, bwid = bw * 0.7;
+      s += `<rect x="${bx}" y="${T + ph - h}" width="${bwid}" height="${h}" rx="3" fill="${hl ? 'var(--hl)' : '#b7c2cd'}"/>`;
+      s += `<text x="${bx + bwid / 2}" y="${T + ph - h - 5}" text-anchor="middle" font-size="11" fill="${hl ? '#7a4b00' : '#5d6b7a'}">${fmt(v)}</text>`;
+      s += `<text x="${bx + bwid / 2}" y="${T + ph + 16}" text-anchor="middle" font-size="12" fill="#333">${x}</text>`;
+    }
+    s += `<text x="${L + pw / 2}" y="${H - 20}" text-anchor="middle" font-size="12" fill="#5d6b7a"><tspan font-style="italic">x</tspan> (number of successes)</text>`;
+    s += `<text x="${L - 6}" y="${T - 10}" text-anchor="start" font-size="12" fill="#5d6b7a">Pr(<tspan font-style="italic">X</tspan> = <tspan font-style="italic">x</tspan>)</text>`;
+    const mean = n * p, sd = Math.sqrt(n * p * q);
+    s += `<text x="${L + pw / 2}" y="${H - 4}" text-anchor="middle" font-size="12" fill="#5d6b7a">E(<tspan font-style="italic">X</tspan>) = ${fmt(mean)},  sd(<tspan font-style="italic">X</tspan>) = ${fmt(sd)}</text>`;
+    els.chart.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    els.chart.innerHTML = s;
+  }
+
+  // ---------- Controls ----------
+  function fillK() {
+    const cur = state.k;
+    els.k.innerHTML = '';
+    for (let x = 0; x <= state.n; x++) {
+      const o = document.createElement('option');
+      o.value = x; o.textContent = 'k = ' + x;
+      els.k.appendChild(o);
+    }
+    state.k = Math.min(cur, state.n);
+    els.k.value = state.k;
+  }
+  function syncUI() {
+    els.n.value = state.n; els.nVal.textContent = state.n;
+    els.p.value = state.p; els.pNum.value = state.p; els.pVal.textContent = state.p.toFixed(2);
+    els.mode.value = state.mode;
+    fillK();
+    els.sLab.value = state.sLab; els.fLab.value = state.fLab;
+    els.legS.textContent = state.sLab; els.legF.textContent = state.fLab;
+    els.showBranch.checked = state.showBranch; els.showLeaf.checked = state.showLeaf; els.fadeOthers.checked = state.fadeOthers;
+  }
+  function renderAll() {
+    renderTree(); renderCalc(); renderChart();
+  }
+
+  els.n.addEventListener('input', () => { state.n = +els.n.value; els.nVal.textContent = state.n; fillK(); renderAll(); });
+  els.p.addEventListener('input', () => { state.p = +els.p.value; els.pNum.value = state.p; els.pVal.textContent = state.p.toFixed(2); renderAll(); });
+  els.pNum.addEventListener('change', () => {
+    let v = parseFloat(els.pNum.value); if (isNaN(v)) v = state.p;
+    v = Math.min(1, Math.max(0, v)); v = Math.round(v * 1000) / 1000;
+    state.p = v; els.p.value = v; els.pNum.value = v; els.pVal.textContent = v.toFixed(2); renderAll();
+  });
+  els.mode.addEventListener('change', () => { state.mode = els.mode.value; renderAll(); });
+  els.k.addEventListener('change', () => { state.k = +els.k.value; renderAll(); });
+  els.sLab.addEventListener('input', () => { state.sLab = els.sLab.value || DEFAULTS.sLab; els.legS.textContent = state.sLab; renderTree(); });
+  els.fLab.addEventListener('input', () => { state.fLab = els.fLab.value || DEFAULTS.fLab; els.legF.textContent = state.fLab; renderTree(); });
+  els.showBranch.addEventListener('change', () => { state.showBranch = els.showBranch.checked; renderTree(); });
+  els.showLeaf.addEventListener('change', () => { state.showLeaf = els.showLeaf.checked; renderTree(); });
+  els.fadeOthers.addEventListener('change', () => { state.fadeOthers = els.fadeOthers.checked; renderTree(); });
+  els.reset.addEventListener('click', () => {
+    Object.assign(state, DEFAULTS);
+    syncUI(); renderAll();
+  });
+
+  syncUI();
+  renderAll();
+})();
+</script>
+</body>
+</html>
