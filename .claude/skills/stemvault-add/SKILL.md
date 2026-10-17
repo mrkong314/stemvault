@@ -79,20 +79,21 @@ If a URL does not look embeddable and you cannot safely rewrite it, ask the user
 - **Self-hosted applet** (`type: applet` with a local HTML file): the file must be a single self-contained `.html` (assets referenced by relative paths work, but a single file is the norm). Copy it into `public/applets/<filename>.html` and set `appletFile: <filename>.html`.
 - **Embed / video link / linked file**: no copy. Just set the URL field.
 
-## How applets render: full page
+## How applets open: the raw applet, full page
 
-Every `applet` and `quiz` entry that has an embeddable source (`appletFile` or `embedUrl`) opens **full page** on its detail page (`/resources/r/<slug>`). This is done by the site, not by the entry, so there is nothing to configure per resource: the iframe fills the viewport below the site header, the page itself does not scroll, and the footer is hidden. A thin bar above the iframe carries the breadcrumbs plus **About** (drops down the description, tags, body text and Source link), **New tab** (opens the raw applet on its own) and **Fullscreen**. The shell lives in `src/components/resources/FullPageEmbed.astro` and is switched on in `src/pages/resources/r/[slug].astro`; `video` entries keep the standard boxed page.
+Every `applet` and `quiz` entry that has an embeddable source (`appletFile` or `embedUrl`) is linked **straight to the applet itself** from every card, list row, home-page tile and search result. A self-hosted applet opens at `/applets/<filename>.html` in the same tab (the browser Back button returns to StemVault); an `embedUrl` applet opens the provider's page in a new tab. There is no StemVault header, footer or description around it: the applet is the whole page. This is done by `resourceHref()` in `src/lib/collections.ts`, not by the entry, so there is nothing to configure per resource.
+
+The detail page `/resources/r/<slug>` still builds for every applet and quiz (it wraps the applet in a full-page shell with an About panel) but nothing in the catalogue links to it; treat it as a fallback for old direct links. `video` entries keep linking to their boxed detail page.
 
 Consequences for authoring:
 
-- **Self-hosted HTML applets must fill their viewport.** The iframe can be any size, from a phone screen to a 4K monitor, so the applet should use `width: 100%` / `min-height: 100vh` (or `100dvh`) style layouts and handle its own internal scrolling. Do not rely on a fixed 16:10 box or a fixed pixel width; centre content with `max-width` if it should not stretch indefinitely.
-- **Write a real `description`.** It is no longer shown above the applet; it appears only in the About panel, so it is still the first explanation a user reads. One or two sentences stating what the applet does and who it is for.
-- **Body text (below the frontmatter) still matters.** It renders inside the About panel under the description, so put teaching notes or usage instructions there as before.
-- Embedded third-party applets (Desmos, GeoGebra, PhET, Amplify) need nothing extra; they already size to the iframe.
+- **Self-hosted HTML applets must stand alone as a complete page.** They are opened directly in the browser, so each needs its own `<title>`, viewport meta, and a layout that fills the window (`width: 100%`, `min-height: 100vh`/`100dvh`, internal scrolling). Do not rely on a fixed 16:10 box or a fixed pixel width; centre content with `max-width` if it should not stretch indefinitely. Give the file a clean slug-like name because the filename is visible in the address bar.
+- **The applet should state its own title and brief instructions on-screen**, because the catalogue `description` is not shown alongside it. Still write a real `description`: it appears on the card, in search, and on the fallback detail page.
+- Embedded third-party applets (Desmos, GeoGebra, PhET, Amplify) need nothing extra; the link opens the provider's embeddable URL in a new tab.
 
 ## Source links on detail pages
 
-Every resource detail page shows a clickable **Source** link (at the bottom of the page, or inside the About panel for full-page applets and quizzes) that users can click to access or download the resource:
+Every resource detail page (the `/resources/r/<slug>` fallback page) shows a clickable **Source** link, at the bottom of the page or inside the About panel for applets and quizzes:
 - **Self-hosted applets** (`appletFile`): link shows "Download applet" and points to `/applets/<filename>.html`
 - **Self-hosted files** (`fileUrl`): link shows the domain or "Download applet" and points to `/files/<filename>`
 - **Embed URLs** (Desmos, GeoGebra, PhET, Amplify, etc.): link shows the domain (e.g., "desmos.com", "geogebra.org") and opens the embed in a new tab
@@ -122,7 +123,7 @@ Commit the new markdown **and** any copied asset together in one commit, then pu
 
 ## Batch mode
 
-The user may add several resources at once. Process each through the same steps (type -> slug -> frontmatter -> asset copy -> embed-URL check), validate them all with a single build, then commit the whole batch together (or one commit per resource if the user prefers). Report each slug and its destination URL.
+The user may add several resources at once. Process each through the same steps (type -> slug -> frontmatter -> asset copy -> embed-URL check), validate them all with a single build, then commit the whole batch together (or one commit per resource if the user prefers). Report each slug and its destination URL (for applets and quizzes that is the raw applet URL, e.g. `/applets/<filename>.html`, or the `embedUrl`).
 
 ## Privacy
 

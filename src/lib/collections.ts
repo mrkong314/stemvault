@@ -48,14 +48,31 @@ export function fileHref(entry: ResourceEntry): string {
   return f.startsWith('/') ? f : `/files/${f}`;
 }
 
-/** Where this resource is linked from cards / rows. Files link directly; everything else opens the detail page. */
+/** Does this entry open the raw applet itself rather than a site page? */
+export function opensRaw(entry: ResourceEntry): boolean {
+  const t = entry.data.type;
+  return (t === 'applet' || t === 'quiz') && Boolean(embedSrc(entry));
+}
+
+/**
+ * Where this resource is linked from cards / rows / search.
+ * Files link to the file. Applets and quizzes link straight to the raw applet
+ * (the HTML file or embed URL) so they open full page with no site chrome;
+ * the /resources/r/<slug> page still builds as a fallback for direct links.
+ * Everything else (videos) opens the detail page.
+ */
 export function resourceHref(entry: ResourceEntry): string {
   if (entry.data.type === 'file') return fileHref(entry);
+  if (opensRaw(entry)) return embedSrc(entry)!;
   return `/resources/r/${entry.slug}`;
 }
 
+/** Links that leave the site open in a new tab. */
 export function isExternalHref(entry: ResourceEntry): boolean {
-  return entry.data.type === 'file' && Boolean(entry.data.externalUrl);
+  const d = entry.data;
+  if (d.type === 'file') return Boolean(d.externalUrl);
+  if (opensRaw(entry)) return Boolean(d.embedUrl);
+  return false;
 }
 
 export async function getTopicsForSubject(subject: Subject): Promise<string[]> {
