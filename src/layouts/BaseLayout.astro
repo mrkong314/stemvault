@@ -7,11 +7,14 @@ interface Props {
   title?: string;
   description?: string;
   noindex?: boolean;
+  /** Edge-to-edge mode: content fills the viewport below the header, no page scroll, no footer. */
+  fullPage?: boolean;
 }
 const {
   title = 'StemVault - interactive teaching tools',
   description = 'A place for interactive teaching tools and STEM resources.',
   noindex = false,
+  fullPage = false,
 } = Astro.props;
 ---
 <!doctype html>
@@ -31,7 +34,7 @@ const {
     {noindex && <meta name="robots" content="noindex" />}
     <title>{title}</title>
   </head>
-  <body>
+  <body class:list={{ 'full-page': fullPage }}>
     <Header />
     <main>
       <slot />

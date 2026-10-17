@@ -1,0 +1,250 @@
+---
+/**
+ * Full-page shell for embedded resources (applets, quizzes).
+ * The iframe fills the viewport below the site header; the page itself never
+ * scrolls. Pair with `<BaseLayout fullPage>` so body/main/footer cooperate.
+ *
+ * Slots:
+ *   about   - description, tags, prose, source link (shown in a drop-down panel)
+ *   actions - extra bar controls (e.g. the edit-mode button)
+ */
+interface Crumb {
+  label: string;
+  href?: string;
+}
+interface Props {
+  src: string;
+  title: string;
+  crumbs: Crumb[];
+}
+const { src, title, crumbs } = Astro.props;
+const hasAbout = Astro.slots.has('about');
+---
+<div class="applet-shell" id="applet-shell">
+  <div class="applet-bar">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      {crumbs.map((c, i) => (
+        <>
+          {i > 0 && <span class="crumb-sep" aria-hidden="true">/</span>}
+          {c.href
+            ? <a href={c.href}>{c.label}</a>
+            : <span class="crumb-current" title={c.label}>{c.label}</span>}
+        </>
+      ))}
+    </nav>
+    <div class="bar-actions">
+      <slot name="actions" />
+      {hasAbout && (
+        <button type="button" class="bar-btn" id="about-btn" aria-expanded="false" aria-controls="about-panel">
+          About
+        </button>
+      )}
+      <a class="bar-btn" href={src} target="_blank" rel="noopener noreferrer" title="Open the applet on its own in a new tab">
+        New tab ↗
+      </a>
+      <button type="button" class="bar-btn" id="fs-btn" aria-pressed="false">
+        Fullscreen
+      </button>
+    </div>
+  </div>
+
+  {hasAbout && (
+    <div class="about-panel" id="about-panel" hidden>
+      <div class="about-inner">
+        <slot name="about" />
+      </div>
+    </div>
+  )}
+
+  <div class="frame-wrap">
+    <iframe
+      src={src}
+      title={title}
+      class="applet-frame"
+      allow="fullscreen; clipboard-write"
+      allowfullscreen
+      referrerpolicy="no-referrer-when-downgrade"
+    ></iframe>
+  </div>
+</div>
+
+<style>
+  .applet-shell {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .applet-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 0.5rem 1.1rem;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+  }
+
+  .crumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+  }
+  .crumbs a { color: var(--ink-mute); white-space: nowrap; }
+  .crumbs a:hover { color: var(--pine); }
+  .crumb-current {
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+  }
+  .bar-btn {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .bar-btn:hover,
+  .bar-btn[aria-expanded="true"] {
+    border-color: var(--pine);
+    color: var(--pine);
+  }
+
+  /* The About panel overlays the frame so toggling it never resizes the applet. */
+  .about-panel {
+    position: absolute;
+    top: 3rem; /* overridden with the bar's real height on open */
+    right: 1.1rem;
+    z-index: 20;
+    width: min(32rem, calc(100% - 2.2rem));
+    max-height: 70vh;
+    overflow: auto;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+  }
+  .about-panel[hidden] { display: none; }
+  .about-inner { padding: 1.1rem 1.3rem 1.2rem; }
+
+  .frame-wrap {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    background: #fff;
+  }
+  .applet-frame {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  /* Native fullscreen. */
+  .applet-shell:fullscreen { background: #fff; }
+
+  /* Fallback when the Fullscreen API is refused: fill the window, covering the header. */
+  .applet-shell.faux-fs {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #fff;
+  }
+
+  @media (max-width: 600px) {
+    .applet-bar { flex-wrap: wrap; padding: 0.45rem 0.8rem; }
+    .crumbs { width: 100%; }
+    .bar-actions { width: 100%; justify-content: flex-end; }
+    .about-panel { right: 0.8rem; width: calc(100% - 1.6rem); }
+  }
+</style>
+
+<script>
+  const shell = document.getElementById('applet-shell');
+  const fsBtn = document.getElementById('fs-btn');
+  const aboutBtn = document.getElementById('about-btn');
+  const aboutPanel = document.getElementById('about-panel');
+
+  // About panel: positioned just under the bar.
+  if (aboutBtn && aboutPanel && shell) {
+    const bar = shell.querySelector<HTMLElement>('.applet-bar');
+    const setAbout = (open: boolean) => {
+      aboutPanel.hidden = !open;
+      aboutBtn.setAttribute('aria-expanded', String(open));
+      if (open && bar) aboutPanel.style.top = `${bar.offsetHeight}px`;
+    };
+    aboutBtn.addEventListener('click', () => setAbout(aboutPanel.hidden));
+    document.addEventListener('click', (e) => {
+      if (aboutPanel.hidden) return;
+      const t = e.target as Node;
+      if (!aboutPanel.contains(t) && !aboutBtn.contains(t)) setAbout(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !aboutPanel.hidden) setAbout(false);
+    });
+  }
+
+  // Fullscreen, with a fill-the-window fallback.
+  if (shell && fsBtn) {
+    const sync = (on: boolean) => {
+      fsBtn.textContent = on ? 'Exit fullscreen' : 'Fullscreen';
+      fsBtn.setAttribute('aria-pressed', String(on));
+    };
+    const fauxOn = () => shell.classList.contains('faux-fs');
+    const setFaux = (on: boolean) => {
+      shell.classList.toggle('faux-fs', on);
+      sync(on);
+    };
+
+    fsBtn.addEventListener('click', () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+        return;
+      }
+      if (fauxOn()) {
+        setFaux(false);
+        return;
+      }
+      try {
+        const p = shell.requestFullscreen?.();
+        if (p) p.catch(() => setFaux(true));
+        else setFaux(true);
+      } catch {
+        setFaux(true);
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      sync(document.fullscreenElement === shell);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && fauxOn()) setFaux(false);
+    });
+  }
+</script>

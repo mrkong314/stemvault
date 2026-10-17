@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import ResourceEmbed from '~/components/resources/ResourceEmbed.astro';
+import FullPageEmbed from '~/components/resources/FullPageEmbed.astro';
 import TypeBadge from '~/components/resources/TypeBadge.astro';
 import AddButton from '~/components/edit/AddButton.astro';
 import { getResources, embedSrc, fileHref } from '~/lib/collections';
@@ -25,8 +26,46 @@ const { Content } = await resource.render();
 const src = embedSrc(resource);
 const isExternal = Boolean(embedUrl);
 const subjectInfo = subjectFromSlug(slugForSubject(subject));
+// Applets and quizzes open edge to edge (full page); videos keep the standard page.
+const fullPage = Boolean(src) && (type === 'applet' || type === 'quiz');
+const sourceLabel = isExternal ? new URL(src!, 'https://x').hostname.replace('x', '') : 'Download applet';
 ---
-<BaseLayout title={`${title} · StemVault`} description={description} noindex={unlisted}>
+<BaseLayout title={`${title} · StemVault`} description={description} noindex={unlisted} fullPage={fullPage}>
+  {fullPage ? (
+  <FullPageEmbed
+    src={src!}
+    title={title}
+    crumbs={[
+      { label: 'Resources', href: '/resources' },
+      { label: subject, href: `/resources/${subjectInfo?.slug}` },
+      { label: title },
+    ]}
+  >
+    <AddButton slot="actions" label={`Edit ${TYPE_LABEL[type].toLowerCase()}`} kind="applet" />
+    <div slot="about" class="about">
+      <div class="head-badges">
+        <TypeBadge type={type} format={format} />
+        <span class="eyebrow">{subject} · Yr {yearLevel.join(', ')}</span>
+      </div>
+      <h1 class="about-title">{title}</h1>
+      {description && <p class="lede">{description}</p>}
+      {tags.length > 0 && (
+        <ul class="tag-list">
+          {tags.map(t => <li>{t}</li>)}
+        </ul>
+      )}
+      <div class="prose">
+        <Content />
+      </div>
+      <p class="meta">
+        <span class="label-mono">Source</span>
+        <a href={src} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined} class="source-link">
+          {sourceLabel}
+        </a>
+      </p>
+    </div>
+  </FullPageEmbed>
+  ) : (
   <article class="resource-page">
     <div class="container">
       <nav class="crumbs">
@@ -66,7 +105,7 @@ const subjectInfo = subjectFromSlug(slugForSubject(subject));
           <span class="label-mono">Source</span>
           {src && (
             <a href={src} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined} class="source-link">
-              {isExternal ? new URL(src, 'https://x').hostname.replace('x', '') : 'Download applet'}
+              {sourceLabel}
             </a>
           )}
         </div>
@@ -76,6 +115,7 @@ const subjectInfo = subjectFromSlug(slugForSubject(subject));
       </footer>
     </div>
   </article>
+  )}
 </BaseLayout>
 
 <style>
@@ -150,6 +190,23 @@ const subjectInfo = subjectFromSlug(slugForSubject(subject));
   .meta a { color: var(--pine); text-decoration: none; transition: color 0.15s; }
   .meta a:hover { color: var(--pine-dark); text-decoration: underline; }
   .prose :global(p) { line-height: 1.65; color: var(--ink-soft); }
+
+  /* About panel (full-page mode) */
+  .about .head-badges { margin-bottom: 0.2rem; }
+  .about-title { font-size: 1.5rem; margin: 0.4rem 0 0.5rem; }
+  .about .lede { font-size: 0.95rem; }
+  .about .tag-list { margin: 0.9rem 0 0.6rem; }
+  .about .prose :global(p) { font-size: 0.92rem; margin: 0.6rem 0; }
+  .about .meta {
+    flex-direction: row;
+    gap: 0.6rem;
+    align-items: baseline;
+    margin: 0.8rem 0 0;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--line);
+  }
+  .about .meta a { color: var(--pine); text-decoration: none; }
+  .about .meta a:hover { text-decoration: underline; }
   @media (max-width: 760px) {
     .resource-foot { grid-template-columns: 1fr; }
     .head-row { flex-direction: column; }

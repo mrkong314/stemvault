@@ -79,9 +79,20 @@ If a URL does not look embeddable and you cannot safely rewrite it, ask the user
 - **Self-hosted applet** (`type: applet` with a local HTML file): the file must be a single self-contained `.html` (assets referenced by relative paths work, but a single file is the norm). Copy it into `public/applets/<filename>.html` and set `appletFile: <filename>.html`.
 - **Embed / video link / linked file**: no copy. Just set the URL field.
 
+## How applets render: full page
+
+Every `applet` and `quiz` entry that has an embeddable source (`appletFile` or `embedUrl`) opens **full page** on its detail page (`/resources/r/<slug>`). This is done by the site, not by the entry, so there is nothing to configure per resource: the iframe fills the viewport below the site header, the page itself does not scroll, and the footer is hidden. A thin bar above the iframe carries the breadcrumbs plus **About** (drops down the description, tags, body text and Source link), **New tab** (opens the raw applet on its own) and **Fullscreen**. The shell lives in `src/components/resources/FullPageEmbed.astro` and is switched on in `src/pages/resources/r/[slug].astro`; `video` entries keep the standard boxed page.
+
+Consequences for authoring:
+
+- **Self-hosted HTML applets must fill their viewport.** The iframe can be any size, from a phone screen to a 4K monitor, so the applet should use `width: 100%` / `min-height: 100vh` (or `100dvh`) style layouts and handle its own internal scrolling. Do not rely on a fixed 16:10 box or a fixed pixel width; centre content with `max-width` if it should not stretch indefinitely.
+- **Write a real `description`.** It is no longer shown above the applet; it appears only in the About panel, so it is still the first explanation a user reads. One or two sentences stating what the applet does and who it is for.
+- **Body text (below the frontmatter) still matters.** It renders inside the About panel under the description, so put teaching notes or usage instructions there as before.
+- Embedded third-party applets (Desmos, GeoGebra, PhET, Amplify) need nothing extra; they already size to the iframe.
+
 ## Source links on detail pages
 
-Every resource detail page shows a clickable **Source** link at the bottom that users can click to access or download the resource:
+Every resource detail page shows a clickable **Source** link (at the bottom of the page, or inside the About panel for full-page applets and quizzes) that users can click to access or download the resource:
 - **Self-hosted applets** (`appletFile`): link shows "Download applet" and points to `/applets/<filename>.html`
 - **Self-hosted files** (`fileUrl`): link shows the domain or "Download applet" and points to `/files/<filename>`
 - **Embed URLs** (Desmos, GeoGebra, PhET, Amplify, etc.): link shows the domain (e.g., "desmos.com", "geogebra.org") and opens the embed in a new tab
