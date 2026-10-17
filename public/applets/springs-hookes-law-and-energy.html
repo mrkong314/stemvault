@@ -189,7 +189,9 @@
   const S_MAX = 360;                 // px per metre in the horizontal scene
   const L0H = 280 / S_MAX, L0V = 0.5, L0S = 0.3;   // natural lengths (m); horizontal chosen so the unstretched end sits at the scene centre
   const A_MAX = 0.5;                 // max displacement from equilibrium when dragging (m)
-  const T_MIN = 3, T_MAX = 12;       // timeline length is about six periods, clamped to this range (s)
+  const T_MIN = 3, T_MAX = 12;       // undamped timeline is about six periods, clamped to this range (s)
+  const T_DAMP_MAX = 60;             // damped timeline runs until the mass settles at equilibrium, at most this long (s)
+  const SETTLE_FRAC = 0.01, SETTLE_MIN = 0.002;   // "settled" = amplitude below 1% of the release amplitude (and below 2 mm)
   const FPS_REC = 120;               // samples per second stored
   const SIM_W = 640, SIM_H = 560;
   const TRACK_W = 620, TRACK_H = 58;
@@ -210,7 +212,7 @@
     dampOn: false, b: 0.5,
     x0: 0.3,                         // release extension (m), relative to natural length
     x: 0.3, v: 0, Q: 0, t: 0,        // current displayed state
-    playing: false, speed: 1,
+    playing: false, speed: 0.4,
     dragging: null,                  // 'mass' | 'track' | null
     traj: null,                      // { x: Float64Array, v, Q, keys: [{t, type, x}] }
     T: 6,                            // timeline length (s)
@@ -274,13 +276,28 @@
   function buildTrajectory() {
     const k = kEff(), m = st.m, b = bEff(), G = gravTerm();
     const sub = 5, dt = 1 / (FPS_REC * sub);
-    st.T = Math.max(T_MIN, Math.min(T_MAX, Math.round(6 * 2 * Math.PI * Math.sqrt(m / k))));
-    const N = st.T * FPS_REC + 1;
-    const X = new Float64Array(N), V = new Float64Array(N), QQ = new Float64Array(N);
+    const eq0 = xEq(), w0 = Math.sqrt(k / m);
+    const period = 2 * Math.PI / w0;
+    // undamped: about six periods. Damped: run until the mass has settled, then stop at equilibrium.
+    const Tund = Math.max(T_MIN, Math.min(T_MAX, Math.round(6 * period)));
+    const Tcap = b > 0 ? T_DAMP_MAX : Tund;
+    const Ncap = Math.round(Tcap * FPS_REC) + 1;
+    let X = new Float64Array(Ncap), V = new Float64Array(Ncap), QQ = new Float64Array(Ncap);
     let x = st.x0, v = 0, Q = 0;
     const acc = (x, v) => (-k * x + G - b * v) / m;
-    for (let i = 0; i < N; i++) {
+    const settleAmp = Math.max(SETTLE_MIN, SETTLE_FRAC * Math.abs(st.x0 - eq0));
+    const nPeriod = Math.ceil(period * FPS_REC);
+    let settled = -1, lastEqCross = -1, N = Ncap;
+    for (let i = 0; i < Ncap; i++) {
       X[i] = x; V[i] = v; QQ[i] = Q;
+      if (b > 0) {
+        if (i > 0 && ((X[i - 1] - eq0 < 0 && x - eq0 >= 0) || (X[i - 1] - eq0 > 0 && x - eq0 <= 0))) {
+          lastEqCross = i;
+          if (settled >= 0) { N = i + 1; break; }            // settled and back at equilibrium: end here
+        }
+        if (settled < 0 && i > 0 && Math.hypot(x - eq0, v / w0) < settleAmp) settled = i;
+        if (settled >= 0 && i - settled >= nPeriod) { N = i + 1; break; }   // over-damped: no crossing, just rests at equilibrium
+      }
       for (let s = 0; s < sub; s++) {
         const k1x = v, k1v = acc(x, v), k1q = b * v * v;
         const k2x = v + 0.5 * dt * k1v, k2v = acc(x + 0.5 * dt * k1x, k2x), k2q = b * k2x * k2x;
@@ -291,6 +308,15 @@
         Q += dt / 6 * (k1q + 2 * k2q + 2 * k3q + k4q);
       }
     }
+    if (b > 0) {
+      // not settled within the cap: still finish on the last pass through equilibrium
+      if (N === Ncap && settled < 0 && lastEqCross > 0) N = lastEqCross + 1;
+      N = Math.max(N, Math.round(T_MIN * FPS_REC) + 1);
+      N = Math.min(N, Ncap);
+      X = X.subarray(0, N); V = V.subarray(0, N); QQ = QQ.subarray(0, N);
+      if (settled >= 0 || lastEqCross === N - 1) { X[N - 1] = eq0; if (settled >= 0) V[N - 1] = 0; }
+    }
+    st.T = (N - 1) / FPS_REC;
     // key points
     const keys = [];
     const eq = xEq();
@@ -420,9 +446,9 @@
     rebuild(true);
   });
   ui.dampRow.classList.add('hidden');
-  ui.spd1.addEventListener('click', () => setSpeed(1, ui.spd1));
-  ui.spd2.addEventListener('click', () => setSpeed(0.4, ui.spd2));
-  ui.spd3.addEventListener('click', () => setSpeed(0.15, ui.spd3));
+  ui.spd1.addEventListener('click', () => setSpeed(0.4, ui.spd1));
+  ui.spd2.addEventListener('click', () => setSpeed(0.15, ui.spd2));
+  ui.spd3.addEventListener('click', () => setSpeed(0.05, ui.spd3));
   ui.resetBtn.addEventListener('click', resetMotion);
   ui.extraToggles.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -841,7 +867,8 @@
     const ctx = track.ctx;
     ctx.clearRect(0, 0, TRACK_W, TRACK_H);
     const y = 26;
-    for (let s = 0; s <= st.T; s++) { const px = tToPx(s); ctx.fillStyle = '#bbb'; ctx.fillRect(px - 0.5, y + 9, 1, 4); text(ctx, s + '', px, y + 15, '#999', '9px Arial', 'center', 'top'); }
+    const tickStep = st.T > 40 ? 10 : st.T > 20 ? 5 : st.T > 12 ? 2 : 1;
+    for (let s = 0; s <= st.T + 1e-9; s += tickStep) { const px = tToPx(s); ctx.fillStyle = '#bbb'; ctx.fillRect(px - 0.5, y + 9, 1, 4); text(ctx, s + '', px, y + 15, '#999', '9px Arial', 'center', 'top'); }
     ctx.strokeStyle = '#ccc'; ctx.lineWidth = 4; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(TR_L, y); ctx.lineTo(TR_R, y); ctx.stroke();
     ctx.strokeStyle = '#3b78d8';
