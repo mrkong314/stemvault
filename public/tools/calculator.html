@@ -4086,8 +4086,8 @@ function recomputeImpl(onlyFolder) {
     const scope = { ...angleFns, ...physConstants(), ...CALC_FUNCS };
     const definedNames = new Set();
 
-    const infos = folder.lines.map(line => {
-      if (line.isSystem) return { line, isSystem: true, expr: '', isAssign: false };
+    const infos = folder.lines.map((line, idx) => {
+      if (line.isSystem) return { line, idx, isSystem: true, expr: '', isAssign: false };
       let expr = '';
       try { expr = prepareExpr(line.mq.latex()); } catch (e) { expr = ''; }
       const m = expr.match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)\s*(.+)$/);
@@ -4120,8 +4120,38 @@ function recomputeImpl(onlyFolder) {
           equation = (n === 1);
         }
       }
-      return { line, expr, isAssign: !!(m || t), trailing: !!t, name, rhs, solveDef, equation };
+      return { line, idx, expr, isAssign: !!(m || t), trailing: !!t, name, rhs, solveDef, equation };
     });
+
+    // ans = the previous non-empty line's single value, resolved per line.
+    // Chains (ans built on ans) walk back recursively; a line with no single
+    // value yet (unresolved, list result, error) yields no ans at all.
+    const ansIdx = (idx) => {
+      for (let j = idx - 1; j >= 0; j--) {
+        const inf = infos[j];
+        if (!inf.isSystem && inf.expr !== '') return j;
+      }
+      return -1;
+    };
+    const lineValue = (idx, depth) => {
+      if (idx < 0 || (depth || 0) > infos.length) return undefined;
+      const inf = infos[idx];
+      try {
+        if (inf.solveDef) return scope[inf.solveDef.varName];
+        if (inf.isAssign) return scope[inf.name];
+        const s2 = effScopeFor(inf.line, scope, definedNames);
+        const av = lineValue(ansIdx(idx), (depth || 0) + 1);
+        if (av !== undefined) s2.ans = av; else delete s2.ans;
+        return evalExpr(inf.expr, s2);
+      } catch (e) { return undefined; }
+    };
+    const injectAns = (sc, idx, srcExpr) => {
+      // only pay for the walk when the line actually says ans
+      if (srcExpr !== undefined && srcExpr.indexOf('ans') === -1) { delete sc.ans; return sc; }
+      const av = lineValue(ansIdx(idx));
+      if (av !== undefined) sc.ans = av; else delete sc.ans;
+      return sc;
+    };
 
     // implicit solving: a plain equation whose variables are all defined except
     // ONE auto-solves for that unknown, and defines it like a solve() would
@@ -4146,7 +4176,7 @@ function recomputeImpl(onlyFolder) {
       progressed = false; const still = [];
       for (const info of pending) {
         try {
-          const pScope = effScopeFor(info.line, scope, definedNames);
+          const pScope = injectAns(effScopeFor(info.line, scope, definedNames), info.idx, info.expr);
           if (info.solveDef) {
             const sd = info.solveDef;
             let val;
@@ -4180,20 +4210,6 @@ function recomputeImpl(onlyFolder) {
     folder.definedNamesList = [...definedNames].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()) || a.localeCompare(b));
     folder.definedValues = {};
     folder.definedNamesList.forEach(n => { folder.definedValues[n] = scope[n]; });
-
-    // ans = last non-empty line spatially
-    let ansVal;
-    for (let k = infos.length-1; k >= 0; k--) {
-      const info = infos[k]; if (info.expr === '') continue;
-      try {
-        ansVal = info.isAssign ? scope[info.name]
-               : info.solveDef ? scope[info.solveDef.varName]
-               : evalExpr(info.expr, { ...scope });
-      }
-      catch (e) { ansVal = undefined; }
-      break;
-    }
-    if (ansVal !== undefined) scope.ans = ansVal;
 
     // Pass 2: render + detect undefined vars
     for (const info of infos) {
@@ -4249,7 +4265,7 @@ function recomputeImpl(onlyFolder) {
 
       try {
         const fullLatex = line.mq.latex();
-        const eScope = effScopeFor(line, scope, definedNames);
+        const eScope = injectAns(effScopeFor(line, scope, definedNames), info.idx, info.expr);
         let value;
         // cSolve(eq,var): list every complex root (always all-roots, regardless
         // of the solve-all toggle). Must be the whole RHS, like the solve path.
@@ -8740,6 +8756,7 @@ function openShortcuts() {
   tip('Quick denominator', ['Place the caret just before a number or bracket that is already typed, then press ', { k: '/' },
     '. That term drops below the bar and the caret lands in the empty numerator: with the caret before the 8 in ',
     { x: '23\\times8' }, ', pressing ', { k: '/' }, ' gives ', { x: '23\\times\\frac{\\square}{8}' }, '.']);
+  tip('Previous answer', [{ k: 'ans' }, ' (on the 123 keypad) is the value of the line above in the same section: 5+5 then ', { x: '\\operatorname{ans}\\times2' }, ' gives 20. Chains work, and it carries nothing when the line above has no value.']);
   tip('Symbol search', [{ k: '?' }, ' opens a symbol panel: this section’s variables as chips with values, your recent symbols, then tappable Greek and letter grids. Typing still filters by name.']);
   tip('Greek keyboard', ['The abc keypad page holds the full alphabet; ', { k: 'αβγ' }, ' flips it to Greek in place, and ', { k: '⇧' }, ' capitalises either layer.']);
   tip('Quick subscripts', ['Long-press any letter key to insert it with its subscript open: hold ', { x: 'v' }, ', tap 1 for ', { x: 'v_1' }, '.']);
