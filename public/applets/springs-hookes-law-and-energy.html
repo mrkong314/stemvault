@@ -60,6 +60,10 @@
   .segmented button { flex: 1; border: none; background: #fff; padding: 6px 2px; font: inherit; font-size: 12px; cursor: pointer; color: #333; white-space: nowrap; }
   .segmented button + button { border-left: 1px solid #999; }
   .segmented button.on { background: var(--accent); color: #fff; font-weight: bold; }
+  .segmented.wrap { flex-wrap: wrap; }
+  .segmented.wrap button { flex: 1 0 50%; }
+  .segmented.wrap button:nth-child(3) { border-left: none; }
+  .segmented.wrap button:nth-child(n+3) { border-top: 1px solid #999; }
   .slider-row { margin: 6px 0 8px 0; }
   .slider-row label { display: flex; justify-content: space-between; font-weight: bold; }
   .slider-row label span.val { font-weight: normal; font-variant-numeric: tabular-nums; }
@@ -123,9 +127,10 @@
   <!-- controls -->
   <div class="panel">
     <h2>Mode</h2>
-    <div class="segmented">
+    <div class="segmented wrap">
       <button id="modeH" class="on">Horizontal</button>
       <button id="modeV">Vertical</button>
+      <button id="modeD">Ball drop</button>
       <button id="modeS">Hooke's law</button>
     </div>
     <label class="check" id="valsRow" style="margin-top:8px"><input type="checkbox" id="showVals"> Values table</label>
@@ -138,6 +143,10 @@
     <div class="slider-row" id="mRow">
       <label>Mass m <span class="val" id="mVal">1.00 kg</span></label>
       <input type="range" id="mSlider" min="0.2" max="2.5" step="0.1" value="1">
+    </div>
+    <div class="slider-row hidden" id="hRow">
+      <label>Drop height h <span class="val" id="hVal">0.30 m</span></label>
+      <input type="range" id="hSlider" min="0" max="1" step="0.01" value="0.3">
     </div>
     <div id="massGroup" class="hidden">
       <div class="masses" id="massTotal">0 g on the spring</div>
@@ -191,6 +200,8 @@
   const A_MAX = 0.5;                 // max displacement from equilibrium when dragging (m)
   const T_MIN = 3, T_MAX = 12;       // undamped timeline is about six periods, clamped to this range (s)
   const T_DAMP_MAX = 60;             // damped timeline runs until the mass settles at equilibrium, at most this long (s)
+  const T_DROP_MAX = 20;             // undamped ball-drop timeline: four bounces, at most this long (s)
+  const H_MAX = 1.0;                 // max drop height (m)
   const SETTLE_FRAC = 0.01, SETTLE_MIN = 0.002;   // "settled" = amplitude below 1% of the release amplitude (and below 2 mm)
   const FPS_REC = 120;               // samples per second stored
   const SIM_W = 640, SIM_H = 560;
@@ -207,7 +218,7 @@
 
   // ---------- state ----------
   const st = {
-    mode: 'H',                       // 'H' | 'V' | 'S' (static Hooke's law)
+    mode: 'H',                       // 'H' | 'V' | 'D' (ball dropped onto a spring) | 'S' (static Hooke's law)
     k: 50, m: 1.0,
     dampOn: false, b: 0.5,
     x0: 0.3,                         // release extension (m), relative to natural length
@@ -224,7 +235,7 @@
   };
 
   const ui = {};
-  ['modeH','modeV','modeS','kRow','kSlider','kVal','mRow','mSlider','mVal','massGroup','massTotal','addMass','remMass','mystery',
+  ['modeH','modeV','modeD','modeS','kRow','kSlider','kVal','mRow','mSlider','mVal','hRow','hSlider','hVal','massGroup','massTotal','addMass','remMass','mystery',
    'lossGroup','dampOn','dampRow','bSlider','bVal','fSpring','fWeight','fWeightRow','fDamp','fDampRow','fNet','fNetRow','vVec','vVecRow',
    'showMarks','markRow','speedGroup','spd1','spd2','spd3','resetBtn','showVals','valsRow',
    'prevBtn','playBtn','nextBtn','timeText','timelineRow','barsCard','unitTabs','readout','readoutTitle','extraToggles','graphCard','hookeCard','timeCard','readoutCard']
@@ -249,25 +260,37 @@
 
   // ---------- physics helpers ----------
   const kEff = () => st.mode === 'S' && st.hk.mystery ? st.hk.kHidden : st.k;
-  const L0 = () => st.mode === 'H' ? L0H : L0V;
-  const xEq = () => st.mode === 'V' ? st.m * g / kEff() : 0;
-  const gravTerm = () => st.mode === 'V' ? st.m * g : 0;
+  const L0 = () => st.mode === 'H' ? L0H : st.mode === 'D' ? L0D() : L0V;
+  const xEq = () => (st.mode === 'V' || st.mode === 'D') ? st.m * g / kEff() : 0;
+  const gravTerm = () => (st.mode === 'V' || st.mode === 'D') ? st.m * g : 0;
   const bEff = () => st.dampOn ? st.b : 0;
-  const amp = () => Math.abs(st.x0 - xEq());
-  const massSide = () => 60 + st.m * 8;                       // px
+  // ball drop: x is the ball's position measured down from the spring's unstretched top
+  // (x < 0 in the air, x > 0 compressing the spring). The spring only acts while x > 0.
+  const inContact = x => st.mode !== 'D' || x > 0;
+  const hDrop = () => Math.max(0, -st.x0);                     // drop height above the spring (m)
+  function cMax() {                                           // max compression: mg(h + c) = ½kc²
+    const w = st.m * g, k = kEff();
+    return (w + Math.sqrt(w * w + 2 * k * w * hDrop())) / k;
+  }
+  const L0D = () => Math.max(0.4, 1.4 * cMax());              // spring long enough never to be fully squashed
+  const amp = () => st.mode === 'D' ? cMax() - xEq() : Math.abs(st.x0 - xEq());
+  const turnPts = () => st.mode === 'D' ? [-hDrop(), cMax()] : [xEq() - amp(), xEq() + amp()];   // the two v = 0 positions
+  const massSide = () => st.mode === 'D' ? 44 + st.m * 8 : 60 + st.m * 8;    // px (ball diameter in drop mode)
+  const springF = x => inContact(x) ? -kEff() * x : 0;
   // px per metre; shrinks in vertical mode so a heavy mass on a weak spring still fits
   function sc() {
     if (st.mode === 'H') return S_MAX;
     if (st.mode === 'S') return Math.min(800, (SIM_H - 230) / (L0S + MASS_MAX * MASS_UNIT * g / kEff()));
+    if (st.mode === 'D') return Math.min(400, (SIM_H - 130 - massSide()) / (L0D() + hDrop()));
     return Math.min(400, (SIM_H - 40 - 70) / (L0V + xEq() + amp() + massSide() / 400 + 0.1));
   }
-  // GPE reference: lowest point of the motion (spring end at x = xEq + A)
-  const heightOf = x => st.mode === 'V' ? (xEq() + amp() - x) : 0;
+  // GPE reference: lowest point of the motion (spring end at x = xEq + A, or max compression for the drop)
+  const heightOf = x => st.mode === 'V' ? (xEq() + amp() - x) : st.mode === 'D' ? (cMax() - x) : 0;
 
   function energiesAt(x, v, Q) {
     const KE = 0.5 * st.m * v * v;
-    const Es = 0.5 * kEff() * x * x;
-    const GPE = st.mode === 'V' ? st.m * g * heightOf(x) : 0;
+    const Es = inContact(x) ? 0.5 * kEff() * x * x : 0;
+    const GPE = (st.mode === 'V' || st.mode === 'D') ? st.m * g * heightOf(x) : 0;
     return { KE, Es, GPE, Q, mech: KE + Es + GPE, total: KE + Es + GPE + Q };
   }
   const energies = () => energiesAt(st.x, st.v, st.Q);
@@ -279,17 +302,23 @@
     const eq0 = xEq(), w0 = Math.sqrt(k / m);
     const period = 2 * Math.PI / w0;
     // undamped: about six periods. Damped: run until the mass has settled, then stop at equilibrium.
-    const Tund = Math.max(T_MIN, Math.min(T_MAX, Math.round(6 * period)));
+    const D = st.mode === 'D';
+    const Tund = D ? T_DROP_MAX : Math.max(T_MIN, Math.min(T_MAX, Math.round(6 * period)));
     const Tcap = b > 0 ? T_DAMP_MAX : Tund;
     const Ncap = Math.round(Tcap * FPS_REC) + 1;
     let X = new Float64Array(Ncap), V = new Float64Array(Ncap), QQ = new Float64Array(Ncap);
     let x = st.x0, v = 0, Q = 0;
-    const acc = (x, v) => (-k * x + G - b * v) / m;
+    const acc = (x, v) => inContact(x) ? (-k * x + G - b * v) / m : G / m;     // in the air only gravity acts
+    const qRate = (x, v) => inContact(x) ? b * v * v : 0;
     const settleAmp = Math.max(SETTLE_MIN, SETTLE_FRAC * Math.abs(st.x0 - eq0));
     const nPeriod = Math.ceil(period * FPS_REC);
-    let settled = -1, lastEqCross = -1, N = Ncap;
+    let settled = -1, lastEqCross = -1, N = Ncap, tops = 0;
     for (let i = 0; i < Ncap; i++) {
       X[i] = x; V[i] = v; QQ[i] = Q;
+      if (D && b === 0 && i > 0 && V[i - 1] < 0 && v >= 0) {       // top of a bounce
+        tops++;
+        if (tops >= 4 && i >= T_MIN * FPS_REC) { N = i + 1; break; }   // four bounces, ending at the top
+      }
       if (b > 0) {
         if (i > 0 && ((X[i - 1] - eq0 < 0 && x - eq0 >= 0) || (X[i - 1] - eq0 > 0 && x - eq0 <= 0))) {
           lastEqCross = i;
@@ -299,10 +328,10 @@
         if (settled >= 0 && i - settled >= nPeriod) { N = i + 1; break; }   // over-damped: no crossing, just rests at equilibrium
       }
       for (let s = 0; s < sub; s++) {
-        const k1x = v, k1v = acc(x, v), k1q = b * v * v;
-        const k2x = v + 0.5 * dt * k1v, k2v = acc(x + 0.5 * dt * k1x, k2x), k2q = b * k2x * k2x;
-        const k3x = v + 0.5 * dt * k2v, k3v = acc(x + 0.5 * dt * k2x, k3x), k3q = b * k3x * k3x;
-        const k4x = v + dt * k3v, k4v = acc(x + dt * k3x, k4x), k4q = b * k4x * k4x;
+        const k1x = v, k1v = acc(x, v), k1q = qRate(x, v);
+        const k2x = v + 0.5 * dt * k1v, k2v = acc(x + 0.5 * dt * k1x, k2x), k2q = qRate(x + 0.5 * dt * k1x, k2x);
+        const k3x = v + 0.5 * dt * k2v, k3v = acc(x + 0.5 * dt * k2x, k3x), k3q = qRate(x + 0.5 * dt * k2x, k3x);
+        const k4x = v + dt * k3v, k4v = acc(x + dt * k3x, k4x), k4q = qRate(x + dt * k3x, k4x);
         x += dt / 6 * (k1x + 2 * k2x + 2 * k3x + k4x);
         v += dt / 6 * (k1v + 2 * k2v + 2 * k3v + k4v);
         Q += dt / 6 * (k1q + 2 * k2q + 2 * k3q + k4q);
@@ -313,9 +342,9 @@
       if (N === Ncap && settled < 0 && lastEqCross > 0) N = lastEqCross + 1;
       N = Math.max(N, Math.round(T_MIN * FPS_REC) + 1);
       N = Math.min(N, Ncap);
-      X = X.subarray(0, N); V = V.subarray(0, N); QQ = QQ.subarray(0, N);
-      if (settled >= 0 || lastEqCross === N - 1) { X[N - 1] = eq0; if (settled >= 0) V[N - 1] = 0; }
     }
+    if (N < Ncap) { X = X.subarray(0, N); V = V.subarray(0, N); QQ = QQ.subarray(0, N); }
+    if (b > 0 && (settled >= 0 || lastEqCross === N - 1)) { X[N - 1] = eq0; if (settled >= 0) V[N - 1] = 0; }
     st.T = (N - 1) / FPS_REC;
     // key points
     const keys = [];
@@ -332,7 +361,8 @@
         keys.push({ t, type: 'turn', x: X[i - 1] + (X[i] - X[i - 1]) * ((t - tOf(i - 1)) * FPS_REC) });
       }
       if (cross(X[i - 1] - eq, X[i] - eq)) keys.push({ t: interp(i, X[i - 1] - eq, X[i] - eq), type: 'eq', x: eq });
-      if (st.mode === 'V' && eq > 0.005 && cross(X[i - 1], X[i])) keys.push({ t: interp(i, X[i - 1], X[i]), type: 'nat', x: 0 });
+      if (((st.mode === 'V' && eq > 0.005) || st.mode === 'D') && cross(X[i - 1], X[i]))
+        keys.push({ t: interp(i, X[i - 1], X[i]), type: 'nat', x: 0, dir: X[i] > X[i - 1] ? 'in' : 'out' });
     }
     keys.sort((p, q) => p.t - q.t);
     st.traj = { x: X, v: V, Q: QQ, keys };
@@ -349,10 +379,11 @@
   }
 
   function keyName(kp) {
-    if (kp.type === 'eq') return st.mode === 'H' ? 'equilibrium (unstretched): max speed' : 'equilibrium: max speed';
-    if (kp.type === 'nat') return 'unstretched length';
+    if (kp.type === 'eq') return st.mode === 'H' ? 'equilibrium (unstretched): max speed' : st.mode === 'D' ? 'equilibrium (kx = mg): max speed' : 'equilibrium: max speed';
+    if (kp.type === 'nat') return st.mode === 'D' ? (kp.dir === 'in' ? 'ball meets the spring (unstretched)' : 'ball leaves the spring (unstretched)') : 'unstretched length';
     const eq = xEq();
     if (st.mode === 'H') return kp.x > eq ? 'max extension: v = 0' : 'max compression: v = 0';
+    if (st.mode === 'D') return kp.x > eq ? 'lowest point (max compression): v = 0' : 'highest point: v = 0';
     return kp.x > eq ? 'lowest point (max extension): v = 0' : 'highest point: v = 0';
   }
   function keyAt(t) {
@@ -373,9 +404,11 @@
     st.mode = mode;
     ui.modeH.classList.toggle('on', mode === 'H');
     ui.modeV.classList.toggle('on', mode === 'V');
+    ui.modeD.classList.toggle('on', mode === 'D');
     ui.modeS.classList.toggle('on', mode === 'S');
     const S = mode === 'S';
     ui.mRow.classList.toggle('hidden', S);
+    ui.hRow.classList.toggle('hidden', mode !== 'D');
     ui.massGroup.classList.toggle('hidden', !S);
     ui.lossGroup.classList.toggle('hidden', S);
     ui.speedGroup.classList.toggle('hidden', S);
@@ -394,8 +427,10 @@
     resetMotion();
   }
 
+  function syncH() { ui.hSlider.value = hDrop(); ui.hVal.textContent = hDrop().toFixed(2) + ' m'; }
   function resetMotion() {
-    st.x0 = xEq() + 0.3;
+    st.x0 = st.mode === 'D' ? -0.3 : xEq() + 0.3;
+    if (st.mode === 'D') syncH();
     st.playing = false;
     if (st.mode === 'S') { st.hk.n = 0; st.hk.readings = []; st.x = 0; st.v = 0; st.Q = 0; st.t = 0; updateMassText(); }
     else rebuild(false);
@@ -428,7 +463,13 @@
   // ---------- UI wiring ----------
   ui.modeH.addEventListener('click', () => setMode('H'));
   ui.modeV.addEventListener('click', () => setMode('V'));
+  ui.modeD.addEventListener('click', () => setMode('D'));
   ui.modeS.addEventListener('click', () => setMode('S'));
+  ui.hSlider.addEventListener('input', () => {
+    st.x0 = -(+ui.hSlider.value); ui.hVal.textContent = hDrop().toFixed(2) + ' m';
+    st.playing = false; updatePlayBtn();
+    rebuild(false);
+  });
   ui.kSlider.addEventListener('input', () => {
     st.k = +ui.kSlider.value; ui.kVal.textContent = st.k + ' N/m';
     if (st.mode === 'S') { st.hk.readings = []; } else rebuild(true);
@@ -493,17 +534,20 @@
   });
 
   // ---------- pointer: drag the mass ----------
-  function springEndPx(x) {      // position of the spring's free end for extension x
+  const FLOOR_Y = SIM_H - 50;    // ball-drop mode: the spring stands on this floor
+  function springEndPx(x) {      // position of the spring's free end for extension x (drop mode: the ball's bottom for position x)
     const p = (L0() + x) * sc();
+    if (st.mode === 'D') return { x: SIM_W * 0.5, y: FLOOR_Y - L0D() * sc() + x * sc() };
     return st.mode === 'H' ? { x: 40 + p, y: SIM_H * 0.56 } : { x: SIM_W * 0.5, y: 40 + p };
   }
   function massCentrePx() {
     const e = springEndPx(st.x), s = massSide() / 2;
+    if (st.mode === 'D') return { x: e.x, y: e.y - s };
     return st.mode === 'H' ? { x: e.x + s, y: e.y } : { x: e.x, y: e.y + s };
   }
   function pointerPos(e, cv) {
-    const r = cv.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
+    const r = cv.getBoundingClientRect(), k = cv.clientWidth / r.width;   // undo the fit-to-width scaling
+    return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k };
   }
   function overMass(p) {
     const mc = massCentrePx(), half = massSide() / 2 + 6;
@@ -536,6 +580,13 @@
   sim.c.addEventListener('pointercancel', endMassDrag);
   function dragMassTo(p) {
     const s = massSide() / 2;
+    if (st.mode === 'D') {        // lift the ball to set the drop height (in the air only)
+      let x = (p.y + s - (FLOOR_Y - L0D() * sc())) / sc();
+      x = Math.max(-H_MAX, Math.min(0, x));
+      st.x0 = x; syncH(); st.x = x; st.v = 0; st.Q = 0; st.t = 0;
+      buildTrajectory();
+      return;
+    }
     let x = st.mode === 'H' ? (p.x - s - 40) / sc() - L0() : (p.y - s - 40) / sc() - L0();
     const eq = xEq();
     x = Math.max(eq - A_MAX, Math.min(eq + A_MAX, x));
@@ -615,6 +666,15 @@
     ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
     ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
   }
+  function drawBall(ctx, cx, cy, r, label) {
+    ctx.save();
+    const grad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r);
+    grad.addColorStop(0, C.mass1); grad.addColorStop(1, C.mass2);
+    ctx.fillStyle = grad; ctx.strokeStyle = C.massEdge; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    text(ctx, label, cx, cy, '#3a2200', 'bold 12px Arial', 'center');
+    ctx.restore();
+  }
   function drawMass(ctx, cx, cy, side, label) {
     ctx.save();
     const grad = ctx.createLinearGradient(cx - side / 2, cy - side / 2, cx + side / 2, cy + side / 2);
@@ -672,8 +732,8 @@
 
     const side = massSide(), S = sc(), eq = xEq(), A = amp();
     const mc = massCentrePx(), se = springEndPx(st.x);
-    const Fs = -kEff() * st.x, Fw = gravTerm(), Fd = -bEff() * st.v, Fn = Fs + Fw + Fd;
-    const Fmax = Math.max(kEff() * (A_MAX + eq), gravTerm(), 1);
+    const Fs = springF(st.x), Fw = gravTerm(), Fd = inContact(st.x) ? -bEff() * st.v : 0, Fn = Fs + Fw + Fd;
+    const Fmax = st.mode === 'D' ? Math.max(kEff() * cMax(), gravTerm(), 1) : Math.max(kEff() * (A_MAX + eq), gravTerm(), 1);
     const pxPerN = 140 / Fmax;
     const kp = keyAt(st.t);
     const hl = kp ? kp.type : null;                  // which marker to highlight
@@ -725,6 +785,45 @@
         if (name === 'net') labelF(ctx, 'net', '', lx, y, color, al);
         else text(ctx, name, lx, y, color, 'bold 11px Arial', al);
       });
+    } else if (st.mode === 'D') {
+      const cx = SIM_W * 0.5, r = side / 2, h = hDrop(), cm = cMax();
+      const natY = springEndPx(0).y, botY = x => springEndPx(x).y;
+      // floor
+      ctx.fillStyle = '#9a9a9a'; ctx.fillRect(cx - 110, FLOOR_Y, 220, 10);
+      ctx.fillStyle = '#7a7a7a'; for (let xx = cx - 104; xx < cx + 110; xx += 14) ctx.fillRect(xx, FLOOR_Y + 10, 2, 8);
+
+      if (ui.showMarks.checked) {
+        const xl = 24, xr = SIM_W - 24;
+        const mark = (x, color, label, side, strong) => {
+          const py = botY(x);
+          dashed(ctx, xl, py, xr, py, color, strong ? [1, 0] : [6, 5], strong ? 2.5 : 1.5);
+          if (side === 'L') text(ctx, label, xl, py - 3, color, (strong ? 'bold ' : '') + '11px Arial', 'left', 'bottom');
+          else text(ctx, label, xr, py - 3, color, (strong ? 'bold ' : '') + '11px Arial', 'right', 'bottom');
+        };
+        mark(0, C.nat, 'spring unstretched (x = 0)', 'L', hl === 'nat');
+        mark(eq, C.motion, 'equilibrium (kx = mg)', 'L', hl === 'eq');
+        if (h > 0.01) mark(-h, C.turn, 'release height (v = 0)', 'R', hl === 'turn' && hlX < 0);
+        mark(cm, C.turn, 'lowest point: max compression (GPE = 0)', 'R', hl === 'turn' && hlX > eq);
+        if (h > 0.01) {
+          const bx = xr - 10;
+          dashed(ctx, bx, botY(-h), bx, botY(0), C.turn, [2, 3], 1);
+          text(ctx, 'h', bx + 4, (botY(-h) + botY(0)) / 2, C.turn, 'bold 11px Arial', 'left');
+        }
+      }
+      // the spring stands on the floor; its top follows the ball while they are in contact
+      const topY = Math.min(botY(st.x), natY);
+      drawSpring(ctx, cx, FLOOR_Y, cx, topY);
+      ctx.fillStyle = '#4a4a4a'; ctx.fillRect(cx - 22, topY - 3, 44, 4);
+      drawBall(ctx, mc.x, mc.y, r, st.m.toFixed(1) + ' kg');
+      if (ui.fSpring.checked) drawForce(ctx, mc, Fs, pxPerN, -20, C.spring, 'kx');
+      if (ui.fWeight.checked) drawForce(ctx, mc, Fw, pxPerN, 20, C.gravity, 'mg');
+      if (st.dampOn && ui.fDamp.checked) drawForce(ctx, mc, Fd, pxPerN, -42, C.heat, 'damping');
+      if (ui.fNet.checked) drawForce(ctx, mc, Fn, pxPerN, 0, C.net, 'net', true);
+      if (ui.vVec.checked && Math.abs(st.v) > 0.01) {
+        const x = mc.x + side / 2 + 50;
+        arrow(ctx, x, mc.y, x, mc.y + st.v * 55, C.motion, 3);
+        text(ctx, 'v', x + 7, mc.y + st.v * 55, C.motion, 'bold 11px Arial', 'left');
+      }
     } else {
       // ceiling
       ctx.fillStyle = '#9a9a9a'; ctx.fillRect(SIM_W * 0.5 - 100, 22, 200, 18);
@@ -764,7 +863,7 @@
     }
 
     // force scale (bottom left) and current key-point banner (top)
-    const anyForce = ui.fSpring.checked || ui.fNet.checked || (st.mode === 'V' && ui.fWeight.checked) || (st.dampOn && ui.fDamp.checked);
+    const anyForce = ui.fSpring.checked || ui.fNet.checked || (st.mode !== 'H' && ui.fWeight.checked) || (st.dampOn && ui.fDamp.checked);
     if (anyForce) {
       const stepN = niceStep(Fmax / 2, 1), px = stepN * pxPerN, y0 = SIM_H - 16;
       ctx.font = '11px Arial'; const x0 = SIM_W - 16 - px - ctx.measureText(stepN + ' N').width - 6;
@@ -888,7 +987,7 @@
     // legend
     text(ctx, '| max displacement', TR_L, 8, C.turn, '10px Arial', 'left');
     text(ctx, '● equilibrium', TR_L + 100, 8, C.motion, '10px Arial', 'left');
-    if (st.mode === 'V' && xEq() > 0.005) text(ctx, '● unstretched', TR_L + 176, 8, C.nat, '10px Arial', 'left');
+    if ((st.mode === 'V' && xEq() > 0.005) || st.mode === 'D') text(ctx, st.mode === 'D' ? '● meets / leaves spring' : '● unstretched', TR_L + 176, 8, C.nat, '10px Arial', 'left');
     text(ctx, 'time (s)', TR_R, 8, '#999', '10px Arial', 'right');
     ui.timeText.textContent = st.t.toFixed(2) + ' s';
   }
@@ -903,7 +1002,7 @@
     const items = [
       { label: 'KE', value: E.KE, color: C.motion, show: true },
       { label: 'Spring\nPE', value: E.Es, color: C.spring, show: true },
-      { label: 'GPE', value: E.GPE, color: C.gravity, show: st.mode === 'V' },
+      { label: 'GPE', value: E.GPE, color: C.gravity, show: st.mode === 'V' || st.mode === 'D' },
       { label: 'Heat+\nsound', value: E.Q, color: C.heat, show: st.dampOn },
       { label: 'Total', value: E.total, color: C.net, show: true }
     ].filter(i => i.show);
@@ -967,17 +1066,24 @@
       text(ctx, name, x + 18, y + i * 14, '#222', 'bold 11px Arial', 'left');
     });
   }
-  function xRange() { const eq = xEq(); return [Math.min(-0.5, eq - A_MAX), eq + A_MAX]; }
+  function xRange() {
+    if (st.mode === 'D') return [-Math.max(hDrop(), 0.1) - 0.05, cMax() + 0.05];
+    const eq = xEq(); return [Math.min(-0.5, eq - A_MAX), eq + A_MAX];
+  }
+  const xAxisLabel = () => st.mode === 'D' ? 'position x (m): + = compression' : 'extension x (m)';
   function markerX(fr, x, color, strong) {
     dashed(G.ctx, fr.X(x), fr.T, fr.X(x), G.h - fr.B, color, strong ? [1, 0] : [4, 4], strong ? 2 : 1);
   }
   function positionMarkers(fr, horizontal) {
     if (!ui.showMarks.checked) return;
-    const eq = xEq(), A = amp(), kp = keyAt(st.t);
+    const eq = xEq(), kp = keyAt(st.t), [lo, hi] = turnPts(), D = st.mode === 'D';
     const f = horizontal ? markerX : markerY;
-    if (st.mode === 'V' && eq > 0.005) f(fr, 0, C.nat, kp && kp.type === 'nat');
+    if ((st.mode === 'V' && eq > 0.005) || D) f(fr, 0, C.nat, kp && kp.type === 'nat');
     f(fr, eq, C.motion, kp && kp.type === 'eq');
-    if (A > 0.01) { f(fr, eq - A, C.turn, kp && kp.type === 'turn' && kp.x < eq); f(fr, eq + A, C.turn, kp && kp.type === 'turn' && kp.x > eq); }
+    if (hi - lo > 0.01) {
+      if (!D || lo < -0.005) f(fr, lo, C.turn, kp && kp.type === 'turn' && kp.x < eq);
+      f(fr, hi, C.turn, kp && kp.type === 'turn' && kp.x > eq);
+    }
   }
   function markerY(fr, y, color, strong) {
     dashed(G.ctx, fr.L, fr.Y(y), G.w - fr.R, fr.Y(y), color, strong ? [1, 0] : [4, 4], strong ? 2 : 1);
@@ -994,12 +1100,12 @@
     let ymax = E.mech, ymin = 0;
     for (let i = 0; i <= N; i++) {
       const x = xmin + (xmax - xmin) * i / N;
-      const es = 0.5 * k * x * x, gp = st.mode === 'V' ? st.m * g * heightOf(x) : 0, ke = E.mech - es - gp;
+      const es = inContact(x) ? 0.5 * k * x * x : 0, gp = (st.mode === 'V' || st.mode === 'D') ? st.m * g * heightOf(x) : 0, ke = E.mech - es - gp;
       Es.push([x, es]); GPE.push([x, gp]); KE.push([x, ke]);
       ymax = Math.max(ymax, es, gp); ymin = Math.min(ymin, gp);
     }
     ymax = Math.max(ymax * 1.08, 0.5); if (ymin < 0) ymin *= 1.08;
-    const fr = frame('Energy vs position', 'extension x (m)', 'energy (J)', xmin, xmax, ymin, ymax);
+    const fr = frame('Energy vs position', xAxisLabel(), 'energy (J)', xmin, xmax, ymin, ymax);
     const ctx = G.ctx;
     fr.clip();
     positionMarkers(fr, true);
@@ -1013,17 +1119,17 @@
       ctx.stroke();
     };
     plot(Es, C.spring, false);
-    if (st.mode === 'V') plot(GPE, C.gravity, false);
+    if (st.mode === 'V' || st.mode === 'D') plot(GPE, C.gravity, false);
     plot(KE, C.motion, true);
     ctx.setLineDash([7, 4]); ctx.strokeStyle = C.net; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(fr.X(xmin), fr.Y(E.mech)); ctx.lineTo(fr.X(xmax), fr.Y(E.mech)); ctx.stroke();
     ctx.setLineDash([]);
     fr.unclip();
     dot(fr, st.x, E.Es, C.spring);
-    if (st.mode === 'V') dot(fr, st.x, E.GPE, C.gravity);
+    if (st.mode === 'V' || st.mode === 'D') dot(fr, st.x, E.GPE, C.gravity);
     dot(fr, st.x, E.KE, C.motion);
     const items = [['KE', C.motion], ['Spring PE', C.spring]];
-    if (st.mode === 'V') items.push(['GPE', C.gravity]);
+    if (st.mode === 'V' || st.mode === 'D') items.push(['GPE', C.gravity]);
     items.push([st.dampOn ? 'KE + PE' : 'Total', C.net]);
     legend(items, fr.L + 8, fr.T + 8);
   }
@@ -1054,30 +1160,32 @@
       if (st.hk.n > 0) { ctx.fillStyle = 'rgba(42,111,214,0.35)'; ctx.beginPath(); ctx.arc(fr.X(st.hk.xs), fr.Y(st.hk.n * MASS_UNIT * g), 4, 0, Math.PI * 2); ctx.fill(); }
       return;
     }
-    const [xmin, xmax] = xRange();
-    const Fm = k * Math.max(Math.abs(xmin), Math.abs(xmax)) * 1.1;
-    const fr = frame('Force vs extension: F = kx', 'extension x (m)', 'F = kx (N)', xmin, xmax, -Fm, Fm);
-    const x = st.x;
+    const [xmin, xmax] = xRange(), D = st.mode === 'D';
+    const Fm = k * (D ? xmax : Math.max(Math.abs(xmin), Math.abs(xmax))) * 1.1;
+    const fr = frame(D ? 'Spring force vs compression: F = kx' : 'Force vs extension: F = kx', xAxisLabel(), 'F = kx (N)', xmin, xmax, -Fm, Fm);
+    const x = st.x, xs = inContact(x) ? x : 0;          // the ball in the air sits at F = 0
     fr.clip();
     positionMarkers(fr, true);
-    if (Math.abs(x) > 1e-4) {
+    if (Math.abs(xs) > 1e-4) {
       ctx.fillStyle = 'rgba(42,111,214,0.22)';
-      ctx.beginPath(); ctx.moveTo(fr.X(0), fr.Y(0)); ctx.lineTo(fr.X(x), fr.Y(0)); ctx.lineTo(fr.X(x), fr.Y(k * x)); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(fr.X(0), fr.Y(0)); ctx.lineTo(fr.X(xs), fr.Y(0)); ctx.lineTo(fr.X(xs), fr.Y(k * xs)); ctx.closePath(); ctx.fill();
     }
     ctx.strokeStyle = C.spring; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.moveTo(fr.X(xmin), fr.Y(k * xmin)); ctx.lineTo(fr.X(xmax), fr.Y(k * xmax)); ctx.stroke();
+    ctx.beginPath();
+    if (D) { ctx.moveTo(fr.X(xmin), fr.Y(0)); ctx.lineTo(fr.X(0), fr.Y(0)); } else ctx.moveTo(fr.X(xmin), fr.Y(k * xmin));
+    ctx.lineTo(fr.X(xmax), fr.Y(k * xmax)); ctx.stroke();
     fr.unclip();
-    dot(fr, x, k * x, C.spring);
+    dot(fr, x, k * xs, C.spring);
     const ax = G.w - fr.R - 6, ay = G.h - fr.B - 8;
     ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillRect(ax - 150, ay - 34, 156, 38);
     text(ctx, 'gradient = k = ' + k + ' N/m', ax, ay - 18, '#222', 'bold 12px Arial', 'right');
-    text(ctx, 'area = ½kx² = ' + fmt(0.5 * k * x * x, 2) + ' J', ax, ay - 2, C.spring, 'bold 12px Arial', 'right');
+    text(ctx, 'area = ½kx² = ' + fmt(0.5 * k * xs * xs, 2) + ' J', ax, ay - 2, C.spring, 'bold 12px Arial', 'right');
   }
 
   function drawTimeGraph() {
-    const T = st.traj, eq = xEq(), A = amp();
-    const lo = Math.min(0, eq - A) - 0.05, hi = eq + A + 0.05;
-    const fr = frame('Position vs time', 'time (s)', 'extension x (m)', 0, st.T, lo, hi);
+    const T = st.traj, [tlo, thi] = turnPts();
+    const lo = Math.min(0, tlo) - 0.05, hi = thi + 0.05;
+    const fr = frame('Position vs time', 'time (s)', xAxisLabel(), 0, st.T, lo, hi);
     const ctx = G.ctx;
     fr.clip();
     positionMarkers(fr, false);
@@ -1109,6 +1217,20 @@
       rows.push('<tr><th>masses</th><th class="num">m (kg)</th><th class="num">F = mg (N)</th><th class="num">x (m)</th></tr>');
       for (const r of st.hk.readings) rows.push('<tr><td>' + r.n + '</td><td class="num">' + r.m.toFixed(1) + '</td><td class="num">' + fmt(r.F, 2) + '</td><td class="num">' + fmt(r.x, 3) + '</td></tr>');
       if (!st.hk.readings.length) rows.push('<tr><td colspan="4" style="color:#777">No readings yet. Add a mass.</td></tr>');
+    } else if (st.mode === 'D') {
+      const k = kEff(), Fs = springF(st.x), Fw = gravTerm(), Fn = Fs + Fw - (inContact(st.x) ? bEff() * st.v : 0), h = hDrop();
+      row('time t', st.t.toFixed(2) + ' s');
+      if (inContact(st.x)) row('compression x', fmt(st.x, 3) + ' m'); else row('height above spring', fmt(-st.x, 3) + ' m');
+      row('velocity v (down +)', fmt(st.v, 2) + ' m/s');
+      row('acceleration a', fmt(Fn / st.m, 2) + ' m/s²');
+      row('\u2212kx (spring force)', fmt(Fs, 1) + ' N');
+      row('mg (weight)', fmt(Fw, 1) + ' N');
+      row('net force', fmt(Fn, 1) + ' N');
+      row('drop height h', fmt(h, 2) + ' m');
+      row('speed on contact √(2gh)', fmt(Math.sqrt(2 * g * h), 2) + ' m/s');
+      row('equilibrium compression mg/k', fmt(xEq(), 3) + ' m');
+      row('max compression', fmt(cMax(), 3) + ' m');
+      row('SHM period in contact 2π√(m/k)', (2 * Math.PI * Math.sqrt(st.m / k)).toFixed(2) + ' s');
     } else {
       const k = kEff(), Fs = -k * st.x, Fw = gravTerm(), Fn = Fs + Fw - bEff() * st.v;
       row('time t', st.t.toFixed(2) + ' s');
