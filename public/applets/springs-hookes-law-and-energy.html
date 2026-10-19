@@ -811,7 +811,7 @@
         }
       }
       // the spring stands on the floor; its top follows the ball while they are in contact
-      const topY = Math.min(botY(st.x), natY);
+      const topY = Math.max(botY(st.x), natY);   // canvas y grows downward: never above the natural top
       drawSpring(ctx, cx, FLOOR_Y, cx, topY);
       ctx.fillStyle = '#4a4a4a'; ctx.fillRect(cx - 22, topY - 3, 44, 4);
       drawBall(ctx, mc.x, mc.y, r, st.m.toFixed(1) + ' kg');
