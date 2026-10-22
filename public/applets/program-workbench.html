@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pseudocode Workbench: VCE Mathematical Methods</title>
+<title>Program Workbench: VCE Mathematical Methods</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -156,7 +156,7 @@ table.data td.out{color:var(--str)}
 <body>
 <div class="app">
   <header class="bar">
-    <div class="brand"><h1>Pseudocode workbench</h1><span>VCE Mathematical Methods conventions</span></div>
+    <div class="brand"><h1>Program workbench</h1><span>CAS calculator program syntax</span></div>
     <div class="bar-actions">
       <select id="examples" aria-label="Load an example"></select>
       <button class="btn primary" id="runBtn">Run<kbd>Ctrl+Enter</kbd></button>
@@ -170,44 +170,47 @@ table.data td.out{color:var(--str)}
       <div class="toolbar">
         <div class="group" role="group" aria-label="Insert a structure">
           <span class="lbl">Insert</span>
-          <button class="chip" data-snip="if"><b>if</b> … <b>end if</b></button>
-          <button class="chip" data-snip="ifelse"><b>if</b> … <b>else</b></button>
-          <button class="chip" data-snip="elseif"><b>else if</b></button>
-          <button class="chip" data-snip="for"><b>for</b> … <b>end for</b></button>
-          <button class="chip" data-snip="while"><b>while</b> … <b>end while</b></button>
-          <button class="chip" data-snip="define"><b>define</b> … <b>return</b></button>
-          <button class="chip" data-snip="input"><b>input</b></button>
-          <button class="chip" data-snip="print"><b>print</b></button>
-          <button class="chip" data-snip="randint">randominteger(1, 6)</button>
-          <button class="chip" data-snip="random">random()</button>
-          <button class="chip" data-snip="comment"># comment</button>
+          <button class="chip" data-snip="if"><b>If</b> … <b>EndIf</b></button>
+          <button class="chip" data-snip="ifelse"><b>If</b> … <b>Else</b></button>
+          <button class="chip" data-snip="elseif"><b>ElseIf</b></button>
+          <button class="chip" data-snip="for"><b>For</b> … <b>EndFor</b></button>
+          <button class="chip" data-snip="while"><b>While</b> … <b>EndWhile</b></button>
+          <button class="chip" data-snip="loop"><b>Loop</b> … <b>EndLoop</b></button>
+          <button class="chip" data-snip="prgm"><b>Define</b> … <b>Prgm</b></button>
+          <button class="chip" data-snip="func"><b>Define</b> … <b>Func</b></button>
+          <button class="chip" data-snip="local"><b>Local</b></button>
+          <button class="chip" data-snip="request"><b>Request</b></button>
+          <button class="chip" data-snip="disp"><b>Disp</b></button>
+          <button class="chip" data-snip="randint">randInt(1,6)</button>
+          <button class="chip" data-snip="rand">rand()</button>
+          <button class="chip" data-snip="comment">© comment</button>
         </div>
         <div class="group" role="group" aria-label="Insert a symbol">
           <span class="lbl">Symbols</span>
-          <button class="chip sym" data-sym="←" title="assign">←</button>
+          <button class="chip sym" data-sym="→" title="store">→</button>
+          <button class="chip sym" data-sym=":=" title="assign">:=</button>
           <button class="chip sym" data-sym="≤">≤</button>
           <button class="chip sym" data-sym="≥">≥</button>
           <button class="chip sym" data-sym="≠">≠</button>
-          <button class="chip sym" data-sym="×">×</button>
-          <button class="chip sym" data-sym="÷">÷</button>
           <button class="chip sym" data-sym="^">^</button>
           <button class="chip sym" data-sym="²">²</button>
           <button class="chip sym" data-sym="√">√</button>
           <button class="chip sym" data-sym="π">π</button>
+          <button class="chip sym" data-sym="©" title="comment">©</button>
         </div>
       </div>
       <div class="editor">
         <div class="gutter" id="gutter" aria-hidden="true"></div>
         <div class="code-wrap">
           <pre id="hl" aria-hidden="true"></pre>
-          <textarea id="code" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Pseudocode editor"></textarea>
+          <textarea id="code" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Program editor"></textarea>
           <pre id="mirror" aria-hidden="true"></pre>
           <div class="ac" id="ac" role="listbox" aria-label="Suggestions"></div>
         </div>
       </div>
       <div class="editor-foot">
         <label><input type="checkbox" id="optClose" checked> Auto-close blocks on Enter</label>
-        <label><input type="checkbox" id="optSym" checked> Convert <code>&lt;-</code> <code>&lt;=</code> <code>*</code> to symbols</label>
+        <label><input type="checkbox" id="optSym" checked> Convert <code>-&gt;</code> <code>&lt;=</code> <code>&gt;=</code> <code>/=</code> to symbols</label>
         <label><input type="checkbox" id="optAuto" checked> Suggest names as you type</label>
         <label><input type="checkbox" id="optTrace"> Record trace table</label>
         <span class="spacer"></span>
@@ -230,7 +233,7 @@ table.data td.out{color:var(--str)}
           <input type="text" id="inputs" placeholder="comma separated, e.g. 3, 7">
           <button class="btn" id="clearOutBtn">Clear</button>
         </div>
-        <div class="status" id="status">Type your algorithm on the left, then press Run (or Step to go one line at a time). The Reference tab shows the conventions.</div>
+        <div class="status" id="status">Type your program on the left, then press Run (or Step to go one line at a time). The Reference tab shows the syntax.</div>
         <pre class="out" id="out"></pre>
       </div>
 
@@ -244,66 +247,94 @@ table.data td.out{color:var(--str)}
 
       <div class="panel" id="panel-ref" role="tabpanel">
         <div class="scroll ref">
-          <h3>Assignment and output</h3>
-<pre><b>x</b> ← 5           # assign 5 to x
-<b>x</b> ← x + 1
-<b>print</b> x
-<b>print</b>(i, i^2)    # prints (3, 9)
-<b>input</b> a, b       # values come from the box above the output</pre>
-          <p>Type <code>&lt;-</code> to get ←. Reserved words are shown in bold, as in the exam.</p>
+          <h3>Storing values and output</h3>
+<pre>5<b>→</b>x                © store 5 in x
+x<b>:=</b>x+1
+<b>Disp</b> x
+<b>Disp</b> i,i^2          © displays 3 9
+<b>Request</b> "Enter n",n  © values come from the box above the output</pre>
+          <p>Type <code>-&gt;</code> to get →. Comments start with ©. Several statements can share a line if separated by a colon. Names are not case sensitive: <code>Count</code> and <code>count</code> are the same variable.</p>
+
+          <h3>Programs and functions</h3>
+<pre><b>Define</b> area(r)=
+<b>Prgm</b>
+    <b>Local</b> a
+    π r^2→a
+    <b>Disp</b> "Area:",a
+<b>EndPrgm</b>
+
+<b>Define</b> f(x)=x^3-2x-5
+
+<b>Define</b> fact(n)=
+<b>Func</b>
+    <b>Local</b> p,i
+    1→p
+    <b>For</b> i,1,n
+        p*i→p
+    <b>EndFor</b>
+    <b>Return</b> p
+<b>EndFunc</b></pre>
+          <p>A <code>Prgm</code> displays things and can change variables outside it; a <code>Func</code> gives back a value with <code>Return</code>. Lines outside any definition run first, top to bottom. If there are none, the first definition that needs no inputs is run for you. Run a definition yourself by calling it, e.g. <code>area(3)</code>.</p>
 
           <h3>Decisions</h3>
-<pre><b>if</b> a ≤ b <b>then</b>
-    <b>print</b> a
-<b>else if</b> a = b <b>then</b>
-    <b>print</b> "equal"
-<b>else</b>
-    <b>print</b> b
-<b>end if</b></pre>
+<pre><b>If</b> a≤b <b>Then</b>
+    <b>Disp</b> a
+<b>ElseIf</b> a=b <b>Then</b>
+    <b>Disp</b> "equal"
+<b>Else</b>
+    <b>Disp</b> b
+<b>EndIf</b>
+
+<b>If</b> x&lt;0
+    <b>Disp</b> "negative"    © one-line If: no Then, no EndIf</pre>
           <p>Comparisons: <code>=</code> <code>≠</code> <code>&lt;</code> <code>&gt;</code> <code>≤</code> <code>≥</code>. Combine with <code>and</code>, <code>or</code>, <code>not</code>.</p>
 
           <h3>Repetition</h3>
-<pre><b>for</b> i <b>from</b> 1 <b>to</b> n        # 1 to n inclusive
-    <b>print</b> i²
-<b>end for</b>
+<pre><b>For</b> i,1,n            © 1 to n inclusive
+    <b>Disp</b> i^2
+<b>EndFor</b>
 
-<b>while</b> x² &lt; 1000
-    x ← x + 1
-<b>end while</b></pre>
-          <p>An optional <code>step</code> is accepted: <code>for x from 0 to 1 step 0.1</code>.</p>
+<b>For</b> x,0,1,0.1        © optional step
 
-          <h3>Functions</h3>
-<pre><b>define</b> f(x)
-    <b>return</b> x³ − 2x − 5
+<b>While</b> x^2&lt;1000
+    x+1→x
+<b>EndWhile</b>
 
-<b>define</b> factorial(n):
-    product ← 1
-    <b>for</b> i <b>from</b> 1 <b>to</b> n
-        product ← product × i
-    <b>end for</b>
-    <b>return</b> product</pre>
-          <p>Indent the body under the <code>define</code> line. A colon after the header is optional.</p>
+<b>Loop</b>
+    randInt(1,6)→d
+    <b>If</b> d=6 <b>Then</b>
+        <b>Exit</b>
+    <b>EndIf</b>
+<b>EndLoop</b></pre>
+          <p><code>Exit</code> leaves the current loop, <code>Cycle</code> skips to its next pass and <code>Stop</code> ends the whole program.</p>
 
           <h3>Arithmetic</h3>
-          <p><code>+</code> <code>−</code> <code>×</code> or <code>*</code>, <code>÷</code> or <code>/</code>, <code>^</code> for powers (² and ³ also work), <code>mod</code> for remainders. Writing <code>2x</code>, <code>3(a + b)</code> or <code>2πr</code> multiplies, as in maths.</p>
+          <p><code>+</code> <code>−</code> <code>*</code> <code>/</code>, <code>^</code> for powers (² and ³ also work), <code>n!</code> for factorials and <code>&amp;</code> to join strings. Writing <code>2x</code>, <code>3(a+b)</code> or <code>2πr</code> multiplies, as in maths. Arithmetic on a list applies to every item.</p>
 
           <h3>Built-in functions</h3>
           <table class="data">
-            <tr><td class="mono">random()</td><td>random real number in [0, 1)</td></tr>
-            <tr><td class="mono">random(a, b)</td><td>random real number in [a, b)</td></tr>
-            <tr><td class="mono">randominteger(a, b)</td><td>random integer from a to b inclusive</td></tr>
-            <tr><td class="mono">sqrt, abs, floor, ceil</td><td>root, absolute value, rounding down and up</td></tr>
-            <tr><td class="mono">round(x, d)</td><td>round to d decimal places (d optional)</td></tr>
+            <tr><td class="mono">rand(), rand(n)</td><td>random real number in [0, 1), or a list of n of them</td></tr>
+            <tr><td class="mono">randInt(a,b), randInt(a,b,n)</td><td>random integer from a to b inclusive, or a list of n of them</td></tr>
+            <tr><td class="mono">randNorm(μ,σ), randBin(n,p)</td><td>random normal and binomial values</td></tr>
+            <tr><td class="mono">sqrt or √, abs, int, floor, ceiling</td><td>root, absolute value, rounding down and up</td></tr>
+            <tr><td class="mono">round(x,d)</td><td>round to d decimal places (d optional)</td></tr>
+            <tr><td class="mono">mod(a,b), remain(a,b), intDiv(a,b), gcd, lcm</td><td>remainders and whole-number division</td></tr>
             <tr><td class="mono">sin, cos, tan, asin, acos, atan</td><td>radians</td></tr>
-            <tr><td class="mono">exp, ln, log(x, b), log10</td><td><code>ln</code> and <code>log</code> are both base e unless a base is given</td></tr>
-            <tr><td class="mono">pi, e</td><td>constants (π also works)</td></tr>
-            <tr><td class="mono">min, max, sum, mean, length</td><td>work on lists: <code>L ← [2, 5, 1]</code>, <code>L[1]</code> is the first item</td></tr>
-            <tr><td class="mono">append(L, x), sort(L), count(L, x)</td><td>add to, sort, or count within a list</td></tr>
-            <tr><td class="mono">factorial(n), ncr(n, r)</td><td>n! and the binomial coefficient</td></tr>
+            <tr><td class="mono">e^(x), exp, ln, log(x), log(x,b)</td><td><code>log(x)</code> is base 10, <code>ln</code> is base e</td></tr>
+            <tr><td class="mono">π, e</td><td>constants</td></tr>
+            <tr><td class="mono">{2,5,1}, L[1], dim(L)</td><td>a list, its first item, its length</td></tr>
+            <tr><td class="mono">seq(i^2,i,1,10)</td><td>the list {1,4,9,…,100}</td></tr>
+            <tr><td class="mono">sum, product, mean, median, min, max</td><td>work on a list or on several numbers</td></tr>
+            <tr><td class="mono">augment(L1,L2), newList(n), sortA(L), sortD(L)</td><td>join lists, a list of n zeros, sorted copies</td></tr>
+            <tr><td class="mono">SortA L</td><td>sorts the list stored in a variable, in place</td></tr>
+            <tr><td class="mono">left(L,n), right(L,n), mid(L,s,n), cumulativeSum(L)</td><td>parts and running totals of a list</td></tr>
+            <tr><td class="mono">nCr(n,r), nPr(n,r)</td><td>combinations and permutations</td></tr>
+            <tr><td class="mono">string(x), expr(s)</td><td>number to text and back</td></tr>
+            <tr><td class="mono">when(cond,a,b)</td><td>a if the condition holds, otherwise b</td></tr>
           </table>
 
           <h3>Editor shortcuts</h3>
-          <p>Tab indents, Shift+Tab outdents, Enter keeps the indent and closes a block for you, Ctrl+Enter runs. Names you have given a value, and functions you have defined, are shown in <span style="color:var(--id)">purple</span> once the editor recognises them. As you type a name, a list of matching variables, functions, keywords and built-ins appears: ↑ and ↓ choose, Tab or Enter inserts, Esc dismisses, and Tab or Ctrl+Space opens the list on demand. Untick “Suggest names as you type” below the editor to turn the list off. Your code is kept in this browser between visits.</p>
+          <p>Tab indents, Shift+Tab outdents, Enter keeps the indent and closes a block for you, Ctrl+Enter runs. Variables you have stored a value in, and programs and functions you have defined, are shown in <span style="color:var(--id)">purple</span> once the editor recognises them. As you type a name, a list of matching variables, functions, keywords and built-ins appears: Tab inserts the highlighted one, ↑ and ↓ move the highlight (after which Enter also inserts), Esc dismisses, and Tab or Ctrl+Space opens the list on demand. Untick “Suggest names as you type” below the editor to turn the list off. Your code is kept in this browser between visits.</p>
         </div>
       </div>
     </section>
@@ -311,21 +342,29 @@ table.data td.out{color:var(--str)}
 </div>
 
 <script id="interp">
-/* ===================== Pseudocode interpreter (VCAA conventions) ===================== */
+/* ===================== Program interpreter (CAS calculator program syntax) ===================== */
 const PC = (() => {
-  const KW = new Set(['if','then','else','elseif','end','endif','endfor','endwhile','for','from','to','step','in',
-    'while','do','define','function','procedure','return','print','input','and','or','not','mod','true','false','algorithm']);
+  const KW = new Set(['define','prgm','endprgm','func','endfunc','local','if','then','elseif','else','endif',
+    'for','endfor','while','endwhile','loop','endloop','exit','cycle','return','stop','disp','request','requeststr',
+    'text','and','or','not','true','false','clrio','delvar','pause','sorta','sortd','libpub','libpriv','try','endtry','end']);
+  const BLOCK_END = { prgm: 'endprgm', func: 'endfunc' };
 
   class PCError extends Error { constructor(m, line){ super(m); this.name = 'PCError'; this.line = line; } }
   class ReturnSignal { constructor(v){ this.value = v; } }
+  class ExitSignal { constructor(line){ this.line = line; } }
+  class CycleSignal { constructor(line){ this.line = line; } }
+  class StopSignal {}
+  const UNSET = Symbol('unset');
 
   function normalise(src){
     return src
-      .replace(/\u2190/g, '<-').replace(/\u2264/g, '<=').replace(/\u2265/g, '>=').replace(/\u2260/g, '!=')
-      .replace(/\u00d7/g, '*').replace(/\u00f7/g, '/').replace(/[\u2212\u2013\u2014]/g, '-')
-      .replace(/[\u201c\u201d]/g, '"').replace(/[\u2018\u2019]/g, "'")
-      .replace(/\u00b2/g, '^2').replace(/\u00b3/g, '^3').replace(/\u2074/g, '^4')
-      .replace(/\u03c0/g, ' pi ');
+      .replace(/→/g, '->').replace(/≔/g, ':=')
+      .replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/≠/g, '/=')
+      .replace(/×/g, '*').replace(/÷/g, '/').replace(/[−–—]/g, '-')
+      .replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
+      .replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
+      .replace(/π/g, ' pi ')
+      .replace(/©/g, '//');
   }
 
   function tokenize(s, line){
@@ -350,10 +389,11 @@ const PC = (() => {
         toks.push({ t:'str', v: s.slice(i+1, j) }); i = j + 1; continue;
       }
       const two = s.slice(i, i+2);
-      if (['<-', ':=', '<=', '>=', '!=', '==', '**'].includes(two)){
-        toks.push({ t:'op', v: two === '**' ? '^' : two }); i += 2; continue;
+      if (['->', ':=', '<=', '>=', '/=', '!=', '==', '**'].includes(two)){
+        const v = two === '**' ? '^' : two === '/=' ? '!=' : two === '==' ? '=' : two;
+        toks.push({ t:'op', v }); i += 2; continue;
       }
-      if ('+-*/^%(),[]<>=:\u221a'.includes(c)){ toks.push({ t:'op', v: c }); i++; continue; }
+      if ('+-*/^%(),[]{}<>=:!&√'.includes(c)){ toks.push({ t:'op', v: c }); i++; continue; }
       throw new PCError(`Unexpected character "${c}"`, line);
     }
     return toks;
@@ -389,18 +429,18 @@ const PC = (() => {
     }
     parseCmp(){
       const first = this.parseAdd();
-      const ops = ['=', '==', '!=', '<', '>', '<=', '>='];
+      const ops = ['=', '!=', '<', '>', '<=', '>='];
       const chain = [];
       while (this.peek() && this.peek().t === 'op' && ops.includes(this.peek().v)){
         const op = this.t[this.p++].v;
-        chain.push({ op: op === '==' ? '=' : op, e: this.parseAdd() });
+        chain.push({ op, e: this.parseAdd() });
       }
       if (!chain.length) return first;
       return this.mk('cmp', { first, chain });
     }
     parseAdd(){
       let l = this.parseMul();
-      while (this.isOp('+') || this.isOp('-')){
+      while (this.isOp('+') || this.isOp('-') || this.isOp('&')){
         const op = this.t[this.p++].v;
         l = this.mk('bin', { op, l, r: this.parseMul() });
       }
@@ -416,9 +456,8 @@ const PC = (() => {
     parseMul(){
       let l = this.parseUnary();
       for (;;){
-        if (this.isOp('*') || this.isOp('/') || this.isOp('%') || this.isKw('mod')){
-          const tk = this.t[this.p++];
-          const op = tk.t === 'id' ? 'mod' : (tk.v === '%' ? 'mod' : tk.v);
+        if (this.isOp('*') || this.isOp('/')){
+          const op = this.t[this.p++].v;
           l = this.mk('bin', { op, l, r: this.parseUnary() });
         } else if (this.startsFactor()){
           l = this.mk('bin', { op: '*', l, r: this.parseUnary(), implicit: true });
@@ -429,7 +468,7 @@ const PC = (() => {
     parseUnary(){
       if (this.isOp('-')){ this.p++; return this.mk('neg', { e: this.parseUnary() }); }
       if (this.isOp('+')){ this.p++; return this.parseUnary(); }
-      if (this.isOp('\u221a')){ this.p++; return this.mk('apply', { callee: this.mk('var', { name: 'sqrt' }), args: [this.parseUnary()] }); }
+      if (this.isOp('√')){ this.p++; return this.mk('apply', { callee: this.mk('var', { name: 'sqrt' }), args: [this.parseUnary()] }); }
       return this.parsePow();
     }
     parsePow(){
@@ -456,6 +495,9 @@ const PC = (() => {
           if (!this.isOp(']')) throw new PCError('Missing a closing bracket "]"', this.line);
           this.p++;
           node = this.mk('index', { target: node, index });
+        } else if (this.isOp('!')){
+          this.p++;
+          node = this.mk('apply', { callee: this.mk('var', { name: 'factorial' }), args: [node] });
         } else break;
       }
       return node;
@@ -467,23 +509,24 @@ const PC = (() => {
       if (k.t === 'str'){ this.p++; return this.mk('str', { v: k.v }); }
       if (k.t === 'op' && k.v === '('){
         this.p++;
-        const items = [this.parseExpr()];
-        while (this.isOp(',')){ this.p++; items.push(this.parseExpr()); }
+        const e = this.parseExpr();
+        if (this.isOp(',')) throw new PCError('Use braces for a list: {a, b, c}', this.line);
         if (!this.isOp(')')) throw new PCError('Missing a closing bracket ")"', this.line);
         this.p++;
-        return items.length === 1 ? items[0] : this.mk('tuple', { items });
+        return e;
       }
-      if (k.t === 'op' && k.v === '['){
+      if (k.t === 'op' && k.v === '{'){
         this.p++;
         const items = [];
-        if (!this.isOp(']')){
+        if (!this.isOp('}')){
           items.push(this.parseExpr());
           while (this.isOp(',')){ this.p++; items.push(this.parseExpr()); }
         }
-        if (!this.isOp(']')) throw new PCError('Missing a closing bracket "]"', this.line);
+        if (!this.isOp('}')) throw new PCError('Missing a closing brace "}"', this.line);
         this.p++;
         return this.mk('list', { items });
       }
+      if (k.t === 'op' && k.v === '[') throw new PCError('Use braces for a list: {1, 2, 3}. Square brackets pick an item, e.g. L[2]', this.line);
       if (k.t === 'id'){
         const w = k.v.toLowerCase();
         if (w === 'true' || w === 'false'){ this.p++; return this.mk('bool', { v: w === 'true' }); }
@@ -491,7 +534,8 @@ const PC = (() => {
         this.p++;
         return this.mk('var', { name: k.v });
       }
-      if (k.t === 'op' && k.v === '<-') throw new PCError('Unexpected ← in the middle of an expression', this.line);
+      if (k.t === 'op' && k.v === '->') throw new PCError('Unexpected → in the middle of an expression', this.line);
+      if (k.t === 'op' && k.v === ':=') throw new PCError('Unexpected := in the middle of an expression', this.line);
       throw new PCError(`Unexpected "${k.v}"`, this.line);
     }
   }
@@ -516,8 +560,8 @@ const PC = (() => {
     for (let q = i; q < toks.length; q++){
       const t = toks[q];
       if (t.t !== 'op') continue;
-      if (t.v === '(' || t.v === '[') d++;
-      else if (t.v === ')' || t.v === ']'){ d--; if (d === 0) return q; }
+      if (t.v === '(' || t.v === '[' || t.v === '{') d++;
+      else if (t.v === ')' || t.v === ']' || t.v === '}'){ d--; if (d === 0) return q; }
     }
     return -1;
   }
@@ -526,17 +570,32 @@ const PC = (() => {
   function headWord(L, k){ const t = L.toks[k]; return t && t.t === 'id' ? t.v.toLowerCase() : null; }
   function stopKey(L){
     const h = headWord(L, 0);
+    if (!h) return null;
     if (h === 'end'){
       const w = headWord(L, 1);
-      if (!w) throw new PCError('"end" must be followed by if, for or while', L.n);
-      return 'end ' + w;
+      if (!w) throw new PCError('"End" must be followed by If, For, While, Loop, Prgm or Func, written as one word (EndIf, EndFor, ...)', L.n);
+      return 'end' + w;
     }
-    if (h === 'endif') return 'end if';
-    if (h === 'endfor') return 'end for';
-    if (h === 'endwhile') return 'end while';
-    if (h === 'else') return headWord(L, 1) === 'if' ? 'else if' : 'else';
-    if (h === 'elseif') return 'else if';
+    if (h === 'else') return headWord(L, 1) === 'if' ? 'elseif' : 'else';
+    if (['elseif','endif','endfor','endwhile','endloop','endprgm','endfunc','endtry'].includes(h)) return h;
     return null;
+  }
+  const BLOCK_NAME = { endif: 'If … Then', endfor: 'For', endwhile: 'While', endloop: 'Loop', endprgm: 'Prgm', endfunc: 'Func', elseif: 'If … Then', else: 'If … Then', endtry: 'Try' };
+
+  function splitStatements(toks){
+    // ":" separates statements on one line (":=" is its own token, so it never splits)
+    const parts = [];
+    let cur = [], depth = 0;
+    for (const t of toks){
+      if (t.t === 'op'){
+        if (t.v === '(' || t.v === '[' || t.v === '{') depth++;
+        else if (t.v === ')' || t.v === ']' || t.v === '}') depth--;
+        else if (t.v === ':' && depth === 0){ if (cur.length) parts.push(cur); cur = []; continue; }
+      }
+      cur.push(t);
+    }
+    if (cur.length) parts.push(cur);
+    return parts;
   }
 
   function parseProgram(src){
@@ -548,7 +607,7 @@ const PC = (() => {
       const m = expanded.match(/^(\s*)(.*)$/);
       const toks = tokenize(m[2], n);
       if (!toks.length) return;
-      lines.push({ n, indent: m[1].length, toks });
+      splitStatements(toks).forEach(part => lines.push({ n, indent: m[1].length, toks: part }));
     });
     const funcs = new Map();
     const r = parseStatements(lines, 0, lines.length, funcs, [], null);
@@ -561,9 +620,9 @@ const PC = (() => {
       const L = lines[i];
       const key = stopKey(L);
       if (key){
-        if (stops.includes(key) || (key === 'end loop' && (stops.includes('end for') || stops.includes('end while')))) break;
-        if (opener) throw new PCError(`Found "${key}" but the "${opener.word}" on line ${opener.line} has not been closed with "end ${opener.word}" yet`, L.n);
-        throw new PCError(`"${key}" has no matching "${key.startsWith('end ') ? key.slice(4) : 'if'}" above it`, L.n);
+        if (stops.includes(key)) break;
+        if (opener) throw new PCError(`Found "${L.toks.map(t => t.v).join(' ')}" but the ${opener.word} on line ${opener.line} has not been closed with ${opener.close} yet`, L.n);
+        throw new PCError(`"${L.toks.map(t => t.v).join(' ')}" has no matching ${BLOCK_NAME[key] || 'block'} above it`, L.n);
       }
       const r = parseStmt(lines, i, end, funcs);
       if (r.stmt) stmts.push(r.stmt);
@@ -577,33 +636,88 @@ const PC = (() => {
     if (last && last.t === 'id' && last.v.toLowerCase() === word) return toks.slice(0, -1);
     return toks;
   }
+  function endsWithKw(toks, word){
+    const last = toks[toks.length - 1];
+    return !!last && last.t === 'id' && last.v.toLowerCase() === word;
+  }
+  function nameList(toks, n, what){
+    const names = [];
+    for (let q = 0; q < toks.length; q++){
+      const t = toks[q];
+      if (t.t === 'op' && t.v === ',') continue;
+      if (t.t !== 'id' || KW.has(t.v.toLowerCase())) throw new PCError(`${what} must be followed by variable names, e.g. ${what} a, b`, n);
+      names.push(t.v);
+    }
+    if (!names.length) throw new PCError(`${what} needs at least one variable name`, n);
+    return names;
+  }
 
   function parseStmt(lines, i, end, funcs){
     const L = lines[i], toks = L.toks, n = L.n, h = headWord(L, 0);
-    const kwTok = (k, w) => toks[k] && toks[k].t === 'id' && toks[k].v.toLowerCase() === w;
     const opTok = (k, v) => toks[k] && toks[k].t === 'op' && toks[k].v === v;
 
-    if (h === 'algorithm') return { stmt: null, i: i + 1 };
-
-    if (h === 'input'){
-      let a = 1, b = toks.length;
-      if (opTok(1, '(') && matchParen(toks, 1) === toks.length - 1){ a = 2; b = toks.length - 1; }
-      const names = [];
-      for (let q = a; q < b; q++){
-        const t = toks[q];
+    if (h === 'define'){
+      let q = 1;
+      while (['libpub', 'libpriv'].includes(headWord(L, q))) q++;
+      const nameTok = toks[q];
+      if (!nameTok || nameTok.t !== 'id' || KW.has(nameTok.v.toLowerCase())) throw new PCError('Define must be followed by a name, e.g. Define f(x)=', n);
+      if (!opTok(q + 1, '(')) throw new PCError(`Expected "(" after the name, e.g. Define ${nameTok.v}(x)=`, n);
+      const close = matchParen(toks, q + 1);
+      if (close < 0) throw new PCError('Missing a closing bracket ")" in the Define line', n);
+      const params = [];
+      for (let k = q + 2; k < close; k++){
+        const t = toks[k];
         if (t.t === 'op' && t.v === ',') continue;
-        if (t.t !== 'id' || KW.has(t.v.toLowerCase())) throw new PCError('"input" must be followed by variable names, e.g. input a, b', n);
-        names.push(t.v);
+        if (t.t !== 'id' || KW.has(t.v.toLowerCase())) throw new PCError('The inputs in a Define must be variable names, e.g. Define f(x, y)=', n);
+        params.push(t.v);
       }
-      if (!names.length) throw new PCError('"input" needs at least one variable name, e.g. input x', n);
-      return { stmt: { k: 'input', names, line: n }, i: i + 1 };
+      if (!opTok(close + 1, '=')) throw new PCError(`Expected "=" after the brackets, e.g. Define ${nameTok.v}(${params.join(', ')})=`, n);
+      const rest = toks.slice(close + 2);
+      const fn = { name: nameTok.v, params, body: [], kind: 'func', line: n };
+      let kindWord = null, j = i + 1;
+      if (!rest.length){
+        const next = lines[i + 1];
+        const nh = next ? headWord(next, 0) : null;
+        if (nh === 'prgm' || nh === 'func'){
+          if (next.toks.length > 1) throw new PCError(`${next.toks[0].v} should be on a line by itself`, next.n);
+          kindWord = nh; j = i + 2;
+        } else throw new PCError('Put Prgm or Func on the line after Define, or an expression after the "="', n);
+      } else if (rest.length === 1 && rest[0].t === 'id' && ['prgm', 'func'].includes(rest[0].v.toLowerCase())){
+        kindWord = rest[0].v.toLowerCase(); j = i + 1;
+      } else {
+        fn.kind = 'expr';
+        fn.expr = parseSingle(rest, n);
+        funcs.set(nameTok.v.toLowerCase(), fn);
+        return { stmt: null, i: i + 1 };
+      }
+      fn.kind = kindWord;
+      const closeWord = BLOCK_END[kindWord];
+      const r = parseStatements(lines, j, end, funcs, ['endprgm', 'endfunc'], { word: kindWord === 'prgm' ? 'Prgm' : 'Func', line: n, close: closeWord === 'endprgm' ? 'EndPrgm' : 'EndFunc' });
+      if (r.i >= end) throw new PCError(`Missing ${closeWord === 'endprgm' ? 'EndPrgm' : 'EndFunc'} for the ${kindWord === 'prgm' ? 'Prgm' : 'Func'} on line ${n}`, n);
+      const got = stopKey(lines[r.i]);
+      if (got !== closeWord) throw new PCError(`${kindWord === 'prgm' ? 'Prgm' : 'Func'} on line ${n} must be closed with ${closeWord === 'endprgm' ? 'EndPrgm' : 'EndFunc'}, not ${lines[r.i].toks.map(t => t.v).join(' ')}`, lines[r.i].n);
+      fn.body = r.stmts;
+      funcs.set(nameTok.v.toLowerCase(), fn);
+      return { stmt: null, i: r.i + 1 };
     }
 
-    if (h === 'print'){
-      let a = 1, b = toks.length, paren = false;
-      if (opTok(1, '(') && matchParen(toks, 1) === toks.length - 1){ a = 2; b = toks.length - 1; paren = true; }
-      const args = parseList(toks.slice(a, b), n);
-      return { stmt: { k: 'print', args, paren, line: n }, i: i + 1 };
+    if (h === 'prgm' || h === 'func') throw new PCError(`Put "Define name()=" on the line above ${toks[0].v}`, n);
+
+    if (h === 'local') return { stmt: { k: 'local', names: nameList(toks.slice(1), n, 'Local'), line: n }, i: i + 1 };
+    if (h === 'delvar') return { stmt: { k: 'delvar', names: nameList(toks.slice(1), n, 'DelVar'), line: n }, i: i + 1 };
+    if (h === 'clrio' || h === 'pause') return { stmt: null, i: i + 1 };
+
+    if (h === 'disp') return { stmt: { k: 'disp', args: parseList(toks.slice(1), n), line: n }, i: i + 1 };
+    if (h === 'text'){
+      const args = parseList(toks.slice(1), n);
+      if (args.length !== 1) throw new PCError('Text needs one message, e.g. Text "Done"', n);
+      return { stmt: { k: 'disp', args, line: n }, i: i + 1 };
+    }
+
+    if (h === 'request' || h === 'requeststr'){
+      const args = parseList(toks.slice(1), n);
+      if (args.length < 2 || args[1].k !== 'var') throw new PCError(`${toks[0].v} needs a prompt and a variable, e.g. ${toks[0].v} "Enter n", n`, n);
+      return { stmt: { k: 'request', prompt: args[0], name: args[1].name, str: h === 'requeststr', line: n }, i: i + 1 };
     }
 
     if (h === 'return'){
@@ -611,30 +725,47 @@ const PC = (() => {
       const value = rest.length ? parseSingle(rest, n) : null;
       return { stmt: { k: 'return', value, line: n }, i: i + 1 };
     }
+    if (h === 'stop' || h === 'exit' || h === 'cycle'){
+      if (toks.length > 1) throw new PCError(`${toks[0].v} should be on a line by itself`, n);
+      return { stmt: { k: h, line: n }, i: i + 1 };
+    }
+    if (h === 'sorta' || h === 'sortd'){
+      const names = nameList(toks.slice(1), n, toks[0].v);
+      return { stmt: { k: 'sort', names, desc: h === 'sortd', line: n }, i: i + 1 };
+    }
 
     if (h === 'if'){
-      const condToks = stripTrailingKw(toks.slice(1), 'then');
-      if (!condToks.length) throw new PCError('"if" needs a condition, e.g. if x < 10 then', n);
-      const branches = [{ cond: parseSingle(condToks, n), body: [] }];
+      const body = toks.slice(1);
+      if (!body.length) throw new PCError('If needs a condition, e.g. If x<10 Then', n);
+      if (!endsWithKw(body, 'then')){
+        // single-statement If: the next statement is the body
+        const cond = parseSingle(body, n);
+        if (i + 1 >= end || stopKey(lines[i + 1])) throw new PCError('This If has no statement under it. Put the statement on the next line, or add Then and close with EndIf', n);
+        const r = parseStmt(lines, i + 1, end, funcs);
+        if (!r.stmt) throw new PCError('The line after a one-line If must be a statement', lines[i + 1].n);
+        return { stmt: { k: 'if', branches: [{ cond, body: [r.stmt] }], elseBody: null, line: n }, i: r.i };
+      }
+      const branches = [{ cond: parseSingle(stripTrailingKw(body, 'then'), n), body: [] }];
       let elseBody = null;
-      const op = { word: 'if', line: n };
-      let r = parseStatements(lines, i + 1, end, funcs, ['else if', 'else', 'end if'], op);
+      const op = { word: 'If … Then', line: n, close: 'EndIf' };
+      let r = parseStatements(lines, i + 1, end, funcs, ['elseif', 'else', 'endif'], op);
       branches[0].body = r.stmts; i = r.i;
       for (;;){
-        if (i >= end) throw new PCError(`Missing "end if" for the "if" on line ${n}`, n);
+        if (i >= end) throw new PCError(`Missing EndIf for the If on line ${n}`, n);
         const key = stopKey(lines[i]);
-        if (key === 'else if'){
+        if (key === 'elseif'){
           const E = lines[i];
           const start = headWord(E, 0) === 'elseif' ? 1 : 2;
-          const ct = stripTrailingKw(E.toks.slice(start), 'then');
-          if (!ct.length) throw new PCError('"else if" needs a condition', E.n);
-          r = parseStatements(lines, i + 1, end, funcs, ['else if', 'else', 'end if'], op);
-          branches.push({ cond: parseSingle(ct, E.n), body: r.stmts, line: E.n }); i = r.i;
+          const ct = E.toks.slice(start);
+          if (!ct.length) throw new PCError('ElseIf needs a condition, e.g. ElseIf x<10 Then', E.n);
+          if (!endsWithKw(ct, 'then')) throw new PCError('ElseIf must end with Then', E.n);
+          r = parseStatements(lines, i + 1, end, funcs, ['elseif', 'else', 'endif'], op);
+          branches.push({ cond: parseSingle(stripTrailingKw(ct, 'then'), E.n), body: r.stmts, line: E.n }); i = r.i;
         } else if (key === 'else'){
-          if (lines[i].toks.length > 1) throw new PCError('"else" should be on a line by itself', lines[i].n);
-          r = parseStatements(lines, i + 1, end, funcs, ['end if'], op);
+          if (lines[i].toks.length > 1) throw new PCError('Else should be on a line by itself', lines[i].n);
+          r = parseStatements(lines, i + 1, end, funcs, ['endif'], op);
           elseBody = r.stmts; i = r.i;
-          if (i >= end) throw new PCError(`Missing "end if" for the "if" on line ${n}`, n);
+          if (i >= end) throw new PCError(`Missing EndIf for the If on line ${n}`, n);
           i++; break;
         } else { i++; break; }
       }
@@ -643,93 +774,58 @@ const PC = (() => {
 
     if (h === 'for'){
       const v = toks[1];
-      if (!v || v.t !== 'id' || KW.has(v.v.toLowerCase())) throw new PCError('"for" must be followed by a variable name, e.g. for i from 1 to n', n);
-      const P = new Parser(toks, n);
-      let stmt;
-      if (kwTok(2, 'in')){
-        P.p = 3;
-        const list = P.parseExpr();
-        if (P.isKw('do')) P.p++;
-        P.finish();
-        stmt = { k: 'forin', v: v.v, list, line: n };
-      } else {
-        if (kwTok(2, 'from') || opTok(2, '<-') || opTok(2, '=') || opTok(2, ':=')) P.p = 3;
-        else throw new PCError('Expected "from" after the variable, e.g. for i from 1 to n', n);
-        const from = P.parseExpr();
-        if (!P.isKw('to')) throw new PCError('Expected "to" in the for statement, e.g. for i from 1 to n', n);
-        P.p++;
-        const to = P.parseExpr();
-        let step = null;
-        if (P.isKw('step')){ P.p++; step = P.parseExpr(); }
-        if (P.isKw('do')) P.p++;
-        P.finish();
-        stmt = { k: 'for', v: v.v, from, to, step, line: n };
-      }
-      const r = parseStatements(lines, i + 1, end, funcs, ['end for'], { word: 'for', line: n });
-      if (r.i >= end) throw new PCError(`Missing "end for" for the "for" on line ${n}`, n);
-      stmt.body = r.stmts;
-      return { stmt, i: r.i + 1 };
+      if (!v || v.t !== 'id' || KW.has(v.v.toLowerCase())) throw new PCError('For must be followed by a variable, e.g. For i,1,n', n);
+      if (!opTok(2, ',')) throw new PCError('Expected a comma after the variable, e.g. For i,1,n', n);
+      const parts = parseList(toks.slice(3), n);
+      if (parts.length < 2 || parts.length > 3) throw new PCError('For needs a start and an end (and an optional step), e.g. For i,1,n or For x,0,1,0.1', n);
+      const r = parseStatements(lines, i + 1, end, funcs, ['endfor'], { word: 'For', line: n, close: 'EndFor' });
+      if (r.i >= end) throw new PCError(`Missing EndFor for the For on line ${n}`, n);
+      return { stmt: { k: 'for', v: v.v, from: parts[0], to: parts[1], step: parts[2] || null, body: r.stmts, line: n }, i: r.i + 1 };
     }
 
     if (h === 'while'){
-      const condToks = stripTrailingKw(toks.slice(1), 'do');
-      if (!condToks.length) throw new PCError('"while" needs a condition, e.g. while x < 10', n);
+      const condToks = toks.slice(1);
+      if (!condToks.length) throw new PCError('While needs a condition, e.g. While x<10', n);
       const cond = parseSingle(condToks, n);
-      const r = parseStatements(lines, i + 1, end, funcs, ['end while'], { word: 'while', line: n });
-      if (r.i >= end) throw new PCError(`Missing "end while" for the "while" on line ${n}`, n);
+      const r = parseStatements(lines, i + 1, end, funcs, ['endwhile'], { word: 'While', line: n, close: 'EndWhile' });
+      if (r.i >= end) throw new PCError(`Missing EndWhile for the While on line ${n}`, n);
       return { stmt: { k: 'while', cond, body: r.stmts, line: n }, i: r.i + 1 };
     }
 
-    if (h === 'define' || h === 'function' || h === 'procedure'){
-      const nameTok = toks[1];
-      if (!nameTok || nameTok.t !== 'id' || KW.has(nameTok.v.toLowerCase())) throw new PCError('"define" must be followed by a function name, e.g. define f(x)', n);
-      if (!opTok(2, '(')) throw new PCError(`Expected "(" after the function name, e.g. define ${nameTok.v}(x)`, n);
-      const close = matchParen(toks, 2);
-      if (close < 0) throw new PCError('Missing a closing bracket ")" in the define line', n);
-      const params = [];
-      for (let q = 3; q < close; q++){
-        const t = toks[q];
-        if (t.t === 'op' && t.v === ',') continue;
-        if (t.t !== 'id' || KW.has(t.v.toLowerCase())) throw new PCError('Function inputs must be variable names, e.g. define f(x, y)', n);
-        params.push(t.v);
-      }
-      let q = close + 1;
-      if (opTok(q, ':')) q++;
-      if (q < toks.length) throw new PCError('Unexpected text after the define line', n);
-      let j = i + 1;
-      while (j < end && lines[j].indent > L.indent) j++;
-      if (j === i + 1) throw new PCError(`Indent the body of "${nameTok.v}" under the define line (and put "return" inside it)`, n);
-      const r = parseStatements(lines, i + 1, j, funcs, ['end define', 'end function', 'end procedure'], { word: 'define', line: n });
-      let next = j;
-      if (r.i < j) next = r.i + 1;
-      else if (j < end && ['end define', 'end function', 'end procedure'].includes(stopKey(lines[j]))) next = j + 1;
-      funcs.set(nameTok.v, { name: nameTok.v, params, body: r.stmts, line: n });
-      return { stmt: null, i: next };
+    if (h === 'loop'){
+      if (toks.length > 1) throw new PCError('Loop should be on a line by itself', n);
+      const r = parseStatements(lines, i + 1, end, funcs, ['endloop'], { word: 'Loop', line: n, close: 'EndLoop' });
+      if (r.i >= end) throw new PCError(`Missing EndLoop for the Loop on line ${n}`, n);
+      return { stmt: { k: 'loop', body: r.stmts, line: n }, i: r.i + 1 };
     }
 
-    // assignment or expression statement
-    let depth = 0, k = -1;
+    // store (value → target), assignment (target := value) or an expression
+    let depth = 0, k = -1, kind = null;
     for (let q = 0; q < toks.length; q++){
       const t = toks[q];
       if (t.t !== 'op') continue;
-      if (t.v === '(' || t.v === '[') depth++;
-      else if (t.v === ')' || t.v === ']') depth--;
-      else if (depth === 0 && (t.v === '<-' || t.v === ':=' || (t.v === '=' && q > 0))){ k = q; break; }
+      if (t.v === '(' || t.v === '[' || t.v === '{') depth++;
+      else if (t.v === ')' || t.v === ']' || t.v === '}') depth--;
+      else if (depth === 0 && (t.v === '->' || t.v === ':=')){ k = q; kind = t.v; break; }
     }
     if (k >= 0){
-      const targetToks = toks.slice(0, k), valueToks = toks.slice(k + 1);
-      if (!targetToks.length) throw new PCError('Put a variable name before the ←, e.g. x ← 5', n);
-      if (!valueToks.length) throw new PCError('Put a value or expression after the ←, e.g. x ← 5', n);
+      const leftToks = toks.slice(0, k), rightToks = toks.slice(k + 1);
+      const targetToks = kind === '->' ? rightToks : leftToks;
+      const valueToks = kind === '->' ? leftToks : rightToks;
+      if (!targetToks.length) throw new PCError(kind === '->' ? 'Put a variable name after the →, e.g. 5→x' : 'Put a variable name before :=, e.g. x:=5', n);
+      if (!valueToks.length) throw new PCError(kind === '->' ? 'Put a value before the →, e.g. 5→x' : 'Put a value after :=, e.g. x:=5', n);
       const target = parseSingle(targetToks, n);
-      if (target.k !== 'var' && target.k !== 'index') throw new PCError('The left side of ← must be a single variable name, e.g. x ← 5 (or a list item such as L[i])', n);
+      if (target.k !== 'var' && target.k !== 'index') throw new PCError(kind === '->' ? 'The right side of → must be a variable name, e.g. 5→x (or a list item such as L[i])' : 'The left side of := must be a variable name, e.g. x:=5 (or a list item such as L[i])', n);
       const value = parseSingle(valueToks, n);
-      return { stmt: { k: 'assign', target, value, line: n, hint: toks[k].v === '=' }, i: i + 1 };
+      return { stmt: { k: 'assign', target, value, line: n }, i: i + 1 };
+    }
+    if (toks.length > 2 && toks[0].t === 'id' && !KW.has(toks[0].v.toLowerCase()) && opTok(1, '=')){
+      throw new PCError(`To store a value write ${toks[0].v}:=… or …→${toks[0].v}. A single "=" only compares two values`, n);
     }
     if (toks[0].t === 'id' && KW.has(toks[0].v.toLowerCase()) && !['not','true','false'].includes(h)){
       throw new PCError(`"${toks[0].v}" cannot start a line here`, n);
     }
     const e = parseSingle(toks, n);
-    if (e.k !== 'apply') throw new PCError('This line does nothing. Did you mean "x ← …" or "print …"?', n);
     return { stmt: { k: 'expr', e, line: n }, i: i + 1 };
   }
 
@@ -749,8 +845,8 @@ const PC = (() => {
     }
     if (typeof v === 'boolean') return v ? 'true' : 'false';
     if (typeof v === 'string') return v;
-    if (Array.isArray(v)) return (v.tuple ? '(' : '[') + v.map(fmt).join(', ') + (v.tuple ? ')' : ']');
-    if (v === undefined) return '(no value)';
+    if (Array.isArray(v)) return '{' + v.map(fmt).join(',') + '}';
+    if (v === undefined || v === UNSET) return '(no value)';
     return String(v);
   }
   function num(v, what, line){
@@ -764,7 +860,6 @@ const PC = (() => {
   }
   function truthy(v, line){
     if (typeof v === 'boolean') return v;
-    if (typeof v === 'number') return v !== 0;
     throw new PCError(`A condition must be true or false, but this one is ${typeName(v)}`, line);
   }
   function equal(a, b){
@@ -781,21 +876,25 @@ const PC = (() => {
     return op === '<' ? a < b : op === '>' ? a > b : op === '<=' ? a <= b : a >= b;
   }
   function arith(op, a, b, line){
-    if (op === '+'){
-      if (typeof a === 'string' || typeof b === 'string') return fmt(a) + fmt(b);
-      if (Array.isArray(a) && Array.isArray(b)) return a.concat(b);
+    if (op === '&'){
+      if (typeof a !== 'string' || typeof b !== 'string') throw new PCError('& joins two strings. Use string(x) to turn a number into text', line);
+      return a + b;
     }
-    if (op === '*' && Array.isArray(a) && typeof b === 'number' && Number.isInteger(b) && b >= 0){
-      let out = []; for (let i = 0; i < b; i++) out = out.concat(a); return out;
+    if (Array.isArray(a) || Array.isArray(b)){
+      // element-wise arithmetic on lists, as a calculator does
+      const la = Array.isArray(a), lb = Array.isArray(b);
+      if (la && lb && a.length !== b.length) throw new PCError('The two lists have different lengths', line);
+      const len = la ? a.length : b.length;
+      const out = [];
+      for (let i = 0; i < len; i++) out.push(arith(op, la ? a[i] : a, lb ? b[i] : b, line));
+      return out;
     }
-    const shown = op === '*' ? '×' : op;
-    const x = num(a, `The operator ${shown}`, line), y = num(b, `The operator ${shown}`, line);
+    const x = num(a, `The operator ${op}`, line), y = num(b, `The operator ${op}`, line);
     switch (op){
       case '+': return checkNum(x + y, line);
       case '-': return checkNum(x - y, line);
       case '*': return checkNum(x * y, line);
       case '/': if (y === 0) throw new PCError('Division by zero', line); return checkNum(x / y, line);
-      case 'mod': if (y === 0) throw new PCError('mod by zero', line); return ((x % y) + y) % y;
       case '^': return checkNum(Math.pow(x, y), line);
     }
     throw new PCError('Unknown operator ' + op, line);
@@ -816,12 +915,17 @@ const PC = (() => {
   }
   const one = (name, f, check) => (args, line) => {
     nargs(args, 1, 1, name, line);
+    if (Array.isArray(args[0])) return args[0].map(v => { const x = num(v, name, line); if (check) check(x, line); return checkNum(f(x), line); });
     const x = num(args[0], name, line);
     if (check) check(x, line);
     return checkNum(f(x), line);
   };
+  const two = (name, f) => (args, line) => {
+    nargs(args, 2, 2, name, line);
+    return checkNum(f(num(args[0], name, line), num(args[1], name, line), line), line);
+  };
   function listArg(v, name, line){
-    if (!Array.isArray(v)) throw new PCError(`${name} needs a list, e.g. ${name}([1, 2, 3])`, line);
+    if (!Array.isArray(v)) throw new PCError(`${name} needs a list, e.g. ${name}({1, 2, 3})`, line);
     return v;
   }
   function numsOf(args, name, line){
@@ -834,77 +938,138 @@ const PC = (() => {
     const s = Number(Math.round(Number(x + 'e' + d)) + 'e-' + d);
     return Number.isNaN(s) ? Math.round(x * 10 ** d) / 10 ** d : s;
   }
+  function gcd(a, b){ a = Math.abs(a); b = Math.abs(b); while (b){ [a, b] = [b, a % b]; } return a; }
+  function intCheck(x, name, line){ if (!Number.isInteger(x)) throw new PCError(`${name} needs whole numbers`, line); }
+  function randNormal(){ let u = 0, v = 0; while (u === 0) u = Math.random(); while (v === 0) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
   const BUILTINS = {
     sqrt: one('sqrt', Math.sqrt, (x, l) => { if (x < 0) throw new PCError(`sqrt of a negative number (${fmt(x)})`, l); }),
-    abs: one('abs', Math.abs), floor: one('floor', Math.floor), ceil: one('ceil', Math.ceil), trunc: one('trunc', Math.trunc),
+    abs: one('abs', Math.abs), floor: one('floor', Math.floor), ceiling: one('ceiling', Math.ceil), int: one('int', Math.floor),
+    ipart: one('iPart', Math.trunc), fpart: one('fPart', x => x - Math.trunc(x)), sign: one('sign', Math.sign),
     sin: one('sin', Math.sin), cos: one('cos', Math.cos), tan: one('tan', Math.tan),
     asin: one('asin', Math.asin), acos: one('acos', Math.acos), atan: one('atan', Math.atan),
     exp: one('exp', Math.exp),
     ln: one('ln', Math.log, (x, l) => { if (x <= 0) throw new PCError('ln needs a positive number', l); }),
-    log10: one('log10', Math.log10, (x, l) => { if (x <= 0) throw new PCError('log10 needs a positive number', l); }),
-    log2: one('log2', Math.log2, (x, l) => { if (x <= 0) throw new PCError('log2 needs a positive number', l); }),
     log: (args, line) => {
       nargs(args, 1, 2, 'log', line);
       const x = num(args[0], 'log', line);
       if (x <= 0) throw new PCError('log needs a positive number', line);
-      if (args.length === 1) return Math.log(x);
+      if (args.length === 1) return Math.log10(x);
       const b = num(args[1], 'log base', line);
       if (b <= 0 || b === 1) throw new PCError('The base of log must be positive and not 1', line);
       return checkNum(Math.log(x) / Math.log(b), line);
     },
     round: (args, line) => {
       nargs(args, 1, 2, 'round', line);
-      const x = num(args[0], 'round', line);
       const d = args.length === 2 ? num(args[1], 'round', line) : 0;
       if (!Number.isInteger(d) || d < 0 || d > 15) throw new PCError('round needs a whole number of decimal places from 0 to 15', line);
-      return roundTo(x, d);
+      if (Array.isArray(args[0])) return args[0].map(v => roundTo(num(v, 'round', line), d));
+      return roundTo(num(args[0], 'round', line), d);
     },
-    random: (args, line) => {
-      nargs(args, 0, 2, 'random', line);
-      if (args.length === 0) return Math.random();
-      if (args.length === 1) throw new PCError('random takes no arguments, or two: random(a, b)', line);
-      const a = num(args[0], 'random', line), b = num(args[1], 'random', line);
-      return a + (b - a) * Math.random();
+    approx: (args, line) => { nargs(args, 1, 1, 'approx', line); return args[0]; },
+    mod: two('mod', (a, b, l) => { if (b === 0) return a; return ((a % b) + b) % b; }),
+    remain: two('remain', (a, b, l) => { if (b === 0) return a; return a % b; }),
+    intdiv: two('intDiv', (a, b, l) => { if (b === 0) throw new PCError('intDiv by zero', l); return Math.trunc(a / b); }),
+    gcd: two('gcd', (a, b, l) => { intCheck(a, 'gcd', l); intCheck(b, 'gcd', l); return gcd(a, b); }),
+    lcm: two('lcm', (a, b, l) => { intCheck(a, 'lcm', l); intCheck(b, 'lcm', l); return a === 0 || b === 0 ? 0 : Math.abs(a * b) / gcd(a, b); }),
+    rand: (args, line) => {
+      nargs(args, 0, 1, 'rand', line);
+      if (!args.length) return Math.random();
+      const n = num(args[0], 'rand', line); intCheck(n, 'rand', line);
+      if (n < 1) throw new PCError('rand(n) needs n ≥ 1', line);
+      return Array.from({ length: n }, () => Math.random());
     },
-    randominteger: (args, line) => {
-      nargs(args, 2, 2, 'randominteger', line);
-      const a = num(args[0], 'randominteger', line), b = num(args[1], 'randominteger', line);
-      if (!Number.isInteger(a) || !Number.isInteger(b)) throw new PCError('randominteger needs whole numbers, e.g. randominteger(1, 6)', line);
-      if (a > b) throw new PCError('randominteger(a, b) needs a ≤ b', line);
-      return a + Math.floor(Math.random() * (b - a + 1));
+    randint: (args, line) => {
+      nargs(args, 2, 3, 'randInt', line);
+      const a = num(args[0], 'randInt', line), b = num(args[1], 'randInt', line);
+      if (!Number.isInteger(a) || !Number.isInteger(b)) throw new PCError('randInt needs whole numbers, e.g. randInt(1,6)', line);
+      if (a > b) throw new PCError('randInt(a,b) needs a ≤ b', line);
+      const pick = () => a + Math.floor(Math.random() * (b - a + 1));
+      if (args.length === 2) return pick();
+      const n = num(args[2], 'randInt', line); intCheck(n, 'randInt', line);
+      return Array.from({ length: n }, pick);
+    },
+    randnorm: (args, line) => {
+      nargs(args, 2, 3, 'randNorm', line);
+      const mu = num(args[0], 'randNorm', line), sd = num(args[1], 'randNorm', line);
+      const pick = () => mu + sd * randNormal();
+      if (args.length === 2) return pick();
+      const n = num(args[2], 'randNorm', line); intCheck(n, 'randNorm', line);
+      return Array.from({ length: n }, pick);
+    },
+    randbin: (args, line) => {
+      nargs(args, 2, 3, 'randBin', line);
+      const n = num(args[0], 'randBin', line), p = num(args[1], 'randBin', line);
+      intCheck(n, 'randBin', line);
+      if (p < 0 || p > 1) throw new PCError('randBin needs a probability between 0 and 1', line);
+      const pick = () => { let c = 0; for (let i = 0; i < n; i++) if (Math.random() < p) c++; return c; };
+      if (args.length === 2) return pick();
+      const m = num(args[2], 'randBin', line); intCheck(m, 'randBin', line);
+      return Array.from({ length: m }, pick);
     },
     min: (args, line) => Math.min(...numsOf(args, 'min', line)),
     max: (args, line) => Math.max(...numsOf(args, 'max', line)),
     sum: (args, line) => { nargs(args, 1, 1, 'sum', line); return listArg(args[0], 'sum', line).reduce((s, v) => s + num(v, 'sum', line), 0); },
+    product: (args, line) => { nargs(args, 1, 1, 'product', line); return listArg(args[0], 'product', line).reduce((s, v) => s * num(v, 'product', line), 1); },
     mean: (args, line) => { nargs(args, 1, 1, 'mean', line); const L = listArg(args[0], 'mean', line); if (!L.length) throw new PCError('mean of an empty list', line); return L.reduce((s, v) => s + num(v, 'mean', line), 0) / L.length; },
-    length: (args, line) => { nargs(args, 1, 1, 'length', line); const v = args[0]; if (Array.isArray(v) || typeof v === 'string') return v.length; throw new PCError('length needs a list or text', line); },
-    append: (args, line) => { nargs(args, 2, 2, 'append', line); const L = listArg(args[0], 'append', line); L.push(args[1]); return L; },
-    sort: (args, line) => { nargs(args, 1, 1, 'sort', line); const L = listArg(args[0], 'sort', line).slice(); return L.sort((a, b) => (typeof a === 'number' && typeof b === 'number') ? a - b : String(a).localeCompare(String(b))); },
-    count: (args, line) => { nargs(args, 2, 2, 'count', line); return listArg(args[0], 'count', line).filter(v => equal(v, args[1])).length; },
-    factorial: (args, line) => { nargs(args, 1, 1, 'factorial', line); const n = num(args[0], 'factorial', line); if (!Number.isInteger(n) || n < 0) throw new PCError('factorial needs a whole number ≥ 0', line); let p = 1; for (let i = 2; i <= n; i++) p *= i; return checkNum(p, line); },
-    ncr: (args, line) => { nargs(args, 2, 2, 'ncr', line); const n = num(args[0], 'ncr', line), r = num(args[1], 'ncr', line); if (!Number.isInteger(n) || !Number.isInteger(r) || n < 0) throw new PCError('ncr needs whole numbers', line); if (r < 0 || r > n) return 0; let v = 1; for (let i = 1; i <= r; i++) v = v * (n - r + i) / i; return Math.round(v); },
-    str: (args, line) => { nargs(args, 1, 1, 'str', line); return fmt(args[0]); }
+    median: (args, line) => { nargs(args, 1, 1, 'median', line); const L = listArg(args[0], 'median', line).map(v => num(v, 'median', line)).sort((a, b) => a - b); if (!L.length) throw new PCError('median of an empty list', line); const m = L.length >> 1; return L.length % 2 ? L[m] : (L[m - 1] + L[m]) / 2; },
+    dim: (args, line) => { nargs(args, 1, 1, 'dim', line); const v = args[0]; if (Array.isArray(v) || typeof v === 'string') return v.length; throw new PCError('dim needs a list or a string', line); },
+    count: (args, line) => { nargs(args, 1, 1, 'count', line); return listArg(args[0], 'count', line).filter(v => typeof v === 'number').length; },
+    augment: (args, line) => { nargs(args, 2, 2, 'augment', line); return listArg(args[0], 'augment', line).concat(listArg(args[1], 'augment', line)); },
+    newlist: (args, line) => { nargs(args, 1, 1, 'newList', line); const n = num(args[0], 'newList', line); intCheck(n, 'newList', line); if (n < 0) throw new PCError('newList needs n ≥ 0', line); return Array.from({ length: n }, () => 0); },
+    cumulativesum: (args, line) => { nargs(args, 1, 1, 'cumulativeSum', line); let s = 0; return listArg(args[0], 'cumulativeSum', line).map(v => (s += num(v, 'cumulativeSum', line))); },
+    sorta: (args, line) => { nargs(args, 1, 1, 'sortA', line); return sortList(listArg(args[0], 'sortA', line), false); },
+    sortd: (args, line) => { nargs(args, 1, 1, 'sortD', line); return sortList(listArg(args[0], 'sortD', line), true); },
+    left: (args, line) => { nargs(args, 1, 2, 'left', line); const v = args[0]; const n = args.length === 2 ? num(args[1], 'left', line) : 1; if (Array.isArray(v) || typeof v === 'string') return v.slice(0, n); throw new PCError('left needs a list or a string', line); },
+    right: (args, line) => { nargs(args, 1, 2, 'right', line); const v = args[0]; const n = args.length === 2 ? num(args[1], 'right', line) : 1; if (Array.isArray(v) || typeof v === 'string') return n <= 0 ? v.slice(0, 0) : v.slice(-n); throw new PCError('right needs a list or a string', line); },
+    mid: (args, line) => { nargs(args, 2, 3, 'mid', line); const v = args[0]; const s = num(args[1], 'mid', line); const n = args.length === 3 ? num(args[2], 'mid', line) : undefined; if (Array.isArray(v) || typeof v === 'string') return n === undefined ? v.slice(s - 1) : v.slice(s - 1, s - 1 + n); throw new PCError('mid needs a list or a string', line); },
+    ncr: (args, line) => { nargs(args, 2, 2, 'nCr', line); const n = num(args[0], 'nCr', line), r = num(args[1], 'nCr', line); if (!Number.isInteger(n) || !Number.isInteger(r) || n < 0) throw new PCError('nCr needs whole numbers', line); if (r < 0 || r > n) return 0; let v = 1; for (let i = 1; i <= r; i++) v = v * (n - r + i) / i; return Math.round(v); },
+    npr: (args, line) => { nargs(args, 2, 2, 'nPr', line); const n = num(args[0], 'nPr', line), r = num(args[1], 'nPr', line); if (!Number.isInteger(n) || !Number.isInteger(r) || n < 0) throw new PCError('nPr needs whole numbers', line); if (r < 0 || r > n) return 0; let v = 1; for (let i = 0; i < r; i++) v *= (n - i); return checkNum(v, line); },
+    factorial: (args, line) => { nargs(args, 1, 1, '!', line); const n = num(args[0], '!', line); if (!Number.isInteger(n) || n < 0) throw new PCError('! needs a whole number ≥ 0', line); let p = 1; for (let i = 2; i <= n; i++) p *= i; return checkNum(p, line); },
+    string: (args, line) => { nargs(args, 1, 1, 'string', line); return fmt(args[0]); },
+    expr: (args, line) => { nargs(args, 1, 1, 'expr', line); const s = args[0]; if (typeof s !== 'string') throw new PCError('expr needs a string', line); const v = parseFloat(s); if (Number.isNaN(v)) throw new PCError(`expr could not read "${s}" as a number`, line); return v; }
   };
-  BUILTINS.len = BUILTINS.length;
-  BUILTINS.randint = BUILTINS.randominteger;
-  BUILTINS.average = BUILTINS.mean;
+  function sortList(L, desc){
+    const out = L.slice().sort((a, b) => (typeof a === 'number' && typeof b === 'number') ? a - b : String(a).localeCompare(String(b)));
+    return desc ? out.reverse() : out;
+  }
+  BUILTINS.ceil = BUILTINS.ceiling;
   const CONSTS = { pi: Math.PI, e: Math.E };
+  const SPECIAL = new Set(['seq', 'when']);
 
   /* ---------- evaluation ---------- */
-  function lookup(name, env, line){
-    for (let e = env; e; e = e.parent){ if (e.vars.has(name)) return e.vars.get(name); }
-    if (Object.prototype.hasOwnProperty.call(CONSTS, name.toLowerCase())) return CONSTS[name.toLowerCase()];
-    throw new PCError(`"${name}" has no value yet. Give it one first, e.g. ${name} ← …`, line);
+  const key = name => name.toLowerCase();
+  function findEnv(name, env){
+    const k = key(name);
+    for (let e = env; e; e = e.parent){ if (e.vars.has(k)) return e; }
+    return null;
   }
-  function hasVar(name, env){ for (let e = env; e; e = e.parent){ if (e.vars.has(name)) return true; } return false; }
+  function lookup(name, env, line){
+    const e = findEnv(name, env);
+    if (e){
+      const v = e.vars.get(key(name));
+      if (v === UNSET) throw new PCError(`"${name}" is declared Local but has no value yet. Give it one first, e.g. ${name}:=0`, line);
+      return v;
+    }
+    if (Object.prototype.hasOwnProperty.call(CONSTS, key(name))) return CONSTS[key(name)];
+    throw new PCError(`"${name}" has no value yet. Store one first, e.g. 0→${name} or ${name}:=0`, line);
+  }
+  function setVar(name, v, env, ctx){
+    const k = key(name);
+    if (!ctx.disp[k]) ctx.disp[k] = name;
+    const e = findEnv(name, env);
+    if (e){ e.vars.set(k, v); return; }
+    let target = env;
+    if (env.kind === 'prgm'){ while (target.parent) target = target.parent; }
+    target.vars.set(k, v);
+  }
 
   function ev(node, env, ctx){
     switch (node.k){
       case 'num': case 'str': case 'bool': return node.v;
       case 'var': return lookup(node.name, env, node.line);
       case 'list': return node.items.map(e => ev(e, env, ctx));
-      case 'tuple': { const v = node.items.map(e => ev(e, env, ctx)); v.tuple = true; return v; }
-      case 'neg': return -num(ev(node.e, env, ctx), 'The minus sign', node.line);
+      case 'neg': { const v = ev(node.e, env, ctx); if (Array.isArray(v)) return v.map(x => -num(x, 'The minus sign', node.line)); return -num(v, 'The minus sign', node.line); }
       case 'not': return !truthy(ev(node.e, env, ctx), node.line);
       case 'and': return truthy(ev(node.l, env, ctx), node.line) && truthy(ev(node.r, env, ctx), node.line);
       case 'or': return truthy(ev(node.l, env, ctx), node.line) || truthy(ev(node.r, env, ctx), node.line);
@@ -928,20 +1093,22 @@ const PC = (() => {
         throw new PCError(`Only lists can be indexed with [ ], but this is ${typeName(L)}`, node.line);
       }
       case 'apply': {
-        const args = node.args.map(a => ev(a, env, ctx));
         const c = node.callee;
         if (c.k === 'var'){
-          const name = c.name;
-          const fn = ctx.funcs.get(name) || [...ctx.funcs.values()].find(f => f.name.toLowerCase() === name.toLowerCase());
+          const name = c.name, lname = key(name);
+          if (SPECIAL.has(lname) && !ctx.funcs.has(lname) && !findEnv(name, env)) return special(lname, node, env, ctx);
+          const args = node.args.map(a => ev(a, env, ctx));
+          const fn = ctx.funcs.get(lname);
           if (fn) return callUser(fn, args, ctx, node.line);
-          const b = BUILTINS[name.toLowerCase()];
-          if (b && !hasVar(name, env)) return b(args, node.line);
-          if (hasVar(name, env)){
+          const b = BUILTINS[lname];
+          if (b && !findEnv(name, env)) return b(args, node.line);
+          if (findEnv(name, env)){
             if (args.length === 1) return arith('*', lookup(name, env, node.line), args[0], node.line);
             throw new PCError(`"${name}" is a variable, not a function`, node.line);
           }
-          throw new PCError(`"${name}" is not a defined function. Define it with define ${name}(…) or check the spelling`, node.line);
+          throw new PCError(`"${name}" is not a defined function. Define it with Define ${name}(…)= or check the spelling`, node.line);
         }
+        const args = node.args.map(a => ev(a, env, ctx));
         const v = ev(c, env, ctx);
         if (args.length === 1) return arith('*', v, args[0], node.line);
         throw new PCError('Unexpected brackets', node.line);
@@ -950,10 +1117,38 @@ const PC = (() => {
     throw new PCError('Internal error: unknown expression', node.line);
   }
 
+  function special(name, node, env, ctx){
+    const a = node.args;
+    if (name === 'when'){
+      if (a.length < 2 || a.length > 3) throw new PCError('when needs a condition and one or two values: when(cond, ifTrue, ifFalse)', node.line);
+      if (truthy(ev(a[0], env, ctx), node.line)) return ev(a[1], env, ctx);
+      if (a.length === 3) return ev(a[2], env, ctx);
+      return undefined;
+    }
+    // seq(expr, var, low, high [, step])
+    if (a.length < 4 || a.length > 5) throw new PCError('seq needs an expression, a variable, a start and an end: seq(i^2, i, 1, 5)', node.line);
+    if (a[1].k !== 'var') throw new PCError('The second argument of seq must be a variable name', node.line);
+    const lo = num(ev(a[2], env, ctx), 'seq', node.line), hi = num(ev(a[3], env, ctx), 'seq', node.line);
+    const st = a.length === 5 ? num(ev(a[4], env, ctx), 'seq', node.line) : 1;
+    if (st === 0) throw new PCError('The step in seq cannot be 0', node.line);
+    const inner = { vars: new Map(), parent: env, kind: 'func' };
+    const out = [];
+    const eps = 1e-9 * Math.max(1, Math.abs(st));
+    for (let k = 0; ; k++){
+      const v = lo + k * st;
+      if (st > 0 ? v > hi + eps : v < hi - eps) break;
+      if (out.length > 100000) throw new PCError('seq would make a list with more than 100,000 items', node.line);
+      inner.vars.set(key(a[1].name), Math.abs(v - Math.round(v)) < 1e-12 ? Math.round(v) : v);
+      out.push(ev(a[0], inner, ctx));
+    }
+    return out;
+  }
+
   function callUser(fn, args, ctx, line){
     if (args.length !== fn.params.length) throw new PCError(`${fn.name} expects ${fn.params.length} argument${fn.params.length === 1 ? '' : 's'} but got ${args.length}`, line);
-    const env = { vars: new Map(), parent: ctx.env, global: false };
-    fn.params.forEach((p, i) => env.vars.set(p, args[i]));
+    const env = { vars: new Map(), parent: ctx.env, kind: fn.kind === 'prgm' ? 'prgm' : 'func' };
+    fn.params.forEach((p, i) => { env.vars.set(key(p), args[i]); if (!ctx.disp[key(p)]) ctx.disp[key(p)] = p; });
+    if (fn.kind === 'expr') return ev(fn.expr, env, ctx);
     ctx.depth++;
     if (ctx.depth > 500) throw new PCError(`Too many nested calls to ${fn.name} (recursion with no way out?)`, line);
     try {
@@ -961,31 +1156,39 @@ const PC = (() => {
       for (;;){ const r = g.next(); if (r.done) break; }
     } catch (e){
       if (e instanceof ReturnSignal) return e.value;
+      if (e instanceof ExitSignal) throw new PCError('Exit can only be used inside a loop', e.line);
+      if (e instanceof CycleSignal) throw new PCError('Cycle can only be used inside a loop', e.line);
       throw e;
     } finally { ctx.depth--; }
     return undefined;
   }
 
   function assignTo(target, v, env, ctx){
-    if (target.k === 'var'){ env.vars.set(target.name, v); return; }
+    if (target.k === 'var'){ setVar(target.name, v, env, ctx); return; }
     const L = ev(target.target, env, ctx);
     if (!Array.isArray(L)) throw new PCError('Only a list item can be assigned with [ ]', target.line);
     const i = toIndex(ev(target.index, env, ctx), L.length, target.line, true);
     L[i] = v;
   }
 
-  function printText(vals, paren){
-    if (vals.length === 0) return '';
-    if (vals.length > 1 && paren) return '(' + vals.map(fmt).join(', ') + ')';
-    return vals.map(fmt).join(' ');
-  }
-
   function* execBlock(stmts, env, ctx){
     for (const s of stmts) yield* execStmt(s, env, ctx);
   }
 
+  function* loopBody(body, env, ctx){
+    // runs one pass of a loop body; returns 'exit' when Exit was reached
+    try { yield* execBlock(body, env, ctx); }
+    catch (e){
+      if (e instanceof ExitSignal) return 'exit';
+      if (e instanceof CycleSignal) return 'cycle';
+      throw e;
+    }
+    return null;
+  }
+
   function* execStmt(s, env, ctx){
     ctx.tick(s.line);
+    ctx.cur = env;
     yield s.line;
     let out = null;
     switch (s.k){
@@ -993,25 +1196,48 @@ const PC = (() => {
         const v = ev(s.value, env, ctx);
         if (v === undefined) throw new PCError('The function on this line did not return a value', s.line);
         assignTo(s.target, v, env, ctx);
-        if (s.hint && !ctx.hinted){ ctx.hinted = true; ctx.hint(`Line ${s.line}: "=" was read as assignment. The exam convention is the arrow ← (type <-).`); }
         break;
       }
-      case 'input': {
-        for (const name of s.names){
-          const v = ctx.readInput(name, s.line);
-          env.vars.set(name, v);
-          ctx.echo(`input ${name} ← ${fmt(v)}`);
-        }
+      case 'local': {
+        for (const name of s.names){ env.vars.set(key(name), UNSET); if (!ctx.disp[key(name)]) ctx.disp[key(name)] = name; }
         break;
       }
-      case 'print': {
+      case 'delvar': {
+        for (const name of s.names){ const e = findEnv(name, env); if (e) e.vars.delete(key(name)); }
+        break;
+      }
+      case 'request': {
+        const prompt = ev(s.prompt, env, ctx);
+        let v = ctx.readInput(s.name, s.line, fmt(prompt));
+        if (s.str) v = fmt(v);
+        setVar(s.name, v, env, ctx);
+        ctx.echo(`${fmt(prompt)} ${fmt(v)}`);
+        break;
+      }
+      case 'disp': {
         const vals = s.args.map(a => ev(a, env, ctx));
-        out = printText(vals, s.paren);
+        out = vals.map(fmt).join(' ');
         ctx.print(out, s.line);
         break;
       }
+      case 'sort': {
+        for (const name of s.names){
+          const L = lookup(name, env, s.line);
+          if (!Array.isArray(L)) throw new PCError(`${s.desc ? 'SortD' : 'SortA'} needs a list variable`, s.line);
+          const sorted = sortList(L, s.desc);
+          L.splice(0, L.length, ...sorted);
+        }
+        break;
+      }
       case 'return': throw new ReturnSignal(s.value ? ev(s.value, env, ctx) : undefined);
-      case 'expr': ev(s.e, env, ctx); break;
+      case 'stop': throw new StopSignal();
+      case 'exit': throw new ExitSignal(s.line);
+      case 'cycle': throw new CycleSignal(s.line);
+      case 'expr': {
+        const v = ev(s.e, env, ctx);
+        if (v !== undefined){ out = fmt(v); ctx.print(out, s.line); }
+        break;
+      }
       case 'if': {
         for (const b of s.branches){
           if (truthy(ev(b.cond, env, ctx), s.line)){ yield* execBlock(b.body, env, ctx); return; }
@@ -1021,58 +1247,70 @@ const PC = (() => {
       }
       case 'while': {
         while (truthy(ev(s.cond, env, ctx), s.line)){
-          yield* execBlock(s.body, env, ctx);
+          const r = yield* loopBody(s.body, env, ctx);
+          if (r === 'exit') break;
+          ctx.tick(s.line);
+          yield s.line;
+        }
+        return;
+      }
+      case 'loop': {
+        for (;;){
+          const r = yield* loopBody(s.body, env, ctx);
+          if (r === 'exit') break;
           ctx.tick(s.line);
           yield s.line;
         }
         return;
       }
       case 'for': {
-        const a = num(ev(s.from, env, ctx), 'The start of the for loop', s.line);
-        const b = num(ev(s.to, env, ctx), 'The end of the for loop', s.line);
-        const st = s.step ? num(ev(s.step, env, ctx), 'The step of the for loop', s.line) : 1;
-        if (st === 0) throw new PCError('The step of a for loop cannot be 0', s.line);
+        const a = num(ev(s.from, env, ctx), 'The start of the For loop', s.line);
+        const b = num(ev(s.to, env, ctx), 'The end of the For loop', s.line);
+        const st = s.step ? num(ev(s.step, env, ctx), 'The step of the For loop', s.line) : 1;
+        if (st === 0) throw new PCError('The step of a For loop cannot be 0', s.line);
         const eps = 1e-9 * Math.max(1, Math.abs(st));
         for (let k = 0; ; k++){
           const v = a + k * st;
           if (st > 0 ? v > b + eps : v < b - eps) break;
-          env.vars.set(s.v, Math.abs(v - Math.round(v)) < 1e-12 ? Math.round(v) : v);
-          if (ctx.trace && env.global) ctx.traceRow(s.line, env, null);
+          setVar(s.v, Math.abs(v - Math.round(v)) < 1e-12 ? Math.round(v) : v, env, ctx);
+          if (ctx.trace) ctx.traceRow(s.line, env, null);
           if (k > 0){ ctx.tick(s.line); yield s.line; }
-          yield* execBlock(s.body, env, ctx);
-        }
-        return;
-      }
-      case 'forin': {
-        const L = ev(s.list, env, ctx);
-        if (!Array.isArray(L) && typeof L !== 'string') throw new PCError('"for … in" needs a list', s.line);
-        for (let k = 0; k < L.length; k++){
-          env.vars.set(s.v, L[k]);
-          if (ctx.trace && env.global) ctx.traceRow(s.line, env, null);
-          if (k > 0){ ctx.tick(s.line); yield s.line; }
-          yield* execBlock(s.body, env, ctx);
+          const r = yield* loopBody(s.body, env, ctx);
+          if (r === 'exit') break;
         }
         return;
       }
     }
-    if (ctx.trace && env.global && (s.k === 'assign' || s.k === 'input' || s.k === 'print')) ctx.traceRow(s.line, env, out);
+    if (ctx.trace && (s.k === 'assign' || s.k === 'request' || s.k === 'disp' || s.k === 'local' || s.k === 'expr')) ctx.traceRow(s.line, env, out);
   }
 
   function* execute(prog, ctx){
-    ctx.env = { vars: new Map(), parent: null, global: true };
+    ctx.env = { vars: new Map(), parent: null, kind: 'global' };
+    ctx.cur = ctx.env;
     ctx.funcs = prog.funcs;
     ctx.depth = 0;
     try {
+      if (!prog.stmts.length && prog.funcs.size){
+        const first = [...prog.funcs.values()][0];
+        if (first.params.length) throw new PCError(`Nothing runs yet. Add a line below the definition that calls it, e.g. ${first.name}(${first.params.map(() => '…').join(', ')})`, first.line);
+        ctx.echo(`${first.name}()`);
+        const v = callUser(first, [], ctx, first.line);
+        if (v !== undefined) ctx.print(fmt(v));
+        return;
+      }
       yield* execBlock(prog.stmts, ctx.env, ctx);
     } catch (e){
+      if (e instanceof StopSignal) return;
       if (e instanceof ReturnSignal){ if (e.value !== undefined) ctx.print(fmt(e.value)); return; }
+      if (e instanceof ExitSignal) throw new PCError('Exit can only be used inside a loop', e.line);
+      if (e instanceof CycleSignal) throw new PCError('Cycle can only be used inside a loop', e.line);
       throw e;
     }
   }
 
   function makeContext(opts){
     const ctx = {
-      steps: 0, maxSteps: opts.maxSteps || 5000000, depth: 0, hinted: false,
+      steps: 0, maxSteps: opts.maxSteps || 5000000, depth: 0, disp: {},
       outputLines: 0, maxOutput: 20000,
       trace: opts.trace ? [] : null, traceMax: 400,
       print: opts.print, echo: opts.echo || opts.print, hint: opts.hint || opts.print,
@@ -1081,10 +1319,19 @@ const PC = (() => {
         this.steps++;
         if (this.steps > this.maxSteps) throw new PCError(`Stopped after ${this.maxSteps.toLocaleString()} steps. Is there a loop that never ends?`, line);
       },
+      visible(env){
+        // variables in scope: globals first, then the running program's locals
+        const chain = [];
+        for (let e = env || this.cur || this.env; e; e = e.parent) chain.unshift(e);
+        const vars = new Map();
+        chain.forEach(e => e.vars.forEach((v, k) => vars.set(k, v)));
+        return vars;
+      },
+      name(k){ return this.disp[k] || k; },
       traceRow(line, env, out){
         if (this.trace.length >= this.traceMax) return;
         const vars = {};
-        env.vars.forEach((v, k) => { vars[k] = fmt(v); });
+        this.visible(env).forEach((v, k) => { vars[this.name(k)] = fmt(v); });
         this.trace.push({ line, vars, out });
       }
     };
@@ -1097,7 +1344,8 @@ const PC = (() => {
     return ctx;
   }
 
-  return { parseProgram, execute, makeContext, fmt, PCError, KW, BUILTINS: Object.keys(BUILTINS), CONSTS: Object.keys(CONSTS) };
+  const BUILTIN_NAMES = ['abs','sqrt','floor','ceiling','int','iPart','fPart','sign','sin','cos','tan','asin','acos','atan','exp','ln','log','round','approx','mod','remain','intDiv','gcd','lcm','rand','randInt','randNorm','randBin','min','max','sum','product','mean','median','dim','count','augment','newList','cumulativeSum','sortA','sortD','left','right','mid','nCr','nPr','string','expr','seq','when'];
+  return { parseProgram, execute, makeContext, fmt, PCError, KW, BUILTINS: BUILTIN_NAMES, CONSTS: ['π', 'e'] };
 })();
 </script>
 
@@ -1107,7 +1355,7 @@ const PC = (() => {
   const $ = id => document.getElementById(id);
   const ta = $('code'), hl = $('hl'), gutter = $('gutter'), out = $('out'), status = $('status');
   const optClose = $('optClose'), optSym = $('optSym'), optTrace = $('optTrace'), optAuto = $('optAuto');
-  const LS = { code: 'pcw-code', close: 'pcw-close', sym: 'pcw-sym', trace: 'pcw-trace', auto: 'pcw-auto', example: 'pcw-example' };
+  const LS = { code: 'cpw-code', close: 'cpw-close', sym: 'cpw-sym', trace: 'cpw-trace', auto: 'cpw-auto', example: 'cpw-example' };
   const store = {
     get(k){ try { return localStorage.getItem(k); } catch (e){ return null; } },
     set(k, v){ try { localStorage.setItem(k, v); } catch (e){} }
@@ -1115,259 +1363,269 @@ const PC = (() => {
 
   /* ---------- examples ---------- */
   const EXAMPLES = [
-    { group: 'VCAA examples', items: [
+    { group: 'Study design examples', items: [
       { id: 'squares', name: 'Perfect squares below 1000', code:
-`Algorithm: perfect squares less than 1000
-x ← 1
-while x² < 1000
-    x ← x + 1
-    print (x − 1)²
-end while` },
+`© Perfect squares less than 1000
+Define squares()=
+Prgm
+    Local x
+    1→x
+    While x^2<1000
+        x+1→x
+        Disp (x-1)^2
+    EndWhile
+EndPrgm
+
+squares()` },
       { id: 'min', name: 'Minimum of two numbers', code:
-`Algorithm: minimum of two numbers
-input a, b
-if a ≤ b then
-    print a
-else
-    print b
-end if` },
+`Define minimum()=
+Prgm
+    Local a,b
+    Request "Enter a",a
+    Request "Enter b",b
+    If a≤b Then
+        Disp a
+    Else
+        Disp b
+    EndIf
+EndPrgm
+
+minimum()` },
       { id: 'factorial', name: 'Factorial function', code:
-`define factorial(n):
-    product ← 1
-    for i from 1 to n
-        product ← product × i
-    end for
-    return product
+`Define fact(n)=
+Func
+    Local product,i
+    1→product
+    For i,1,n
+        product*i→product
+    EndFor
+    Return product
+EndFunc
 
-for k from 0 to 10
-    print(k, factorial(k))
-end for` },
+For k,0,10
+    Disp k,fact(k)
+EndFor` },
       { id: 'dice6', name: 'Average rolls to get a six', code:
-`# Estimate the long-term average number of rolls needed to get a six
-sum ← 0
-for i from 1 to 1000
-    outcome ← 0
-    count ← 0
-    while outcome ≠ 6
-        outcome ← randominteger(1, 6)
-        count ← count + 1
-    end while
-    sum ← sum + count
-end for
-print sum/1000` },
+`© Estimate the long-term average number of rolls needed to get a six
+0→total
+For i,1,1000
+    0→outcome
+    0→count
+    While outcome≠6
+        randInt(1,6)→outcome
+        count+1→count
+    EndWhile
+    total+count→total
+EndFor
+Disp total/1000` },
       { id: 'threedice', name: 'Sample space for three dice', code:
-`# Prints (count, total) for every outcome of rolling three dice
-count ← 0
-for i from 1 to 6
-    for j from 1 to 6
-        for k from 1 to 6
-            count ← count + 1
-            print(count, i + j + k)
-        end for
-    end for
-end for` },
+`© Displays count and total for every outcome of rolling three dice
+0→count
+For i,1,6
+    For j,1,6
+        For k,1,6
+            count+1→count
+            Disp count,i+j+k
+        EndFor
+    EndFor
+EndFor` },
       { id: 'trapezium', name: 'Trapezium rule', code:
-`define f(x)
-    return x²
+`Define f(x)=x^2
 
-sum ← 0
-a ← 1
-b ← 4
-n ← 6
-h ← (b − a)/n
-left ← a
-right ← a + h
-for i from 1 to n
-    strip ← 0.5(f(left) + f(right)) × h
-    sum ← sum + strip
-    left ← left + h
-    right ← right + h
-end for
-print sum` }
+Define trap(a,b,n)=
+Func
+    Local h,total,i
+    (b-a)/n→h
+    0→total
+    For i,1,n
+        total+0.5*(f(a+(i-1)*h)+f(a+i*h))*h→total
+    EndFor
+    Return total
+EndFunc
+
+Disp trap(1,4,6)` }
     ]},
     { group: 'Numerical methods', items: [
       { id: 'bisection', name: 'Bisection method', code:
-`define f(x)
-    return x² − 2
+`Define f(x)=x^2-2
 
-a ← 1
-b ← 2
-c ← (a + b)/2
-t ← 0.0005
-if f(a) × f(b) > 0 then
-    print "Incorrect initial guesses"
-else
-    while b − a > 2 × t
-        if f(a) × f(c) < 0 then
-            b ← c
-        else
-            a ← c
-        end if
-        c ← (a + b)/2
-        print(a, b, c)
-    end while
-    print "Estimate:", c
-end if` },
+Define bisect(a,b,tol)=
+Prgm
+    Local c
+    If f(a)*f(b)>0 Then
+        Disp "Incorrect initial guesses"
+        Stop
+    EndIf
+    While b-a>2*tol
+        (a+b)/2→c
+        If f(a)*f(c)<0 Then
+            c→b
+        Else
+            c→a
+        EndIf
+        Disp a,b,c
+    EndWhile
+    Disp "Estimate:",(a+b)/2
+EndPrgm
+
+bisect(1,2,0.0005)` },
       { id: 'newton', name: "Newton's method", code:
-`define f(x)
-    return x³ − 2x − 5
+`Define f(x)=x^3-2x-5
+Define df(x)=3x^2-2
 
-define df(x)
-    return 3x² − 2
-
-x ← 2
-print(0, x)
-for i from 1 to 6
-    x ← x − f(x)/df(x)
-    print(i, x)
-end for` },
+2→x
+Disp 0,x
+For i,1,6
+    x-f(x)/df(x)→x
+    Disp i,x
+EndFor` },
       { id: 'newtontol', name: "Newton's method with a tolerance", code:
-`define f(x)
-    return cos(x) − x
+`Define f(x)=cos(x)-x
+Define df(x)=-sin(x)-1
 
-define df(x)
-    return −sin(x) − 1
-
-x ← 1
-count ← 0
-xnew ← x − f(x)/df(x)
-while abs(xnew − x) > 0.000001
-    x ← xnew
-    xnew ← x − f(x)/df(x)
-    count ← count + 1
-end while
-print "Root:", round(xnew, 6)
-print "Iterations:", count` },
+1→x
+0→count
+x-f(x)/df(x)→xnew
+While abs(xnew-x)>0.000001
+    xnew→x
+    x-f(x)/df(x)→xnew
+    count+1→count
+EndWhile
+Disp "Root:",round(xnew,6)
+Disp "Iterations:",count` },
       { id: 'riemann', name: 'Left and right rectangle sums', code:
-`define f(x)
-    return 4 − x²
+`Define f(x)=4-x^2
 
-a ← 0
-b ← 2
-n ← 10
-h ← (b − a)/n
-leftSum ← 0
-rightSum ← 0
-for i from 0 to n − 1
-    leftSum ← leftSum + f(a + i × h) × h
-    rightSum ← rightSum + f(a + (i + 1) × h) × h
-end for
-print "Left sum:", leftSum
-print "Right sum:", rightSum
-print "Average:", (leftSum + rightSum)/2` },
+0→a
+2→b
+10→n
+(b-a)/n→h
+0→leftsum
+0→rightsum
+For i,0,n-1
+    leftsum+f(a+i*h)*h→leftsum
+    rightsum+f(a+(i+1)*h)*h→rightsum
+EndFor
+Disp "Left sum:",leftsum
+Disp "Right sum:",rightsum
+Disp "Average:",(leftsum+rightsum)/2` },
       { id: 'limit', name: 'Numerical derivative from a limit', code:
-`define f(x)
-    return x³
+`Define f(x)=x^3
 
-a ← 2
-h ← 1
-for i from 1 to 8
-    gradient ← (f(a + h) − f(a))/h
-    print(h, gradient)
-    h ← h/10
-end for` },
+2→a
+1→h
+For i,1,8
+    (f(a+h)-f(a))/h→gradient
+    Disp h,gradient
+    h/10→h
+EndFor` },
       { id: 'intopt', name: 'Optimisation over integers', code:
-`# Smallest surface area of an open box with volume 1000 and integer base x × y
-V ← 1000
-best ← 1000000
-for x from 1 to 50
-    for y from 1 to 50
-        S ← x × y + 2V/x + 2V/y
-        if S < best then
-            best ← S
-            bestx ← x
-            besty ← y
-        end if
-    end for
-end for
-print(bestx, besty, round(best, 2))` }
+`© Smallest surface area of an open box with volume 1000 and whole-number base x by y
+1000→v
+1000000→best
+For x,1,50
+    For y,1,50
+        x*y+2v/x+2v/y→s
+        If s<best Then
+            s→best
+            x→bestx
+            y→besty
+        EndIf
+    EndFor
+EndFor
+Disp bestx,besty,round(best,2)` }
     ]},
     { group: 'Probability simulations', items: [
       { id: 'coins', name: 'Pr(at least 7 heads in 10 tosses)', code:
-`trials ← 10000
-success ← 0
-for i from 1 to trials
-    heads ← 0
-    for j from 1 to 10
-        if random() < 0.5 then
-            heads ← heads + 1
-        end if
-    end for
-    if heads ≥ 7 then
-        success ← success + 1
-    end if
-end for
-print "Simulated:", success/trials
-exact ← 0
-for k from 7 to 10
-    exact ← exact + ncr(10, k) × 0.5^10
-end for
-print "Exact:", round(exact, 4)` },
+`10000→trials
+0→success
+For i,1,trials
+    0→heads
+    For j,1,10
+        If rand()<0.5 Then
+            heads+1→heads
+        EndIf
+    EndFor
+    If heads≥7 Then
+        success+1→success
+    EndIf
+EndFor
+Disp "Simulated:",success/trials
+0→exact
+For k,7,10
+    exact+nCr(10,k)*0.5^10→exact
+EndFor
+Disp "Exact:",round(exact,4)` },
       { id: 'twodice', name: 'Distribution of the sum of two dice', code:
-`trials ← 6000
-counts ← [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-for i from 1 to trials
-    total ← randominteger(1, 6) + randominteger(1, 6)
-    counts[total − 1] ← counts[total − 1] + 1
-end for
-for s from 2 to 12
-    print(s, counts[s − 1]/trials)
-end for` },
+`6000→trials
+newList(11)→counts
+For i,1,trials
+    randInt(1,6)+randInt(1,6)→total
+    counts[total-1]+1→counts[total-1]
+EndFor
+For s,2,12
+    Disp s,counts[s-1]/trials
+EndFor` },
       { id: 'samplemeans', name: 'Sampling distribution of the mean', code:
-`# Roll a die 5 times, record the sample mean, repeat many times
-samples ← 2000
-n ← 5
-means ← []
-for i from 1 to samples
-    total ← 0
-    for j from 1 to n
-        total ← total + randominteger(1, 6)
-    end for
-    append(means, total/n)
-end for
-print "Mean of sample means:", round(mean(means), 3)
-big ← 0
-for m in means
-    if m > 4 then
-        big ← big + 1
-    end if
-end for
-print "Pr(sample mean > 4):", big/samples` },
+`© Roll a die 5 times, record the sample mean, repeat many times
+2000→samples
+5→n
+{}→means
+For i,1,samples
+    sum(randInt(1,6,n))/n→m
+    augment(means,{m})→means
+EndFor
+Disp "Mean of sample means:",round(mean(means),3)
+0→big
+For i,1,samples
+    If means[i]>4 Then
+        big+1→big
+    EndIf
+EndFor
+Disp "Pr(sample mean > 4):",big/samples` },
       { id: 'montecarlo', name: 'Monte Carlo estimate of π', code:
-`inside ← 0
-N ← 20000
-for i from 1 to N
-    x ← random()
-    y ← random()
-    if x² + y² ≤ 1 then
-        inside ← inside + 1
-    end if
-end for
-print 4 × inside/N` },
+`0→inside
+20000→n
+For i,1,n
+    rand()→x
+    rand()→y
+    If x^2+y^2≤1 Then
+        inside+1→inside
+    EndIf
+EndFor
+Disp 4*inside/n` },
       { id: 'binomial', name: 'Binomial probabilities by counting', code:
-`# Pr(X = k) for X ~ Bi(n, p), listed for each k
-n ← 8
-p ← 0.3
-for k from 0 to n
-    prob ← ncr(n, k) × p^k × (1 − p)^(n − k)
-    print(k, round(prob, 4))
-end for` }
+`© Pr(X = k) for X ~ Bi(n, p), listed for each k
+8→n
+0.3→p
+For k,0,n
+    nCr(n,k)*p^k*(1-p)^(n-k)→prob
+    Disp k,round(prob,4)
+EndFor` }
     ]},
     { group: 'Other', items: [
+      { id: 'seqlists', name: 'Lists with seq', code:
+`seq(i^2,i,1,10)→squares
+Disp squares
+Disp "Sum:",sum(squares)
+Disp "Mean:",mean(squares)
+Disp "Even ones:",seq(squares[k],k,2,10,2)` },
       { id: 'euler', name: "Euler's method (Specialist)", code:
-`define f(x, y)
-    return x × y
+`Define f(x,y)=x*y
 
-define euler(x0, y0, h, xfin)
-    y ← y0
-    x ← x0
-    while x < xfin − h/2
-        y ← y + h × f(x, y)
-        x ← x + h
-    end while
-    return (xfin, y)
+Define euler(x0,y0,h,xfin)=
+Func
+    Local x,y
+    y0→y
+    x0→x
+    While x<xfin-h/2
+        y+h*f(x,y)→y
+        x+h→x
+    EndWhile
+    Return {xfin,y}
+EndFunc
 
-print euler(1, 2, 0.1, 1.5)` },
+Disp euler(1,2,0.1,1.5)` },
       { id: 'blank', name: 'Blank (start here)', code: '' }
     ]}
   ];
@@ -1387,20 +1645,25 @@ print euler(1, 2, 0.1, 1.5)` },
   function collectNames(src){
     const list = [], seen = new Set();
     const add = (name, kind) => {
-      if (!name || KWSET.has(name.toLowerCase()) || seen.has(name)) return;
-      seen.add(name); list.push({ name, kind });
+      const k = name.toLowerCase();
+      if (!name || KWSET.has(k) || seen.has(k)) return;
+      seen.add(k); list.push({ name, kind });
     };
     const addEach = (csv, kind) => csv.split(',').forEach(p => { const t = p.trim(); if (/^[A-Za-z_]\w*$/.test(t)) add(t, kind); });
     src.split('\n').forEach(raw => {
-      const line = raw.replace(/\t/g, '    ').replace(/(#|\/\/).*$/, '');
+      const line = raw.replace(/\t/g, '    ').replace(/(©|#|\/\/).*$/, '').replace(/\u2192/g, '->');
       let m;
-      if ((m = line.match(/^\s*(define|function|procedure)\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/i))){
-        add(m[2], 'function'); addEach(m[3], 'variable');
-      } else if ((m = line.match(/^\s*for\s+([A-Za-z_]\w*)/i))){
+      if ((m = line.match(/^\s*define\s+(?:lib(?:pub|priv)\s+)?([A-Za-z_]\w*)\s*\(([^)]*)\)/i))){
+        add(m[1], 'function'); addEach(m[2], 'variable');
+      } else if ((m = line.match(/^\s*for\s+([A-Za-z_]\w*)\s*,/i))){
         add(m[1], 'variable');
-      } else if ((m = line.match(/^\s*input\s*\(?\s*([A-Za-z_][\w\s,]*)/i))){
+      } else if ((m = line.match(/^\s*local\s+([A-Za-z_][\w\s,]*)/i))){
         addEach(m[1], 'variable');
-      } else if ((m = line.match(/^\s*([A-Za-z_]\w*)\s*(\[[^\]]*\]\s*)?(←|<-|:=|=(?!=))/))){
+      } else if ((m = line.match(/^\s*request(?:str)?\s+.*,\s*([A-Za-z_]\w*)\s*$/i))){
+        add(m[1], 'variable');
+      } else if ((m = line.match(/->\s*([A-Za-z_]\w*)\s*(\[[^\]]*\]\s*)?$/))){
+        add(m[1], 'variable');
+      } else if ((m = line.match(/^\s*([A-Za-z_]\w*)\s*(\[[^\]]*\]\s*)?:=/))){
         add(m[1], 'variable');
       }
     });
@@ -1409,7 +1672,7 @@ print euler(1, 2, 0.1, 1.5)` },
   let lastNames = { list: [], set: new Set() };
 
   function highlightLine(line, names){
-    const re = /("[^"]*"?|'[^']*'?)|(#.*|\/\/.*)|([A-Za-z_][A-Za-z0-9_]*)|(\d+\.?\d*(?:[eE][+-]?\d+)?)|([←≤≥≠×÷√π^²³])/g;
+    const re = /("[^"]*"?|'[^']*'?)|(©.*|#.*|\/\/.*)|([A-Za-z_][A-Za-z0-9_]*)|(\d+\.?\d*(?:[eE][+-]?\d+)?)|([→←≤≥≠×÷√π^²³!&])/g;
     let html = '', last = 0, m;
     while ((m = re.exec(line))){
       html += esc(line.slice(last, m.index));
@@ -1418,7 +1681,7 @@ print euler(1, 2, 0.1, 1.5)` },
       else if (m[3]){
         const w = m[3], lw = w.toLowerCase();
         if (KWSET.has(lw) && !['true','false'].includes(lw)) html += `<b class="k">${esc(w)}</b>`;
-        else if (names && names.has(w)) html += `<span class="v">${esc(w)}</span>`;
+        else if (names && names.has(lw)) html += `<span class="v">${esc(w)}</span>`;
         else html += esc(w);
       }
       else if (m[4]) html += `<span class="n">${esc(m[4])}</span>`;
@@ -1470,19 +1733,27 @@ print euler(1, 2, 0.1, 1.5)` },
     let end = v.indexOf('\n', pos); if (end < 0) end = v.length;
     return { start, end, text: v.slice(start, end) };
   }
+  const CLOSE_WORD = { if: 'EndIf', for: 'EndFor', while: 'EndWhile', loop: 'EndLoop', prgm: 'EndPrgm', func: 'EndFunc' };
+  const OPEN_LINE = { if: /^if\b.*\bthen$/i, for: /^for\b/i, while: /^while\b/i, loop: /^loop$/i, prgm: /^(prgm|define\b.*=\s*prgm)$/i, func: /^(func|define\b.*=\s*func)$/i };
+  const CLOSE_LINE = { if: /^end\s*if\b/i, for: /^end\s*for\b/i, while: /^end\s*while\b/i, loop: /^end\s*loop\b/i, prgm: /^end\s*prgm\b/i, func: /^end\s*func\b/i };
   function countOpens(kind){
-    const v = ta.value;
-    const open = new RegExp('^\\s*' + kind + '\\b', 'gim');
-    const close = new RegExp('^\\s*(end\\s*' + kind + ')\\b', 'gim');
-    return (v.match(open) || []).length - (v.match(close) || []).length;
+    let n = 0;
+    ta.value.split('\n').forEach(l => {
+      const t = l.replace(/(©|#|\/\/).*$/, '').trim();
+      if (OPEN_LINE[kind].test(t)) n++;
+      else if (CLOSE_LINE[kind].test(t)) n--;
+    });
+    return n;
   }
   /* ---------- name suggestions ---------- */
   const ac = $('ac'), mirror = $('mirror');
-  const TERMS = ['if', 'then', 'else', 'else if', 'end if', 'for', 'from', 'to', 'step', 'end for', 'while', 'end while',
-    'define', 'return', 'print', 'input', 'and', 'or', 'not', 'mod', 'true', 'false'];
-  let acItems = [], acIndex = 0, acRange = null;
+  const TERMS = ['Define', 'Prgm', 'EndPrgm', 'Func', 'EndFunc', 'Local', 'If', 'Then', 'ElseIf', 'Else', 'EndIf', 'For', 'EndFor',
+    'While', 'EndWhile', 'Loop', 'EndLoop', 'Exit', 'Cycle', 'Return', 'Stop', 'Disp', 'Request', 'RequestStr', 'Text', 'DelVar',
+    'SortA', 'SortD', 'and', 'or', 'not', 'true', 'false'];
+  const NO_SPACE = new Set(['Prgm', 'EndPrgm', 'Func', 'EndFunc', 'EndIf', 'EndFor', 'EndWhile', 'Loop', 'EndLoop', 'Exit', 'Cycle', 'Stop', 'Else', 'true', 'false']);
+  let acItems = [], acIndex = 0, acRange = null, acNavigated = false;
   const acOpen = () => ac.classList.contains('open');
-  function acClose(){ ac.classList.remove('open'); ac.innerHTML = ''; acItems = []; acRange = null; }
+  function acClose(){ ac.classList.remove('open'); ac.innerHTML = ''; acItems = []; acRange = null; acNavigated = false; }
   function wordBefore(pos){
     const v = ta.value;
     if (/[A-Za-z0-9_]/.test(v[pos] || '')) return null;
@@ -1503,9 +1774,11 @@ print euler(1, 2, 0.1, 1.5)` },
       seen.add(k); out.push({ name, kind });
     };
     lastNames.list.forEach(n => push(n.name, n.kind));
-    TERMS.forEach(t => push(t, 'keyword'));
-    PC.BUILTINS.forEach(b => push(b, 'built-in'));
-    PC.CONSTS.forEach(c => push(c, 'constant'));
+    if (lw.length >= 2){
+      TERMS.forEach(t => push(t, 'keyword'));
+      PC.BUILTINS.forEach(b => push(b, 'built-in'));
+      PC.CONSTS.forEach(c => push(c, 'constant'));
+    }
     return out.slice(0, 8);
   }
   function acPosition(pos){
@@ -1534,13 +1807,14 @@ print euler(1, 2, 0.1, 1.5)` },
     if (!w && manual) w = { word: '', start: pos, end: pos };
     const items = w ? acCandidates(w.word) : [];
     if (!items.length){ acClose(); return false; }
-    acItems = items; acIndex = 0; acRange = w;
+    acItems = items; acIndex = 0; acRange = w; acNavigated = false;
     acRender();
     ac.classList.add('open');
     acPosition(w.start);
     return true;
   }
   function acMove(d){
+    acNavigated = true;
     acIndex = (acIndex + d + acItems.length) % acItems.length;
     acRender();
   }
@@ -1550,7 +1824,7 @@ print euler(1, 2, 0.1, 1.5)` },
     if (!it || !r) return;
     let text = it.name, caret;
     if (it.kind === 'function' || it.kind === 'built-in'){ text += '()'; caret = r.start + text.length - 1; }
-    else if (it.kind === 'keyword' && !['true', 'false'].includes(it.name)){ text += ' '; caret = r.start + text.length; }
+    else if (it.kind === 'keyword' && !NO_SPACE.has(it.name)){ text += ' '; caret = r.start + text.length; }
     else caret = r.start + text.length;
     ta.setRangeText(text, r.start, r.end, 'end');
     ta.setSelectionRange(caret, caret);
@@ -1560,7 +1834,7 @@ print euler(1, 2, 0.1, 1.5)` },
   ac.addEventListener('mousedown', e => {
     e.preventDefault();
     const d = e.target.closest('[data-i]');
-    if (d){ acIndex = +d.dataset.i; acAccept(); }
+    if (d){ acIndex = +d.dataset.i; acNavigated = true; acAccept(); }
   });
   ta.addEventListener('blur', acClose);
   ta.addEventListener('click', acClose);
@@ -1571,7 +1845,11 @@ print euler(1, 2, 0.1, 1.5)` },
     if (acOpen()){
       if (e.key === 'ArrowDown'){ e.preventDefault(); acMove(1); return; }
       if (e.key === 'ArrowUp'){ e.preventDefault(); acMove(-1); return; }
-      if ((e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey){ e.preventDefault(); acAccept(); return; }
+      if (e.key === 'Tab' && !e.shiftKey){ e.preventDefault(); acAccept(); return; }
+      if (e.key === 'Enter' && !e.shiftKey){
+        if (acNavigated){ e.preventDefault(); acAccept(); return; }
+        acClose();
+      }
       if (e.key === 'Escape'){ e.preventDefault(); acClose(); return; }
       if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) acClose();
     }
@@ -1598,16 +1876,14 @@ print euler(1, 2, 0.1, 1.5)` },
       const before = ta.value.slice(lb.start, pos);
       const after = ta.value.slice(pos, lb.end);
       const indent = (before.match(/^\s*/) || [''])[0];
-      const t = before.trim().toLowerCase();
+      const t = before.replace(/(©|#|\/\/).*$/, '').trim();
       let kind = null;
-      if (/^if\b/.test(t)) kind = 'if';
-      else if (/^for\b/.test(t)) kind = 'for';
-      else if (/^while\b/.test(t)) kind = 'while';
-      else if (/^(else|elseif|define|function|procedure)\b/.test(t)) kind = 'open';
+      for (const k of Object.keys(OPEN_LINE)){ if (OPEN_LINE[k].test(t)){ kind = k; break; } }
+      if (!kind && /^(if\b|else$|elseif\b|else\s+if\b)/i.test(t)) kind = 'open';
       if (!kind || after.trim() !== ''){ insertAt('\n' + indent, pos, ta.selectionEnd); return; }
       if (kind === 'open'){ insertAt('\n' + indent + '    ', pos, ta.selectionEnd); return; }
       if (optClose.checked && countOpens(kind) > 0){
-        const ins = '\n' + indent + '    ' + '\n' + indent + 'end ' + kind;
+        const ins = '\n' + indent + '    ' + '\n' + indent + CLOSE_WORD[kind];
         ta.setRangeText(ins, pos, ta.selectionEnd, 'end');
         const caret = pos + 1 + indent.length + 4;
         ta.setSelectionRange(caret, caret);
@@ -1620,9 +1896,9 @@ print euler(1, 2, 0.1, 1.5)` },
     const lines = ta.value.split('\n');
     let depth = 0;
     for (let i = lineIdx - 1; i >= 0; i--){
-      const t = lines[i].trim().toLowerCase();
-      if (new RegExp('^(end\\s*' + kind + ')\\b').test(t)) depth++;
-      else if (new RegExp('^' + kind + '\\b').test(t)){
+      const t = lines[i].replace(/(©|#|\/\/).*$/, '').trim();
+      if (CLOSE_LINE[kind].test(t)) depth++;
+      else if (OPEN_LINE[kind].test(t)){
         if (depth === 0) return (lines[i].match(/^\s*/) || [''])[0];
         depth--;
       }
@@ -1634,13 +1910,12 @@ print euler(1, 2, 0.1, 1.5)` },
     if (type === 'insertText' && e.data && optSym.checked){
       const p = ta.selectionStart, v = ta.value;
       const two = v.slice(p - 2, p);
-      const map = { '<-': '←', '<=': '≤', '>=': '≥', '!=': '≠', '×*': '^' };
+      const map = { '->': '→', '<=': '≤', '>=': '≥', '/=': '≠', '!=': '≠' };
       if (map[two]){ ta.setRangeText(map[two], p - 2, p, 'end'); }
-      else if (e.data === '*'){ ta.setRangeText('×', p - 1, p, 'end'); }
     }
     if ((type === 'insertText' && e.data) || type === ''){
       const lb = lineBounds(ta.selectionStart);
-      const m = lb.text.match(/^(\s+)(end\s+(if|for|while)|else(\s+if)?)\s*$/i);
+      const m = lb.text.match(/^(\s+)(end\s*(if|for|while|loop|prgm|func)|else(\s*if)?)\s*$/i);
       if (m){
         const kind = m[3] ? m[3].toLowerCase() : 'if';
         const idx = ta.value.slice(0, lb.start).split('\n').length - 1;
@@ -1660,25 +1935,28 @@ print euler(1, 2, 0.1, 1.5)` },
   });
 
   const SNIPS = {
-    if: ['if condition then', '    ', 'end if'],
-    ifelse: ['if condition then', '    ', 'else', '    ', 'end if'],
-    elseif: ['else if condition then', '    '],
-    for: ['for i from 1 to n', '    ', 'end for'],
-    while: ['while condition', '    ', 'end while'],
-    define: ['define f(x)', '    return x'],
-    input: ['input x'],
-    print: ['print x'],
-    randint: ['randominteger(1, 6)'],
-    random: ['random()'],
-    comment: ['# ']
+    if: ['If condition Then', '    ', 'EndIf'],
+    ifelse: ['If condition Then', '    ', 'Else', '    ', 'EndIf'],
+    elseif: ['ElseIf condition Then', '    '],
+    for: ['For i,1,n', '    ', 'EndFor'],
+    while: ['While condition', '    ', 'EndWhile'],
+    loop: ['Loop', '    ', '    If condition Then', '        Exit', '    EndIf', 'EndLoop'],
+    prgm: ['Define name()=', 'Prgm', '    ', 'EndPrgm'],
+    func: ['Define f(x)=', 'Func', '    Return x', 'EndFunc'],
+    local: ['Local x'],
+    request: ['Request "Enter x",x'],
+    disp: ['Disp x'],
+    randint: ['randInt(1,6)'],
+    rand: ['rand()'],
+    comment: ['© ']
   };
-  const PLACEHOLDER = { if: 'condition', ifelse: 'condition', elseif: 'condition', for: 'n', while: 'condition', define: 'f(x)', input: 'x', print: 'x', randint: null, random: null, comment: null };
+  const PLACEHOLDER = { if: 'condition', ifelse: 'condition', elseif: 'condition', for: 'n', while: 'condition', loop: 'condition', prgm: 'name', func: 'f(x)', local: 'x', request: '"Enter x"', disp: 'x', randint: null, rand: null, comment: null };
   function insertSnippet(key){
     const lines = SNIPS[key];
     const pos = ta.selectionStart;
     const lb = lineBounds(pos);
     const before = ta.value.slice(lb.start, pos);
-    const inline = key === 'randint' || key === 'random';
+    const inline = key === 'randint' || key === 'rand';
     const indent = (lb.text.match(/^\s*/) || [''])[0];
     let text, base = pos;
     if (inline){ text = lines[0]; }
@@ -1702,10 +1980,7 @@ print euler(1, 2, 0.1, 1.5)` },
   document.querySelectorAll('[data-snip]').forEach(b => b.addEventListener('click', () => insertSnippet(b.dataset.snip)));
   document.querySelectorAll('[data-sym]').forEach(b => b.addEventListener('click', () => {
     const s = b.dataset.sym;
-    const pad = s === '←' ? ' ← ' : s;
-    const p = ta.selectionStart;
-    const needsLead = s === '←' && /\s$/.test(ta.value.slice(0, p));
-    insertAt(needsLead ? pad.trimStart() : pad, p, ta.selectionEnd);
+    insertAt(s === '©' ? '© ' : s, ta.selectionStart, ta.selectionEnd);
     ta.focus();
   }));
 
@@ -1753,9 +2028,9 @@ print euler(1, 2, 0.1, 1.5)` },
       print: t => appendOut(t),
       echo: t => appendOut(t, 'echo'),
       hint: t => appendOut(t, 'hint'),
-      readInput: (name, line) => {
+      readInput: (name, line, promptText) => {
         if (inputQueue.length) return inputQueue.shift();
-        const r = window.prompt(`Enter a value for ${name} (line ${line}):`);
+        const r = window.prompt(`${promptText || 'Enter a value for ' + name} (line ${line}):`);
         if (r === null) throw new PC.PCError(`No value was given for "${name}". Type values in the box above the output, separated by commas.`, line);
         return toValue(r.trim());
       }
@@ -1840,12 +2115,12 @@ print euler(1, 2, 0.1, 1.5)` },
     const box = $('varsBox');
     if (!ctx || !ctx.env){ return; }
     const rows = [];
-    ctx.env.vars.forEach((v, k) => rows.push(`<tr><td class="mono">${esc(k)}</td><td class="mono">${esc(PC.fmt(v))}</td></tr>`));
-    const fns = [...ctx.funcs.values()].map(f => `${f.name}(${f.params.join(', ')})`);
+    ctx.visible().forEach((v, k) => rows.push(`<tr><td class="mono">${esc(ctx.name(k))}</td><td class="mono">${esc(PC.fmt(v))}</td></tr>`));
+    const fns = [...ctx.funcs.values()].map(f => `${f.name}(${f.params.join(',')})`);
     let html = rows.length
       ? `<table class="data"><tr><th>Variable</th><th>Value</th></tr>${rows.join('')}</table>`
-      : '<p class="empty">No variables have been assigned yet.</p>';
-    if (fns.length) html += `<p class="empty" style="margin-top:12px">Functions defined: ${esc(fns.join(', '))}</p>`;
+      : '<p class="empty">No variables have been stored yet.</p>';
+    if (fns.length) html += `<p class="empty" style="margin-top:12px">Defined: ${esc(fns.join(', '))}</p>`;
     box.innerHTML = html;
   }
   function renderTrace(){
