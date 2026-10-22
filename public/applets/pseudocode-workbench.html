@@ -12,7 +12,7 @@
   --canvas:#E9EDF1; --surface:#FFFFFF; --surface-2:#F4F6F8; --ink:#1B222B; --ink-2:#5B6572; --line:#D3DAE1;
   --accent:#1F6F8B; --accent-ink:#FFFFFF; --accent-soft:#DDEDF3;
   --kw:#0E2436; --str:#8A3B12; --num:#1E5E3E; --cmt:#7C8690; --sym:#1F6F8B;
-  --cur:#FFF0A8; --cur-g:#E8B300; --err:#B4452D; --err-bg:#FBE4DE;
+  --cur:#FFF0A8; --cur-g:#E8B300; --err:#B4452D; --err-bg:#FBE4DE; --id:#6B3FA0;
   --focus:#1F6F8B;
   color-scheme:light;
   box-sizing:border-box;
@@ -24,7 +24,7 @@
     --canvas:#12171C; --surface:#1A2027; --surface-2:#222A33; --ink:#E4E8EC; --ink-2:#98A2AD; --line:#313A45;
     --accent:#5FB6CF; --accent-ink:#0C1A20; --accent-soft:#1E3942;
     --kw:#E8EEF5; --str:#E9A97C; --num:#8FD4A9; --cmt:#7B8692; --sym:#7CC6DC;
-    --cur:#3B3A1C; --cur-g:#D9B200; --err:#F0907A; --err-bg:#3A2420;
+    --cur:#3B3A1C; --cur-g:#D9B200; --err:#F0907A; --err-bg:#3A2420; --id:#C9B1F2;
     --focus:#5FB6CF;
     color-scheme:dark;
   }
@@ -33,7 +33,7 @@
   --canvas:#12171C; --surface:#1A2027; --surface-2:#222A33; --ink:#E4E8EC; --ink-2:#98A2AD; --line:#313A45;
   --accent:#5FB6CF; --accent-ink:#0C1A20; --accent-soft:#1E3942;
   --kw:#E8EEF5; --str:#E9A97C; --num:#8FD4A9; --cmt:#7B8692; --sym:#7CC6DC;
-  --cur:#3B3A1C; --cur-g:#D9B200; --err:#F0907A; --err-bg:#3A2420;
+  --cur:#3B3A1C; --cur-g:#D9B200; --err:#F0907A; --err-bg:#3A2420; --id:#C9B1F2;
   --focus:#5FB6CF;
   color-scheme:dark;
 }
@@ -91,6 +91,15 @@ pre .s{color:var(--str)}
 pre .n{color:var(--num)}
 pre .c{color:var(--cmt);font-style:italic}
 pre .o{color:var(--sym)}
+pre .v{color:var(--id)}
+#mirror{visibility:hidden;z-index:0}
+.ac{position:absolute;z-index:3;min-width:190px;max-width:320px;background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  box-shadow:0 6px 20px rgba(0,0,0,.18);font:400 13.5px/1.5 "IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:hidden;display:none}
+.ac.open{display:block}
+.ac div{display:flex;justify-content:space-between;gap:16px;padding:3px 10px;cursor:pointer;white-space:nowrap}
+.ac div[aria-selected="true"]{background:var(--accent-soft)}
+.ac b{font-weight:600;color:var(--accent)}
+.ac .kind{color:var(--ink-2);font:400 12px/1.5 "IBM Plex Sans",ui-sans-serif,system-ui,sans-serif}
 pre .ln-cur{display:inline-block;width:100%;background:var(--cur)}
 pre .ln-err{display:inline-block;width:100%;background:var(--err-bg)}
 
@@ -192,11 +201,14 @@ table.data td.out{color:var(--str)}
         <div class="code-wrap">
           <pre id="hl" aria-hidden="true"></pre>
           <textarea id="code" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Pseudocode editor"></textarea>
+          <pre id="mirror" aria-hidden="true"></pre>
+          <div class="ac" id="ac" role="listbox" aria-label="Suggestions"></div>
         </div>
       </div>
       <div class="editor-foot">
         <label><input type="checkbox" id="optClose" checked> Auto-close blocks on Enter</label>
         <label><input type="checkbox" id="optSym" checked> Convert <code>&lt;-</code> <code>&lt;=</code> <code>*</code> to symbols</label>
+        <label><input type="checkbox" id="optAuto" checked> Suggest names as you type</label>
         <label><input type="checkbox" id="optTrace"> Record trace table</label>
         <span class="spacer"></span>
         <button class="btn" id="copyBtn">Copy code</button>
@@ -291,7 +303,7 @@ table.data td.out{color:var(--str)}
           </table>
 
           <h3>Editor shortcuts</h3>
-          <p>Tab indents, Shift+Tab outdents, Enter keeps the indent and closes a block for you, Ctrl+Enter runs. Your code is kept in this browser between visits.</p>
+          <p>Tab indents, Shift+Tab outdents, Enter keeps the indent and closes a block for you, Ctrl+Enter runs. Names you have given a value, and functions you have defined, are shown in <span style="color:var(--id)">purple</span> once the editor recognises them. As you type a name, a list of matching variables, functions, keywords and built-ins appears: ↑ and ↓ choose, Tab or Enter inserts, Esc dismisses, and Tab or Ctrl+Space opens the list on demand. Untick “Suggest names as you type” below the editor to turn the list off. Your code is kept in this browser between visits.</p>
         </div>
       </div>
     </section>
@@ -1085,7 +1097,7 @@ const PC = (() => {
     return ctx;
   }
 
-  return { parseProgram, execute, makeContext, fmt, PCError, KW };
+  return { parseProgram, execute, makeContext, fmt, PCError, KW, BUILTINS: Object.keys(BUILTINS), CONSTS: Object.keys(CONSTS) };
 })();
 </script>
 
@@ -1094,8 +1106,8 @@ const PC = (() => {
 (() => {
   const $ = id => document.getElementById(id);
   const ta = $('code'), hl = $('hl'), gutter = $('gutter'), out = $('out'), status = $('status');
-  const optClose = $('optClose'), optSym = $('optSym'), optTrace = $('optTrace');
-  const LS = { code: 'pcw-code', close: 'pcw-close', sym: 'pcw-sym', trace: 'pcw-trace', example: 'pcw-example' };
+  const optClose = $('optClose'), optSym = $('optSym'), optTrace = $('optTrace'), optAuto = $('optAuto');
+  const LS = { code: 'pcw-code', close: 'pcw-close', sym: 'pcw-sym', trace: 'pcw-trace', auto: 'pcw-auto', example: 'pcw-example' };
   const store = {
     get(k){ try { return localStorage.getItem(k); } catch (e){ return null; } },
     set(k, v){ try { localStorage.setItem(k, v); } catch (e){} }
@@ -1370,14 +1382,45 @@ print euler(1, 2, 0.1, 1.5)` },
   /* ---------- highlighting ---------- */
   const KWSET = PC.KW;
   const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  function highlightLine(line){
+  /* Names the program has defined so far: assigned variables, loop variables, input names,
+     function names and their parameters. Scanned from the text so partial programs still work. */
+  function collectNames(src){
+    const list = [], seen = new Set();
+    const add = (name, kind) => {
+      if (!name || KWSET.has(name.toLowerCase()) || seen.has(name)) return;
+      seen.add(name); list.push({ name, kind });
+    };
+    const addEach = (csv, kind) => csv.split(',').forEach(p => { const t = p.trim(); if (/^[A-Za-z_]\w*$/.test(t)) add(t, kind); });
+    src.split('\n').forEach(raw => {
+      const line = raw.replace(/\t/g, '    ').replace(/(#|\/\/).*$/, '');
+      let m;
+      if ((m = line.match(/^\s*(define|function|procedure)\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/i))){
+        add(m[2], 'function'); addEach(m[3], 'variable');
+      } else if ((m = line.match(/^\s*for\s+([A-Za-z_]\w*)/i))){
+        add(m[1], 'variable');
+      } else if ((m = line.match(/^\s*input\s*\(?\s*([A-Za-z_][\w\s,]*)/i))){
+        addEach(m[1], 'variable');
+      } else if ((m = line.match(/^\s*([A-Za-z_]\w*)\s*(\[[^\]]*\]\s*)?(←|<-|:=|=(?!=))/))){
+        add(m[1], 'variable');
+      }
+    });
+    return { list, set: seen };
+  }
+  let lastNames = { list: [], set: new Set() };
+
+  function highlightLine(line, names){
     const re = /("[^"]*"?|'[^']*'?)|(#.*|\/\/.*)|([A-Za-z_][A-Za-z0-9_]*)|(\d+\.?\d*(?:[eE][+-]?\d+)?)|([←≤≥≠×÷√π^²³])/g;
     let html = '', last = 0, m;
     while ((m = re.exec(line))){
       html += esc(line.slice(last, m.index));
       if (m[1]) html += `<span class="s">${esc(m[1])}</span>`;
       else if (m[2]) html += `<span class="c">${esc(m[2])}</span>`;
-      else if (m[3]) html += KWSET.has(m[3].toLowerCase()) && !['true','false'].includes(m[3].toLowerCase()) ? `<b class="k">${esc(m[3])}</b>` : esc(m[3]);
+      else if (m[3]){
+        const w = m[3], lw = w.toLowerCase();
+        if (KWSET.has(lw) && !['true','false'].includes(lw)) html += `<b class="k">${esc(w)}</b>`;
+        else if (names && names.has(w)) html += `<span class="v">${esc(w)}</span>`;
+        else html += esc(w);
+      }
       else if (m[4]) html += `<span class="n">${esc(m[4])}</span>`;
       else html += `<span class="o">${esc(m[5])}</span>`;
       last = re.lastIndex;
@@ -1387,9 +1430,10 @@ print euler(1, 2, 0.1, 1.5)` },
   let curLine = 0, errLine = 0;
   function render(){
     const lines = ta.value.split('\n');
+    lastNames = collectNames(ta.value);
     hl.innerHTML = lines.map((l, i) => {
       const n = i + 1;
-      const body = highlightLine(l);
+      const body = highlightLine(l, lastNames.set);
       if (n === curLine) return `<span class="ln-cur">${body}</span>`;
       if (n === errLine) return `<span class="ln-err">${body}</span>`;
       return body;
@@ -1432,11 +1476,110 @@ print euler(1, 2, 0.1, 1.5)` },
     const close = new RegExp('^\\s*(end\\s*' + kind + ')\\b', 'gim');
     return (v.match(open) || []).length - (v.match(close) || []).length;
   }
+  /* ---------- name suggestions ---------- */
+  const ac = $('ac'), mirror = $('mirror');
+  const TERMS = ['if', 'then', 'else', 'else if', 'end if', 'for', 'from', 'to', 'step', 'end for', 'while', 'end while',
+    'define', 'return', 'print', 'input', 'and', 'or', 'not', 'mod', 'true', 'false'];
+  let acItems = [], acIndex = 0, acRange = null;
+  const acOpen = () => ac.classList.contains('open');
+  function acClose(){ ac.classList.remove('open'); ac.innerHTML = ''; acItems = []; acRange = null; }
+  function wordBefore(pos){
+    const v = ta.value;
+    if (/[A-Za-z0-9_]/.test(v[pos] || '')) return null;
+    const lb = lineBounds(pos);
+    const before = v.slice(lb.start, pos);
+    const m = before.match(/([A-Za-z_][A-Za-z0-9_]*)$/);
+    if (!m) return null;
+    const prefix = before.slice(0, before.length - m[1].length);
+    if (/#|\/\//.test(prefix)) return null;
+    if ((prefix.match(/"/g) || []).length % 2 || (prefix.match(/'/g) || []).length % 2) return null;
+    return { word: m[1], start: pos - m[1].length, end: pos };
+  }
+  function acCandidates(word){
+    const lw = word.toLowerCase(), out = [], seen = new Set();
+    const push = (name, kind) => {
+      const k = name.toLowerCase();
+      if (seen.has(k) || k === lw || !k.startsWith(lw)) return;
+      seen.add(k); out.push({ name, kind });
+    };
+    lastNames.list.forEach(n => push(n.name, n.kind));
+    TERMS.forEach(t => push(t, 'keyword'));
+    PC.BUILTINS.forEach(b => push(b, 'built-in'));
+    PC.CONSTS.forEach(c => push(c, 'constant'));
+    return out.slice(0, 8);
+  }
+  function acPosition(pos){
+    mirror.textContent = ta.value.slice(0, pos);
+    const mark = document.createElement('span'); mark.textContent = '\u200b';
+    mirror.appendChild(mark);
+    const lh = parseFloat(getComputedStyle(ta).lineHeight) || 22;
+    const wrap = ta.parentElement;
+    let top = mark.offsetTop + lh - ta.scrollTop;
+    const left = mark.offsetLeft - ta.scrollLeft;
+    mirror.textContent = '';
+    if (top + ac.offsetHeight > wrap.clientHeight) top = Math.max(0, top - lh - ac.offsetHeight);
+    ac.style.top = top + 'px';
+    ac.style.left = Math.max(0, Math.min(left, wrap.clientWidth - ac.offsetWidth - 4)) + 'px';
+  }
+  function acRender(){
+    ac.innerHTML = acItems.map((it, i) => {
+      const n = acRange.word.length;
+      return `<div role="option" data-i="${i}" aria-selected="${i === acIndex}"><span><b>${esc(it.name.slice(0, n))}</b>${esc(it.name.slice(n))}</span><span class="kind">${it.kind}</span></div>`;
+    }).join('');
+  }
+  function acUpdate(manual){
+    if ((!optAuto.checked && !manual) || ta.selectionStart !== ta.selectionEnd){ acClose(); return false; }
+    const pos = ta.selectionStart;
+    let w = wordBefore(pos);
+    if (!w && manual) w = { word: '', start: pos, end: pos };
+    const items = w ? acCandidates(w.word) : [];
+    if (!items.length){ acClose(); return false; }
+    acItems = items; acIndex = 0; acRange = w;
+    acRender();
+    ac.classList.add('open');
+    acPosition(w.start);
+    return true;
+  }
+  function acMove(d){
+    acIndex = (acIndex + d + acItems.length) % acItems.length;
+    acRender();
+  }
+  function acAccept(){
+    const it = acItems[acIndex], r = acRange;
+    acClose();
+    if (!it || !r) return;
+    let text = it.name, caret;
+    if (it.kind === 'function' || it.kind === 'built-in'){ text += '()'; caret = r.start + text.length - 1; }
+    else if (it.kind === 'keyword' && !['true', 'false'].includes(it.name)){ text += ' '; caret = r.start + text.length; }
+    else caret = r.start + text.length;
+    ta.setRangeText(text, r.start, r.end, 'end');
+    ta.setSelectionRange(caret, caret);
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    ta.focus();
+  }
+  ac.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const d = e.target.closest('[data-i]');
+    if (d){ acIndex = +d.dataset.i; acAccept(); }
+  });
+  ta.addEventListener('blur', acClose);
+  ta.addEventListener('click', acClose);
+  ta.addEventListener('scroll', () => { if (acOpen()) acPosition(acRange.start); });
+
   ta.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); runAll(); return; }
+    if (acOpen()){
+      if (e.key === 'ArrowDown'){ e.preventDefault(); acMove(1); return; }
+      if (e.key === 'ArrowUp'){ e.preventDefault(); acMove(-1); return; }
+      if ((e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey){ e.preventDefault(); acAccept(); return; }
+      if (e.key === 'Escape'){ e.preventDefault(); acClose(); return; }
+      if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) acClose();
+    }
+    if (e.ctrlKey && e.key === ' '){ e.preventDefault(); acUpdate(true); return; }
     if (e.key === 'Tab'){
       e.preventDefault();
       const s = ta.selectionStart, en = ta.selectionEnd;
+      if (!e.shiftKey && s === en && optAuto.checked && wordBefore(s) && acUpdate(true)) return;
       const multi = ta.value.slice(s, en).includes('\n');
       if (!multi && !e.shiftKey){ insertAt('    ', s, en); return; }
       const a = lineBounds(s).start, b = lineBounds(en).end;
@@ -1488,14 +1631,14 @@ print euler(1, 2, 0.1, 1.5)` },
   }
   ta.addEventListener('input', e => {
     const type = e.inputType || '';
-    if (type === 'insertText' && e.data){
+    if (type === 'insertText' && e.data && optSym.checked){
       const p = ta.selectionStart, v = ta.value;
-      if (optSym.checked){
-        const two = v.slice(p - 2, p);
-        const map = { '<-': '←', '<=': '≤', '>=': '≥', '!=': '≠', '×*': '^' };
-        if (map[two]){ ta.setRangeText(map[two], p - 2, p, 'end'); }
-        else if (e.data === '*'){ ta.setRangeText('×', p - 1, p, 'end'); }
-      }
+      const two = v.slice(p - 2, p);
+      const map = { '<-': '←', '<=': '≤', '>=': '≥', '!=': '≠', '×*': '^' };
+      if (map[two]){ ta.setRangeText(map[two], p - 2, p, 'end'); }
+      else if (e.data === '*'){ ta.setRangeText('×', p - 1, p, 'end'); }
+    }
+    if ((type === 'insertText' && e.data) || type === ''){
       const lb = lineBounds(ta.selectionStart);
       const m = lb.text.match(/^(\s+)(end\s+(if|for|while)|else(\s+if)?)\s*$/i);
       if (m){
@@ -1513,6 +1656,7 @@ print euler(1, 2, 0.1, 1.5)` },
     if (curLine || errLine){ curLine = 0; errLine = 0; }
     render();
     store.set(LS.code, ta.value);
+    if (type === 'insertText' || type === 'deleteContentBackward') acUpdate(false); else acClose();
   });
 
   const SNIPS = {
@@ -1747,7 +1891,7 @@ print euler(1, 2, 0.1, 1.5)` },
     try { await navigator.clipboard.writeText(ta.value); setStatus('Code copied to the clipboard.', 'ok'); }
     catch (e){ ta.select(); setStatus('Press Ctrl+C to copy the selected code.', ''); }
   });
-  [[optClose, LS.close], [optSym, LS.sym], [optTrace, LS.trace]].forEach(([el, key]) => {
+  [[optClose, LS.close], [optSym, LS.sym], [optTrace, LS.trace], [optAuto, LS.auto]].forEach(([el, key]) => {
     const saved = store.get(key);
     if (saved !== null) el.checked = saved === '1';
     el.addEventListener('change', () => store.set(key, el.checked ? '1' : '0'));
