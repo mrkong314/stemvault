@@ -1,0 +1,1769 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pseudocode workbench — VCE Mathematical Methods</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --canvas:#E9EDF1; --surface:#FFFFFF; --surface-2:#F4F6F8; --ink:#1B222B; --ink-2:#5B6572; --line:#D3DAE1;
+  --accent:#1F6F8B; --accent-ink:#FFFFFF; --accent-soft:#DDEDF3;
+  --kw:#0E2436; --str:#8A3B12; --num:#1E5E3E; --cmt:#7C8690; --sym:#1F6F8B;
+  --cur:#FFF0A8; --cur-g:#E8B300; --err:#B4452D; --err-bg:#FBE4DE;
+  --focus:#1F6F8B;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --canvas:#12171C; --surface:#1A2027; --surface-2:#222A33; --ink:#E4E8EC; --ink-2:#98A2AD; --line:#313A45;
+    --accent:#5FB6CF; --accent-ink:#0C1A20; --accent-soft:#1E3942;
+    --kw:#E8EEF5; --str:#E9A97C; --num:#8FD4A9; --cmt:#7B8692; --sym:#7CC6DC;
+    --cur:#3B3A1C; --cur-g:#D9B200; --err:#F0907A; --err-bg:#3A2420;
+    --focus:#5FB6CF;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --canvas:#12171C; --surface:#1A2027; --surface-2:#222A33; --ink:#E4E8EC; --ink-2:#98A2AD; --line:#313A45;
+  --accent:#5FB6CF; --accent-ink:#0C1A20; --accent-soft:#1E3942;
+  --kw:#E8EEF5; --str:#E9A97C; --num:#8FD4A9; --cmt:#7B8692; --sym:#7CC6DC;
+  --cur:#3B3A1C; --cur-g:#D9B200; --err:#F0907A; --err-bg:#3A2420;
+  --focus:#5FB6CF;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{height:100%;margin:0;background:var(--canvas);color:var(--ink);
+  font:400 15px/1.5 "IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;}
+*,*::before,*::after{box-sizing:inherit}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+
+.app{display:flex;flex-direction:column;height:100%;min-height:0}
+.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.brand h1{font-size:17px;font-weight:600;margin:0;letter-spacing:-0.01em}
+.brand span{color:var(--ink-2);font-size:13px}
+.bar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+select{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;max-width:260px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:6px 14px;cursor:pointer;font-weight:500;line-height:1.4}
+.btn:hover{background:var(--surface-2)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn kbd{font:inherit;opacity:.65;margin-left:6px;font-size:12px}
+
+.split{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);flex:1;min-height:0}
+.pane{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--surface)}
+.editor-pane{border-right:1px solid var(--line)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:6px 14px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.group{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.group .lbl{font-size:12px;color:var(--ink-2);margin-right:4px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:5px;padding:2px 8px;font-size:13px;cursor:pointer;
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.5}
+.chip b{font-weight:600}
+.chip:hover{background:var(--accent-soft);border-color:var(--accent)}
+.chip.sym{min-width:30px;text-align:center;font-size:15px;padding:1px 6px}
+
+.editor{display:flex;flex:1;min-height:0;position:relative}
+.gutter{width:3.4em;flex:none;overflow:hidden;padding:12px 0;text-align:right;color:var(--ink-2);user-select:none;
+  font:400 14px/1.6 "IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;border-right:1px solid var(--line);background:var(--surface-2)}
+.gutter span{display:block;padding-right:8px}
+.gutter span.cur{background:var(--cur);color:var(--ink);box-shadow:inset 3px 0 0 var(--cur-g)}
+.gutter span.err{background:var(--err-bg);color:var(--err);font-weight:600}
+.code-wrap{position:relative;flex:1;min-width:0}
+.code-wrap pre,.code-wrap textarea{position:absolute;inset:0;margin:0;padding:12px 14px 12px 14px;border:0;
+  font:400 14px/1.6 "IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  white-space:pre;overflow-wrap:normal;tab-size:4;letter-spacing:normal;font-variant-ligatures:none;background:transparent}
+.code-wrap pre{overflow:hidden;color:var(--ink);pointer-events:none;z-index:0}
+.code-wrap textarea{overflow:auto;resize:none;outline:none;color:transparent;caret-color:var(--ink);z-index:1}
+.code-wrap textarea::selection{background:rgba(31,111,139,.25)}
+.code-wrap textarea:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--focus)}
+pre .k{color:var(--kw);font-weight:600}
+pre .s{color:var(--str)}
+pre .n{color:var(--num)}
+pre .c{color:var(--cmt);font-style:italic}
+pre .o{color:var(--sym)}
+pre .ln-cur{display:inline-block;width:100%;background:var(--cur)}
+pre .ln-err{display:inline-block;width:100%;background:var(--err-bg)}
+
+.editor-foot{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:7px 12px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-2);background:var(--surface-2)}
+.editor-foot label{display:flex;align-items:center;gap:5px;cursor:pointer}
+.editor-foot .spacer{margin-left:auto}
+.editor-foot .btn{padding:3px 10px;font-size:13px}
+
+.tabs{display:flex;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.tab{border:0;background:transparent;padding:10px 16px;cursor:pointer;color:var(--ink-2);border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:500}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--ink)}
+.panel{display:none;flex:1;min-height:0;flex-direction:column}
+.panel.active{display:flex}
+.panel-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px}
+.panel-head input[type="text"]{flex:1;min-width:120px;border:1px solid var(--line);border-radius:6px;padding:4px 8px;background:var(--surface)}
+.panel-head .btn{padding:3px 10px;font-size:13px}
+.status{padding:6px 12px;font-size:13px;color:var(--ink-2);border-bottom:1px solid var(--line);min-height:32px}
+.status.err{color:var(--err);background:var(--err-bg)}
+.status.ok{color:var(--ink)}
+.out{flex:1;min-height:0;overflow:auto;margin:0;padding:12px 14px;
+  font:400 14px/1.6 "IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.out .echo{color:var(--ink-2)}
+.out .hint{color:var(--ink-2);font-style:italic}
+.scroll{flex:1;min-height:0;overflow:auto;padding:12px 14px}
+table.data{border-collapse:collapse;font-size:13.5px;width:100%}
+table.data th,table.data td{text-align:left;padding:4px 10px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+table.data th{font-weight:600;color:var(--ink-2);position:sticky;top:0;background:var(--surface)}
+table.data td.mono,table.data th.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table.data td.out{color:var(--str)}
+.empty{color:var(--ink-2);font-size:14px}
+.ref{font-size:14px;max-width:62ch}
+.ref h3{font-size:14px;font-weight:600;margin:18px 0 6px}
+.ref h3:first-child{margin-top:0}
+.ref pre{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:6px 0 10px;overflow-x:auto;
+  font:400 13.5px/1.6 "IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.ref pre b{font-weight:600}
+.ref code{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px;background:var(--surface-2);padding:0 4px;border-radius:3px}
+.ref p{margin:4px 0 8px}
+.ref table.data td{white-space:normal}
+
+@media (max-width: 860px){
+  .split{grid-template-columns:1fr;grid-template-rows:minmax(0,1.5fr) minmax(0,1fr)}
+  .toolbar{flex-wrap:nowrap;overflow-x:auto;gap:6px 18px;padding:6px 10px}
+  .group{flex-wrap:nowrap}
+  .chip{white-space:nowrap}
+  .editor-foot{gap:4px 12px;padding:5px 10px;font-size:12.5px}
+  .editor-pane{border-right:0;border-bottom:1px solid var(--line)}
+  .brand span{display:none}
+  .bar{padding:8px 12px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="brand"><h1>Pseudocode workbench</h1><span>VCE Mathematical Methods conventions</span></div>
+    <div class="bar-actions">
+      <select id="examples" aria-label="Load an example"></select>
+      <button class="btn primary" id="runBtn">Run<kbd>Ctrl+Enter</kbd></button>
+      <button class="btn" id="stepBtn" title="Execute one line at a time">Step</button>
+      <button class="btn" id="stopBtn" disabled>Stop</button>
+    </div>
+  </header>
+
+  <main class="split">
+    <section class="pane editor-pane">
+      <div class="toolbar">
+        <div class="group" role="group" aria-label="Insert a structure">
+          <span class="lbl">Insert</span>
+          <button class="chip" data-snip="if"><b>if</b> … <b>end if</b></button>
+          <button class="chip" data-snip="ifelse"><b>if</b> … <b>else</b></button>
+          <button class="chip" data-snip="elseif"><b>else if</b></button>
+          <button class="chip" data-snip="for"><b>for</b> … <b>end for</b></button>
+          <button class="chip" data-snip="while"><b>while</b> … <b>end while</b></button>
+          <button class="chip" data-snip="define"><b>define</b> … <b>return</b></button>
+          <button class="chip" data-snip="input"><b>input</b></button>
+          <button class="chip" data-snip="print"><b>print</b></button>
+          <button class="chip" data-snip="randint">randominteger(1, 6)</button>
+          <button class="chip" data-snip="random">random()</button>
+          <button class="chip" data-snip="comment"># comment</button>
+        </div>
+        <div class="group" role="group" aria-label="Insert a symbol">
+          <span class="lbl">Symbols</span>
+          <button class="chip sym" data-sym="←" title="assign">←</button>
+          <button class="chip sym" data-sym="≤">≤</button>
+          <button class="chip sym" data-sym="≥">≥</button>
+          <button class="chip sym" data-sym="≠">≠</button>
+          <button class="chip sym" data-sym="×">×</button>
+          <button class="chip sym" data-sym="÷">÷</button>
+          <button class="chip sym" data-sym="^">^</button>
+          <button class="chip sym" data-sym="²">²</button>
+          <button class="chip sym" data-sym="√">√</button>
+          <button class="chip sym" data-sym="π">π</button>
+        </div>
+      </div>
+      <div class="editor">
+        <div class="gutter" id="gutter" aria-hidden="true"></div>
+        <div class="code-wrap">
+          <pre id="hl" aria-hidden="true"></pre>
+          <textarea id="code" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Pseudocode editor"></textarea>
+        </div>
+      </div>
+      <div class="editor-foot">
+        <label><input type="checkbox" id="optClose" checked> Auto-close blocks on Enter</label>
+        <label><input type="checkbox" id="optSym" checked> Convert <code>&lt;-</code> <code>&lt;=</code> <code>*</code> to symbols</label>
+        <label><input type="checkbox" id="optTrace"> Record trace table</label>
+        <span class="spacer"></span>
+        <button class="btn" id="copyBtn">Copy code</button>
+        <button class="btn" id="clearCodeBtn">New</button>
+      </div>
+    </section>
+
+    <section class="pane side-pane">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-tab="output">Output</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="vars">Variables</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="trace">Trace</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="ref">Reference</button>
+      </div>
+
+      <div class="panel active" id="panel-output" role="tabpanel">
+        <div class="panel-head">
+          <label for="inputs">Values for <b>input</b> lines</label>
+          <input type="text" id="inputs" placeholder="comma separated, e.g. 3, 7">
+          <button class="btn" id="clearOutBtn">Clear</button>
+        </div>
+        <div class="status" id="status">Type your algorithm on the left, then press Run (or Step to go one line at a time). The Reference tab shows the conventions.</div>
+        <pre class="out" id="out"></pre>
+      </div>
+
+      <div class="panel" id="panel-vars" role="tabpanel">
+        <div class="scroll" id="varsBox"><p class="empty">Variables appear here once the program runs. Use Step to watch them change line by line.</p></div>
+      </div>
+
+      <div class="panel" id="panel-trace" role="tabpanel">
+        <div class="scroll" id="traceBox"><p class="empty">Tick “Record trace table” below the editor, then Run. Each row shows the variable values after a line executes, the way you would fill in a trace table by hand. Recording stops after 400 rows.</p></div>
+      </div>
+
+      <div class="panel" id="panel-ref" role="tabpanel">
+        <div class="scroll ref">
+          <h3>Assignment and output</h3>
+<pre><b>x</b> ← 5           # assign 5 to x
+<b>x</b> ← x + 1
+<b>print</b> x
+<b>print</b>(i, i^2)    # prints (3, 9)
+<b>input</b> a, b       # values come from the box above the output</pre>
+          <p>Type <code>&lt;-</code> to get ←. Reserved words are shown in bold, as in the exam.</p>
+
+          <h3>Decisions</h3>
+<pre><b>if</b> a ≤ b <b>then</b>
+    <b>print</b> a
+<b>else if</b> a = b <b>then</b>
+    <b>print</b> "equal"
+<b>else</b>
+    <b>print</b> b
+<b>end if</b></pre>
+          <p>Comparisons: <code>=</code> <code>≠</code> <code>&lt;</code> <code>&gt;</code> <code>≤</code> <code>≥</code>. Combine with <code>and</code>, <code>or</code>, <code>not</code>.</p>
+
+          <h3>Repetition</h3>
+<pre><b>for</b> i <b>from</b> 1 <b>to</b> n        # 1 to n inclusive
+    <b>print</b> i²
+<b>end for</b>
+
+<b>while</b> x² &lt; 1000
+    x ← x + 1
+<b>end while</b></pre>
+          <p>An optional <code>step</code> is accepted: <code>for x from 0 to 1 step 0.1</code>.</p>
+
+          <h3>Functions</h3>
+<pre><b>define</b> f(x)
+    <b>return</b> x³ − 2x − 5
+
+<b>define</b> factorial(n):
+    product ← 1
+    <b>for</b> i <b>from</b> 1 <b>to</b> n
+        product ← product × i
+    <b>end for</b>
+    <b>return</b> product</pre>
+          <p>Indent the body under the <code>define</code> line. A colon after the header is optional.</p>
+
+          <h3>Arithmetic</h3>
+          <p><code>+</code> <code>−</code> <code>×</code> or <code>*</code>, <code>÷</code> or <code>/</code>, <code>^</code> for powers (² and ³ also work), <code>mod</code> for remainders. Writing <code>2x</code>, <code>3(a + b)</code> or <code>2πr</code> multiplies, as in maths.</p>
+
+          <h3>Built-in functions</h3>
+          <table class="data">
+            <tr><td class="mono">random()</td><td>random real number in [0, 1)</td></tr>
+            <tr><td class="mono">random(a, b)</td><td>random real number in [a, b)</td></tr>
+            <tr><td class="mono">randominteger(a, b)</td><td>random integer from a to b inclusive</td></tr>
+            <tr><td class="mono">sqrt, abs, floor, ceil</td><td>root, absolute value, rounding down and up</td></tr>
+            <tr><td class="mono">round(x, d)</td><td>round to d decimal places (d optional)</td></tr>
+            <tr><td class="mono">sin, cos, tan, asin, acos, atan</td><td>radians</td></tr>
+            <tr><td class="mono">exp, ln, log(x, b), log10</td><td><code>ln</code> and <code>log</code> are both base e unless a base is given</td></tr>
+            <tr><td class="mono">pi, e</td><td>constants (π also works)</td></tr>
+            <tr><td class="mono">min, max, sum, mean, length</td><td>work on lists: <code>L ← [2, 5, 1]</code>, <code>L[1]</code> is the first item</td></tr>
+            <tr><td class="mono">append(L, x), sort(L), count(L, x)</td><td>add to, sort, or count within a list</td></tr>
+            <tr><td class="mono">factorial(n), ncr(n, r)</td><td>n! and the binomial coefficient</td></tr>
+          </table>
+
+          <h3>Editor shortcuts</h3>
+          <p>Tab indents, Shift+Tab outdents, Enter keeps the indent and closes a block for you, Ctrl+Enter runs. Your code is kept in this browser between visits.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script id="interp">
+/* ===================== Pseudocode interpreter (VCAA conventions) ===================== */
+const PC = (() => {
+  const KW = new Set(['if','then','else','elseif','end','endif','endfor','endwhile','for','from','to','step','in',
+    'while','do','define','function','procedure','return','print','input','and','or','not','mod','true','false','algorithm']);
+
+  class PCError extends Error { constructor(m, line){ super(m); this.name = 'PCError'; this.line = line; } }
+  class ReturnSignal { constructor(v){ this.value = v; } }
+
+  function normalise(src){
+    return src
+      .replace(/\u2190/g, '<-').replace(/\u2264/g, '<=').replace(/\u2265/g, '>=').replace(/\u2260/g, '!=')
+      .replace(/\u00d7/g, '*').replace(/\u00f7/g, '/').replace(/[\u2212\u2013\u2014]/g, '-')
+      .replace(/[\u201c\u201d]/g, '"').replace(/[\u2018\u2019]/g, "'")
+      .replace(/\u00b2/g, '^2').replace(/\u00b3/g, '^3').replace(/\u2074/g, '^4')
+      .replace(/\u03c0/g, ' pi ');
+  }
+
+  function tokenize(s, line){
+    const toks = [];
+    let i = 0;
+    while (i < s.length){
+      const c = s[i];
+      if (/\s/.test(c)){ i++; continue; }
+      if (c === '#' || (c === '/' && s[i+1] === '/')) break;
+      if (/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(s[i+1] || ''))){
+        const m = s.slice(i).match(/^(\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/);
+        toks.push({ t:'num', v: parseFloat(m[0]) }); i += m[0].length; continue;
+      }
+      if (/[A-Za-z_]/.test(c)){
+        const m = s.slice(i).match(/^[A-Za-z_][A-Za-z0-9_]*/);
+        toks.push({ t:'id', v: m[0] }); i += m[0].length; continue;
+      }
+      if (c === '"' || c === "'"){
+        let j = i + 1;
+        while (j < s.length && s[j] !== c) j++;
+        if (j >= s.length) throw new PCError('A string is missing its closing quote', line);
+        toks.push({ t:'str', v: s.slice(i+1, j) }); i = j + 1; continue;
+      }
+      const two = s.slice(i, i+2);
+      if (['<-', ':=', '<=', '>=', '!=', '==', '**'].includes(two)){
+        toks.push({ t:'op', v: two === '**' ? '^' : two }); i += 2; continue;
+      }
+      if ('+-*/^%(),[]<>=:\u221a'.includes(c)){ toks.push({ t:'op', v: c }); i++; continue; }
+      throw new PCError(`Unexpected character "${c}"`, line);
+    }
+    return toks;
+  }
+
+  /* ---------- expression parser ---------- */
+  class Parser {
+    constructor(toks, line){ this.t = toks; this.p = 0; this.line = line; }
+    peek(){ return this.t[this.p]; }
+    isOp(v){ const k = this.peek(); return !!k && k.t === 'op' && k.v === v; }
+    isKw(v){ const k = this.peek(); return !!k && k.t === 'id' && k.v.toLowerCase() === v; }
+    mk(k, props){ return Object.assign({ k, line: this.line }, props); }
+    finish(){
+      const k = this.peek();
+      if (!k) return;
+      if (k.t === 'id' && KW.has(k.v.toLowerCase())) throw new PCError(`Unexpected "${k.v}" here`, this.line);
+      throw new PCError(`Unexpected "${k.v}" (check the operators and brackets on this line)`, this.line);
+    }
+    parseExpr(){ return this.parseOr(); }
+    parseOr(){
+      let l = this.parseAnd();
+      while (this.isKw('or')){ this.p++; l = this.mk('or', { l, r: this.parseAnd() }); }
+      return l;
+    }
+    parseAnd(){
+      let l = this.parseNot();
+      while (this.isKw('and')){ this.p++; l = this.mk('and', { l, r: this.parseNot() }); }
+      return l;
+    }
+    parseNot(){
+      if (this.isKw('not')){ this.p++; return this.mk('not', { e: this.parseNot() }); }
+      return this.parseCmp();
+    }
+    parseCmp(){
+      const first = this.parseAdd();
+      const ops = ['=', '==', '!=', '<', '>', '<=', '>='];
+      const chain = [];
+      while (this.peek() && this.peek().t === 'op' && ops.includes(this.peek().v)){
+        const op = this.t[this.p++].v;
+        chain.push({ op: op === '==' ? '=' : op, e: this.parseAdd() });
+      }
+      if (!chain.length) return first;
+      return this.mk('cmp', { first, chain });
+    }
+    parseAdd(){
+      let l = this.parseMul();
+      while (this.isOp('+') || this.isOp('-')){
+        const op = this.t[this.p++].v;
+        l = this.mk('bin', { op, l, r: this.parseMul() });
+      }
+      return l;
+    }
+    startsFactor(){
+      const k = this.peek();
+      if (!k) return false;
+      if (k.t === 'num' || k.t === 'str') return true;
+      if (k.t === 'id') return !KW.has(k.v.toLowerCase());
+      return false;
+    }
+    parseMul(){
+      let l = this.parseUnary();
+      for (;;){
+        if (this.isOp('*') || this.isOp('/') || this.isOp('%') || this.isKw('mod')){
+          const tk = this.t[this.p++];
+          const op = tk.t === 'id' ? 'mod' : (tk.v === '%' ? 'mod' : tk.v);
+          l = this.mk('bin', { op, l, r: this.parseUnary() });
+        } else if (this.startsFactor()){
+          l = this.mk('bin', { op: '*', l, r: this.parseUnary(), implicit: true });
+        } else break;
+      }
+      return l;
+    }
+    parseUnary(){
+      if (this.isOp('-')){ this.p++; return this.mk('neg', { e: this.parseUnary() }); }
+      if (this.isOp('+')){ this.p++; return this.parseUnary(); }
+      if (this.isOp('\u221a')){ this.p++; return this.mk('apply', { callee: this.mk('var', { name: 'sqrt' }), args: [this.parseUnary()] }); }
+      return this.parsePow();
+    }
+    parsePow(){
+      const base = this.parsePostfix();
+      if (this.isOp('^')){ this.p++; return this.mk('bin', { op: '^', l: base, r: this.parseUnary() }); }
+      return base;
+    }
+    parsePostfix(){
+      let node = this.parsePrimary();
+      for (;;){
+        if (this.isOp('(')){
+          this.p++;
+          const args = [];
+          if (!this.isOp(')')){
+            args.push(this.parseExpr());
+            while (this.isOp(',')){ this.p++; args.push(this.parseExpr()); }
+          }
+          if (!this.isOp(')')) throw new PCError('Missing a closing bracket ")"', this.line);
+          this.p++;
+          node = this.mk('apply', { callee: node, args });
+        } else if (this.isOp('[')){
+          this.p++;
+          const index = this.parseExpr();
+          if (!this.isOp(']')) throw new PCError('Missing a closing bracket "]"', this.line);
+          this.p++;
+          node = this.mk('index', { target: node, index });
+        } else break;
+      }
+      return node;
+    }
+    parsePrimary(){
+      const k = this.peek();
+      if (!k) throw new PCError('The expression on this line is incomplete', this.line);
+      if (k.t === 'num'){ this.p++; return this.mk('num', { v: k.v }); }
+      if (k.t === 'str'){ this.p++; return this.mk('str', { v: k.v }); }
+      if (k.t === 'op' && k.v === '('){
+        this.p++;
+        const items = [this.parseExpr()];
+        while (this.isOp(',')){ this.p++; items.push(this.parseExpr()); }
+        if (!this.isOp(')')) throw new PCError('Missing a closing bracket ")"', this.line);
+        this.p++;
+        return items.length === 1 ? items[0] : this.mk('tuple', { items });
+      }
+      if (k.t === 'op' && k.v === '['){
+        this.p++;
+        const items = [];
+        if (!this.isOp(']')){
+          items.push(this.parseExpr());
+          while (this.isOp(',')){ this.p++; items.push(this.parseExpr()); }
+        }
+        if (!this.isOp(']')) throw new PCError('Missing a closing bracket "]"', this.line);
+        this.p++;
+        return this.mk('list', { items });
+      }
+      if (k.t === 'id'){
+        const w = k.v.toLowerCase();
+        if (w === 'true' || w === 'false'){ this.p++; return this.mk('bool', { v: w === 'true' }); }
+        if (KW.has(w)) throw new PCError(`"${k.v}" is a reserved word and cannot be used here`, this.line);
+        this.p++;
+        return this.mk('var', { name: k.v });
+      }
+      if (k.t === 'op' && k.v === '<-') throw new PCError('Unexpected ← in the middle of an expression', this.line);
+      throw new PCError(`Unexpected "${k.v}"`, this.line);
+    }
+  }
+
+  function parseSingle(toks, line){
+    if (!toks.length) throw new PCError('Expected an expression', line);
+    const P = new Parser(toks, line);
+    const e = P.parseExpr();
+    P.finish();
+    return e;
+  }
+  function parseList(toks, line){
+    if (!toks.length) return [];
+    const P = new Parser(toks, line);
+    const items = [P.parseExpr()];
+    while (P.isOp(',')){ P.p++; items.push(P.parseExpr()); }
+    P.finish();
+    return items;
+  }
+  function matchParen(toks, i){
+    let d = 0;
+    for (let q = i; q < toks.length; q++){
+      const t = toks[q];
+      if (t.t !== 'op') continue;
+      if (t.v === '(' || t.v === '[') d++;
+      else if (t.v === ')' || t.v === ']'){ d--; if (d === 0) return q; }
+    }
+    return -1;
+  }
+
+  /* ---------- statement parser ---------- */
+  function headWord(L, k){ const t = L.toks[k]; return t && t.t === 'id' ? t.v.toLowerCase() : null; }
+  function stopKey(L){
+    const h = headWord(L, 0);
+    if (h === 'end'){
+      const w = headWord(L, 1);
+      if (!w) throw new PCError('"end" must be followed by if, for or while', L.n);
+      return 'end ' + w;
+    }
+    if (h === 'endif') return 'end if';
+    if (h === 'endfor') return 'end for';
+    if (h === 'endwhile') return 'end while';
+    if (h === 'else') return headWord(L, 1) === 'if' ? 'else if' : 'else';
+    if (h === 'elseif') return 'else if';
+    return null;
+  }
+
+  function parseProgram(src){
+    const raw = normalise(src).split('\n');
+    const lines = [];
+    raw.forEach((text, i) => {
+      const n = i + 1;
+      const expanded = text.replace(/\t/g, '    ');
+      const m = expanded.match(/^(\s*)(.*)$/);
+      const toks = tokenize(m[2], n);
+      if (!toks.length) return;
+      lines.push({ n, indent: m[1].length, toks });
+    });
+    const funcs = new Map();
+    const r = parseStatements(lines, 0, lines.length, funcs, [], null);
+    return { stmts: r.stmts, funcs };
+  }
+
+  function parseStatements(lines, i, end, funcs, stops, opener){
+    const stmts = [];
+    while (i < end){
+      const L = lines[i];
+      const key = stopKey(L);
+      if (key){
+        if (stops.includes(key) || (key === 'end loop' && (stops.includes('end for') || stops.includes('end while')))) break;
+        if (opener) throw new PCError(`Found "${key}" but the "${opener.word}" on line ${opener.line} has not been closed with "end ${opener.word}" yet`, L.n);
+        throw new PCError(`"${key}" has no matching "${key.startsWith('end ') ? key.slice(4) : 'if'}" above it`, L.n);
+      }
+      const r = parseStmt(lines, i, end, funcs);
+      if (r.stmt) stmts.push(r.stmt);
+      i = r.i;
+    }
+    return { stmts, i };
+  }
+
+  function stripTrailingKw(toks, word){
+    const last = toks[toks.length - 1];
+    if (last && last.t === 'id' && last.v.toLowerCase() === word) return toks.slice(0, -1);
+    return toks;
+  }
+
+  function parseStmt(lines, i, end, funcs){
+    const L = lines[i], toks = L.toks, n = L.n, h = headWord(L, 0);
+    const kwTok = (k, w) => toks[k] && toks[k].t === 'id' && toks[k].v.toLowerCase() === w;
+    const opTok = (k, v) => toks[k] && toks[k].t === 'op' && toks[k].v === v;
+
+    if (h === 'algorithm') return { stmt: null, i: i + 1 };
+
+    if (h === 'input'){
+      let a = 1, b = toks.length;
+      if (opTok(1, '(') && matchParen(toks, 1) === toks.length - 1){ a = 2; b = toks.length - 1; }
+      const names = [];
+      for (let q = a; q < b; q++){
+        const t = toks[q];
+        if (t.t === 'op' && t.v === ',') continue;
+        if (t.t !== 'id' || KW.has(t.v.toLowerCase())) throw new PCError('"input" must be followed by variable names, e.g. input a, b', n);
+        names.push(t.v);
+      }
+      if (!names.length) throw new PCError('"input" needs at least one variable name, e.g. input x', n);
+      return { stmt: { k: 'input', names, line: n }, i: i + 1 };
+    }
+
+    if (h === 'print'){
+      let a = 1, b = toks.length, paren = false;
+      if (opTok(1, '(') && matchParen(toks, 1) === toks.length - 1){ a = 2; b = toks.length - 1; paren = true; }
+      const args = parseList(toks.slice(a, b), n);
+      return { stmt: { k: 'print', args, paren, line: n }, i: i + 1 };
+    }
+
+    if (h === 'return'){
+      const rest = toks.slice(1);
+      const value = rest.length ? parseSingle(rest, n) : null;
+      return { stmt: { k: 'return', value, line: n }, i: i + 1 };
+    }
+
+    if (h === 'if'){
+      const condToks = stripTrailingKw(toks.slice(1), 'then');
+      if (!condToks.length) throw new PCError('"if" needs a condition, e.g. if x < 10 then', n);
+      const branches = [{ cond: parseSingle(condToks, n), body: [] }];
+      let elseBody = null;
+      const op = { word: 'if', line: n };
+      let r = parseStatements(lines, i + 1, end, funcs, ['else if', 'else', 'end if'], op);
+      branches[0].body = r.stmts; i = r.i;
+      for (;;){
+        if (i >= end) throw new PCError(`Missing "end if" for the "if" on line ${n}`, n);
+        const key = stopKey(lines[i]);
+        if (key === 'else if'){
+          const E = lines[i];
+          const start = headWord(E, 0) === 'elseif' ? 1 : 2;
+          const ct = stripTrailingKw(E.toks.slice(start), 'then');
+          if (!ct.length) throw new PCError('"else if" needs a condition', E.n);
+          r = parseStatements(lines, i + 1, end, funcs, ['else if', 'else', 'end if'], op);
+          branches.push({ cond: parseSingle(ct, E.n), body: r.stmts, line: E.n }); i = r.i;
+        } else if (key === 'else'){
+          if (lines[i].toks.length > 1) throw new PCError('"else" should be on a line by itself', lines[i].n);
+          r = parseStatements(lines, i + 1, end, funcs, ['end if'], op);
+          elseBody = r.stmts; i = r.i;
+          if (i >= end) throw new PCError(`Missing "end if" for the "if" on line ${n}`, n);
+          i++; break;
+        } else { i++; break; }
+      }
+      return { stmt: { k: 'if', branches, elseBody, line: n }, i };
+    }
+
+    if (h === 'for'){
+      const v = toks[1];
+      if (!v || v.t !== 'id' || KW.has(v.v.toLowerCase())) throw new PCError('"for" must be followed by a variable name, e.g. for i from 1 to n', n);
+      const P = new Parser(toks, n);
+      let stmt;
+      if (kwTok(2, 'in')){
+        P.p = 3;
+        const list = P.parseExpr();
+        if (P.isKw('do')) P.p++;
+        P.finish();
+        stmt = { k: 'forin', v: v.v, list, line: n };
+      } else {
+        if (kwTok(2, 'from') || opTok(2, '<-') || opTok(2, '=') || opTok(2, ':=')) P.p = 3;
+        else throw new PCError('Expected "from" after the variable, e.g. for i from 1 to n', n);
+        const from = P.parseExpr();
+        if (!P.isKw('to')) throw new PCError('Expected "to" in the for statement, e.g. for i from 1 to n', n);
+        P.p++;
+        const to = P.parseExpr();
+        let step = null;
+        if (P.isKw('step')){ P.p++; step = P.parseExpr(); }
+        if (P.isKw('do')) P.p++;
+        P.finish();
+        stmt = { k: 'for', v: v.v, from, to, step, line: n };
+      }
+      const r = parseStatements(lines, i + 1, end, funcs, ['end for'], { word: 'for', line: n });
+      if (r.i >= end) throw new PCError(`Missing "end for" for the "for" on line ${n}`, n);
+      stmt.body = r.stmts;
+      return { stmt, i: r.i + 1 };
+    }
+
+    if (h === 'while'){
+      const condToks = stripTrailingKw(toks.slice(1), 'do');
+      if (!condToks.length) throw new PCError('"while" needs a condition, e.g. while x < 10', n);
+      const cond = parseSingle(condToks, n);
+      const r = parseStatements(lines, i + 1, end, funcs, ['end while'], { word: 'while', line: n });
+      if (r.i >= end) throw new PCError(`Missing "end while" for the "while" on line ${n}`, n);
+      return { stmt: { k: 'while', cond, body: r.stmts, line: n }, i: r.i + 1 };
+    }
+
+    if (h === 'define' || h === 'function' || h === 'procedure'){
+      const nameTok = toks[1];
+      if (!nameTok || nameTok.t !== 'id' || KW.has(nameTok.v.toLowerCase())) throw new PCError('"define" must be followed by a function name, e.g. define f(x)', n);
+      if (!opTok(2, '(')) throw new PCError(`Expected "(" after the function name, e.g. define ${nameTok.v}(x)`, n);
+      const close = matchParen(toks, 2);
+      if (close < 0) throw new PCError('Missing a closing bracket ")" in the define line', n);
+      const params = [];
+      for (let q = 3; q < close; q++){
+        const t = toks[q];
+        if (t.t === 'op' && t.v === ',') continue;
+        if (t.t !== 'id' || KW.has(t.v.toLowerCase())) throw new PCError('Function inputs must be variable names, e.g. define f(x, y)', n);
+        params.push(t.v);
+      }
+      let q = close + 1;
+      if (opTok(q, ':')) q++;
+      if (q < toks.length) throw new PCError('Unexpected text after the define line', n);
+      let j = i + 1;
+      while (j < end && lines[j].indent > L.indent) j++;
+      if (j === i + 1) throw new PCError(`Indent the body of "${nameTok.v}" under the define line (and put "return" inside it)`, n);
+      const r = parseStatements(lines, i + 1, j, funcs, ['end define', 'end function', 'end procedure'], { word: 'define', line: n });
+      let next = j;
+      if (r.i < j) next = r.i + 1;
+      else if (j < end && ['end define', 'end function', 'end procedure'].includes(stopKey(lines[j]))) next = j + 1;
+      funcs.set(nameTok.v, { name: nameTok.v, params, body: r.stmts, line: n });
+      return { stmt: null, i: next };
+    }
+
+    // assignment or expression statement
+    let depth = 0, k = -1;
+    for (let q = 0; q < toks.length; q++){
+      const t = toks[q];
+      if (t.t !== 'op') continue;
+      if (t.v === '(' || t.v === '[') depth++;
+      else if (t.v === ')' || t.v === ']') depth--;
+      else if (depth === 0 && (t.v === '<-' || t.v === ':=' || (t.v === '=' && q > 0))){ k = q; break; }
+    }
+    if (k >= 0){
+      const targetToks = toks.slice(0, k), valueToks = toks.slice(k + 1);
+      if (!targetToks.length) throw new PCError('Put a variable name before the ←, e.g. x ← 5', n);
+      if (!valueToks.length) throw new PCError('Put a value or expression after the ←, e.g. x ← 5', n);
+      const target = parseSingle(targetToks, n);
+      if (target.k !== 'var' && target.k !== 'index') throw new PCError('The left side of ← must be a single variable name, e.g. x ← 5 (or a list item such as L[i])', n);
+      const value = parseSingle(valueToks, n);
+      return { stmt: { k: 'assign', target, value, line: n, hint: toks[k].v === '=' }, i: i + 1 };
+    }
+    if (toks[0].t === 'id' && KW.has(toks[0].v.toLowerCase()) && !['not','true','false'].includes(h)){
+      throw new PCError(`"${toks[0].v}" cannot start a line here`, n);
+    }
+    const e = parseSingle(toks, n);
+    if (e.k !== 'apply') throw new PCError('This line does nothing. Did you mean "x ← …" or "print …"?', n);
+    return { stmt: { k: 'expr', e, line: n }, i: i + 1 };
+  }
+
+  /* ---------- values ---------- */
+  function typeName(v){
+    if (typeof v === 'number') return 'a number';
+    if (typeof v === 'string') return 'text';
+    if (typeof v === 'boolean') return 'true/false';
+    if (Array.isArray(v)) return 'a list';
+    if (v === undefined) return 'nothing (no value was returned)';
+    return 'a value';
+  }
+  function fmt(v){
+    if (typeof v === 'number'){
+      if (Number.isInteger(v)) return String(v);
+      return String(parseFloat(v.toPrecision(12)));
+    }
+    if (typeof v === 'boolean') return v ? 'true' : 'false';
+    if (typeof v === 'string') return v;
+    if (Array.isArray(v)) return (v.tuple ? '(' : '[') + v.map(fmt).join(', ') + (v.tuple ? ')' : ']');
+    if (v === undefined) return '(no value)';
+    return String(v);
+  }
+  function num(v, what, line){
+    if (typeof v !== 'number') throw new PCError(`${what} needs a number, but got ${typeName(v)}${typeof v === 'string' ? ` "${v}"` : ''}`, line);
+    return v;
+  }
+  function checkNum(r, line){
+    if (Number.isNaN(r)) throw new PCError('The result is not a real number', line);
+    if (!Number.isFinite(r)) throw new PCError('The number is too large to represent', line);
+    return r;
+  }
+  function truthy(v, line){
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'number') return v !== 0;
+    throw new PCError(`A condition must be true or false, but this one is ${typeName(v)}`, line);
+  }
+  function equal(a, b){
+    if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((x, i) => equal(x, b[i]));
+    return a === b;
+  }
+  function compare(op, a, b, line){
+    if (op === '=') return equal(a, b);
+    if (op === '!=') return !equal(a, b);
+    if (typeof a === 'string' && typeof b === 'string'){
+      return op === '<' ? a < b : op === '>' ? a > b : op === '<=' ? a <= b : a >= b;
+    }
+    num(a, 'Comparing with ' + op, line); num(b, 'Comparing with ' + op, line);
+    return op === '<' ? a < b : op === '>' ? a > b : op === '<=' ? a <= b : a >= b;
+  }
+  function arith(op, a, b, line){
+    if (op === '+'){
+      if (typeof a === 'string' || typeof b === 'string') return fmt(a) + fmt(b);
+      if (Array.isArray(a) && Array.isArray(b)) return a.concat(b);
+    }
+    if (op === '*' && Array.isArray(a) && typeof b === 'number' && Number.isInteger(b) && b >= 0){
+      let out = []; for (let i = 0; i < b; i++) out = out.concat(a); return out;
+    }
+    const shown = op === '*' ? '×' : op;
+    const x = num(a, `The operator ${shown}`, line), y = num(b, `The operator ${shown}`, line);
+    switch (op){
+      case '+': return checkNum(x + y, line);
+      case '-': return checkNum(x - y, line);
+      case '*': return checkNum(x * y, line);
+      case '/': if (y === 0) throw new PCError('Division by zero', line); return checkNum(x / y, line);
+      case 'mod': if (y === 0) throw new PCError('mod by zero', line); return ((x % y) + y) % y;
+      case '^': return checkNum(Math.pow(x, y), line);
+    }
+    throw new PCError('Unknown operator ' + op, line);
+  }
+  function toIndex(v, len, line, allowAppend){
+    num(v, 'A list index', line);
+    if (!Number.isInteger(v)) throw new PCError(`A list index must be a whole number, not ${fmt(v)}`, line);
+    if (v < 1 || v > len + (allowAppend ? 1 : 0)) throw new PCError(`Index ${v} is out of range: the list has ${len} item${len === 1 ? '' : 's'} and indexing starts at 1`, line);
+    return v - 1;
+  }
+
+  /* ---------- built-in functions ---------- */
+  function nargs(args, lo, hi, name, line){
+    if (args.length < lo || args.length > hi){
+      const want = lo === hi ? `${lo}` : `${lo} to ${hi}`;
+      throw new PCError(`${name} expects ${want} argument${lo === 1 && hi === 1 ? '' : 's'} but got ${args.length}`, line);
+    }
+  }
+  const one = (name, f, check) => (args, line) => {
+    nargs(args, 1, 1, name, line);
+    const x = num(args[0], name, line);
+    if (check) check(x, line);
+    return checkNum(f(x), line);
+  };
+  function listArg(v, name, line){
+    if (!Array.isArray(v)) throw new PCError(`${name} needs a list, e.g. ${name}([1, 2, 3])`, line);
+    return v;
+  }
+  function numsOf(args, name, line){
+    const vals = args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+    if (!vals.length) throw new PCError(`${name} needs at least one number`, line);
+    return vals.map(v => num(v, name, line));
+  }
+  function roundTo(x, d){
+    if (d === 0) return Math.round(x);
+    const s = Number(Math.round(Number(x + 'e' + d)) + 'e-' + d);
+    return Number.isNaN(s) ? Math.round(x * 10 ** d) / 10 ** d : s;
+  }
+  const BUILTINS = {
+    sqrt: one('sqrt', Math.sqrt, (x, l) => { if (x < 0) throw new PCError(`sqrt of a negative number (${fmt(x)})`, l); }),
+    abs: one('abs', Math.abs), floor: one('floor', Math.floor), ceil: one('ceil', Math.ceil), trunc: one('trunc', Math.trunc),
+    sin: one('sin', Math.sin), cos: one('cos', Math.cos), tan: one('tan', Math.tan),
+    asin: one('asin', Math.asin), acos: one('acos', Math.acos), atan: one('atan', Math.atan),
+    exp: one('exp', Math.exp),
+    ln: one('ln', Math.log, (x, l) => { if (x <= 0) throw new PCError('ln needs a positive number', l); }),
+    log10: one('log10', Math.log10, (x, l) => { if (x <= 0) throw new PCError('log10 needs a positive number', l); }),
+    log2: one('log2', Math.log2, (x, l) => { if (x <= 0) throw new PCError('log2 needs a positive number', l); }),
+    log: (args, line) => {
+      nargs(args, 1, 2, 'log', line);
+      const x = num(args[0], 'log', line);
+      if (x <= 0) throw new PCError('log needs a positive number', line);
+      if (args.length === 1) return Math.log(x);
+      const b = num(args[1], 'log base', line);
+      if (b <= 0 || b === 1) throw new PCError('The base of log must be positive and not 1', line);
+      return checkNum(Math.log(x) / Math.log(b), line);
+    },
+    round: (args, line) => {
+      nargs(args, 1, 2, 'round', line);
+      const x = num(args[0], 'round', line);
+      const d = args.length === 2 ? num(args[1], 'round', line) : 0;
+      if (!Number.isInteger(d) || d < 0 || d > 15) throw new PCError('round needs a whole number of decimal places from 0 to 15', line);
+      return roundTo(x, d);
+    },
+    random: (args, line) => {
+      nargs(args, 0, 2, 'random', line);
+      if (args.length === 0) return Math.random();
+      if (args.length === 1) throw new PCError('random takes no arguments, or two: random(a, b)', line);
+      const a = num(args[0], 'random', line), b = num(args[1], 'random', line);
+      return a + (b - a) * Math.random();
+    },
+    randominteger: (args, line) => {
+      nargs(args, 2, 2, 'randominteger', line);
+      const a = num(args[0], 'randominteger', line), b = num(args[1], 'randominteger', line);
+      if (!Number.isInteger(a) || !Number.isInteger(b)) throw new PCError('randominteger needs whole numbers, e.g. randominteger(1, 6)', line);
+      if (a > b) throw new PCError('randominteger(a, b) needs a ≤ b', line);
+      return a + Math.floor(Math.random() * (b - a + 1));
+    },
+    min: (args, line) => Math.min(...numsOf(args, 'min', line)),
+    max: (args, line) => Math.max(...numsOf(args, 'max', line)),
+    sum: (args, line) => { nargs(args, 1, 1, 'sum', line); return listArg(args[0], 'sum', line).reduce((s, v) => s + num(v, 'sum', line), 0); },
+    mean: (args, line) => { nargs(args, 1, 1, 'mean', line); const L = listArg(args[0], 'mean', line); if (!L.length) throw new PCError('mean of an empty list', line); return L.reduce((s, v) => s + num(v, 'mean', line), 0) / L.length; },
+    length: (args, line) => { nargs(args, 1, 1, 'length', line); const v = args[0]; if (Array.isArray(v) || typeof v === 'string') return v.length; throw new PCError('length needs a list or text', line); },
+    append: (args, line) => { nargs(args, 2, 2, 'append', line); const L = listArg(args[0], 'append', line); L.push(args[1]); return L; },
+    sort: (args, line) => { nargs(args, 1, 1, 'sort', line); const L = listArg(args[0], 'sort', line).slice(); return L.sort((a, b) => (typeof a === 'number' && typeof b === 'number') ? a - b : String(a).localeCompare(String(b))); },
+    count: (args, line) => { nargs(args, 2, 2, 'count', line); return listArg(args[0], 'count', line).filter(v => equal(v, args[1])).length; },
+    factorial: (args, line) => { nargs(args, 1, 1, 'factorial', line); const n = num(args[0], 'factorial', line); if (!Number.isInteger(n) || n < 0) throw new PCError('factorial needs a whole number ≥ 0', line); let p = 1; for (let i = 2; i <= n; i++) p *= i; return checkNum(p, line); },
+    ncr: (args, line) => { nargs(args, 2, 2, 'ncr', line); const n = num(args[0], 'ncr', line), r = num(args[1], 'ncr', line); if (!Number.isInteger(n) || !Number.isInteger(r) || n < 0) throw new PCError('ncr needs whole numbers', line); if (r < 0 || r > n) return 0; let v = 1; for (let i = 1; i <= r; i++) v = v * (n - r + i) / i; return Math.round(v); },
+    str: (args, line) => { nargs(args, 1, 1, 'str', line); return fmt(args[0]); }
+  };
+  BUILTINS.len = BUILTINS.length;
+  BUILTINS.randint = BUILTINS.randominteger;
+  BUILTINS.average = BUILTINS.mean;
+  const CONSTS = { pi: Math.PI, e: Math.E };
+
+  /* ---------- evaluation ---------- */
+  function lookup(name, env, line){
+    for (let e = env; e; e = e.parent){ if (e.vars.has(name)) return e.vars.get(name); }
+    if (Object.prototype.hasOwnProperty.call(CONSTS, name.toLowerCase())) return CONSTS[name.toLowerCase()];
+    throw new PCError(`"${name}" has no value yet. Give it one first, e.g. ${name} ← …`, line);
+  }
+  function hasVar(name, env){ for (let e = env; e; e = e.parent){ if (e.vars.has(name)) return true; } return false; }
+
+  function ev(node, env, ctx){
+    switch (node.k){
+      case 'num': case 'str': case 'bool': return node.v;
+      case 'var': return lookup(node.name, env, node.line);
+      case 'list': return node.items.map(e => ev(e, env, ctx));
+      case 'tuple': { const v = node.items.map(e => ev(e, env, ctx)); v.tuple = true; return v; }
+      case 'neg': return -num(ev(node.e, env, ctx), 'The minus sign', node.line);
+      case 'not': return !truthy(ev(node.e, env, ctx), node.line);
+      case 'and': return truthy(ev(node.l, env, ctx), node.line) && truthy(ev(node.r, env, ctx), node.line);
+      case 'or': return truthy(ev(node.l, env, ctx), node.line) || truthy(ev(node.r, env, ctx), node.line);
+      case 'bin': {
+        const a = ev(node.l, env, ctx), b = ev(node.r, env, ctx);
+        return arith(node.op, a, b, node.line);
+      }
+      case 'cmp': {
+        let left = ev(node.first, env, ctx);
+        for (const c of node.chain){
+          const right = ev(c.e, env, ctx);
+          if (!compare(c.op, left, right, node.line)) return false;
+          left = right;
+        }
+        return true;
+      }
+      case 'index': {
+        const L = ev(node.target, env, ctx);
+        const i = ev(node.index, env, ctx);
+        if (Array.isArray(L) || typeof L === 'string') return L[toIndex(i, L.length, node.line, false)];
+        throw new PCError(`Only lists can be indexed with [ ], but this is ${typeName(L)}`, node.line);
+      }
+      case 'apply': {
+        const args = node.args.map(a => ev(a, env, ctx));
+        const c = node.callee;
+        if (c.k === 'var'){
+          const name = c.name;
+          const fn = ctx.funcs.get(name) || [...ctx.funcs.values()].find(f => f.name.toLowerCase() === name.toLowerCase());
+          if (fn) return callUser(fn, args, ctx, node.line);
+          const b = BUILTINS[name.toLowerCase()];
+          if (b && !hasVar(name, env)) return b(args, node.line);
+          if (hasVar(name, env)){
+            if (args.length === 1) return arith('*', lookup(name, env, node.line), args[0], node.line);
+            throw new PCError(`"${name}" is a variable, not a function`, node.line);
+          }
+          throw new PCError(`"${name}" is not a defined function. Define it with define ${name}(…) or check the spelling`, node.line);
+        }
+        const v = ev(c, env, ctx);
+        if (args.length === 1) return arith('*', v, args[0], node.line);
+        throw new PCError('Unexpected brackets', node.line);
+      }
+    }
+    throw new PCError('Internal error: unknown expression', node.line);
+  }
+
+  function callUser(fn, args, ctx, line){
+    if (args.length !== fn.params.length) throw new PCError(`${fn.name} expects ${fn.params.length} argument${fn.params.length === 1 ? '' : 's'} but got ${args.length}`, line);
+    const env = { vars: new Map(), parent: ctx.env, global: false };
+    fn.params.forEach((p, i) => env.vars.set(p, args[i]));
+    ctx.depth++;
+    if (ctx.depth > 500) throw new PCError(`Too many nested calls to ${fn.name} (recursion with no way out?)`, line);
+    try {
+      const g = execBlock(fn.body, env, ctx);
+      for (;;){ const r = g.next(); if (r.done) break; }
+    } catch (e){
+      if (e instanceof ReturnSignal) return e.value;
+      throw e;
+    } finally { ctx.depth--; }
+    return undefined;
+  }
+
+  function assignTo(target, v, env, ctx){
+    if (target.k === 'var'){ env.vars.set(target.name, v); return; }
+    const L = ev(target.target, env, ctx);
+    if (!Array.isArray(L)) throw new PCError('Only a list item can be assigned with [ ]', target.line);
+    const i = toIndex(ev(target.index, env, ctx), L.length, target.line, true);
+    L[i] = v;
+  }
+
+  function printText(vals, paren){
+    if (vals.length === 0) return '';
+    if (vals.length > 1 && paren) return '(' + vals.map(fmt).join(', ') + ')';
+    return vals.map(fmt).join(' ');
+  }
+
+  function* execBlock(stmts, env, ctx){
+    for (const s of stmts) yield* execStmt(s, env, ctx);
+  }
+
+  function* execStmt(s, env, ctx){
+    ctx.tick(s.line);
+    yield s.line;
+    let out = null;
+    switch (s.k){
+      case 'assign': {
+        const v = ev(s.value, env, ctx);
+        if (v === undefined) throw new PCError('The function on this line did not return a value', s.line);
+        assignTo(s.target, v, env, ctx);
+        if (s.hint && !ctx.hinted){ ctx.hinted = true; ctx.hint(`Line ${s.line}: "=" was read as assignment. The exam convention is the arrow ← (type <-).`); }
+        break;
+      }
+      case 'input': {
+        for (const name of s.names){
+          const v = ctx.readInput(name, s.line);
+          env.vars.set(name, v);
+          ctx.echo(`input ${name} ← ${fmt(v)}`);
+        }
+        break;
+      }
+      case 'print': {
+        const vals = s.args.map(a => ev(a, env, ctx));
+        out = printText(vals, s.paren);
+        ctx.print(out, s.line);
+        break;
+      }
+      case 'return': throw new ReturnSignal(s.value ? ev(s.value, env, ctx) : undefined);
+      case 'expr': ev(s.e, env, ctx); break;
+      case 'if': {
+        for (const b of s.branches){
+          if (truthy(ev(b.cond, env, ctx), s.line)){ yield* execBlock(b.body, env, ctx); return; }
+        }
+        if (s.elseBody) yield* execBlock(s.elseBody, env, ctx);
+        return;
+      }
+      case 'while': {
+        while (truthy(ev(s.cond, env, ctx), s.line)){
+          yield* execBlock(s.body, env, ctx);
+          ctx.tick(s.line);
+          yield s.line;
+        }
+        return;
+      }
+      case 'for': {
+        const a = num(ev(s.from, env, ctx), 'The start of the for loop', s.line);
+        const b = num(ev(s.to, env, ctx), 'The end of the for loop', s.line);
+        const st = s.step ? num(ev(s.step, env, ctx), 'The step of the for loop', s.line) : 1;
+        if (st === 0) throw new PCError('The step of a for loop cannot be 0', s.line);
+        const eps = 1e-9 * Math.max(1, Math.abs(st));
+        for (let k = 0; ; k++){
+          const v = a + k * st;
+          if (st > 0 ? v > b + eps : v < b - eps) break;
+          env.vars.set(s.v, Math.abs(v - Math.round(v)) < 1e-12 ? Math.round(v) : v);
+          if (ctx.trace && env.global) ctx.traceRow(s.line, env, null);
+          if (k > 0){ ctx.tick(s.line); yield s.line; }
+          yield* execBlock(s.body, env, ctx);
+        }
+        return;
+      }
+      case 'forin': {
+        const L = ev(s.list, env, ctx);
+        if (!Array.isArray(L) && typeof L !== 'string') throw new PCError('"for … in" needs a list', s.line);
+        for (let k = 0; k < L.length; k++){
+          env.vars.set(s.v, L[k]);
+          if (ctx.trace && env.global) ctx.traceRow(s.line, env, null);
+          if (k > 0){ ctx.tick(s.line); yield s.line; }
+          yield* execBlock(s.body, env, ctx);
+        }
+        return;
+      }
+    }
+    if (ctx.trace && env.global && (s.k === 'assign' || s.k === 'input' || s.k === 'print')) ctx.traceRow(s.line, env, out);
+  }
+
+  function* execute(prog, ctx){
+    ctx.env = { vars: new Map(), parent: null, global: true };
+    ctx.funcs = prog.funcs;
+    ctx.depth = 0;
+    try {
+      yield* execBlock(prog.stmts, ctx.env, ctx);
+    } catch (e){
+      if (e instanceof ReturnSignal){ if (e.value !== undefined) ctx.print(fmt(e.value)); return; }
+      throw e;
+    }
+  }
+
+  function makeContext(opts){
+    const ctx = {
+      steps: 0, maxSteps: opts.maxSteps || 5000000, depth: 0, hinted: false,
+      outputLines: 0, maxOutput: 20000,
+      trace: opts.trace ? [] : null, traceMax: 400,
+      print: opts.print, echo: opts.echo || opts.print, hint: opts.hint || opts.print,
+      readInput: opts.readInput,
+      tick(line){
+        this.steps++;
+        if (this.steps > this.maxSteps) throw new PCError(`Stopped after ${this.maxSteps.toLocaleString()} steps. Is there a loop that never ends?`, line);
+      },
+      traceRow(line, env, out){
+        if (this.trace.length >= this.traceMax) return;
+        const vars = {};
+        env.vars.forEach((v, k) => { vars[k] = fmt(v); });
+        this.trace.push({ line, vars, out });
+      }
+    };
+    const basePrint = ctx.print;
+    ctx.print = (text, line) => {
+      ctx.outputLines++;
+      if (ctx.outputLines > ctx.maxOutput) throw new PCError(`Output limit of ${ctx.maxOutput.toLocaleString()} lines reached`, line);
+      basePrint(text);
+    };
+    return ctx;
+  }
+
+  return { parseProgram, execute, makeContext, fmt, PCError, KW };
+})();
+</script>
+
+<script>
+/* ===================== Editor and UI ===================== */
+(() => {
+  const $ = id => document.getElementById(id);
+  const ta = $('code'), hl = $('hl'), gutter = $('gutter'), out = $('out'), status = $('status');
+  const optClose = $('optClose'), optSym = $('optSym'), optTrace = $('optTrace');
+  const LS = { code: 'pcw-code', close: 'pcw-close', sym: 'pcw-sym', trace: 'pcw-trace', example: 'pcw-example' };
+  const store = {
+    get(k){ try { return localStorage.getItem(k); } catch (e){ return null; } },
+    set(k, v){ try { localStorage.setItem(k, v); } catch (e){} }
+  };
+
+  /* ---------- examples ---------- */
+  const EXAMPLES = [
+    { group: 'VCAA examples', items: [
+      { id: 'squares', name: 'Perfect squares below 1000', code:
+`Algorithm: perfect squares less than 1000
+x ← 1
+while x² < 1000
+    x ← x + 1
+    print (x − 1)²
+end while` },
+      { id: 'min', name: 'Minimum of two numbers', code:
+`Algorithm: minimum of two numbers
+input a, b
+if a ≤ b then
+    print a
+else
+    print b
+end if` },
+      { id: 'factorial', name: 'Factorial function', code:
+`define factorial(n):
+    product ← 1
+    for i from 1 to n
+        product ← product × i
+    end for
+    return product
+
+for k from 0 to 10
+    print(k, factorial(k))
+end for` },
+      { id: 'dice6', name: 'Average rolls to get a six', code:
+`# Estimate the long-term average number of rolls needed to get a six
+sum ← 0
+for i from 1 to 1000
+    outcome ← 0
+    count ← 0
+    while outcome ≠ 6
+        outcome ← randominteger(1, 6)
+        count ← count + 1
+    end while
+    sum ← sum + count
+end for
+print sum/1000` },
+      { id: 'threedice', name: 'Sample space for three dice', code:
+`# Prints (count, total) for every outcome of rolling three dice
+count ← 0
+for i from 1 to 6
+    for j from 1 to 6
+        for k from 1 to 6
+            count ← count + 1
+            print(count, i + j + k)
+        end for
+    end for
+end for` },
+      { id: 'trapezium', name: 'Trapezium rule', code:
+`define f(x)
+    return x²
+
+sum ← 0
+a ← 1
+b ← 4
+n ← 6
+h ← (b − a)/n
+left ← a
+right ← a + h
+for i from 1 to n
+    strip ← 0.5(f(left) + f(right)) × h
+    sum ← sum + strip
+    left ← left + h
+    right ← right + h
+end for
+print sum` }
+    ]},
+    { group: 'Numerical methods', items: [
+      { id: 'bisection', name: 'Bisection method', code:
+`define f(x)
+    return x² − 2
+
+a ← 1
+b ← 2
+c ← (a + b)/2
+t ← 0.0005
+if f(a) × f(b) > 0 then
+    print "Incorrect initial guesses"
+else
+    while b − a > 2 × t
+        if f(a) × f(c) < 0 then
+            b ← c
+        else
+            a ← c
+        end if
+        c ← (a + b)/2
+        print(a, b, c)
+    end while
+    print "Estimate:", c
+end if` },
+      { id: 'newton', name: "Newton's method", code:
+`define f(x)
+    return x³ − 2x − 5
+
+define df(x)
+    return 3x² − 2
+
+x ← 2
+print(0, x)
+for i from 1 to 6
+    x ← x − f(x)/df(x)
+    print(i, x)
+end for` },
+      { id: 'newtontol', name: "Newton's method with a tolerance", code:
+`define f(x)
+    return cos(x) − x
+
+define df(x)
+    return −sin(x) − 1
+
+x ← 1
+count ← 0
+xnew ← x − f(x)/df(x)
+while abs(xnew − x) > 0.000001
+    x ← xnew
+    xnew ← x − f(x)/df(x)
+    count ← count + 1
+end while
+print "Root:", round(xnew, 6)
+print "Iterations:", count` },
+      { id: 'riemann', name: 'Left and right rectangle sums', code:
+`define f(x)
+    return 4 − x²
+
+a ← 0
+b ← 2
+n ← 10
+h ← (b − a)/n
+leftSum ← 0
+rightSum ← 0
+for i from 0 to n − 1
+    leftSum ← leftSum + f(a + i × h) × h
+    rightSum ← rightSum + f(a + (i + 1) × h) × h
+end for
+print "Left sum:", leftSum
+print "Right sum:", rightSum
+print "Average:", (leftSum + rightSum)/2` },
+      { id: 'limit', name: 'Numerical derivative from a limit', code:
+`define f(x)
+    return x³
+
+a ← 2
+h ← 1
+for i from 1 to 8
+    gradient ← (f(a + h) − f(a))/h
+    print(h, gradient)
+    h ← h/10
+end for` },
+      { id: 'intopt', name: 'Optimisation over integers', code:
+`# Smallest surface area of an open box with volume 1000 and integer base x × y
+V ← 1000
+best ← 1000000
+for x from 1 to 50
+    for y from 1 to 50
+        S ← x × y + 2V/x + 2V/y
+        if S < best then
+            best ← S
+            bestx ← x
+            besty ← y
+        end if
+    end for
+end for
+print(bestx, besty, round(best, 2))` }
+    ]},
+    { group: 'Probability simulations', items: [
+      { id: 'coins', name: 'Pr(at least 7 heads in 10 tosses)', code:
+`trials ← 10000
+success ← 0
+for i from 1 to trials
+    heads ← 0
+    for j from 1 to 10
+        if random() < 0.5 then
+            heads ← heads + 1
+        end if
+    end for
+    if heads ≥ 7 then
+        success ← success + 1
+    end if
+end for
+print "Simulated:", success/trials
+exact ← 0
+for k from 7 to 10
+    exact ← exact + ncr(10, k) × 0.5^10
+end for
+print "Exact:", round(exact, 4)` },
+      { id: 'twodice', name: 'Distribution of the sum of two dice', code:
+`trials ← 6000
+counts ← [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+for i from 1 to trials
+    total ← randominteger(1, 6) + randominteger(1, 6)
+    counts[total − 1] ← counts[total − 1] + 1
+end for
+for s from 2 to 12
+    print(s, counts[s − 1]/trials)
+end for` },
+      { id: 'samplemeans', name: 'Sampling distribution of the mean', code:
+`# Roll a die 5 times, record the sample mean, repeat many times
+samples ← 2000
+n ← 5
+means ← []
+for i from 1 to samples
+    total ← 0
+    for j from 1 to n
+        total ← total + randominteger(1, 6)
+    end for
+    append(means, total/n)
+end for
+print "Mean of sample means:", round(mean(means), 3)
+big ← 0
+for m in means
+    if m > 4 then
+        big ← big + 1
+    end if
+end for
+print "Pr(sample mean > 4):", big/samples` },
+      { id: 'montecarlo', name: 'Monte Carlo estimate of π', code:
+`inside ← 0
+N ← 20000
+for i from 1 to N
+    x ← random()
+    y ← random()
+    if x² + y² ≤ 1 then
+        inside ← inside + 1
+    end if
+end for
+print 4 × inside/N` },
+      { id: 'binomial', name: 'Binomial probabilities by counting', code:
+`# Pr(X = k) for X ~ Bi(n, p), listed for each k
+n ← 8
+p ← 0.3
+for k from 0 to n
+    prob ← ncr(n, k) × p^k × (1 − p)^(n − k)
+    print(k, round(prob, 4))
+end for` }
+    ]},
+    { group: 'Other', items: [
+      { id: 'euler', name: "Euler's method (Specialist)", code:
+`define f(x, y)
+    return x × y
+
+define euler(x0, y0, h, xfin)
+    y ← y0
+    x ← x0
+    while x < xfin − h/2
+        y ← y + h × f(x, y)
+        x ← x + h
+    end while
+    return (xfin, y)
+
+print euler(1, 2, 0.1, 1.5)` },
+      { id: 'blank', name: 'Blank (start here)', code: '' }
+    ]}
+  ];
+  const examplesSel = $('examples');
+  EXAMPLES.forEach(g => {
+    const og = document.createElement('optgroup'); og.label = g.group;
+    g.items.forEach(it => { const o = document.createElement('option'); o.value = it.id; o.textContent = it.name; og.appendChild(o); });
+    examplesSel.appendChild(og);
+  });
+  const findExample = id => { for (const g of EXAMPLES) for (const it of g.items) if (it.id === id) return it; return null; };
+
+  /* ---------- highlighting ---------- */
+  const KWSET = PC.KW;
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  function highlightLine(line){
+    const re = /("[^"]*"?|'[^']*'?)|(#.*|\/\/.*)|([A-Za-z_][A-Za-z0-9_]*)|(\d+\.?\d*(?:[eE][+-]?\d+)?)|([←≤≥≠×÷√π^²³])/g;
+    let html = '', last = 0, m;
+    while ((m = re.exec(line))){
+      html += esc(line.slice(last, m.index));
+      if (m[1]) html += `<span class="s">${esc(m[1])}</span>`;
+      else if (m[2]) html += `<span class="c">${esc(m[2])}</span>`;
+      else if (m[3]) html += KWSET.has(m[3].toLowerCase()) && !['true','false'].includes(m[3].toLowerCase()) ? `<b class="k">${esc(m[3])}</b>` : esc(m[3]);
+      else if (m[4]) html += `<span class="n">${esc(m[4])}</span>`;
+      else html += `<span class="o">${esc(m[5])}</span>`;
+      last = re.lastIndex;
+    }
+    return html + esc(line.slice(last));
+  }
+  let curLine = 0, errLine = 0;
+  function render(){
+    const lines = ta.value.split('\n');
+    hl.innerHTML = lines.map((l, i) => {
+      const n = i + 1;
+      const body = highlightLine(l);
+      if (n === curLine) return `<span class="ln-cur">${body}</span>`;
+      if (n === errLine) return `<span class="ln-err">${body}</span>`;
+      return body;
+    }).join('\n') + '\n';
+    gutter.innerHTML = lines.map((_, i) => {
+      const n = i + 1;
+      const cls = n === curLine ? ' class="cur"' : n === errLine ? ' class="err"' : '';
+      return `<span${cls}>${n}</span>`;
+    }).join('');
+    syncScroll();
+  }
+  function syncScroll(){ hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft; gutter.scrollTop = ta.scrollTop; }
+  ta.addEventListener('scroll', syncScroll);
+
+  function setMarks(cur, err){
+    curLine = cur || 0; errLine = err || 0; render();
+    const n = curLine || errLine;
+    if (n){
+      const lh = parseFloat(getComputedStyle(ta).lineHeight) || 22;
+      const y = (n - 1) * lh;
+      if (y < ta.scrollTop + 12 || y > ta.scrollTop + ta.clientHeight - lh - 12) ta.scrollTop = Math.max(0, y - ta.clientHeight / 2);
+      syncScroll();
+    }
+  }
+
+  /* ---------- editing helpers ---------- */
+  function insertAt(text, selStart, selEnd){
+    ta.setRangeText(text, selStart, selEnd, 'end');
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  function lineBounds(pos){
+    const v = ta.value;
+    const start = v.lastIndexOf('\n', pos - 1) + 1;
+    let end = v.indexOf('\n', pos); if (end < 0) end = v.length;
+    return { start, end, text: v.slice(start, end) };
+  }
+  function countOpens(kind){
+    const v = ta.value;
+    const open = new RegExp('^\\s*' + kind + '\\b', 'gim');
+    const close = new RegExp('^\\s*(end\\s*' + kind + ')\\b', 'gim');
+    return (v.match(open) || []).length - (v.match(close) || []).length;
+  }
+  ta.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); runAll(); return; }
+    if (e.key === 'Tab'){
+      e.preventDefault();
+      const s = ta.selectionStart, en = ta.selectionEnd;
+      const multi = ta.value.slice(s, en).includes('\n');
+      if (!multi && !e.shiftKey){ insertAt('    ', s, en); return; }
+      const a = lineBounds(s).start, b = lineBounds(en).end;
+      const block = ta.value.slice(a, b);
+      const lines = block.split('\n');
+      const changed = lines.map(l => e.shiftKey ? l.replace(/^ {1,4}/, '') : '    ' + l).join('\n');
+      ta.setRangeText(changed, a, b, 'select');
+      ta.setSelectionRange(a, a + changed.length);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+    if (e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      const pos = ta.selectionStart;
+      const lb = lineBounds(pos);
+      const before = ta.value.slice(lb.start, pos);
+      const after = ta.value.slice(pos, lb.end);
+      const indent = (before.match(/^\s*/) || [''])[0];
+      const t = before.trim().toLowerCase();
+      let kind = null;
+      if (/^if\b/.test(t)) kind = 'if';
+      else if (/^for\b/.test(t)) kind = 'for';
+      else if (/^while\b/.test(t)) kind = 'while';
+      else if (/^(else|elseif|define|function|procedure)\b/.test(t)) kind = 'open';
+      if (!kind || after.trim() !== ''){ insertAt('\n' + indent, pos, ta.selectionEnd); return; }
+      if (kind === 'open'){ insertAt('\n' + indent + '    ', pos, ta.selectionEnd); return; }
+      if (optClose.checked && countOpens(kind) > 0){
+        const ins = '\n' + indent + '    ' + '\n' + indent + 'end ' + kind;
+        ta.setRangeText(ins, pos, ta.selectionEnd, 'end');
+        const caret = pos + 1 + indent.length + 4;
+        ta.setSelectionRange(caret, caret);
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+      } else insertAt('\n' + indent + '    ', pos, ta.selectionEnd);
+    }
+  });
+
+  function openerIndent(lineIdx, kind){
+    const lines = ta.value.split('\n');
+    let depth = 0;
+    for (let i = lineIdx - 1; i >= 0; i--){
+      const t = lines[i].trim().toLowerCase();
+      if (new RegExp('^(end\\s*' + kind + ')\\b').test(t)) depth++;
+      else if (new RegExp('^' + kind + '\\b').test(t)){
+        if (depth === 0) return (lines[i].match(/^\s*/) || [''])[0];
+        depth--;
+      }
+    }
+    return null;
+  }
+  ta.addEventListener('input', e => {
+    const type = e.inputType || '';
+    if (type === 'insertText' && e.data){
+      const p = ta.selectionStart, v = ta.value;
+      if (optSym.checked){
+        const two = v.slice(p - 2, p);
+        const map = { '<-': '←', '<=': '≤', '>=': '≥', '!=': '≠', '×*': '^' };
+        if (map[two]){ ta.setRangeText(map[two], p - 2, p, 'end'); }
+        else if (e.data === '*'){ ta.setRangeText('×', p - 1, p, 'end'); }
+      }
+      const lb = lineBounds(ta.selectionStart);
+      const m = lb.text.match(/^(\s+)(end\s+(if|for|while)|else(\s+if)?)\s*$/i);
+      if (m){
+        const kind = m[3] ? m[3].toLowerCase() : 'if';
+        const idx = ta.value.slice(0, lb.start).split('\n').length - 1;
+        const ind = openerIndent(idx, kind);
+        if (ind !== null && ind.length < m[1].length){
+          const newText = ind + lb.text.trimStart();
+          const caret = lb.start + newText.length;
+          ta.setRangeText(newText, lb.start, lb.end, 'end');
+          ta.setSelectionRange(caret, caret);
+        }
+      }
+    }
+    if (curLine || errLine){ curLine = 0; errLine = 0; }
+    render();
+    store.set(LS.code, ta.value);
+  });
+
+  const SNIPS = {
+    if: ['if condition then', '    ', 'end if'],
+    ifelse: ['if condition then', '    ', 'else', '    ', 'end if'],
+    elseif: ['else if condition then', '    '],
+    for: ['for i from 1 to n', '    ', 'end for'],
+    while: ['while condition', '    ', 'end while'],
+    define: ['define f(x)', '    return x'],
+    input: ['input x'],
+    print: ['print x'],
+    randint: ['randominteger(1, 6)'],
+    random: ['random()'],
+    comment: ['# ']
+  };
+  const PLACEHOLDER = { if: 'condition', ifelse: 'condition', elseif: 'condition', for: 'n', while: 'condition', define: 'f(x)', input: 'x', print: 'x', randint: null, random: null, comment: null };
+  function insertSnippet(key){
+    const lines = SNIPS[key];
+    const pos = ta.selectionStart;
+    const lb = lineBounds(pos);
+    const before = ta.value.slice(lb.start, pos);
+    const inline = key === 'randint' || key === 'random';
+    const indent = (lb.text.match(/^\s*/) || [''])[0];
+    let text, base = pos;
+    if (inline){ text = lines[0]; }
+    else if (before.trim() === ''){
+      text = lines.map((l, i) => i === 0 ? l : indent + l).join('\n');
+    } else {
+      text = '\n' + lines.map(l => indent + l).join('\n');
+    }
+    ta.setRangeText(text, pos, ta.selectionEnd, 'end');
+    const ph = PLACEHOLDER[key];
+    if (ph){
+      const at = ta.value.indexOf(ph, base);
+      if (at >= 0 && at < base + text.length) ta.setSelectionRange(at, at + ph.length);
+    } else if (!inline){
+      const caret = base + text.length;
+      ta.setSelectionRange(caret, caret);
+    }
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    ta.focus();
+  }
+  document.querySelectorAll('[data-snip]').forEach(b => b.addEventListener('click', () => insertSnippet(b.dataset.snip)));
+  document.querySelectorAll('[data-sym]').forEach(b => b.addEventListener('click', () => {
+    const s = b.dataset.sym;
+    const pad = s === '←' ? ' ← ' : s;
+    const p = ta.selectionStart;
+    const needsLead = s === '←' && /\s$/.test(ta.value.slice(0, p));
+    insertAt(needsLead ? pad.trimStart() : pad, p, ta.selectionEnd);
+    ta.focus();
+  }));
+
+  /* ---------- tabs ---------- */
+  const tabs = document.querySelectorAll('.tab');
+  function showTab(name){
+    tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+  }
+  tabs.forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+
+  /* ---------- running ---------- */
+  let gen = null, ctx = null, running = false, timer = null, startTime = 0, prog = null, inputQueue = [];
+  const runBtn = $('runBtn'), stepBtn = $('stepBtn'), stopBtn = $('stopBtn');
+
+  function setStatus(text, cls){ status.textContent = text; status.className = 'status' + (cls ? ' ' + cls : ''); }
+  function appendOut(text, cls){
+    const span = document.createElement('span');
+    if (cls) span.className = cls;
+    span.textContent = text + '\n';
+    out.appendChild(span);
+    out.scrollTop = out.scrollHeight;
+  }
+  function clearOut(){ out.textContent = ''; }
+
+  function parseInputs(){
+    const raw = $('inputs').value.trim();
+    if (!raw) return [];
+    return raw.split(/[,\n]/).map(s => s.trim()).filter(s => s.length).map(toValue);
+  }
+  function toValue(s){
+    if (/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s)) return parseFloat(s);
+    if (s.toLowerCase() === 'true') return true;
+    if (s.toLowerCase() === 'false') return false;
+    return s.replace(/^["']|["']$/g, '');
+  }
+
+  function prepare(){
+    clearOut();
+    setMarks(0, 0);
+    inputQueue = parseInputs();
+    prog = PC.parseProgram(ta.value);
+    ctx = PC.makeContext({
+      trace: optTrace.checked,
+      print: t => appendOut(t),
+      echo: t => appendOut(t, 'echo'),
+      hint: t => appendOut(t, 'hint'),
+      readInput: (name, line) => {
+        if (inputQueue.length) return inputQueue.shift();
+        const r = window.prompt(`Enter a value for ${name} (line ${line}):`);
+        if (r === null) throw new PC.PCError(`No value was given for "${name}". Type values in the box above the output, separated by commas.`, line);
+        return toValue(r.trim());
+      }
+    });
+    gen = PC.execute(prog, ctx);
+    startTime = performance.now();
+  }
+
+  function finish(kind, msg){
+    running = false;
+    if (timer){ clearTimeout(timer); timer = null; }
+    runBtn.disabled = false; stepBtn.disabled = false; stopBtn.disabled = true;
+    if (kind === 'done'){
+      const ms = Math.round(performance.now() - startTime);
+      setStatus(`Finished: ${ctx.steps.toLocaleString()} steps in ${ms} ms.`, 'ok');
+      setMarks(0, 0);
+    } else if (kind === 'error'){
+      setStatus(msg, 'err');
+    } else if (kind === 'stopped'){
+      setStatus('Stopped.', '');
+      setMarks(0, 0);
+    }
+    renderVars();
+    renderTrace();
+    gen = null;
+  }
+
+  function handleError(e){
+    if (e instanceof PC.PCError){
+      finish('error', (e.line ? `Line ${e.line}: ` : '') + e.message);
+      if (e.line) setMarks(0, e.line);
+    } else {
+      finish('error', 'Something went wrong while running: ' + (e && e.message ? e.message : e));
+    }
+    showTab('output');
+  }
+
+  function runAll(){
+    try {
+      if (!gen) prepare();
+      running = true;
+      runBtn.disabled = true; stepBtn.disabled = true; stopBtn.disabled = false;
+      setStatus('Running…');
+      setMarks(0, 0);
+      showTab('output');
+      const chunk = () => {
+        if (!running) return;
+        try {
+          const limit = 40000;
+          let r;
+          for (let i = 0; i < limit; i++){
+            r = gen.next();
+            if (r.done){ finish('done'); return; }
+          }
+          if (performance.now() - startTime > 30000) throw new PC.PCError('Stopped after 30 seconds. Reduce the number of trials or check for a loop that never ends.', r.value);
+          timer = setTimeout(chunk, 0);
+        } catch (e){ handleError(e); }
+      };
+      chunk();
+    } catch (e){ handleError(e); }
+  }
+
+  function stepOnce(){
+    try {
+      if (!gen){ prepare(); setStatus('Stepping: the highlighted line runs next.'); stopBtn.disabled = false; showTab('vars'); }
+      const r = gen.next();
+      if (r.done){ finish('done'); return; }
+      setMarks(r.value, 0);
+      renderVars();
+      renderTrace();
+    } catch (e){ handleError(e); }
+  }
+
+  function stop(){ if (gen || running) finish('stopped'); }
+
+  runBtn.addEventListener('click', runAll);
+  stepBtn.addEventListener('click', stepOnce);
+  stopBtn.addEventListener('click', stop);
+  $('clearOutBtn').addEventListener('click', () => { clearOut(); setStatus('Press Run, or Step to go one line at a time.'); });
+
+  function renderVars(){
+    const box = $('varsBox');
+    if (!ctx || !ctx.env){ return; }
+    const rows = [];
+    ctx.env.vars.forEach((v, k) => rows.push(`<tr><td class="mono">${esc(k)}</td><td class="mono">${esc(PC.fmt(v))}</td></tr>`));
+    const fns = [...ctx.funcs.values()].map(f => `${f.name}(${f.params.join(', ')})`);
+    let html = rows.length
+      ? `<table class="data"><tr><th>Variable</th><th>Value</th></tr>${rows.join('')}</table>`
+      : '<p class="empty">No variables have been assigned yet.</p>';
+    if (fns.length) html += `<p class="empty" style="margin-top:12px">Functions defined: ${esc(fns.join(', '))}</p>`;
+    box.innerHTML = html;
+  }
+  function renderTrace(){
+    const box = $('traceBox');
+    if (!ctx) return;
+    if (!ctx.trace){ box.innerHTML = '<p class="empty">Tick “Record trace table” below the editor, then Run. Each row shows the variable values after a line executes, the way you would fill in a trace table by hand. Recording stops after 400 rows.</p>'; return; }
+    if (!ctx.trace.length){ box.innerHTML = '<p class="empty">Nothing recorded yet.</p>'; return; }
+    const cols = [];
+    ctx.trace.forEach(r => Object.keys(r.vars).forEach(k => { if (!cols.includes(k)) cols.push(k); }));
+    const hasOut = ctx.trace.some(r => r.out !== null);
+    let html = '<table class="data"><tr><th>Step</th><th>Line</th>' + cols.map(c => `<th class="mono">${esc(c)}</th>`).join('') + (hasOut ? '<th>Printed</th>' : '') + '</tr>';
+    ctx.trace.forEach((r, i) => {
+      html += `<tr><td>${i + 1}</td><td>${r.line}</td>` + cols.map(c => `<td class="mono">${c in r.vars ? esc(r.vars[c]) : ''}</td>`).join('') + (hasOut ? `<td class="mono out">${r.out !== null ? esc(r.out) : ''}</td>` : '') + '</tr>';
+    });
+    html += '</table>';
+    if (ctx.trace.length >= ctx.traceMax) html += `<p class="empty" style="margin-top:10px">Recording stopped at ${ctx.traceMax} rows.</p>`;
+    box.innerHTML = html;
+  }
+
+  /* ---------- examples, options, persistence ---------- */
+  examplesSel.addEventListener('change', () => {
+    const ex = findExample(examplesSel.value);
+    if (!ex) return;
+    stop();
+    ta.value = ex.code;
+    ta.setSelectionRange(0, 0);
+    curLine = 0; errLine = 0;
+    render();
+    store.set(LS.code, ta.value);
+    store.set(LS.example, ex.id);
+    clearOut();
+    setStatus('Example loaded. Press Run, or Step to go one line at a time.');
+    ta.focus();
+  });
+  $('clearCodeBtn').addEventListener('click', () => {
+    if (ta.value.trim() && !window.confirm('Clear the editor and start a new program?')) return;
+    stop();
+    ta.value = ''; curLine = 0; errLine = 0; render(); store.set(LS.code, ''); examplesSel.value = 'blank'; clearOut();
+    setStatus('Press Run, or Step to go one line at a time.');
+    ta.focus();
+  });
+  $('copyBtn').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(ta.value); setStatus('Code copied to the clipboard.', 'ok'); }
+    catch (e){ ta.select(); setStatus('Press Ctrl+C to copy the selected code.', ''); }
+  });
+  [[optClose, LS.close], [optSym, LS.sym], [optTrace, LS.trace]].forEach(([el, key]) => {
+    const saved = store.get(key);
+    if (saved !== null) el.checked = saved === '1';
+    el.addEventListener('change', () => store.set(key, el.checked ? '1' : '0'));
+  });
+
+  const savedCode = store.get(LS.code);
+  if (savedCode !== null && savedCode.trim() !== ''){
+    ta.value = savedCode;
+    const savedEx = store.get(LS.example);
+    examplesSel.value = savedEx && findExample(savedEx) ? savedEx : 'blank';
+  } else {
+    ta.value = '';
+    examplesSel.value = 'blank';
+  }
+  render();
+})();
+</script>
+</body>
+</html>
