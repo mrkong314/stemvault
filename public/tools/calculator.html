@@ -876,9 +876,11 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     padding: 0.25rem 0.6rem 0.25rem 0;
   }
 
-  /* MathQuill: smaller so the fraction bar reads clearly */
+  /* MathQuill: smaller so the fraction bar reads clearly. --fs-scale is the
+     user's text-size preference (Settings): it scales the worksheet only,
+     never the keypad or chrome. */
   .mq-field {
-    font-size: 1.05rem; color: var(--ink);
+    font-size: calc(1.05rem * var(--fs-scale, 1)); color: var(--ink);
     border: none !important; box-shadow: none !important; min-height: 1.4rem;
   }
   .mq-field.mq-focused { box-shadow: none !important; }
@@ -1172,7 +1174,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .main-row.stacked .result { max-width: none; align-self: stretch; margin-top: 0.25rem; }
 
   .line .result {
-    margin-top: 0.25rem; font-size: 1.05rem; color: var(--accent);
+    margin-top: 0.25rem; font-size: calc(1.05rem * var(--fs-scale, 1)); color: var(--accent);
     min-height: 0.9rem; font-variant-numeric: tabular-nums; word-break: break-word;
     display: flex; justify-content: flex-end; align-items: baseline; gap: 0.15rem;
     font-weight: 500;
@@ -1182,8 +1184,8 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
      in a quiet dark grey so computed results keep the visual emphasis */
   .line .result.assign-echo { color: var(--def-echo); }
   /* ...and the definition's own input renders a step smaller than working lines */
-  .line.def-line .mq-field { font-size: 0.93rem; }
-  .line .result .katex { font-size: 1.05rem; color: inherit; }
+  .line.def-line .mq-field { font-size: calc(0.93rem * var(--fs-scale, 1)); }
+  .line .result .katex { font-size: calc(1.05rem * var(--fs-scale, 1)); color: inherit; }
   /* list/matrix/root-list results can be very wide; they always stack on their
      own line (see updateLineLayout) and render as block-level wrapping content so
      a long list breaks across lines instead of overflowing or overlapping. */
@@ -1460,9 +1462,9 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     #keypad button { height: clamp(2.8rem, 4.2vw, 3.8rem); font-size: clamp(1rem, 1.1vw, 1.25rem); border-radius: 13px; }
     .pad-tab { font-size: clamp(0.95rem, 1.1vw, 1.2rem); }
     /* scale the entries up so they fill the larger canvas comfortably */
-    .mq-field { font-size: clamp(1.05rem, 1.3vw, 1.5rem); }
-    .line.def-line .mq-field { font-size: clamp(0.93rem, 1.15vw, 1.32rem); }
-    .line .result { font-size: clamp(1rem, 1.25vw, 1.45rem); }
+    .mq-field { font-size: calc(clamp(1.05rem, 1.3vw, 1.5rem) * var(--fs-scale, 1)); }
+    .line.def-line .mq-field { font-size: calc(clamp(0.93rem, 1.15vw, 1.32rem) * var(--fs-scale, 1)); }
+    .line .result { font-size: calc(clamp(1rem, 1.25vw, 1.45rem) * var(--fs-scale, 1)); }
     .folder { margin: 0.7rem 1rem; }
   }
 
@@ -1981,6 +1983,14 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
             <div class="seg" id="themeSeg">
               <button data-mode="light" class="on">Light</button>
               <button data-mode="dark">Dark</button>
+            </div>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Text size</span>
+            <div class="seg" id="fontSeg">
+              <button data-fs="down" title="Smaller">A&minus;</button>
+              <button data-fs="reset" id="fontSizeLabel" title="Reset to 100%">100%</button>
+              <button data-fs="up" title="Larger">A+</button>
             </div>
           </div>
           <div class="settings-row">
@@ -7653,6 +7663,38 @@ themeSeg.addEventListener('click', (e) => {
   themeSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b===btn));
   scheduleSave();
 });
+
+/* text size: --fs-scale multiplies the worksheet's field and result sizes
+   (keypad and chrome stay fixed). A device preference, kept in localStorage.
+   MathQuill measures glyphs from the live layout, so every field reflows
+   after the size changes. */
+let fontScale = 1;
+try {
+  const v = parseFloat(localStorage.getItem('calc-font-scale'));
+  if (isFinite(v) && v >= 0.7 && v <= 1.6) fontScale = v;
+} catch (e) {}
+const fontSeg = document.getElementById('fontSeg');
+const fontSizeLabel = document.getElementById('fontSizeLabel');
+function applyFontScale() {
+  document.documentElement.style.setProperty('--fs-scale', fontScale);
+  fontSizeLabel.textContent = Math.round(fontScale * 100) + '%';
+  try { localStorage.setItem('calc-font-scale', String(fontScale)); } catch (e) {}
+  requestAnimationFrame(() => {
+    folders.forEach(f => f.lines.forEach(l => {
+      if (l.isSystem) { (l.eqFields || []).forEach(ef => { try { ef.mq.reflow(); } catch (e) {} }); return; }
+      try { l.mq.reflow(); } catch (e) {}
+      try { updateLineLayout(l); } catch (e) {}
+    }));
+  });
+}
+fontSeg.addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  if (btn.dataset.fs === 'down') fontScale = Math.max(0.7, Math.round((fontScale - 0.1) * 10) / 10);
+  else if (btn.dataset.fs === 'up') fontScale = Math.min(1.6, Math.round((fontScale + 0.1) * 10) / 10);
+  else fontScale = 1;
+  applyFontScale();
+});
+applyFontScale();
 
 const gravSeg = document.getElementById('gravSeg');
 gravSeg.addEventListener('click', (e) => {
