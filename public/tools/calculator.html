@@ -4050,9 +4050,34 @@ function evalExpr(text, scope) {
    Order-independent evaluation per folder. Returns, per line, its value and the
    set of variables it references that are nowhere defined in the folder.
 --------------------------------------------------------------------------- */
+/* Explicit-subject changes queued during a recompute pass: when the solve
+   subject moves from A to B and the section still holds B's untouched
+   "B = 1" row (the auto-created kind), that row is rewritten in place to
+   "A = 1" -- the old subject becomes an input, the new subject stops being
+   one, and row order is preserved. A section whose rows were edited (no
+   bare "B = 1" left) is never touched. Implicit equations are excluded:
+   their subject flips on its own as definitions change. */
+let subjectSwaps = [];
+function applySubjectSwaps(onlyFolder) {
+  const swaps = subjectSwaps; subjectSwaps = [];
+  let changed = false;
+  swaps.forEach(({ folder, line, oldS, newS }) => {
+    const row = folder.lines.find(l => {
+      if (l.isSystem || l === line) return false;
+      try { return prepareExpr(l.mq.latex()).replace(/\s+/g, '') === newS + '=1'; }
+      catch (e) { return false; }
+    });
+    if (!row) return;
+    if (findDefRow(folder, oldS, line)) removeLine(row);
+    else { try { row.mq.latex(varToLatex(oldS) + '=1'); } catch (e) {} }
+    changed = true;
+  });
+  if (changed) recomputeImpl(onlyFolder);
+}
 function recompute(onlyFolder) {
   try { recomputeImpl(onlyFolder); }
   catch (e) { /* never let a single bad line break the whole calculator */ }
+  if (subjectSwaps.length) { try { applySubjectSwaps(onlyFolder); } catch (e) { subjectSwaps = []; } }
 }
 
 /* Per-line evaluation scope: a line's formula-local names (spring k, specific
@@ -4232,6 +4257,15 @@ function recomputeImpl(onlyFolder) {
       line.undefVars = [];
       line.undefPhys = [];
       line.solveTargetName = (info.solveDef && info.solveDef.varName) || null;
+      // an EXPLICIT subject (arrow/solve, never implicit) that changed since
+      // last recompute queues a row swap, applied after this pass
+      const explicitSubj = (info.solveDef && !info.solveDef.implicit) ? info.solveDef.varName : null;
+      if (explicitSubj) {
+        if (line._lastSubject && line._lastSubject !== explicitSubj) {
+          subjectSwaps.push({ folder, line, oldS: line._lastSubject, newS: explicitSubj });
+        }
+        line._lastSubject = explicitSubj;
+      }
       line.lineEl.classList.remove('def-line');
 
       if (info.expr === '') { line.freeNames = null; updateChip(line); continue; }
@@ -7463,6 +7497,17 @@ function subjectFromToken(tok, vars) {
    if the last word of a multi-word query names a variable of formulas matched
    by the preceding words ("de broglie p"), it is read as the subject. Each
    returned item is {f, vars, subjIdx, solvable}. */
+/* the last few chosen formulas lead the picker's empty-query listing */
+const RECENT_FORMULAS_KEY = 'calc-recent-formulas';
+function recentFormulas() {
+  try { const a = JSON.parse(localStorage.getItem(RECENT_FORMULAS_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+}
+function recordRecentFormula(name) {
+  try {
+    const a = recentFormulas().filter(n => n !== name); a.unshift(name);
+    localStorage.setItem(RECENT_FORMULAS_KEY, JSON.stringify(a.slice(0, 6)));
+  } catch (e) {}
+}
 function formulaMatches(q) {
   q = (q || '').trim();
   const wrap = f => ({ f, vars: formulaVars(f), subjIdx: 0, solvable: formulaSolvable(f) });
@@ -7470,6 +7515,12 @@ function formulaMatches(q) {
   const gt = q.indexOf('>');
   if (gt !== -1) { subjTok = q.slice(gt + 1).trim(); textQ = q.slice(0, gt).trim(); }
   let items = filterFormulas(textQ).map(wrap);
+  if (!textQ) {
+    const byName = new Map(FORMULA_LIST.map(f => [f.name, f]));
+    const rec = recentFormulas().map(n => byName.get(n)).filter(Boolean)
+      .map(f => { const it = wrap(f); it.recent = true; return it; });
+    if (rec.length) items = [...rec, ...items];
+  }
   if (subjTok) {
     const hits = items.filter(it => {
       const m = subjectFromToken(subjTok, it.vars);
@@ -7505,9 +7556,10 @@ function renderFormulaResults(q) {
   let lastCat = null;
   formulaItems.forEach((it, i) => {
     const f = it.f;
-    if (f.cat !== lastCat) {
-      const h = document.createElement('div'); h.className = 'fml-cat'; h.textContent = f.cat;
-      formulaResults.appendChild(h); lastCat = f.cat;
+    const cat = it.recent ? 'Recent' : f.cat;
+    if (cat !== lastCat) {
+      const h = document.createElement('div'); h.className = 'fml-cat'; h.textContent = cat;
+      formulaResults.appendChild(h); lastCat = cat;
     }
     const row = document.createElement('div');
     row.className = 'fml-row' + (i === 0 ? ' active' : '');
@@ -7563,17 +7615,23 @@ function setFormulaActive(i) {
    Without a subject (Shift+Enter, or an unsolvable chained form) the bare
    formula is written. */
 function chooseFormula(f, subject) {
-  const mq = formulaTargetMQ || (formulaTargetLine && formulaTargetLine.mq);
+  const line = formulaTargetLine;
+  const mq = formulaTargetMQ || (line && line.mq);
   if (mq) {
     mq.focus();
     if (subject) mq.write(f.latex + '\\Rightarrow ' + subjectTex(subject));
     else mq.write(f.latex);
     // formula-local symbols (spring k, specific-heat c) are NOT the predefined
     // constants on this line: they prompt as unknowns until defined
-    if (formulaTargetLine) formulaTargetLine.freeNames = f.free ? f.free.slice() : formulaTargetLine.freeNames;
+    if (line) line.freeNames = f.free ? f.free.slice() : line.freeNames;
   }
+  recordRecentFormula(f.name);
   closeFormulaPicker();
   recompute();
+  // the unknowns become rows immediately (each = 1), no chip step; the caret
+  // stays on the formula line so the subject dropdown remains usable, and
+  // changing the subject later swaps the rows to match (see recompute)
+  if (line && !line.isSystem) materializeSuggestions(line);
 }
 
 formulaSearch.addEventListener('input', () => renderFormulaResults(formulaSearch.value));
@@ -8789,8 +8847,9 @@ function openShortcuts() {
   tip('Search', ['By topic ("momentum", "photoelectric", "energy conservation") or start typing the equation itself ("E=").']);
   tip('Pick a subject', ['End the query with a variable ("de broglie p") or name it after ', { k: '>' },
     ' ("lorentz > v"). ', { k: 'Tab' }, ' cycles the subject chips; ', { k: 'Enter' }, ' inserts the formula set up to solve.']);
-  tip('Fill the unknowns', ['Blue chips appear for each unknown variable. ', { k: 'Enter' }, ', ', { k: 'Tab' },
-    ' or an arrow key turns one into a ready row to type the value into.']);
+  tip('Variables appear', ['Choosing a formula creates a row for every unknown automatically, each set to 1. Change the subject afterwards and the rows swap to match: the old subject gains its ', { x: '=1' }, ' row, the new subject’s untouched ', { x: '=1' }, ' row goes. Edited rows are never touched.']);
+  tip('Fill the unknowns', ['On typed equations, blue chips appear for each unknown instead. ', { k: 'Enter' }, ', ', { k: 'Tab' },
+    ' or an arrow key turns one into a ready row, and Add all creates the lot.']);
 
   h('Fast input');
   tip('Powers of ten', [{ k: '**' }, ' becomes ', { x: '\\times10^{\\square}' }, '. Holding ', { k: '×' }, ' on the keypad does the same.']);
