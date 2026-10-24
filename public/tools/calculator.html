@@ -2839,7 +2839,48 @@ function rewriteCommaSolve(expr) {
   return 'solve(' + lhs + ',' + rhs + ')';
 }
 
-function prepareExpr(latex) { return rewriteCommaSolve(insertImplicitMult(latexToMath(rewriteArrowSolve(latex)))); }
+/* ---- user-defined functions (Methods): f(x) = body ----
+   Definitions are detected from the RAW latex (before implicit multiplication
+   turns f(2) into f*2). Calls are then un-multiplied in the prepared string:
+   f*(2) -> f_fn(2), f'(2) -> f_dx(2), f''(2) -> f_ddx(2) -- mangled names a
+   math.js scope can hold as real functions. The registry is per section and
+   refreshed at the top of every recompute pass. */
+const FUNCDEF_RE = /^\s*([A-Za-z])\s*\\left\(\s*([A-Za-z](?:\s*,\s*[A-Za-z])*)\s*\\right\)\s*=(.*)$/;
+let CURR_FUNCS = new Map();   // name -> { params, bodyLatex, line }
+/* A definition's body is a plain expression: no solve arrow, no further '='.
+   "f(x) = 12 => x" and, once f exists, "f(x) = 12" are EQUATIONS, not
+   redefinitions -- only the first clean f(x)=body line defines f. */
+function funcDefMatch(lx) {
+  const m = lx.match(FUNCDEF_RE);
+  if (!m) return null;
+  if (m[3].indexOf('\\Rightarrow') !== -1 || m[3].indexOf('=') !== -1) return null;
+  return m;
+}
+function scanFuncDefs(folder) {
+  const m2 = new Map();
+  ((folder && folder.lines) || []).forEach(l => {
+    if (l.isSystem) return;
+    let lx = ''; try { lx = l.mq.latex(); } catch (e) {}
+    const m = funcDefMatch(lx);
+    if (m && !m2.has(m[1])) m2.set(m[1], { params: m[2].split(',').map(s => s.trim()), bodyLatex: m[3].trim(), line: l });
+  });
+  CURR_FUNCS = m2;
+  return m2;
+}
+function mangleUserCalls(expr) {
+  if (!CURR_FUNCS.size) return expr;
+  for (const name of CURR_FUNCS.keys()) {
+    expr = expr.split(name + "''*(").join(name + '_ddx(')
+               .split(name + "''(").join(name + '_ddx(')
+               .split(name + "'*(").join(name + '_dx(')
+               .split(name + "'(").join(name + '_dx(')
+               .split(name + '*(').join(name + '_fn(');
+  }
+  return expr;
+}
+const USERFN_NAME_RE = /^([A-Za-z])_(fn|dx|ddx)$/;
+
+function prepareExpr(latex) { return mangleUserCalls(rewriteCommaSolve(insertImplicitMult(latexToMath(rewriteArrowSolve(latex))))); }
 
 /* ---- numeric equation solver for solve(equation, variable) ----
    Builds f(x) = LHS - RHS with all other variables taken from the folder scope,
@@ -3074,6 +3115,61 @@ function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
   }
   return { roots: roots.sort((a, b) => a - b), trig, mode, lo: -limit, hi: limit };
 }
+
+/* All real roots within a solving domain [lo, hi]: the wide solver's roots
+   filtered to the domain, merged with a dense sweep across it (the wide log
+   grid can step over roots inside a small interval; trig equations scan the
+   domain directly instead of one standard period). */
+function solveAllInDomain(eqText, varName, scope, lo, hi) {
+  const pushRoot = (arr, r) => {
+    const c = +r;
+    if (isFinite(c) && !arr.some(e => Math.abs(e - c) < 1e-6 * Math.max(1, Math.abs(c)))) arr.push(c);
+  };
+  let res;
+  try { res = solveEquationAll(eqText, varName, scope, lo, hi); } catch (e) { res = { roots: [] }; }
+  const tol = (v) => 1e-9 * Math.max(1, Math.abs(v));
+  const roots = [];
+  (res.roots || []).forEach(r => { if (r >= lo - tol(lo) && r <= hi + tol(hi)) pushRoot(roots, r); });
+  try {
+    const i = eqText.indexOf('=');
+    const L = i >= 0 ? eqText.slice(0, i) : eqText, R = i >= 0 ? eqText.slice(i + 1) : '0';
+    const compiled = math.compile('(' + L + ')-(' + R + ')');
+    const fscope = { ...scope };
+    const f = x => {
+      fscope[varName] = x;
+      try { const v = compiled.evaluate(fscope); return typeof v === 'number' ? v : NaN; } catch (e) { return NaN; }
+    };
+    // the residual scale comes from the function's size INSIDE the domain:
+    // probes far outside it would make the near-zero test meaningless
+    const N = 3000, dx = (hi - lo) / N;
+    const vals = new Array(N + 1);
+    let scale = 0;
+    for (let k = 0; k <= N; k++) {
+      const v = f(lo + dx * k); vals[k] = v;
+      if (isFinite(v)) { const a = Math.abs(v); if (a > scale) scale = a; }
+    }
+    if (!scale || !isFinite(scale)) scale = 1;
+    let px = lo, pv = vals[0];
+    if (isFinite(pv) && Math.abs(pv) < 1e-9 * scale) pushRoot(roots, lo);
+    for (let k = 1; k <= N; k++) {
+      const x = lo + dx * k, v = vals[k];
+      if (isFinite(pv) && isFinite(v) && (pv < 0) !== (v < 0)) {
+        let a = px, b = x, fa = pv;
+        for (let it = 0; it < 80; it++) {
+          const m2 = (a + b) / 2, fm = f(m2);
+          if (!isFinite(fm)) break;
+          if ((fa < 0) !== (fm < 0)) b = m2; else { a = m2; fa = fm; }
+        }
+        pushRoot(roots, (a + b) / 2);
+      } else if (isFinite(v) && Math.abs(v) < 1e-9 * scale && (!isFinite(pv) || Math.abs(pv) >= 1e-9 * scale)) {
+        pushRoot(roots, x);
+      }
+      px = x; pv = v;
+    }
+  } catch (e) {}
+  return { roots: roots.sort((a, b) => a - b), mode: 'domain', lo, hi };
+}
+
 /* Snap a root to the nearest integer only when that integer satisfies the
    equation at least as well -- tidies 1.9999999998 -> 2 without destroying
    genuinely tiny roots (3.3e-19 is within 1e-9 of 0 but is NOT a root at 0).
@@ -3117,17 +3213,20 @@ function resolveSolveCalls(expr, scope) {
     const close = matchParen(out, open);
     if (close === -1) throw new Error('solve: unbalanced parentheses');
     const inner = out.slice(open + 1, close);
-    // split on the LAST top-level comma (variable is the final argument)
-    let depth = 0, commaPos = -1;
-    for (let i = 0; i < inner.length; i++) {
-      if (inner[i] === '(') depth++;
-      else if (inner[i] === ')') depth--;
-      else if (inner[i] === ',' && depth === 0) commaPos = i;
+    const args = splitSolveArgs(inner);
+    if (!args) throw new Error('solve needs an equation and a variable');
+    let root;
+    if (args.domain) {
+      const lo0 = Number(evalExpr(args.domain[0], scope)), hi0 = Number(evalExpr(args.domain[1], scope));
+      const lo = Math.min(lo0, hi0), hi = Math.max(lo0, hi0);
+      if (!isFinite(lo) || !isFinite(hi)) throw new Error('bad solving domain');
+      const roots = solveAllInDomain(args.eqText, args.varName, scope, lo, hi).roots;
+      const pos = roots.filter(r => r >= 0);
+      const pool = pos.length ? pos : roots;
+      root = pool.slice().sort((a, b) => Math.abs(a) - Math.abs(b))[0];
+    } else {
+      root = solveEquation(args.eqText, args.varName, scope);
     }
-    if (commaPos === -1) throw new Error('solve needs an equation and a variable');
-    const eqText = inner.slice(0, commaPos).trim();
-    const varName = inner.slice(commaPos + 1).trim();
-    const root = solveEquation(eqText, varName, scope);
     if (root === undefined) throw new Error('no solution found');
     out = out.slice(0, idx) + '(' + root + ')' + out.slice(close + 1);
   }
@@ -3140,6 +3239,40 @@ function hasSolve(expr) { return /\bsolve\s*\(/.test(expr); }
    around it), return {eqText, varName}; otherwise null. Used by all-solutions
    mode, which can only list roots when the whole result IS the solve (a list
    can't be chained into further arithmetic). */
+/* Split a solve(...) argument list at top-level commas (tracking both () and
+   []), and read an optional solving domain: solve(eq, x, [a, b]) or
+   solve(eq, x, a, b). Returns {eqText, varName, domain} or null. */
+function splitSolveArgs(inner) {
+  const parts = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i];
+    if (ch === '(' || ch === '[') depth++;
+    else if (ch === ')' || ch === ']') { if (depth > 0) depth--; }
+    else if (ch === ',' && depth === 0) { parts.push(inner.slice(start, i)); start = i + 1; }
+  }
+  parts.push(inner.slice(start));
+  if (parts.length < 2) return null;
+  const out = { eqText: parts[0].trim(), varName: parts[1].trim(), domain: null };
+  if (parts.length === 3) {
+    const mm = parts[2].trim().match(/^\[(.*)\]$/);
+    if (!mm) return null;
+    const halves = [];
+    let d2 = 0, s2 = 0;
+    for (let i = 0; i < mm[1].length; i++) {
+      const ch = mm[1][i];
+      if (ch === '(' || ch === '[') d2++;
+      else if (ch === ')' || ch === ']') { if (d2 > 0) d2--; }
+      else if (ch === ',' && d2 === 0) { halves.push(mm[1].slice(s2, i)); s2 = i + 1; }
+    }
+    halves.push(mm[1].slice(s2));
+    if (halves.length !== 2) return null;
+    out.domain = [halves[0].trim(), halves[1].trim()];
+  } else if (parts.length === 4) {
+    out.domain = [parts[2].trim(), parts[3].trim()];
+  } else if (parts.length > 4) return null;
+  return out;
+}
 function pureSolveCall(expr) {
   const t = expr.trim();
   const m = t.match(/^solve\s*\(/);
@@ -3147,15 +3280,7 @@ function pureSolveCall(expr) {
   const open = t.indexOf('(');
   const close = matchParen(t, open);
   if (close === -1 || close !== t.length - 1) return null;   // must end the expr
-  const inner = t.slice(open + 1, close);
-  let depth = 0, commaPos = -1;
-  for (let i = 0; i < inner.length; i++) {
-    if (inner[i] === '(') depth++;
-    else if (inner[i] === ')') depth--;
-    else if (inner[i] === ',' && depth === 0) commaPos = i;
-  }
-  if (commaPos === -1) return null;
-  return { eqText: inner.slice(0, commaPos).trim(), varName: inner.slice(commaPos + 1).trim() };
+  return splitSolveArgs(t.slice(open + 1, close));
 }
 
 /* ---- cSolve: all complex roots of a polynomial ----
@@ -3423,6 +3548,7 @@ function referencedVars(expr) {
     // undefined variable. If the user explicitly assigns `i = ...` in a field it
     // becomes a defined name and overrides the imaginary unit via scope as normal.
     if (t.t === 'name' && t.v === 'i') continue;
+    if (t.t === 'name' && USERFN_NAME_RE.test(t.v) && CURR_FUNCS.has(t.v[0])) continue;   // user-function calls are not variables
     if (t.t === 'name' && !t.fn && !CONSTS.includes(t.v) && t.v !== 'ans' && !PHYS_NAMES.has(t.v)) out.add(t.v);
   }
   const solveTargets = [...expr.matchAll(/(?:solve|cSolve)\s*\(.*?,\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*\)/g)].map(m => m[1]);
@@ -4050,6 +4176,9 @@ function evalExpr(text, scope) {
   // Unit means it was an undefined variable -> treat as unresolved (renders blank,
   // and the undefined-variable prompt still fires).
   if (v && typeof v === 'object' && v.isUnit) throw new Error('unit-as-variable');
+  // math.js reads "f_fn(x) = 12" with x defined as a FUNCTION ASSIGNMENT and
+  // returns the function; that is never a numeric answer here
+  if (typeof v === 'function') throw new Error('function-as-value');
   return v;
 }
 
@@ -4092,6 +4221,7 @@ function friendlyEvalError(err) {
   if (/Unexpected end of expression|Value expected|Unexpected operator|Parenthesis|Unexpected part|Unexpected character/i.test(m)) return 'incomplete expression';
   if (/Cannot convert|Unexpected type|dimension mismatch|Dimension/i.test(m)) return 'mismatched values (a list where a number is needed?)';
   if (/Too many arguments|Too few arguments|Wrong number/i.test(m)) return 'wrong number of arguments';
+  if (/function-as-value/.test(m)) return 'reads as a definition: the unknown here is already defined';
   return 'cannot evaluate';
 }
 
@@ -4141,9 +4271,24 @@ function recomputeImpl(onlyFolder) {
     if (onlyFolder && folder !== onlyFolder) continue;
     const scope = { ...angleFns, ...physConstants(), ...CALC_FUNCS };
     const definedNames = new Set();
+    scanFuncDefs(folder);   // user-defined functions: registry first, so f(2) reads as a call
 
     const infos = folder.lines.map((line, idx) => {
       if (line.isSystem) return { line, idx, isSystem: true, expr: '', isAssign: false };
+      // f(x) = body defines a function, not a variable; detected on the raw
+      // latex before implicit multiplication can split the call syntax
+      let rawLx = '';
+      try { rawLx = line.mq.latex(); } catch (e) {}
+      const fdm0 = funcDefMatch(rawLx);
+      const fdm = fdm0 && CURR_FUNCS.get(fdm0[1]) && CURR_FUNCS.get(fdm0[1]).line === line ? fdm0 : null;
+      if (fdm) {
+        let bodyExpr = '';
+        try { bodyExpr = prepareExpr(fdm[3]); } catch (e) {}
+        const name = fdm[1];
+        definedNames.add(name + '_fn'); definedNames.add(name + '_dx'); definedNames.add(name + '_ddx');
+        return { line, idx, expr: 'FUNCDEF', isAssign: false,
+                 funcDef: { name, params: fdm[2].split(',').map(s => s.trim()), bodyExpr, bodyLatex: fdm[3].trim() } };
+      }
       let expr = '';
       try { expr = prepareExpr(line.mq.latex()); } catch (e) { expr = ''; }
       const m = expr.match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)\s*(.+)$/);
@@ -4163,8 +4308,8 @@ function recomputeImpl(onlyFolder) {
           // "what fraction of the speed of light" question
           const flat = ps.varName.replace(/[()\s]/g, '');
           const rm = flat.match(/^(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\/c$/);
-          if (rm) solveDef = { eqText: ps.eqText, varName: rm[1], complex: false, ratioC: true };
-          else solveDef = { eqText: ps.eqText, varName: ps.varName, complex: false };
+          if (rm) solveDef = { eqText: ps.eqText, varName: rm[1], complex: false, ratioC: true, domain: ps.domain };
+          else solveDef = { eqText: ps.eqText, varName: ps.varName, complex: false, domain: ps.domain };
         }
         else if (pc && pc.varName) solveDef = { eqText: pc.eqText, varName: pc.varName, complex: true };
         if (solveDef) definedNames.add(solveDef.varName);
@@ -4185,10 +4330,49 @@ function recomputeImpl(onlyFolder) {
     const ansIdx = (idx) => {
       for (let j = idx - 1; j >= 0; j--) {
         const inf = infos[j];
-        if (!inf.isSystem && inf.expr !== '') return j;
+        if (!inf.isSystem && !inf.funcDef && inf.expr !== '') return j;   // a function definition has no value; skip past it
       }
       return -1;
     };
+
+    // user-defined functions enter the scope before anything else: each is a
+    // closure over the live folder scope (so later definitions are visible at
+    // call time), with symbolic derivatives via math.derivative where the
+    // body allows, numeric central differences otherwise
+    for (const info of infos) {
+      if (!info.funcDef) continue;
+      const fdv = info.funcDef;
+      try {
+        if (!fdv.bodyExpr.trim()) throw new Error('empty body');
+        const compiled = math.compile(balanceParens(fdv.bodyExpr));
+        const params = fdv.params;
+        const mk = (evalBody) => (...args) => {
+          const s2 = { ...scope };
+          params.forEach((p, i) => { s2[p] = args[i]; });
+          return evalBody(s2);
+        };
+        scope[fdv.name + '_fn'] = mk(s2 => compiled.evaluate(s2));
+        let dNode = null, dC = null;
+        try { dNode = math.derivative(balanceParens(fdv.bodyExpr), params[0]); dC = dNode.compile(); } catch (e) {}
+        fdv.dNode = dNode;
+        scope[fdv.name + '_dx'] = dC ? mk(s2 => dC.evaluate(s2))
+          : ((...args) => {
+              const fb = scope[fdv.name + '_fn'];
+              const h = Math.max(1e-7, Math.abs(args[0]) * 1e-7);
+              return (fb(args[0] + h, ...args.slice(1)) - fb(args[0] - h, ...args.slice(1))) / (2 * h);
+            });
+        let ddNode = null, ddC = null;
+        try { ddNode = math.derivative(dNode || balanceParens(fdv.bodyExpr), params[0]); ddC = ddNode.compile(); } catch (e) {}
+        fdv.ddNode = ddNode;
+        scope[fdv.name + '_ddx'] = ddC ? mk(s2 => ddC.evaluate(s2))
+          : ((...args) => {
+              const fd2 = scope[fdv.name + '_dx'];
+              const h = Math.max(1e-6, Math.abs(args[0]) * 1e-6);
+              return (fd2(args[0] + h, ...args.slice(1)) - fd2(args[0] - h, ...args.slice(1))) / (2 * h);
+            });
+        info.funcOk = true;
+      } catch (e) { info.funcErr = e; }
+    }
     const lineValue = (idx, depth) => {
       if (idx < 0 || (depth || 0) > infos.length) return undefined;
       const inf = infos[idx];
@@ -4242,6 +4426,22 @@ function recomputeImpl(onlyFolder) {
               if (!roots.length) throw new Error('no roots');
               val = roots.length === 1 ? roots[0] : roots;
               info._solveRes = { roots, meta: (res && res.meta) || {} };
+            } else if (sd.domain) {
+              // a solving domain restricts the roots to [lo, hi]
+              const lo0 = Number(evalExpr(sd.domain[0], pScope)), hi0 = Number(evalExpr(sd.domain[1], pScope));
+              const lo = Math.min(lo0, hi0), hi = Math.max(lo0, hi0);
+              if (!isFinite(lo) || !isFinite(hi)) throw new Error('bad domain');
+              const res = solveAllInDomain(sd.eqText, sd.varName, pScope, lo, hi);
+              const roots = res.roots;
+              if (!roots.length) throw new Error('no roots');
+              if (solveAllMode) {
+                val = roots.length === 1 ? roots[0] : roots;
+                info._solveRes = { roots, meta: res };
+              } else {
+                const pos = roots.filter(r => r >= 0);
+                const pool = pos.length ? pos : roots;
+                val = pool.slice().sort((a, b) => Math.abs(a) - Math.abs(b))[0];
+              }
             } else if (solveAllMode) {
               const res = solveEquationAll(sd.eqText, sd.varName, pScope);
               const roots = (res && res.roots) || [];
@@ -4263,7 +4463,9 @@ function recomputeImpl(onlyFolder) {
     }
 
     // expose this section's definitions (and their values) to the ? quick-entry
-    folder.definedNamesList = [...definedNames].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()) || a.localeCompare(b));
+    // (the mangled user-function names stay internal)
+    folder.definedNamesList = [...definedNames].filter(n => !USERFN_NAME_RE.test(n))
+      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()) || a.localeCompare(b));
     folder.definedValues = {};
     folder.definedNamesList.forEach(n => { folder.definedValues[n] = scope[n]; });
 
@@ -4290,6 +4492,34 @@ function recomputeImpl(onlyFolder) {
       line.lineEl.classList.remove('def-line');
 
       if (info.expr === '') { line.freeNames = null; updateChip(line); continue; }
+
+      // function definition row: quiet grey echo showing the derivative (the
+      // discoverable hint that f'(x) exists), def-line styling, chips for any
+      // body names that are neither parameters nor defined
+      if (info.funcDef) {
+        const fdv = info.funcDef;
+        line.lineEl.classList.add('def-line');
+        let undef = [];
+        try {
+          undef = referencedVars(fdv.bodyExpr).filter(v => !fdv.params.includes(v) && !definedNames.has(v));
+        } catch (e) {}
+        line.undefVars = undef;
+        if (info.funcErr) {
+          const badge = document.createElement('span');
+          badge.className = 'err-badge'; badge.textContent = '⚠︎';
+          badge.title = 'function body cannot be read';
+          resEl.appendChild(badge);
+        } else if (fdv.dNode && !undef.length) {
+          resEl.classList.add('assign-echo');
+          try {
+            const s = document.createElement('span');
+            katex.render(varToLatex(fdv.name) + "'\\!\\left(" + fdv.params[0] + '\\right)=' + fdv.dNode.toTex(), s, { throwOnError: false });
+            resEl.appendChild(s);
+          } catch (e) {}
+        }
+        updateChip(line); updateLineLayout(line);
+        continue;
+      }
 
       // unexpanded "..." means expandEllipsisLists couldn't read a clear integer
       // pattern (uneven step, unreachable endpoint, non-integer terms, etc.)
@@ -4332,6 +4562,30 @@ function recomputeImpl(onlyFolder) {
         const fullLatex = line.mq.latex();
         const eScope = injectAns(effScopeFor(line, scope, definedNames), info.idx, info.expr);
         let value;
+        // a bare call at an UNDEFINED symbol shows the expression itself:
+        // f(x) echoes the body, f'(x) and f''(x) the symbolic derivatives
+        const sym = info.expr.match(/^\s*([A-Za-z])_(fn|dx|ddx)\(([A-Za-z])\)\s*$/);
+        if (sym && CURR_FUNCS.has(sym[1]) && !definedNames.has(sym[3]) && !(sym[3] in eScope)) {
+          const fdi = infos.find(x => x.funcDef && x.funcDef.name === sym[1]);
+          if (fdi && fdi.funcOk) {
+            let tex = null;
+            if (sym[2] === 'fn') tex = fdi.funcDef.bodyLatex;
+            else if (sym[2] === 'dx' && fdi.funcDef.dNode) tex = fdi.funcDef.dNode.toTex();
+            else if (sym[2] === 'ddx' && fdi.funcDef.ddNode) tex = fdi.funcDef.ddNode.toTex();
+            // the display follows the call's own symbol: g'(t) reads 2·t
+            if (tex && sym[3] !== fdi.funcDef.params[0]) {
+              const p = fdi.funcDef.params[0];
+              tex = tex.replace(new RegExp('(?<![A-Za-z\\\\])' + p + '(?![A-Za-z])', 'g'), sym[3]);
+            }
+            if (tex) {
+              const s = document.createElement('span');
+              try { katex.render('=\\ ' + tex, s, { throwOnError: false }); resEl.appendChild(s); } catch (e) {}
+              line.undefVars = [];   // the symbol is deliberate here, not a missing value
+              updateChip(line); updateLineLayout(line);
+              continue;
+            }
+          }
+        }
         // cSolve(eq,var): list every complex root (always all-roots, regardless
         // of the solve-all toggle). Must be the whole RHS, like the solve path.
         const cSolveSrc = info.isAssign ? info.rhs : info.expr;
@@ -4349,7 +4603,13 @@ function recomputeImpl(onlyFolder) {
         const solveSrc = info.isAssign ? info.rhs : info.expr;
         const pure = solveAllMode ? pureSolveCall(solveSrc) : null;
         if (pure) {
-          const res = solveEquationAll(pure.eqText, pure.varName, eScope);
+          let res;
+          if (pure.domain) {
+            const lo0 = Number(evalExpr(pure.domain[0], eScope)), hi0 = Number(evalExpr(pure.domain[1], eScope));
+            res = solveAllInDomain(pure.eqText, pure.varName, eScope, Math.min(lo0, hi0), Math.max(lo0, hi0));
+          } else {
+            res = solveEquationAll(pure.eqText, pure.varName, eScope);
+          }
           const roots = res.roots;
           line.lastValue = (roots.length === 1) ? roots[0] : undefined;
           renderRootList(resEl, pure.varName, roots, info.isAssign ? info.name : null, res);
@@ -8876,6 +9136,19 @@ function openShortcuts() {
   tip('Change subject', ['Click into the variable after the ', { x: '\\Rightarrow' },
     ' and a dropdown of the equation’s variables opens: ', { k: '↑' }, ' ', { k: '↓' }, ' then ', { k: 'Enter' }, ' or ', { k: 'Tab' }, '.']);
   tip('Multiple roots', ['With Solve set to All in the settings ', { ico: 'gear' }, ' in the header, every real root is listed. On First, one answer shows and positive roots are preferred.']);
+
+  h('Functions (Methods)');
+  tip('Define one', [{ x: 'f\\left(x\\right)=x^2-4' }, ' defines a function: ', { x: 'f\\left(2\\right)' },
+    ' evaluates it, and functions can use each other (', { x: 'h\\left(x\\right)=f\\left(x\\right)+1' }, ').']);
+  tip('Derivatives', ['Type an apostrophe: ', { x: "f'\\left(2\\right)" }, ' is the derivative at 2, ', { x: "f''" },
+    ' the second derivative. At an unused symbol the expression itself shows: ', { x: "f'\\left(t\\right)" }, ' reads ', { x: '2\\cdot t' },
+    '. The definition row echoes ', { x: "f'\\left(x\\right)" }, ' in grey.']);
+  tip('Solve with them', ['Once ', { x: 'f' }, ' exists, ', { x: 'f\\left(x\\right)=12' },
+    ' on its own solves for x, the arrow and solve() forms work as usual, and ', { x: "f'\\left(x\\right)=0" },
+    ' finds stationary points. Function calls also work inside simultaneous equations.']);
+  tip('Solving domains', [{ x: '\\operatorname{solve}\\left(f\\left(x\\right)=0,x,\\left[-5,0\\right]\\right)' },
+    ' keeps roots inside the interval; the arrow form takes it too: ', { x: '\\ldots\\Rightarrow x,\\left[0,360\\right]' },
+    '. With Solve set to All, every solution in the domain is listed.']);
 
   h('Formula picker');
   tip('Open it', [{ k: '@' }, ' anywhere, or ', { k: 'Space' }, ' on an empty row.']);
