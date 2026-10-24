@@ -1180,6 +1180,13 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     font-weight: 500;
   }
   .line .result.assign { color: var(--assign); }
+  /* quiet error flag: small, grey, no layout shove; click/tap for the reason */
+  .line .result .err-badge {
+    color: var(--ink-dim); opacity: 0.55; font-size: 0.85em; cursor: help;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .line .result .err-badge:hover { opacity: 0.9; }
+  .line .result .err-msg { color: var(--ink-dim); font-size: 0.78em; font-weight: 400; margin-right: 0.3em; }
   /* a simple definition's echo (T = 1000) carries no new information; show it
      in a quiet dark grey so computed results keep the visual emphasis */
   .line .result.assign-echo { color: var(--def-echo); }
@@ -4074,6 +4081,20 @@ function applySubjectSwaps(onlyFolder) {
   });
   if (changed) recomputeImpl(onlyFolder);
 }
+/* a human-readable reason for a line that would not evaluate */
+function friendlyEvalError(err) {
+  const m = String((err && err.message) || err || '');
+  let mm;
+  if ((mm = m.match(/Undefined symbol (\S+)/))) {
+    if (mm[1] === 'ans') return 'ans: the line above has no value';
+    return mm[1] + ' is not defined';
+  }
+  if (/Unexpected end of expression|Value expected|Unexpected operator|Parenthesis|Unexpected part|Unexpected character/i.test(m)) return 'incomplete expression';
+  if (/Cannot convert|Unexpected type|dimension mismatch|Dimension/i.test(m)) return 'mismatched values (a list where a number is needed?)';
+  if (/Too many arguments|Too few arguments|Wrong number/i.test(m)) return 'wrong number of arguments';
+  return 'cannot evaluate';
+}
+
 function recompute(onlyFolder) {
   try { recomputeImpl(onlyFolder); }
   catch (e) { /* never let a single bad line break the whole calculator */ }
@@ -4403,7 +4424,21 @@ function recomputeImpl(onlyFolder) {
           renderResult(resEl, { plainPrefix: '= ', srcLatex: fullLatex, srcExpr: info.expr, scope: eScope }, value);
         }
       } catch (err) {
-        resEl.textContent = ''; // errors not shown
+        resEl.textContent = '';
+        // quiet error flag: a small grey badge instead of dead silence. The
+        // chips already explain missing variables, so no badge then; hover
+        // (or tap) the badge for the reason.
+        if (!line.undefVars.length) {
+          const msg = friendlyEvalError(err);
+          const badge = document.createElement('span');
+          badge.className = 'err-badge';
+          badge.textContent = '⚠︎';
+          badge.title = msg;
+          const msgEl = document.createElement('span');
+          msgEl.className = 'err-msg'; msgEl.textContent = msg; msgEl.hidden = true;
+          badge.addEventListener('click', (ev) => { ev.stopPropagation(); msgEl.hidden = !msgEl.hidden; });
+          resEl.appendChild(msgEl); resEl.appendChild(badge);
+        }
       }
       updateChip(line);
       updateSlider(line, info);
