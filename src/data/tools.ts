@@ -13,6 +13,12 @@ export const TOOLS: Tool[] = [
     href: '/tools/calculator',
   },
   {
+    slug: 'class-timer',
+    title: 'Class Timer',
+    description: 'Countdown to the end of the current period with adjustable bell times, plus multiple named stopwatches and countdowns. Installs to a phone home screen.',
+    href: '/tools/class-timer',
+  },
+  {
     slug: 'palette-picker',
     title: 'Palette Picker',
     description: 'Quick colour picker for teaching materials. Browse the StemVault palette or sample any hex.',
