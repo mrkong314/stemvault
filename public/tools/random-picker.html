@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Random Picker</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMyYjdhNjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNzRhM2MiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4KPHJlY3QgeD0iNDAiIHk9IjQwIiB3aWR0aD0iNDMyIiBoZWlnaHQ9IjQzMiIgcng9IjEwNCIgZmlsbD0idXJsKCNiZykiLz4KPHJlY3QgeD0iMTM2IiB5PSIxMzYiIHdpZHRoPSIyNDAiIGhlaWdodD0iMjQwIiByeD0iNTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIzMiIvPgo8ZyBmaWxsPSIjZmZmZmZmIj48Y2lyY2xlIGN4PSIxOTYiIGN5PSIxOTYiIHI9IjI2Ii8+PGNpcmNsZSBjeD0iMzE2IiBjeT0iMTk2IiByPSIyNiIvPjxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMjYiLz48Y2lyY2xlIGN4PSIxOTYiIGN5PSIzMTYiIHI9IjI2Ii8+PGNpcmNsZSBjeD0iMzE2IiBjeT0iMzE2IiByPSIyNiIvPjwvZz4KPC9zdmc+Cg==">
+<link rel="apple-touch-icon" sizes="180x180" href="/tools/random-picker-icon-180.png">
+<link rel="manifest" href="/tools/random-picker.webmanifest">
+<meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Random Picker">
+<meta name="description" content="Pick one name, several, or make groups from any list, with no-repeat pools and saved lists.">
+<style>
+  /* Standalone reset: the artifact host supplied these, the standalone page supplies them itself. */
+  html { padding-top: env(safe-area-inset-top, 0px); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<style>
+  /* Layout: glass header with list chooser, a result stage, mode strip and the editable list.
+     Phone-first, OLED-black default. Styling follows the StemVault calculator and Class Timer. */
+  :root {
+    --bg: #eef1f6; --panel: #ffffff; --surface: #f5f5f7; --ink: #1d1d1f; --ink-dim: #86868b;
+    --accent: #0a84ff; --good: #34c759; --warn: #ff9f0a; --danger: #ff3b30;
+    --rule: #e5e5ea; --rule-strong: #d1d1d6; --track: #e5e5ea;
+    --glass: rgba(255,255,255,0.55); --glass-strong: rgba(255,255,255,0.72); --glass-border: rgba(255,255,255,0.7);
+    --glass-edge: rgba(255,255,255,0.9); --glass-shadow: 0 8px 30px rgba(31,45,80,0.12), 0 2px 8px rgba(31,45,80,0.08);
+    --glass-key: rgba(255,255,255,0.6); --blur: saturate(180%) blur(20px);
+    --ambient-1: #cfe0ff; --ambient-2: #e7d9ff; --ambient-3: #d6f0e6;
+    --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+    --font-digits: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000000; --panel: #000000; --surface: #0c0c0d; --ink: #ededf0; --ink-dim: #8e8e93;
+      --accent: #0a84ff; --good: #30d158; --warn: #ffd60a; --danger: #ff453a;
+      --rule: #1f1f22; --rule-strong: #2c2c2e; --track: #1f1f22;
+      --glass: #000000; --glass-strong: #000000; --glass-border: rgba(255,255,255,0.14); --glass-edge: rgba(255,255,255,0.05);
+      --glass-shadow: none; --glass-key: #0c0c0d; --blur: none; --ambient-1: #000; --ambient-2: #000; --ambient-3: #000;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000; --panel: #000000; --surface: #0c0c0d; --ink: #ededf0; --ink-dim: #8e8e93;
+    --accent: #0a84ff; --good: #30d158; --warn: #ffd60a; --danger: #ff453a;
+    --rule: #1f1f22; --rule-strong: #2c2c2e; --track: #1f1f22;
+    --glass: #000000; --glass-strong: #000000; --glass-border: rgba(255,255,255,0.14); --glass-edge: rgba(255,255,255,0.05);
+    --glass-shadow: none; --glass-key: #0c0c0d; --blur: none; --ambient-1: #000; --ambient-2: #000; --ambient-3: #000;
+    color-scheme: dark;
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root { --glass: rgba(255,255,255,0.96); --glass-strong: rgba(255,255,255,0.98); --glass-key: rgba(255,255,255,0.97); }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; height: 100%; }
+  body {
+    margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font);
+    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; touch-action: manipulation;
+    padding-block: 0 calc(28px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(40rem 40rem at 12% 8%, var(--ambient-1), transparent 60%), radial-gradient(36rem 36rem at 88% 14%, var(--ambient-2), transparent 60%), radial-gradient(44rem 44rem at 70% 96%, var(--ambient-3), transparent 62%), var(--bg); }
+  body::after { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 40; background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; -webkit-user-select: none; user-select: none; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (pointer: coarse) { input, select, textarea { font-size: 16px; } }
+
+  .app { max-width: 620px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  .glass { background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge); }
+  .panel { border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .gbtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--ink);
+    border-radius: 11px; min-height: 44px; padding: 0 16px; font-weight: 600; font-size: 0.95rem; backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: inset 0 1px 0 var(--glass-edge); }
+  .gbtn:active { transform: translateY(1px); }
+  .gbtn:disabled { opacity: 0.4; cursor: default; }
+  .gbtn.icon { width: 40px; min-height: 40px; padding: 0; border-radius: 10px; color: var(--ink-dim); }
+  .gbtn.icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .gbtn.icon[aria-expanded="true"] { color: var(--accent); }
+  .gbtn.ghost { color: var(--accent); }
+  .gbtn.danger { color: var(--danger); }
+  .gbtn.pill { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 2px 8px rgba(10,132,255,0.35), inset 0 1px 0 rgba(255,255,255,0.4); min-height: 58px; font-size: 1.15rem; }
+  :root[data-theme="dark"] .gbtn.pill { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gbtn.pill { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; } }
+  .seg { display: inline-flex; background: var(--glass-key); border-radius: 10px; padding: 2px; gap: 2px; border: 1px solid var(--glass-border); }
+  .seg button { border: none; background: transparent; color: var(--ink); font-size: 0.85rem; font-weight: 500; padding: 0.45rem 0.5rem; border-radius: 8px; min-width: 2.4rem; flex: 1 1 0; min-height: 36px; }
+  .seg button.on { background: var(--glass-strong); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.14), inset 0 1px 0 var(--glass-edge); }
+  :root[data-theme="dark"] .seg button.on { background: var(--rule-strong); box-shadow: none; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg button.on { background: var(--rule-strong); box-shadow: none; } }
+  .seg.full { display: flex; }
+  .label { font-size: 0.72rem; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+  .switch { position: relative; width: 50px; height: 30px; border-radius: 15px; background: var(--track); border: 0; padding: 0; flex-shrink: 0; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.25); transition: left 0.15s; }
+  :root[data-theme="dark"] .switch::after { background: #e5e5ea; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .switch::after { background: #e5e5ea; } }
+  .switch[aria-checked="true"] { background: var(--good); }
+  .switch[aria-checked="true"]::after { left: 22px; }
+
+  header.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+    margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 12px calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+    padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+    background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border-bottom: 1px solid var(--glass-border); box-shadow: inset 0 1px 0 var(--glass-edge); }
+  header.topbar .inner { max-width: 620px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+  header.topbar .title { font-size: 1.18rem; font-weight: 600; letter-spacing: -0.02em; }
+  header.topbar .sub { font-size: 0.8rem; color: var(--ink-dim); margin-top: 1px; }
+  header.topbar .spacer { flex: 1; }
+  .settings-wrap { position: relative; }
+  .popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; width: min(300px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 0.75rem; padding: 0.9rem; border-radius: 14px;
+    background: var(--panel); border: 1px solid var(--glass-border); box-shadow: 0 12px 34px rgba(0,0,0,0.22), inset 0 1px 0 var(--glass-edge); }
+  :root[data-theme="dark"] .popover { box-shadow: none; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .popover { box-shadow: none; } }
+  .popover .row { display: flex; flex-direction: column; gap: 0.35rem; }
+  .popover .row.inline { flex-direction: row; align-items: center; justify-content: space-between; }
+
+  /* List chooser */
+  .listbar { display: flex; gap: 8px; align-items: center; }
+  .listbar select { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--rule-strong); background: var(--surface); font-weight: 600; }
+
+  /* Stage */
+  .stage { min-height: 200px; justify-content: center; align-items: center; text-align: center; gap: 8px; }
+  .stage .result { font-family: var(--font-digits); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; font-size: clamp(2.2rem, 11vw, 4rem); text-wrap: balance; overflow-wrap: anywhere; min-height: 1.1em; }
+  .stage .result.spin { color: var(--ink-dim); }
+  .stage .result.empty { color: var(--ink-dim); font-size: 1.1rem; font-weight: 500; font-family: var(--font); }
+  .stage .meta { font-size: 0.85rem; color: var(--ink-dim); }
+  .multi { display: flex; flex-direction: column; gap: 6px; width: 100%; text-align: left; }
+  .multi li { display: flex; gap: 10px; align-items: baseline; font-size: 1.15rem; font-weight: 600; padding: 6px 0; border-top: 1px solid var(--rule); }
+  .multi li:first-child { border-top: 0; }
+  .multi li .n { font-family: var(--font-digits); color: var(--ink-dim); font-weight: 500; min-width: 1.6em; font-size: 0.9rem; }
+  .groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; width: 100%; text-align: left; }
+  .group { border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; }
+  .group h4 { margin: 0 0 6px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); }
+  .group div { font-weight: 600; padding: 3px 0; font-size: 1rem; }
+  ul { list-style: none; margin: 0; padding: 0; }
+
+  .stepper { display: flex; align-items: center; gap: 6px; }
+  .stepper button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass-key); font-size: 1.3rem; line-height: 1; }
+  .stepper .v { font-family: var(--font-digits); font-weight: 600; font-size: 1.2rem; min-width: 2ch; text-align: center; }
+  .options { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+  .opt { display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+  .actions { display: flex; gap: 10px; }
+  .actions .gbtn { flex: 1; }
+  .history { display: flex; flex-wrap: wrap; gap: 6px; }
+  .history span { border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px; font-size: 0.8rem; color: var(--ink-dim); }
+
+  /* List editor */
+  .editor { gap: 10px; }
+  .editor .head { display: flex; align-items: center; gap: 8px; }
+  .editor .head input { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--rule-strong); background: var(--surface); font-weight: 600; }
+  textarea { width: 100%; min-height: 160px; resize: vertical; padding: 12px; border-radius: 12px; border: 1px solid var(--rule-strong); background: var(--surface); line-height: 1.5; font-family: var(--font); }
+  .count { font-size: 0.8rem; color: var(--ink-dim); }
+  .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 90; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; }
+  .remove.armed { color: #fff; background: var(--danger); border-color: transparent; }
+  @media (prefers-reduced-motion: reduce) { .switch::after { transition: none; } }
+</style>
+
+<header class="topbar">
+  <div class="inner">
+    <div><div class="title">Random Picker</div><div class="sub" id="subLabel">Pick one</div></div>
+    <div class="spacer"></div>
+    <div class="settings-wrap">
+      <button class="gbtn icon" id="settingsBtn" type="button" aria-label="Settings" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+      <div class="popover" id="settings" hidden>
+        <div class="row"><span class="label">Appearance</span>
+          <div class="seg full" id="themeSeg"><button type="button" data-v="auto">Auto</button><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div>
+        </div>
+        <div class="row inline"><span id="animLabel">Shuffle animation</span><button class="switch" id="animToggle" type="button" role="switch" aria-checked="true" aria-labelledby="animLabel"></button></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <div class="listbar">
+    <select id="listSelect" aria-label="Current list"></select>
+    <button type="button" class="gbtn ghost" id="newList">+ New</button>
+  </div>
+
+  <div class="seg full" id="modeSeg" role="tablist">
+    <button type="button" data-v="one" role="tab">One</button>
+    <button type="button" data-v="several" role="tab">Several</button>
+    <button type="button" data-v="groups" role="tab">Groups</button>
+    <button type="button" data-v="shuffle" role="tab">Shuffle</button>
+  </div>
+
+  <section class="glass panel stage" aria-live="polite">
+    <div class="result empty" id="result">Add some names below, then tap Pick.</div>
+    <div class="meta" id="meta"></div>
+  </section>
+
+  <section class="glass panel">
+    <div class="options">
+      <div class="opt" id="countOpt" hidden><span class="label" id="countLabel">Pick</span>
+        <div class="stepper"><button type="button" id="countDown" aria-label="Fewer">−</button><span class="v" id="countVal">2</span><button type="button" id="countUp" aria-label="More">+</button></div>
+      </div>
+      <div class="opt" id="groupByOpt" hidden>
+        <div class="seg" id="groupBySeg"><button type="button" data-v="count">Groups</button><button type="button" data-v="size">Per group</button></div>
+      </div>
+      <div class="opt" id="repeatOpt"><span id="repeatLabel">No repeats</span><button class="switch" id="repeatToggle" type="button" role="switch" aria-checked="true" aria-labelledby="repeatLabel"></button></div>
+    </div>
+    <div class="actions">
+      <button type="button" class="gbtn pill" id="pickBtn">Pick</button>
+      <button type="button" class="gbtn" id="copyBtn" style="flex:0 0 auto">Copy</button>
+    </div>
+    <div class="actions" id="poolRow" hidden>
+      <span class="count" id="poolCount" style="align-self:center; flex:1"></span>
+      <button type="button" class="gbtn ghost" id="resetPool" style="flex:0 0 auto; min-height:38px">Reset pool</button>
+    </div>
+    <div class="history" id="history"></div>
+  </section>
+
+  <section class="glass panel editor">
+    <div class="head">
+      <input type="text" id="listName" placeholder="List name" maxlength="40" autocomplete="off" aria-label="List name">
+      <button type="button" class="gbtn remove" id="deleteList" style="min-height:38px; font-size:0.85rem">Delete</button>
+    </div>
+    <textarea id="listText" placeholder="One name per line" spellcheck="false"></textarea>
+    <div class="options"><span class="count" id="listCount">0 names</span><button type="button" class="gbtn ghost" id="sortList" style="min-height:36px; font-size:0.85rem">Sort A–Z</button></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const STORE = 'random-picker-v1';
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  let state = { theme: 'dark', anim: true, mode: 'one', count: 2, groupBy: 'count', noRepeat: true, current: null, lists: [], pools: {}, history: {} };
+  try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
+  if (!state.lists.length) {
+    state.lists = [{ id: uid(), name: 'Example list', text: 'Alex\nBlake\nCasey\nDrew\nEmerson\nFinley\nHarper\nJordan\nKai\nMorgan\nParker\nQuinn\nRiley\nSage\nTaylor' }];
+  }
+  if (!state.lists.find(l => l.id === state.current)) state.current = state.lists[0].id;
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+  const cur = () => state.lists.find(l => l.id === state.current);
+  const names = () => cur().text.split('\n').map(s => s.trim()).filter(Boolean);
+
+  // ---- Settings ----
+  const settings = $('settings'), settingsBtn = $('settingsBtn');
+  function openSettings(on) { settings.hidden = !on; settingsBtn.setAttribute('aria-expanded', String(on)); }
+  settingsBtn.addEventListener('click', () => openSettings(settings.hidden));
+  document.addEventListener('pointerdown', e => { if (!settings.hidden && !e.target.closest('.settings-wrap')) openSettings(false); }, { passive: true });
+  function segSync(seg, v) { seg.querySelectorAll('button').forEach(b => { const on = b.dataset.v === String(v); b.classList.toggle('on', on); b.setAttribute('aria-selected', on); }); }
+  function segOn(seg, fn) { seg.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) fn(b.dataset.v); }); }
+  function applyTheme() {
+    if (state.theme === 'dark' || state.theme === 'light') document.documentElement.setAttribute('data-theme', state.theme); else document.documentElement.removeAttribute('data-theme');
+    segSync($('themeSeg'), state.theme);
+  }
+  segOn($('themeSeg'), v => { state.theme = v; save(); applyTheme(); });
+  $('animToggle').addEventListener('click', () => { state.anim = !state.anim; save(); $('animToggle').setAttribute('aria-checked', String(state.anim)); });
+
+  // ---- Lists ----
+  const listSelect = $('listSelect'), listName = $('listName'), listText = $('listText');
+  function renderListSelect() {
+    listSelect.innerHTML = '';
+    state.lists.forEach(l => { const o = document.createElement('option'); o.value = l.id; o.textContent = l.name || 'Untitled'; listSelect.appendChild(o); });
+    listSelect.value = state.current;
+    listName.value = cur().name; listText.value = cur().text;
+    renderCount();
+  }
+  function renderCount() { const n = names().length; $('listCount').textContent = n + (n === 1 ? ' name' : ' names'); }
+  listSelect.addEventListener('change', () => { state.current = listSelect.value; save(); renderListSelect(); clearResult(); renderMode(); });
+  listName.addEventListener('input', () => { cur().name = listName.value; save(); listSelect.options[listSelect.selectedIndex].textContent = listName.value || 'Untitled'; });
+  listText.addEventListener('input', () => { cur().text = listText.value; delete state.pools[state.current]; save(); renderCount(); renderPool(); });
+  $('newList').addEventListener('click', () => { const l = { id: uid(), name: 'New list', text: '' }; state.lists.push(l); state.current = l.id; save(); renderListSelect(); clearResult(); renderMode(); listText.focus(); });
+  $('sortList').addEventListener('click', () => { cur().text = names().sort((a, b) => a.localeCompare(b)).join('\n'); listText.value = cur().text; save(); });
+  let armT = null;
+  $('deleteList').addEventListener('click', () => {
+    const b = $('deleteList');
+    if (b.classList.contains('armed')) {
+      clearTimeout(armT); delete state.pools[state.current]; delete state.history[state.current];
+      state.lists = state.lists.filter(l => l.id !== state.current);
+      if (!state.lists.length) state.lists.push({ id: uid(), name: 'New list', text: '' });
+      state.current = state.lists[0].id; save(); renderListSelect(); clearResult(); renderMode();
+      b.classList.remove('armed'); b.textContent = 'Delete';
+    } else { b.classList.add('armed'); b.textContent = 'Tap again'; armT = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Delete'; }, 3000); }
+  });
+
+  // ---- Modes ----
+  const MODE_LABEL = { one: 'Pick one', several: 'Pick several', groups: 'Make groups', shuffle: 'Shuffle order' };
+  segOn($('modeSeg'), v => { state.mode = v; save(); clearResult(); renderMode(); });
+  segOn($('groupBySeg'), v => { state.groupBy = v; save(); renderMode(); });
+  $('countDown').addEventListener('click', () => { state.count = Math.max(2, state.count - 1); save(); renderMode(); });
+  $('countUp').addEventListener('click', () => { state.count = Math.min(50, state.count + 1); save(); renderMode(); });
+  $('repeatToggle').addEventListener('click', () => { state.noRepeat = !state.noRepeat; save(); renderMode(); });
+  function renderMode() {
+    segSync($('modeSeg'), state.mode); segSync($('groupBySeg'), state.groupBy);
+    $('subLabel').textContent = MODE_LABEL[state.mode];
+    $('countOpt').hidden = !(state.mode === 'several' || state.mode === 'groups');
+    $('countLabel').textContent = state.mode === 'groups' ? (state.groupBy === 'count' ? 'Groups' : 'Per group') : 'Pick';
+    $('countVal').textContent = state.count;
+    $('groupByOpt').hidden = state.mode !== 'groups';
+    $('repeatOpt').hidden = !(state.mode === 'one' || state.mode === 'several');
+    $('repeatToggle').setAttribute('aria-checked', String(state.noRepeat));
+    $('pickBtn').textContent = state.mode === 'groups' ? 'Make groups' : state.mode === 'shuffle' ? 'Shuffle' : 'Pick';
+    renderPool();
+  }
+  function pool() {
+    if (!state.noRepeat) return names().slice();
+    const all = names();
+    let p = state.pools[state.current];
+    if (!Array.isArray(p)) { p = all.slice(); state.pools[state.current] = p; }
+    return p.filter(n => all.includes(n));
+  }
+  function renderPool() {
+    const show = state.noRepeat && (state.mode === 'one' || state.mode === 'several');
+    $('poolRow').hidden = !show;
+    if (show) { const p = pool(), n = names().length; $('poolCount').textContent = p.length + ' of ' + n + ' remaining'; }
+    renderHistory();
+  }
+  $('resetPool').addEventListener('click', () => { delete state.pools[state.current]; state.history[state.current] = []; save(); renderPool(); clearResult(); });
+  function renderHistory() {
+    const h = (state.history[state.current] || []).slice(-8).reverse();
+    $('history').innerHTML = '';
+    if (state.mode !== 'one') return;
+    h.forEach(n => { const s = document.createElement('span'); s.textContent = n; $('history').appendChild(s); });
+  }
+
+  // ---- Picking ----
+  const result = $('result'), meta = $('meta');
+  let lastText = '';
+  function clearResult() { result.className = 'result empty'; result.textContent = 'Tap ' + ($('pickBtn').textContent || 'Pick') + ' to start.'; meta.textContent = ''; lastText = ''; }
+  function shuffled(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function spinThen(candidates, done) {
+    if (!state.anim || candidates.length < 2) return done();
+    result.className = 'result spin';
+    let i = 0, delay = 40; const start = performance.now();
+    (function step() {
+      result.textContent = candidates[i++ % candidates.length];
+      const t = performance.now() - start;
+      if (t < 650) { delay = 40 + (t / 650) * 110; setTimeout(step, delay); } else done();
+    })();
+  }
+  function showOne(n) { result.className = 'result'; result.textContent = n; }
+  function showList(items, numbered) {
+    result.className = 'result'; result.innerHTML = '';
+    const ul = document.createElement('ul'); ul.className = 'multi';
+    items.forEach((n, i) => { const li = document.createElement('li'); if (numbered) { const s = document.createElement('span'); s.className = 'n'; s.textContent = (i + 1) + '.'; li.appendChild(s); } li.appendChild(document.createTextNode(n)); ul.appendChild(li); });
+    result.appendChild(ul);
+  }
+  function showGroups(groups) {
+    result.className = 'result'; result.innerHTML = '';
+    const wrap = document.createElement('div'); wrap.className = 'groups';
+    groups.forEach((g, i) => { const d = document.createElement('div'); d.className = 'group'; const h = document.createElement('h4'); h.textContent = 'Group ' + (i + 1); d.appendChild(h); g.forEach(n => { const r = document.createElement('div'); r.textContent = n; d.appendChild(r); }); wrap.appendChild(d); });
+    result.appendChild(wrap);
+  }
+  $('pickBtn').addEventListener('click', () => {
+    const all = names();
+    if (!all.length) { result.className = 'result empty'; result.textContent = 'The list is empty. Add names below.'; return; }
+    if (state.mode === 'one') {
+      let p = pool();
+      if (!p.length) { delete state.pools[state.current]; p = pool(); meta.textContent = 'Everyone has had a turn. Pool reset.'; }
+      const n = p[Math.floor(Math.random() * p.length)];
+      spinThen(p, () => {
+        showOne(n); lastText = n;
+        if (state.noRepeat) state.pools[state.current] = p.filter(x => x !== n);
+        (state.history[state.current] = state.history[state.current] || []).push(n);
+        save(); renderPool();
+        meta.textContent = state.noRepeat ? '' : all.length + ' in the list';
+      });
+    } else if (state.mode === 'several') {
+      let p = pool();
+      if (p.length < state.count) { delete state.pools[state.current]; p = pool(); meta.textContent = 'Not enough left, pool reset.'; } else meta.textContent = '';
+      const picks = shuffled(p).slice(0, Math.min(state.count, p.length));
+      showList(picks, true); lastText = picks.join('\n');
+      if (state.noRepeat) state.pools[state.current] = p.filter(x => !picks.includes(x));
+      save(); renderPool();
+    } else if (state.mode === 'groups') {
+      const order = shuffled(all);
+      const g = state.groupBy === 'count' ? Math.min(state.count, order.length) : Math.max(1, Math.ceil(order.length / state.count));
+      const groups = Array.from({ length: g }, () => []);
+      order.forEach((n, i) => groups[i % g].push(n));
+      showGroups(groups);
+      meta.textContent = g + (g === 1 ? ' group' : ' groups') + ', sizes ' + groups.map(x => x.length).join(' / ');
+      lastText = groups.map((x, i) => 'Group ' + (i + 1) + ': ' + x.join(', ')).join('\n');
+    } else {
+      const order = shuffled(all); showList(order, true); meta.textContent = order.length + ' in random order'; lastText = order.map((n, i) => (i + 1) + '. ' + n).join('\n');
+    }
+  });
+
+  // ---- Clipboard ----
+  function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 1400); }
+  $('copyBtn').addEventListener('click', () => {
+    if (!lastText) { toast('Nothing to copy yet'); return; }
+    const done = () => toast('Copied');
+    const fallback = () => { const ta = document.createElement('textarea'); ta.value = lastText; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('Select and copy manually'); } ta.remove(); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(lastText).then(done).catch(fallback); else fallback();
+  });
+
+  applyTheme(); $('animToggle').setAttribute('aria-checked', String(state.anim));
+  renderListSelect(); renderMode(); clearResult();
+})();
+</script>
+</body>
+</html>

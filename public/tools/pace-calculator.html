@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Pace Calculator</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMyYjdhNjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNzRhM2MiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4KPHJlY3QgeD0iNDAiIHk9IjQwIiB3aWR0aD0iNDMyIiBoZWlnaHQ9IjQzMiIgcng9IjEwNCIgZmlsbD0idXJsKCNiZykiLz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjM0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogIDxwYXRoIGQ9Ik0xMjAgMzI2IEExNDAgMTQwIDAgMSAxIDM5MiAzMjYiLz4KICA8cGF0aCBkPSJNMjU2IDMyNiBMMzIwIDI1NCIvPgo8L2c+CjxjaXJjbGUgY3g9IjI1NiIgY3k9IjMyNiIgcj0iMjYiIGZpbGw9IiNmZmZmZmYiLz4KPC9zdmc+Cg==">
+<link rel="apple-touch-icon" sizes="180x180" href="/tools/pace-calculator-icon-180.png">
+<link rel="manifest" href="/tools/pace-calculator.webmanifest">
+<meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pace Calculator">
+<meta name="description" content="Running pace, time and distance calculator with km-by-km splits and Riegel race predictions.">
+<style>
+  /* Standalone reset: the artifact host supplied these, the standalone page supplies them itself. */
+  html { padding-top: env(safe-area-inset-top, 0px); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<style>
+  /* Layout: glass header with unit toggle, tab strip, one panel per tab. Phone-first, OLED-black default.
+     Styling follows the StemVault calculator and Class Timer. */
+  :root {
+    --bg: #eef1f6; --panel: #ffffff; --surface: #f5f5f7; --ink: #1d1d1f; --ink-dim: #86868b;
+    --accent: #0a84ff; --good: #34c759; --warn: #ff9f0a; --danger: #ff3b30;
+    --rule: #e5e5ea; --rule-strong: #d1d1d6; --track: #e5e5ea;
+    --glass: rgba(255,255,255,0.55); --glass-strong: rgba(255,255,255,0.72); --glass-border: rgba(255,255,255,0.7);
+    --glass-edge: rgba(255,255,255,0.9); --glass-shadow: 0 8px 30px rgba(31,45,80,0.12), 0 2px 8px rgba(31,45,80,0.08);
+    --glass-key: rgba(255,255,255,0.6); --blur: saturate(180%) blur(20px);
+    --ambient-1: #cfe0ff; --ambient-2: #e7d9ff; --ambient-3: #d6f0e6;
+    --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+    --font-digits: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000000; --panel: #000000; --surface: #0c0c0d; --ink: #ededf0; --ink-dim: #8e8e93;
+      --accent: #0a84ff; --good: #30d158; --warn: #ffd60a; --danger: #ff453a;
+      --rule: #1f1f22; --rule-strong: #2c2c2e; --track: #1f1f22;
+      --glass: #000000; --glass-strong: #000000; --glass-border: rgba(255,255,255,0.14); --glass-edge: rgba(255,255,255,0.05);
+      --glass-shadow: none; --glass-key: #0c0c0d; --blur: none; --ambient-1: #000; --ambient-2: #000; --ambient-3: #000;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000; --panel: #000000; --surface: #0c0c0d; --ink: #ededf0; --ink-dim: #8e8e93;
+    --accent: #0a84ff; --good: #30d158; --warn: #ffd60a; --danger: #ff453a;
+    --rule: #1f1f22; --rule-strong: #2c2c2e; --track: #1f1f22;
+    --glass: #000000; --glass-strong: #000000; --glass-border: rgba(255,255,255,0.14); --glass-edge: rgba(255,255,255,0.05);
+    --glass-shadow: none; --glass-key: #0c0c0d; --blur: none; --ambient-1: #000; --ambient-2: #000; --ambient-3: #000;
+    color-scheme: dark;
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root { --glass: rgba(255,255,255,0.96); --glass-strong: rgba(255,255,255,0.98); --glass-key: rgba(255,255,255,0.97); }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; height: 100%; }
+  body {
+    margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font);
+    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; touch-action: manipulation;
+    padding-block: 0 calc(28px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(40rem 40rem at 12% 8%, var(--ambient-1), transparent 60%), radial-gradient(36rem 36rem at 88% 14%, var(--ambient-2), transparent 60%), radial-gradient(44rem 44rem at 70% 96%, var(--ambient-3), transparent 62%), var(--bg); }
+  body::after { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 40; background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; -webkit-user-select: none; user-select: none; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (pointer: coarse) { input, select { font-size: 16px; } }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .app { max-width: 620px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  .glass { background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge); }
+  .panel { border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .gbtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--ink);
+    border-radius: 11px; min-height: 44px; padding: 0 16px; font-weight: 600; font-size: 0.95rem; backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: inset 0 1px 0 var(--glass-edge); }
+  .gbtn:active { transform: translateY(1px); }
+  .gbtn.icon { width: 40px; min-height: 40px; padding: 0; border-radius: 10px; color: var(--ink-dim); }
+  .gbtn.icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .gbtn.icon[aria-expanded="true"] { color: var(--accent); }
+  .gbtn.ghost { color: var(--accent); }
+  .seg { display: inline-flex; background: var(--glass-key); border-radius: 10px; padding: 2px; gap: 2px; border: 1px solid var(--glass-border); }
+  .seg button { border: none; background: transparent; color: var(--ink); font-size: 0.85rem; font-weight: 500; padding: 0.45rem 0.6rem; border-radius: 8px; min-width: 2.4rem; flex: 1 1 0; min-height: 36px; }
+  .seg button.on { background: var(--glass-strong); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.14), inset 0 1px 0 var(--glass-edge); }
+  :root[data-theme="dark"] .seg button.on { background: var(--rule-strong); box-shadow: none; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg button.on { background: var(--rule-strong); box-shadow: none; } }
+  .label { font-size: 0.72rem; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+  .seg.full { display: flex; }
+
+  header.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+    margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 12px calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+    padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+    background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border-bottom: 1px solid var(--glass-border); box-shadow: inset 0 1px 0 var(--glass-edge); }
+  header.topbar .inner { max-width: 620px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+  header.topbar .title { font-size: 1.18rem; font-weight: 600; letter-spacing: -0.02em; }
+  header.topbar .sub { font-size: 0.8rem; color: var(--ink-dim); margin-top: 1px; }
+  header.topbar .spacer { flex: 1; }
+  .settings-wrap { position: relative; }
+  .popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; width: min(300px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 0.75rem; padding: 0.9rem; border-radius: 14px;
+    background: var(--panel); border: 1px solid var(--glass-border); box-shadow: 0 12px 34px rgba(0,0,0,0.22), inset 0 1px 0 var(--glass-edge); }
+  :root[data-theme="dark"] .popover { box-shadow: none; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .popover { box-shadow: none; } }
+  .popover .row { display: flex; flex-direction: column; gap: 0.35rem; }
+
+  /* Forms */
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field .row { display: flex; align-items: center; gap: 8px; }
+  .field input[type="text"], .field input[type="number"] { flex: 1; min-width: 0; width: 100%; padding: 12px 12px; border-radius: 12px; border: 1px solid var(--rule-strong); background: var(--surface); font-family: var(--font-digits); font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
+  .field input::placeholder { color: var(--ink-dim); font-weight: 500; }
+  .field input[readonly] { color: var(--accent); border-style: dashed; }
+  .field .unit { font-size: 0.9rem; color: var(--ink-dim); min-width: 3.2rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { border: 1px solid var(--glass-border); background: var(--glass-key); border-radius: 999px; padding: 7px 12px; font-size: 0.85rem; font-weight: 500; min-height: 36px; }
+  .chips button.on { color: var(--accent); border-color: var(--accent); }
+  .big { font-family: var(--font-digits); font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; line-height: 1; font-size: clamp(3.2rem, 17vw, 5rem); margin: 2px 0; }
+  .big small { font-size: 0.4em; color: var(--ink-dim); font-weight: 500; letter-spacing: 0; margin-left: 0.15em; }
+  .sub { color: var(--ink-dim); font-size: 0.95rem; }
+  .sub b { color: var(--ink); font-weight: 600; }
+  .result { display: flex; flex-direction: column; gap: 6px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+  .stat { border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .stat .v { font-family: var(--font-digits); font-weight: 600; font-size: 1.3rem; }
+  .stat .k { font-size: 0.75rem; color: var(--ink-dim); }
+  .slider { display: flex; align-items: center; gap: 10px; }
+  .slider input[type="range"] { flex: 1; accent-color: var(--accent); min-height: 36px; }
+  .err { color: var(--danger); font-size: 0.85rem; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 6px; text-align: right; border-top: 1px solid var(--rule); font-size: 0.95rem; }
+  th { font-size: 0.72rem; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; border-top: 0; font-weight: 600; }
+  th:first-child, td:first-child { text-align: left; }
+  td.pace { color: var(--ink-dim); }
+  tr.hl td { color: var(--accent); font-weight: 600; }
+  .tablewrap { overflow-x: auto; }
+  .actions { display: flex; gap: 10px; }
+  .actions .gbtn { flex: 1; }
+  .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 90; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; }
+  .tab[hidden] { display: none; }
+  @media (prefers-reduced-motion: reduce) { .gbtn { transition: none; } }
+</style>
+
+<header class="topbar">
+  <div class="inner">
+    <div><div class="title">Pace Calculator</div><div class="sub" id="unitLabel">per km</div></div>
+    <div class="spacer"></div>
+    <div class="seg" id="unitSeg"><button type="button" data-v="km">km</button><button type="button" data-v="mi">mi</button></div>
+    <div class="settings-wrap">
+      <button class="gbtn icon" id="settingsBtn" type="button" aria-label="Settings" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+      <div class="popover" id="settings" hidden>
+        <div class="row"><span class="label">Appearance</span>
+          <div class="seg full" id="themeSeg"><button type="button" data-v="auto">Auto</button><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <div class="seg full" id="tabs" role="tablist">
+    <button type="button" data-tab="pace" role="tab">Pace</button>
+    <button type="button" data-tab="splits" role="tab">Splits</button>
+    <button type="button" data-tab="predict" role="tab">Predict</button>
+  </div>
+
+  <!-- Pace tab -->
+  <section class="tab" id="tab-pace">
+    <div class="glass panel">
+      <div class="result">
+        <span class="label" id="paceResultLabel">Pace</span>
+        <div class="big num" id="paceBig">–</div>
+        <div class="sub num" id="paceSub"></div>
+      </div>
+      <div class="field">
+        <span class="label">Solve for</span>
+        <div class="seg full" id="solveSeg"><button type="button" data-v="time">Time</button><button type="button" data-v="pace">Pace</button><button type="button" data-v="dist">Distance</button></div>
+      </div>
+      <div class="field">
+        <label class="label" for="pDist">Distance</label>
+        <div class="row"><input type="text" id="pDist" inputmode="decimal" placeholder="10" autocomplete="off"><span class="unit" id="pDistUnit">km</span></div>
+        <div class="chips" id="pChips"></div>
+      </div>
+      <div class="field">
+        <label class="label" for="pTime">Time</label>
+        <div class="row"><input type="text" id="pTime" inputmode="numeric" placeholder="h:mm:ss" autocomplete="off"><span class="unit">h:mm:ss</span></div>
+      </div>
+      <div class="field">
+        <label class="label" for="pPace">Pace</label>
+        <div class="row"><input type="text" id="pPace" inputmode="numeric" placeholder="m:ss" autocomplete="off"><span class="unit" id="pPaceUnit">/km</span></div>
+      </div>
+      <div class="stats" id="paceStats"></div>
+    </div>
+  </section>
+
+  <!-- Splits tab -->
+  <section class="tab" id="tab-splits" hidden>
+    <div class="glass panel">
+      <div class="field">
+        <label class="label" for="sDist">Distance</label>
+        <div class="row"><input type="text" id="sDist" inputmode="decimal" placeholder="21.1" autocomplete="off"><span class="unit" id="sDistUnit">km</span></div>
+        <div class="chips" id="sChips"></div>
+      </div>
+      <div class="field">
+        <span class="label">Target by</span>
+        <div class="seg full" id="sBySeg"><button type="button" data-v="time">Goal time</button><button type="button" data-v="pace">Pace</button></div>
+      </div>
+      <div class="field" id="sTimeField">
+        <label class="label" for="sTime">Goal time</label>
+        <div class="row"><input type="text" id="sTime" inputmode="numeric" placeholder="1:45:00" autocomplete="off"><span class="unit">h:mm:ss</span></div>
+      </div>
+      <div class="field" id="sPaceField" hidden>
+        <label class="label" for="sPace">Pace</label>
+        <div class="row"><input type="text" id="sPace" inputmode="numeric" placeholder="5:00" autocomplete="off"><span class="unit" id="sPaceUnit">/km</span></div>
+      </div>
+      <div class="field">
+        <span class="label">Strategy</span>
+        <div class="seg full" id="sStratSeg"><button type="button" data-v="0">Even</button><button type="button" data-v="0.01">−1%</button><button type="button" data-v="0.02">−2%</button><button type="button" data-v="0.03">−3%</button><button type="button" data-v="-0.02">+2%</button></div>
+        <span class="sub" id="stratHint"></span>
+      </div>
+      <div class="field">
+        <span class="label">Split every</span>
+        <div class="seg full" id="sEverySeg"><button type="button" data-v="0.4">400 m</button><button type="button" data-v="1">1 km</button><button type="button" data-v="1.609344">1 mi</button><button type="button" data-v="5">5 km</button></div>
+      </div>
+    </div>
+    <div class="glass panel" style="margin-top:12px">
+      <div class="result"><span class="label">Finish</span><div class="big num" id="sBig">–</div><div class="sub num" id="sSub"></div></div>
+      <div class="tablewrap"><table id="sTable"><thead><tr><th>Split</th><th>Pace</th><th>Split</th><th>Elapsed</th></tr></thead><tbody></tbody></table></div>
+      <div class="actions"><button type="button" class="gbtn ghost" id="sCopy">Copy splits</button></div>
+    </div>
+  </section>
+
+  <!-- Predict tab -->
+  <section class="tab" id="tab-predict" hidden>
+    <div class="glass panel">
+      <div class="field">
+        <label class="label" for="rDist">Recent race distance</label>
+        <div class="row"><input type="text" id="rDist" inputmode="decimal" placeholder="10" autocomplete="off"><span class="unit" id="rDistUnit">km</span></div>
+        <div class="chips" id="rChips"></div>
+      </div>
+      <div class="field">
+        <label class="label" for="rTime">Finish time</label>
+        <div class="row"><input type="text" id="rTime" inputmode="numeric" placeholder="45:00" autocomplete="off"><span class="unit">h:mm:ss</span></div>
+      </div>
+      <div class="field">
+        <span class="label">Riegel exponent <span class="num" id="rKLabel">1.06</span></span>
+        <div class="slider"><span class="sub">1.03</span><input type="range" id="rK" min="1.03" max="1.10" step="0.005" value="1.06" aria-label="Riegel exponent"><span class="sub">1.10</span></div>
+        <span class="sub">1.06 suits most runners. Lower for strong endurance, higher if you fade over distance.</span>
+      </div>
+    </div>
+    <div class="glass panel" style="margin-top:12px">
+      <span class="label">Predicted times</span>
+      <div class="tablewrap"><table id="rTable"><thead><tr><th>Distance</th><th>Time</th><th>Pace</th></tr></thead><tbody></tbody></table></div>
+      <div class="actions"><button type="button" class="gbtn ghost" id="rCopy">Copy predictions</button></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const STORE = 'pace-calculator-v1';
+  const MI = 1.609344;
+  const PRESETS = [
+    { n: '400 m', km: 0.4 }, { n: '800 m', km: 0.8 }, { n: '1 km', km: 1 }, { n: '1 mi', km: MI }, { n: '3 km', km: 3 }, { n: '5 km', km: 5 },
+    { n: '10 km', km: 10 }, { n: '15 km', km: 15 }, { n: 'Half', km: 21.0975 }, { n: 'Marathon', km: 42.195 }
+  ];
+  const PREDICT_ROWS = [
+    { n: '1500 m', km: 1.5 }, { n: '1 mile', km: MI }, { n: '3 km', km: 3 }, { n: '5 km', km: 5 }, { n: '10 km', km: 10 },
+    { n: '15 km', km: 15 }, { n: 'Half marathon', km: 21.0975 }, { n: 'Marathon', km: 42.195 }, { n: '50 km', km: 50 }
+  ];
+
+  let state = { theme: 'dark', unit: 'km', tab: 'pace',
+    pace: { solve: 'pace', dist: '10', time: '50:00', pace: '' },
+    splits: { dist: '21.1', by: 'time', time: '1:45:00', pace: '5:00', strat: '0', every: '1' },
+    predict: { dist: '10', time: '45:00', k: '1.06' } };
+  try { const saved = JSON.parse(localStorage.getItem(STORE) || '{}'); state = { ...state, ...saved, pace: { ...state.pace, ...(saved.pace || {}) }, splits: { ...state.splits, ...(saved.splits || {}) }, predict: { ...state.predict, ...(saved.predict || {}) } }; } catch (e) {}
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+
+  // ---- Parsing and formatting ----
+  const pad = n => String(n).padStart(2, '0');
+  function parseTime(s) {   // "h:mm:ss" | "mm:ss" | "m:ss" | "ss" | "4.5" (decimal minutes). Returns seconds or NaN.
+    s = String(s || '').trim().replace(/[hms]/gi, ':').replace(/::+/g, ':').replace(/:$/, '');
+    if (!s) return NaN;
+    if (!s.includes(':')) { const v = parseFloat(s); return isNaN(v) ? NaN : v * 60; }
+    const parts = s.split(':').map(Number);
+    if (parts.some(isNaN)) return NaN;
+    while (parts.length < 3) parts.unshift(0);
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+  function fmtTime(sec, dec) {
+    if (!isFinite(sec) || sec < 0) return '–';
+    const r = dec ? Math.round(sec * 10) / 10 : Math.round(sec);
+    const h = Math.floor(r / 3600), m = Math.floor((r % 3600) / 60), s = r % 60;
+    const ss = dec ? (s < 10 ? '0' + s.toFixed(1) : s.toFixed(1)) : pad(s);
+    return h ? h + ':' + pad(m) + ':' + ss : m + ':' + ss;
+  }
+  const fmtPace = sec => fmtTime(sec, false);
+  const parseNum = s => { const v = parseFloat(String(s || '').replace(',', '.')); return isNaN(v) || v <= 0 ? NaN : v; };
+  const unitKm = () => state.unit === 'mi' ? MI : 1;      // km per display unit
+  const uName = () => state.unit;
+  const fmtDist = km => { const d = km / unitKm(); return (Math.round(d * 1000) / 1000).toString().replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '') + ' ' + uName(); };
+
+  // ---- Theme and settings ----
+  const settings = $('settings'), settingsBtn = $('settingsBtn');
+  function openSettings(on) { settings.hidden = !on; settingsBtn.setAttribute('aria-expanded', String(on)); }
+  settingsBtn.addEventListener('click', () => openSettings(settings.hidden));
+  document.addEventListener('pointerdown', e => { if (!settings.hidden && !e.target.closest('.settings-wrap')) openSettings(false); }, { passive: true });
+  function applyTheme() {
+    if (state.theme === 'dark' || state.theme === 'light') document.documentElement.setAttribute('data-theme', state.theme); else document.documentElement.removeAttribute('data-theme');
+    segSync($('themeSeg'), state.theme);
+  }
+  function segSync(seg, v) { seg.querySelectorAll('button').forEach(b => { const on = b.dataset.v === String(v); b.classList.toggle('on', on); b.setAttribute('aria-selected', on); }); }
+  function segOn(seg, fn) { seg.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) fn(b.dataset.v); }); }
+  segOn($('themeSeg'), v => { state.theme = v; save(); applyTheme(); });
+  segOn($('unitSeg'), v => {
+    if (v === state.unit) return;
+    // Convert the stored distance and pace fields so the numbers keep their meaning in the new unit.
+    const from = state.unit === 'mi' ? MI : 1, to = v === 'mi' ? MI : 1;
+    const convD = s => { const n = parseNum(s); return isFinite(n) ? (Math.round(n * from / to * 1000) / 1000).toString() : s; };
+    const convP = s => { const t = parseTime(s); return isFinite(t) ? fmtPace(t / from * to) : s; };
+    state.pace.dist = convD(state.pace.dist); state.pace.pace = convP(state.pace.pace);
+    state.splits.dist = convD(state.splits.dist); state.splits.pace = convP(state.splits.pace);
+    state.predict.dist = convD(state.predict.dist);
+    state.unit = v; save(); syncUnits();
+    pDist.value = state.pace.dist; pPace.value = state.pace.pace; sDist.value = state.splits.dist; sPace.value = state.splits.pace; rDist.value = state.predict.dist;
+    renderAll();
+  });
+  function syncUnits() {
+    segSync($('unitSeg'), state.unit);
+    $('unitLabel').textContent = 'per ' + uName();
+    ['pDistUnit', 'sDistUnit', 'rDistUnit'].forEach(id => $(id).textContent = uName());
+    ['pPaceUnit', 'sPaceUnit'].forEach(id => $(id).textContent = '/' + uName());
+  }
+
+  // ---- Tabs ----
+  const tabs = $('tabs');
+  function showTab(t) { state.tab = t; save(); tabs.querySelectorAll('button').forEach(b => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); }); ['pace', 'splits', 'predict'].forEach(k => $('tab-' + k).hidden = k !== t); }
+  tabs.addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) showTab(b.dataset.tab); });
+
+  // ---- Distance chips ----
+  function buildChips(el, onPick) {
+    el.innerHTML = '';
+    PRESETS.forEach(p => { const b = document.createElement('button'); b.type = 'button'; b.textContent = p.n; b.dataset.km = p.km; b.addEventListener('click', () => onPick(p.km)); el.appendChild(b); });
+  }
+  function chipSync(el, km) { el.querySelectorAll('button').forEach(b => b.classList.toggle('on', isFinite(km) && Math.abs(+b.dataset.km - km) < 0.0005)); }
+  const distToInput = km => { const d = km / unitKm(); return (Math.round(d * 1000) / 1000).toString(); };
+  const inputToKm = s => parseNum(s) * unitKm();
+
+  // ---- Pace tab ----
+  const P = state.pace, pDist = $('pDist'), pTime = $('pTime'), pPace = $('pPace');
+  buildChips($('pChips'), km => { P.dist = distToInput(km); pDist.value = P.dist; save(); renderPace(); });
+  segOn($('solveSeg'), v => { P.solve = v; save(); renderPace(); });
+  [['dist', pDist], ['time', pTime], ['pace', pPace]].forEach(([k, el]) => { el.value = P[k]; el.addEventListener('input', () => { P[k] = el.value; save(); renderPace(); }); });
+  function renderPace() {
+    segSync($('solveSeg'), P.solve);
+    pDist.readOnly = P.solve === 'dist'; pTime.readOnly = P.solve === 'time'; pPace.readOnly = P.solve === 'pace';
+    let km = inputToKm(P.dist), t = parseTime(P.time), pc = parseTime(P.pace) / unitKm();   // pc = sec per km
+    let big = '–', label = 'Pace', sub = '';
+    if (P.solve === 'pace' && isFinite(km) && isFinite(t)) { pc = t / km; pPace.value = fmtPace(pc * unitKm()); big = fmtPace(pc * unitKm()) + '<small>/' + uName() + '</small>'; }
+    else if (P.solve === 'time' && isFinite(km) && isFinite(pc)) { t = pc * km; pTime.value = fmtTime(t); big = fmtTime(t); label = 'Time'; }
+    else if (P.solve === 'dist' && isFinite(t) && isFinite(pc)) { km = t / pc; pDist.value = distToInput(km); big = distToInput(km) + '<small>' + uName() + '</small>'; label = 'Distance'; }
+    else { $('paceBig').textContent = '–'; $('paceResultLabel').textContent = label; $('paceSub').textContent = 'Enter the other two values.'; $('paceStats').innerHTML = ''; chipSync($('pChips'), km); return; }
+    $('paceBig').innerHTML = big; $('paceResultLabel').textContent = label;
+    const kmh = 3600 / pc, mph = kmh / MI;
+    $('paceSub').innerHTML = '<b>' + fmtDist(km) + '</b> in <b>' + fmtTime(t) + '</b>';
+    $('paceStats').innerHTML = [
+      [fmtPace(pc), '/km'], [fmtPace(pc * MI), '/mi'], [kmh.toFixed(2), 'km/h'], [mph.toFixed(2), 'mph'], [fmtPace(pc * 0.4), '/400 m'], [fmtTime(pc * 5), '/5 km']
+    ].map(([v, k]) => '<div class="stat"><span class="v num">' + v + '</span><span class="k">' + k + '</span></div>').join('');
+    chipSync($('pChips'), km);
+  }
+
+  // ---- Splits tab ----
+  const S = state.splits, sDist = $('sDist'), sTime = $('sTime'), sPace = $('sPace');
+  buildChips($('sChips'), km => { S.dist = distToInput(km); sDist.value = S.dist; save(); renderSplits(); });
+  segOn($('sBySeg'), v => { S.by = v; save(); renderSplits(); });
+  segOn($('sStratSeg'), v => { S.strat = v; save(); renderSplits(); });
+  segOn($('sEverySeg'), v => { S.every = v; save(); renderSplits(); });
+  [['dist', sDist], ['time', sTime], ['pace', sPace]].forEach(([k, el]) => { el.value = S[k]; el.addEventListener('input', () => { S[k] = el.value; save(); renderSplits(); }); });
+  let lastSplitsText = '';
+  function splitRows(km, totalSec, f, every) {
+    // Pace ramps linearly from start to finish so the finish pace is (1+f) times faster than the start pace.
+    const Pavg = totalSec / km;
+    const a = Pavg / (1 - f / (2 * (1 + f)));          // start pace (s/km)
+    const b = -a * f / ((1 + f) * km);                   // pace change per km
+    const segTime = (x1, x2) => a * (x2 - x1) + b * (x2 * x2 - x1 * x1) / 2;
+    const rows = []; let x = 0, cum = 0, i = 1;
+    while (x < km - 1e-9) {
+      const x2 = Math.min(km, x + every);
+      const st = segTime(x, x2); cum += st;
+      rows.push({ i, from: x, to: x2, len: x2 - x, split: st, cum, pace: st / (x2 - x) });
+      x = x2; i++;
+    }
+    return rows;
+  }
+  function renderSplits() {
+    segSync($('sBySeg'), S.by); segSync($('sStratSeg'), S.strat); segSync($('sEverySeg'), S.every);
+    $('sTimeField').hidden = S.by !== 'time'; $('sPaceField').hidden = S.by !== 'pace';
+    const km = inputToKm(S.dist), f = parseFloat(S.strat), every = parseFloat(S.every);
+    let total = S.by === 'time' ? parseTime(S.time) : parseTime(S.pace) / unitKm() * km;
+    $('stratHint').textContent = f === 0 ? 'Same pace the whole way.' : f > 0 ? 'Finish pace ' + Math.round(f * 100) + '% faster than start pace, ramping evenly.' : 'Finish pace ' + Math.round(-f * 100) + '% slower than start pace.';
+    chipSync($('sChips'), km);
+    const tb = $('sTable').querySelector('tbody'); tb.innerHTML = '';
+    if (!isFinite(km) || !isFinite(total) || total <= 0) { $('sBig').textContent = '–'; $('sSub').textContent = 'Enter a distance and a goal.'; lastSplitsText = ''; return; }
+    const rows = splitRows(km, total, f, every);
+    $('sBig').textContent = fmtTime(total);
+    $('sSub').innerHTML = '<b>' + fmtDist(km) + '</b> at <b>' + fmtPace(total / km * unitKm()) + ' /' + uName() + '</b> average';
+    const everyLabel = every === 0.4 ? '400 m' : every === 5 ? '5 km' : every > 1.5 ? '1 mi' : '1 km';
+    const lines = ['Split\tPace\tSplit\tElapsed'];
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      const partial = r.len < every - 1e-9;
+      const name = partial ? 'Last ' + (every === 0.4 ? Math.round(r.len * 1000) + ' m' : every > 1.5 ? (r.len / MI).toFixed(2) + ' mi' : (Math.round(r.len * 100) / 100) + ' km') : (every > 1.5 ? r.i + ' mi' : every === 0.4 ? (r.i * 400) + ' m' : every === 5 ? (r.i * 5) + ' km' : r.i + ' km');
+      const cells = [name, fmtPace(r.pace * unitKm()) + ' /' + uName(), fmtTime(r.split), fmtTime(r.cum)];
+      tr.innerHTML = '<td></td><td class="pace"></td><td></td><td></td>';
+      tr.querySelectorAll('td').forEach((td, i) => td.textContent = cells[i]);
+      tb.appendChild(tr); lines.push(cells.join('\t'));
+    });
+    lastSplitsText = fmtDist(km) + ' in ' + fmtTime(total) + ' (' + everyLabel + ' splits)\n' + lines.join('\n');
+  }
+  $('sCopy').addEventListener('click', () => copyText(lastSplitsText, $('sCopy')));
+
+  // ---- Predict tab ----
+  const R = state.predict, rDist = $('rDist'), rTime = $('rTime'), rK = $('rK');
+  buildChips($('rChips'), km => { R.dist = distToInput(km); rDist.value = R.dist; save(); renderPredict(); });
+  [['dist', rDist], ['time', rTime]].forEach(([k, el]) => { el.value = R[k]; el.addEventListener('input', () => { R[k] = el.value; save(); renderPredict(); }); });
+  rK.value = R.k; rK.addEventListener('input', () => { R.k = rK.value; save(); renderPredict(); });
+  let lastPredictText = '';
+  function renderPredict() {
+    const km = inputToKm(R.dist), t = parseTime(R.time), k = parseFloat(R.k);
+    $('rKLabel').textContent = k.toFixed(3).replace(/0$/, '');
+    chipSync($('rChips'), km);
+    const tb = $('rTable').querySelector('tbody'); tb.innerHTML = '';
+    if (!isFinite(km) || !isFinite(t)) { lastPredictText = ''; return; }
+    const lines = ['Distance\tTime\tPace /' + uName()];
+    PREDICT_ROWS.forEach(row => {
+      const pt = t * Math.pow(row.km / km, k);
+      const tr = document.createElement('tr');
+      if (Math.abs(row.km - km) < 0.0005) tr.className = 'hl';
+      const cells = [row.n, fmtTime(pt), fmtPace(pt / row.km * unitKm()) + ' /' + uName()];
+      tr.innerHTML = '<td></td><td></td><td class="pace"></td>';
+      tr.querySelectorAll('td').forEach((td, i) => td.textContent = cells[i]);
+      tb.appendChild(tr); lines.push(cells.join('\t'));
+    });
+    lastPredictText = 'From ' + fmtDist(km) + ' in ' + fmtTime(t) + ' (Riegel ' + k.toFixed(3).replace(/0$/, '') + ')\n' + lines.join('\n');
+  }
+  $('rCopy').addEventListener('click', () => copyText(lastPredictText, $('rCopy')));
+
+  // ---- Clipboard ----
+  function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 1400); }
+  function copyText(text, btn) {
+    if (!text) { toast('Nothing to copy yet'); return; }
+    const done = () => toast('Copied');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(() => fallback());
+    else fallback();
+    function fallback() {
+      const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('Select and copy manually'); } ta.remove();
+    }
+  }
+
+  function renderAll() { renderPace(); renderSplits(); renderPredict(); }
+  applyTheme(); syncUnits(); showTab(state.tab); renderAll();
+})();
+</script>
+</body>
+</html>

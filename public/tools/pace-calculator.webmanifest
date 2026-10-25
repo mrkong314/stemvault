@@ -1,0 +1,15 @@
+{
+  "name": "Pace Calculator",
+  "short_name": "Pace Calculator",
+  "description": "Running pace, time and distance calculator with km-by-km splits and Riegel race predictions.",
+  "start_url": "/tools/pace-calculator.html",
+  "scope": "/tools/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    { "src": "/tools/pace-calculator-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/tools/pace-calculator-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

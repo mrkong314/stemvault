@@ -19,6 +19,18 @@ export const TOOLS: Tool[] = [
     href: '/tools/class-timer',
   },
   {
+    slug: 'pace-calculator',
+    title: 'Pace Calculator',
+    description: 'Running pace, time and distance solver with km-by-km or mile splits for even and negative-split plans, plus Riegel race predictions. Installs to a phone home screen.',
+    href: '/tools/pace-calculator',
+  },
+  {
+    slug: 'random-picker',
+    title: 'Random Picker',
+    description: 'Pick one name, several, or make groups from any pasted list, with no-repeat pools, saved lists and a shuffle mode. Installs to a phone home screen.',
+    href: '/tools/random-picker',
+  },
+  {
     slug: 'palette-picker',
     title: 'Palette Picker',
     description: 'Quick colour picker for teaching materials. Browse the StemVault palette or sample any hex.',
