@@ -1,0 +1,14 @@
+{
+  "name": "Calculator",
+  "short_name": "Calculator",
+  "description": "Mathematical calculator with symbolic input and formula rendering.",
+  "start_url": "/tools/calculator.html",
+  "scope": "/tools/",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#f5f5f7",
+  "icons": [
+    { "src": "/tools/calculator-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/tools/calculator-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
