@@ -129,6 +129,21 @@
   .gbtn.pill { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 2px 8px rgba(10,132,255,0.35), inset 0 1px 0 rgba(255,255,255,0.4); }
   .gbtn.pill.go { background: var(--good); box-shadow: 0 2px 8px rgba(52,199,89,0.35), inset 0 1px 0 rgba(255,255,255,0.4); }
   .gbtn.pill.stop { background: var(--danger); box-shadow: 0 2px 8px rgba(255,59,48,0.35), inset 0 1px 0 rgba(255,255,255,0.4); }
+  /* OLED: Start/Pause are outlined on black rather than filled, so the button area stays unlit. */
+  :root[data-theme="dark"] .gbtn.pill.go, :root[data-theme="dark"] .gbtn.pill.stop { background: #000; box-shadow: none; }
+  :root[data-theme="dark"] .gbtn.pill.go { color: var(--good); border-color: var(--good); }
+  :root[data-theme="dark"] .gbtn.pill.stop { color: var(--danger); border-color: var(--danger); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .gbtn.pill.go, :root:not([data-theme="light"]) .gbtn.pill.stop { background: #000; box-shadow: none; }
+    :root:not([data-theme="light"]) .gbtn.pill.go { color: var(--good); border-color: var(--good); }
+    :root:not([data-theme="light"]) .gbtn.pill.stop { color: var(--danger); border-color: var(--danger); }
+  }
+  :root[data-theme="dark"] .presets button.on, :root[data-theme="dark"] .chip.now { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; }
+  :root[data-theme="dark"] .chip.now .t { color: var(--accent); opacity: 0.8; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .presets button.on, :root:not([data-theme="light"]) .chip.now { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; }
+    :root:not([data-theme="light"]) .chip.now .t { color: var(--accent); opacity: 0.8; }
+  }
   .gbtn.ghost { color: var(--accent); }
   .gbtn.danger { color: var(--danger); }
   .seg { display: inline-flex; background: var(--glass-key); border-radius: 10px; padding: 2px; gap: 2px; border: 1px solid var(--glass-border); }
