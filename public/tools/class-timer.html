@@ -108,10 +108,15 @@
     flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
     display: flex; flex-direction: column; gap: 12px;
     margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
-    padding: 2px max(16px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    padding: 2px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
     scrollbar-width: none;
   }
   .scroll::-webkit-scrollbar { display: none; }
+  .scroll > .coldcall { margin-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
+  /* Timers fill at least one screen of the scroll area, so cold call only appears when scrolled to. */
+  .stack { display: flex; flex-direction: column; gap: 12px; flex: none; min-height: 100%; }
+  @media (max-height: 600px) { .stack { min-height: 0; } }
+  body.big .stack { min-height: 0; }
   /* Short viewports (phone landscape): let the whole page scroll instead so nothing is cut off. */
   @media (max-height: 600px) {
     body { height: auto; min-height: 100dvh; overflow: auto; display: block; }
@@ -174,7 +179,9 @@
   header.topbar {
     position: sticky; top: 0; z-index: 30; flex: none;
     margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 12px calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
-    padding: calc(10px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+    /* iOS draws a glass status bar that softens content just under and beside it; on devices with a
+       top inset the title sits a quarter-inset lower again so it stays clear of that zone. */
+    padding: calc(10px + env(safe-area-inset-top, 0px) * 1.25) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
     display: flex; align-items: center; gap: 10px;
     background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     border-bottom: 1px solid var(--glass-border); box-shadow: inset 0 1px 0 var(--glass-edge);
@@ -428,11 +435,13 @@
   <nav class="strip" id="strip" aria-label="Today's bell times"></nav>
 
   <div class="scroll" id="scroll">
-    <div class="timers" id="timers"></div>
+    <div class="stack">
+      <div class="timers" id="timers"></div>
 
-    <div class="add-row">
-      <button type="button" class="gbtn ghost" id="addSw">+ Stopwatch</button>
-      <button type="button" class="gbtn ghost" id="addCd">+ Countdown</button>
+      <div class="add-row">
+        <button type="button" class="gbtn ghost" id="addSw">+ Stopwatch</button>
+        <button type="button" class="gbtn ghost" id="addCd">+ Countdown</button>
+      </div>
     </div>
 
     <section class="glass panel coldcall" id="coldcall" aria-label="Cold call">
@@ -743,6 +752,7 @@
       lap: root.querySelector('.lap'), laps: root.querySelector('.laps'), remove: root.querySelector('.remove')
     };
     els.name.id = 'name-' + t.id; els.custom.id = 'custom-' + t.id;
+    root.querySelector('.remove-wrap').hidden = state.timers.length < 2;   // the last timer can't be removed, so don't offer it
     els.name.placeholder = 'Timer ' + (index + 1);
     els.name.value = t.name || '';
     els.name.addEventListener('input', () => { t.name = els.name.value; save(); });
