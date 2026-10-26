@@ -19,6 +19,12 @@ export const TOOLS: Tool[] = [
     href: '/tools/class-timer',
   },
   {
+    slug: 'rep-timer',
+    title: 'Rep Timer',
+    description: 'One countdown shown as a large percentage with a progress bar, rep counter, quarter beeps and a big display mode. Installs to a phone home screen.',
+    href: '/tools/rep-timer',
+  },
+  {
     slug: 'pace-calculator',
     title: 'Pace Calculator',
     description: 'Running pace, time and distance solver with km-by-km or mile splits for even and negative-split plans, plus Riegel race predictions. Installs to a phone home screen.',

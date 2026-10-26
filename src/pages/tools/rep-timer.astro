@@ -1,0 +1,49 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro';
+---
+<BaseLayout title="Rep Timer · Tools · StemVault">
+  <section class="page">
+    <div class="container">
+      <nav class="crumbs">
+        <a href="/tools">Tools</a>
+      </nav>
+      <header class="page-head">
+        <span class="eyebrow">Tool</span>
+        <h1>Rep Timer</h1>
+        <p class="page-sub">One countdown shown as a large percentage with a progress bar, so you can see how far through an effort you are at a glance. Counts reps, beeps at each quarter and the end, and has a big display mode. Open the full-screen version on a phone and add it to the home screen for an app with its own icon.</p>
+      </header>
+
+      <p class="page-sub"><a href="/tools/rep-timer.html">Open full screen</a></p>
+
+      <iframe
+        src="/tools/rep-timer.html"
+        title="Rep Timer"
+        class="timer-frame">
+      </iframe>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page { padding: 2.5rem 0 4rem; }
+  .crumbs {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-mute);
+    margin-bottom: 1rem;
+  }
+  .crumbs a { color: var(--ink-mute); }
+  .crumbs a:hover { color: var(--pine); }
+  .page-head h1 { margin: 0.4rem 0 0.6rem; }
+  .page-sub { color: var(--ink-soft); margin: 0 0 1.5rem; max-width: 60ch; }
+
+  .timer-frame {
+    width: 100%;
+    height: 90vh;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+  }
+</style>
