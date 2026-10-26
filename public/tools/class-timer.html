@@ -16,7 +16,6 @@
 <meta name="description" content="Countdown to the end of the current period with adjustable bell times and multiple named stopwatches and countdowns, plus a cold-call name picker with class lists kept on the device.">
 <style>
   /* Standalone reset: the artifact host supplied these, the standalone page supplies them itself. */
-  html { padding-top: env(safe-area-inset-top, 0px); }
   [hidden] { display: none !important; }
 </style>
 <style>
@@ -78,11 +77,13 @@
 
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; height: 100%; }
+  /* The page itself never scrolls: header, period clock and bell strip are pinned, and only
+     the timer stack below them (.scroll) moves. */
   body {
-    margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font);
+    margin: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
+    background: var(--bg); color: var(--ink); font-family: var(--font);
     -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none; touch-action: manipulation;
-    padding-block: 0 calc(28px + env(safe-area-inset-bottom, 0px));
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
@@ -95,18 +96,27 @@
       radial-gradient(44rem 44rem at 70% 96%, var(--ambient-3), transparent 62%),
       var(--bg);
   }
-  /* band under the status bar / Dynamic Island so nothing scrolls up behind it unblurred */
-  body::after {
-    content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 40;
-    background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
-  }
   button, input, select { font: inherit; color: inherit; }
   button { cursor: pointer; -webkit-user-select: none; user-select: none; }
   button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   @media (pointer: coarse) { input, select { font-size: 16px; } }
   .num { font-variant-numeric: tabular-nums; }
 
-  .app { max-width: 620px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  .app { max-width: 620px; margin: 0 auto; width: 100%; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+  .app > .period, .app > .strip { flex: none; }
+  .scroll {
+    flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    display: flex; flex-direction: column; gap: 12px;
+    margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+    padding: 2px max(16px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    scrollbar-width: none;
+  }
+  .scroll::-webkit-scrollbar { display: none; }
+  /* Short viewports (phone landscape): let the whole page scroll instead so nothing is cut off. */
+  @media (max-height: 600px) {
+    body { height: auto; min-height: 100dvh; overflow: auto; display: block; }
+    .scroll { overflow: visible; flex: none; }
+  }
 
   /* Glass primitives */
   .glass {
@@ -159,10 +169,12 @@
   .label { font-size: 0.72rem; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; }
 
   /* Header */
+  /* The header owns the status-bar / Dynamic Island band: its top padding is the safe-area inset,
+     so the title never sits under a separate translucent strip. */
   header.topbar {
-    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+    position: sticky; top: 0; z-index: 30; flex: none;
     margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 12px calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
-    padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+    padding: calc(10px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
     display: flex; align-items: center; gap: 10px;
     background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     border-bottom: 1px solid var(--glass-border); box-shadow: inset 0 1px 0 var(--glass-edge);
@@ -280,7 +292,7 @@
   .hint { font-size: 0.8rem; color: var(--ink-dim); }
 
   /* Cold call panel */
-  .coldcall { display: flex; flex-direction: column; gap: 10px; }
+  .coldcall { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 14px; }
   .cc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .cc-head select {
     min-width: 0; max-width: 60%; padding: 7px 28px 7px 12px; border-radius: 10px; border: 1px solid var(--glass-border);
@@ -290,16 +302,16 @@
   }
   .cc-name {
     font-family: var(--font-digits); font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; text-wrap: balance;
-    font-size: clamp(2.4rem, 13vw, 4rem); min-height: 1.1em; margin: 4px 0; overflow-wrap: anywhere;
+    font-size: clamp(1.9rem, 9vw, 2.8rem); min-height: 1.1em; margin: 2px 0; overflow-wrap: anywhere;
   }
-  .cc-name.empty { color: var(--ink-dim); font-weight: 500; font-size: 1.05rem; font-family: var(--font); letter-spacing: 0; min-height: 0; }
-  .cc-controls { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; }
-  .cc-controls .gbtn { min-height: 54px; font-size: 1.02rem; padding: 0 10px; }
-  .cc-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--ink-dim); }
-  .cc-foot .reset { border: 0; background: transparent; color: var(--accent); font-weight: 600; padding: 6px 0; min-height: 36px; }
+  .cc-name.empty { color: var(--ink-dim); font-weight: 500; font-size: 0.95rem; font-family: var(--font); letter-spacing: 0; min-height: 0; }
+  .cc-controls { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; }
+  .cc-controls .gbtn { min-height: 44px; font-size: 0.95rem; padding: 0 10px; }
+  .cc-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--ink-dim); }
+  .cc-foot .reset { border: 0; background: transparent; color: var(--accent); font-weight: 600; padding: 4px 0; min-height: 32px; font-size: 0.8rem; }
   .cc-foot .reset:disabled { color: var(--ink-dim); opacity: 0.6; }
-  .cc-setup { display: flex; flex-direction: column; gap: 10px; }
-  .cc-setup .gbtn { align-self: flex-start; }
+  .cc-setup { display: flex; }
+  .cc-setup .gbtn { flex: 1; min-height: 40px; }
   body.big .coldcall { text-align: center; }
   body.big .cc-head { justify-content: center; }
   body.big .cc-name { font-size: clamp(3rem, 12vw, 9rem); }
@@ -324,9 +336,13 @@
   body.big { padding-block: 10px calc(10px + env(safe-area-inset-bottom, 0px)); min-height: 100dvh; }
   body.big header.topbar, body.big .strip, body.big .add-row, body.big .laps, body.big .presets, body.big .meta, body.big .remove-wrap, body.big .timer .seg { display: none; }
   body.big .app { max-width: none; min-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px)); display: grid; grid-template-rows: 1fr auto; gap: 12px; padding-top: env(safe-area-inset-top, 0px); }
+  body.big { height: auto; min-height: 100dvh; overflow: auto; display: block; }
+  body.big .scroll { overflow: visible; margin: 0; padding: 0; }
+  body.big .coldcall { display: none; }
   body.big .period { justify-content: center; text-align: center; }
   body.big .period .eyebrow { justify-content: center; }
-  body.big .digits { font-size: clamp(5rem, 28vw, 15rem); }
+  body.big .app > * { min-width: 0; }
+  body.big .digits { font-size: clamp(4rem, 23vw, 15rem); }
   body.big .period h2 { font-size: clamp(2rem, 6vw, 3.6rem); }
   body.big .timers { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
   body.big .timer .digits { font-size: clamp(3.6rem, 16vw, 9rem); text-align: center; }
@@ -411,34 +427,35 @@
 
   <nav class="strip" id="strip" aria-label="Today's bell times"></nav>
 
-  <section class="glass panel coldcall" id="coldcall" aria-label="Cold call">
-    <div class="cc-head">
-      <span class="label">Cold call</span>
-      <select id="ccClass" aria-label="Class" hidden></select>
-    </div>
-    <div class="cc-setup" id="ccSetup" hidden>
-      <span class="hint">Paste a list of names once per class, then tap Pick to call on someone at random. Nobody is picked twice until everyone has had a turn.</span>
-      <button type="button" class="gbtn ghost" id="ccSetupBtn">+ Add a class list</button>
-    </div>
-    <div id="ccMain" hidden>
-      <div class="cc-name empty" id="ccName" aria-live="polite">Tap Pick to call on someone</div>
-      <div class="cc-controls">
-        <button type="button" class="gbtn pill" id="ccPick">Pick</button>
-        <button type="button" class="gbtn" id="ccAbsent" disabled>Absent</button>
-        <button type="button" class="gbtn" id="ccUndo" disabled>Undo</button>
-      </div>
-      <div class="cc-foot">
-        <span class="num" id="ccCount"></span>
-        <button type="button" class="reset" id="ccReset">Restart cycle</button>
-      </div>
-    </div>
-  </section>
+  <div class="scroll" id="scroll">
+    <div class="timers" id="timers"></div>
 
-  <div class="timers" id="timers"></div>
+    <div class="add-row">
+      <button type="button" class="gbtn ghost" id="addSw">+ Stopwatch</button>
+      <button type="button" class="gbtn ghost" id="addCd">+ Countdown</button>
+    </div>
 
-  <div class="add-row">
-    <button type="button" class="gbtn ghost" id="addSw">+ Stopwatch</button>
-    <button type="button" class="gbtn ghost" id="addCd">+ Countdown</button>
+    <section class="glass panel coldcall" id="coldcall" aria-label="Cold call">
+      <div class="cc-head">
+        <span class="label">Cold call</span>
+        <select id="ccClass" aria-label="Class" hidden></select>
+      </div>
+      <div class="cc-setup" id="ccSetup" hidden>
+        <button type="button" class="gbtn ghost" id="ccSetupBtn">+ Add a class list</button>
+      </div>
+      <div id="ccMain" hidden>
+        <div class="cc-name empty" id="ccName" aria-live="polite">Tap Pick to call on someone</div>
+        <div class="cc-controls">
+          <button type="button" class="gbtn pill" id="ccPick">Pick</button>
+          <button type="button" class="gbtn" id="ccAbsent" disabled>Absent</button>
+          <button type="button" class="gbtn" id="ccUndo" disabled>Undo</button>
+        </div>
+        <div class="cc-foot">
+          <span class="num" id="ccCount"></span>
+          <button type="button" class="reset" id="ccReset">Restart cycle</button>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 
