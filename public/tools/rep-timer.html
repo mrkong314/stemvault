@@ -178,8 +178,14 @@
   .times .left { text-align: left; } .times .right { text-align: right; } .times .mid { text-align: center; color: var(--ink-dim); font-size: 0.85rem; align-self: center; }
   .times .v.late { color: var(--warn); }
 
-  .controls { display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; }
+  .controls { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 10px; }
   .controls .gbtn { min-height: 60px; font-size: 1.1rem; }
+  /* Skip needs a hold: the fill grows across the button while the pointer is down and the skip fires when it reaches the edge. */
+  .gbtn.hold { position: relative; overflow: hidden; flex-direction: column; gap: 0; line-height: 1.1; -webkit-touch-callout: none; touch-action: none; }
+  .gbtn.hold::before { content: ""; position: absolute; inset: 0; width: var(--hold, 0%); background: var(--accent); opacity: 0.3; pointer-events: none; }
+  .gbtn.hold > span { position: relative; }
+  .gbtn.hold small { position: relative; font-size: 0.68rem; font-weight: 500; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+  .gbtn.hold.holding { border-color: var(--accent); }
 
   .presets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .presets button { border: 1px solid var(--glass-border); background: var(--glass-key); border-radius: 999px; padding: 8px 14px; font-size: 0.9rem; font-weight: 500; min-height: 38px; }
@@ -229,13 +235,6 @@
           </div>
         </div>
         <div class="sep"></div>
-        <div class="row">
-          <span class="label">Percentage shows</span>
-          <div class="seg" id="dirSeg">
-            <button type="button" data-v="down">Remaining</button><button type="button" data-v="up">Complete</button>
-          </div>
-        </div>
-        <div class="sep"></div>
         <div class="row inline">
           <span id="soundLabel">Beep at each quarter and the end</span>
           <button class="switch" id="soundToggle" type="button" role="switch" aria-checked="true" aria-labelledby="soundLabel"></button>
@@ -257,7 +256,7 @@
 <div class="app">
   <section class="glass panel main">
     <div class="eyebrow"><span class="label" id="phase">Ready</span><span class="rep num" id="repLabel">Rep 1</span></div>
-    <div class="pct num" id="pct">100<span class="sym">%</span></div>
+    <div class="pct num" id="pct">0<span class="sym">%</span></div>
     <div class="bar" id="bar"><i></i><div class="ticks"><i></i><i></i><i></i></div></div>
     <div class="times num">
       <div class="left"><div class="k">Elapsed</div><div class="v" id="elapsed">0:00</div></div>
@@ -269,6 +268,7 @@
   <div class="controls">
     <button type="button" class="gbtn pill go" id="startBtn">Start</button>
     <button type="button" class="gbtn" id="resetBtn" disabled>Reset</button>
+    <button type="button" class="gbtn hold" id="skipBtn" aria-label="Skip to next rep (hold)"><span>Skip</span><small>hold</small></button>
   </div>
 
   <section class="glass panel settings">
@@ -292,12 +292,12 @@
   const STORE = 'rep-timer-v1';
   const $ = id => document.getElementById(id);
   const el = { sub: $('sub'), phase: $('phase'), rep: $('repLabel'), pct: $('pct'), bar: $('bar'), elapsed: $('elapsed'), target: $('target'), remain: $('remain'), remainK: $('remainK'),
-               start: $('startBtn'), reset: $('resetBtn'), resetReps: $('resetReps'), presets: $('presets'), custom: $('custom'),
-               settings: $('settings'), settingsBtn: $('settingsBtn'), themeSeg: $('themeSeg'), dirSeg: $('dirSeg'), sound: $('soundToggle'), auto: $('autoToggle'), wake: $('wakeStatus'),
+               start: $('startBtn'), reset: $('resetBtn'), skip: $('skipBtn'), resetReps: $('resetReps'), presets: $('presets'), custom: $('custom'),
+               settings: $('settings'), settingsBtn: $('settingsBtn'), themeSeg: $('themeSeg'), sound: $('soundToggle'), auto: $('autoToggle'), wake: $('wakeStatus'),
                big: $('bigBtn'), exitBig: $('exitBig') };
 
   // ---- State (persists so a running rep survives a reload or app switch) ----
-  let t = { theme: 'dark', target: 240000, running: false, startAt: 0, acc: 0, rep: 1, fired: false, auto: true, sound: true, up: false };
+  let t = { theme: 'dark', target: 240000, running: false, startAt: 0, acc: 0, rep: 1, fired: false, auto: true, sound: true };
   try { Object.assign(t, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
   function save() { try { localStorage.setItem(STORE, JSON.stringify(t)); } catch (e) {} }
   const elapsed = () => t.acc + (t.running ? Date.now() - t.startAt : 0);
@@ -335,7 +335,7 @@
   let lastQuarter = 0;
   function render() {
     const e = elapsed(), left = t.target - e, frac = Math.min(1, e / t.target);
-    const pctNum = t.up ? Math.min(100, Math.floor(frac * 100)) : Math.max(0, Math.ceil((1 - frac) * 100));
+    const pctNum = Math.min(100, Math.floor(frac * 100));
     const late = left < 0, done = left <= 0;
     el.pct.innerHTML = pctNum + '<span class="sym">%</span>';
     el.pct.classList.toggle('late', late); el.pct.classList.toggle('done', done && !late);
@@ -372,6 +372,43 @@
   });
   el.reset.addEventListener('click', resetRep);
   el.resetReps.addEventListener('click', () => { t.rep = 1; resetRep(); });
+
+  // ---- Skip (hold to confirm) ----
+  // Moves straight to the next rep. A running timer keeps running from 0; a paused or ready one stays ready at 0.
+  const HOLD_MS = 700;
+  let hold = null;
+  function skipRep() {
+    const wasRunning = t.running;
+    t.rep += 1; t.acc = 0; t.fired = false; lastQuarter = 0;
+    t.startAt = wasRunning ? Date.now() : 0;
+    beep(2, 520); save(); render();
+  }
+  function holdStart() {
+    if (hold) return;
+    unlock();
+    hold = { t0: performance.now(), raf: 0 };
+    el.skip.classList.add('holding');
+    const tick = now => {
+      if (!hold) return;
+      const f = Math.min(1, (now - hold.t0) / HOLD_MS);
+      el.skip.style.setProperty('--hold', (f * 100).toFixed(1) + '%');
+      if (f >= 1) { holdEnd(); skipRep(); return; }
+      hold.raf = requestAnimationFrame(tick);
+    };
+    hold.raf = requestAnimationFrame(tick);
+  }
+  function holdEnd() {
+    if (!hold) return;
+    cancelAnimationFrame(hold.raf); hold = null;
+    el.skip.classList.remove('holding'); el.skip.style.removeProperty('--hold');
+  }
+  el.skip.addEventListener('pointerdown', e => { if (e.button !== 0) return; try { el.skip.setPointerCapture(e.pointerId); } catch (err) {} holdStart(); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => el.skip.addEventListener(ev, holdEnd));
+  el.skip.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); holdStart(); } });
+  el.skip.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') holdEnd(); });
+  el.skip.addEventListener('blur', holdEnd);
+  el.skip.addEventListener('click', e => e.preventDefault());
+  el.skip.addEventListener('contextmenu', e => e.preventDefault());
   el.presets.addEventListener('click', e => {
     const b = e.target.closest('button[data-s]'); if (!b) return;
     t.target = (+b.dataset.s) * 1000; syncPresets(); resetRep();
@@ -397,12 +434,10 @@
     el.themeSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === t.theme));
   }
   function syncSettings() {
-    el.dirSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === (t.up ? 'up' : 'down')));
     el.sound.setAttribute('aria-checked', String(!!t.sound));
     el.auto.setAttribute('aria-checked', String(!!t.auto));
   }
   el.themeSeg.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (!b) return; t.theme = b.dataset.v; save(); applyTheme(); });
-  el.dirSeg.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (!b) return; t.up = b.dataset.v === 'up'; save(); syncSettings(); render(); });
   el.sound.addEventListener('click', () => { t.sound = !t.sound; save(); syncSettings(); if (t.sound) beep(1); });
   el.auto.addEventListener('click', () => { t.auto = !t.auto; save(); syncSettings(); });
 
