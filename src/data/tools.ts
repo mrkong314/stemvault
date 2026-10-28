@@ -37,6 +37,12 @@ export const TOOLS: Tool[] = [
     href: '/tools/random-picker',
   },
   {
+    slug: 'scratchpad',
+    title: 'Scratchpad',
+    description: 'A single blank note for quick ideas with checkboxes, lists, toggles, Markdown shortcuts and pasted images. Saved only in the browser, on the device. Installs to a phone home screen.',
+    href: '/tools/scratchpad',
+  },
+  {
     slug: 'palette-picker',
     title: 'Palette Picker',
     description: 'Quick colour picker for teaching materials. Browse the StemVault palette or sample any hex.',
