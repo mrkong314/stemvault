@@ -8048,13 +8048,29 @@ function applyFontScale() {
     }));
   });
 }
-fontSeg.addEventListener('click', (e) => {
-  const btn = e.target.closest('button'); if (!btn) return;
-  if (btn.dataset.fs === 'down') fontScale = Math.max(0.7, Math.round((fontScale - 0.1) * 10) / 10);
-  else if (btn.dataset.fs === 'up') fontScale = Math.min(1.6, Math.round((fontScale + 0.1) * 10) / 10);
+function stepFontScale(dir) {
+  if (dir === 'down') fontScale = Math.max(0.7, Math.round((fontScale - 0.1) * 10) / 10);
+  else if (dir === 'up') fontScale = Math.min(1.6, Math.round((fontScale + 0.1) * 10) / 10);
   else fontScale = 1;
   applyFontScale();
+}
+fontSeg.addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  stepFontScale(btn.dataset.fs);
 });
+/* Ctrl/Cmd + "+" / "-" / "0" step the same text size (instead of zooming the
+   whole page). Captured so MathQuill never sees the keystroke. */
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const k = e.key, c = e.code;
+  let dir = null;
+  if (k === '+' || k === '=' || c === 'NumpadAdd' || c === 'Equal') dir = 'up';
+  else if (k === '-' || k === '_' || c === 'NumpadSubtract' || c === 'Minus') dir = 'down';
+  else if (k === '0' || c === 'Digit0' || c === 'Numpad0') dir = 'reset';
+  if (!dir) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  stepFontScale(dir);
+}, true);
 applyFontScale();
 
 const gravSeg = document.getElementById('gravSeg');
@@ -9226,6 +9242,7 @@ function openShortcuts() {
   tip('Select all', [{ k: 'Ctrl/Cmd' }, '+', { k: 'A' }, ' selects the current field; pressing it again selects the whole tab. So ',
     { k: 'Ctrl+A' }, ' ', { k: 'Ctrl+A' }, ' ', { k: 'Delete' }, ' clears everything.']);
   tip('Undo', [{ k: 'Ctrl/Cmd' }, '+', { k: 'Z' }, ' undoes, add ', { k: 'Shift' }, ' to redo. Works while typing in a field.']);
+  tip('Text size', [{ k: 'Ctrl/Cmd' }, '+', { k: '+' }, ' and ', { k: 'Ctrl/Cmd' }, '+', { k: '−' }, ' make the worksheet text larger or smaller, ', { k: 'Ctrl/Cmd' }, '+', { k: '0' }, ' resets to 100%. Same as the Text size control in Settings.']);
 
   h('Tabs, groups and naming');
   tip('Sections', ['Sections number themselves 1, 2, 3. Click the number to type a name instead ("Lorentz Factor"); the name shows in a row’s expanded view. Each section is its own scope, so the same symbol can mean different things in different sections.']);
