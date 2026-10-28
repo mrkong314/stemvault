@@ -172,10 +172,10 @@
   .bar.done > i { background: var(--good); }
   .bar .ticks { position: absolute; inset: 0; display: flex; justify-content: space-evenly; pointer-events: none; }
   .bar .ticks i { width: 2px; height: 100%; background: var(--bg); opacity: 0.6; }
-  .times { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; gap: 10px; margin-top: 8px; }
+  .times { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 10px; margin-top: 8px; }
   .times .k { font-size: 0.72rem; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; }
   .times .v { font-family: var(--font-digits); font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; font-size: clamp(1.6rem, 9vw, 2.6rem); line-height: 1.1; }
-  .times .left { text-align: left; } .times .right { text-align: right; } .times .mid { text-align: center; color: var(--ink-dim); font-size: 0.85rem; align-self: center; }
+  .times .left { text-align: left; } .times .mid { text-align: right; color: var(--ink-dim); font-size: 0.85rem; align-self: center; }
   .times .v.late { color: var(--warn); }
 
   .controls { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 10px; }
@@ -259,9 +259,8 @@
     <div class="pct num" id="pct">0<span class="sym">%</span></div>
     <div class="bar" id="bar"><i></i><div class="ticks"><i></i><i></i><i></i></div></div>
     <div class="times num">
-      <div class="left"><div class="k">Elapsed</div><div class="v" id="elapsed">0:00</div></div>
+      <div class="left"><div class="k" id="remainK">Remaining</div><div class="v" id="remain">4:00</div></div>
       <div class="mid" id="target">of 4:00</div>
-      <div class="right"><div class="k" id="remainK">Remaining</div><div class="v" id="remain">4:00</div></div>
     </div>
   </section>
 
@@ -291,7 +290,7 @@
   'use strict';
   const STORE = 'rep-timer-v1';
   const $ = id => document.getElementById(id);
-  const el = { sub: $('sub'), phase: $('phase'), rep: $('repLabel'), pct: $('pct'), bar: $('bar'), elapsed: $('elapsed'), target: $('target'), remain: $('remain'), remainK: $('remainK'),
+  const el = { sub: $('sub'), phase: $('phase'), rep: $('repLabel'), pct: $('pct'), bar: $('bar'), target: $('target'), remain: $('remain'), remainK: $('remainK'),
                start: $('startBtn'), reset: $('resetBtn'), skip: $('skipBtn'), resetReps: $('resetReps'), presets: $('presets'), custom: $('custom'),
                settings: $('settings'), settingsBtn: $('settingsBtn'), themeSeg: $('themeSeg'), sound: $('soundToggle'), auto: $('autoToggle'), wake: $('wakeStatus'),
                big: $('bigBtn'), exitBig: $('exitBig') };
@@ -341,7 +340,6 @@
     el.pct.classList.toggle('late', late); el.pct.classList.toggle('done', done && !late);
     el.bar.classList.toggle('late', late); el.bar.classList.toggle('done', done && !late);
     el.bar.firstElementChild.style.width = (frac * 100).toFixed(2) + '%';
-    el.elapsed.textContent = fmt(e);
     el.remainK.textContent = late ? 'Over by' : 'Remaining';
     el.remain.textContent = fmt(Math.abs(left));
     el.remain.classList.toggle('late', late);
