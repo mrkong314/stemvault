@@ -6,23 +6,25 @@ import { getResourcesByCategory } from '~/lib/collections';
 
 const banks = await getResourcesByCategory('practice');
 
-// Group by year level. Junior years share one group; VCE years (11–12) split by subject,
-// since those banks follow subject-specific study designs.
+// Group by year level and strand. Junior years split into Mathematics and Science
+// (Physics, Chemistry and Biology together); VCE years (11–12) split by subject, since
+// those banks follow subject-specific study designs.
 type Group = { key: string; label: string; year: number; subject?: string; accent: string; href?: string; items: typeof banks };
 const groups = new Map<string, Group>();
 for (const r of banks) {
   const year = Math.min(...r.data.yearLevel);
   const senior = year >= 11;
   const subject = SUBJECTS.find(s => s.name === r.data.subject);
-  const key = senior ? `${year}-${r.data.subject}` : `${year}`;
+  const strand = senior ? r.data.subject : (r.data.subject === 'Mathematics' ? 'Mathematics' : 'Science');
+  const key = `${year}-${strand}`;
   if (!groups.has(key)) {
     groups.set(key, {
       key,
       year,
-      subject: senior ? r.data.subject : undefined,
-      label: senior ? `Year ${year} ${r.data.subject}` : `Year ${year}`,
-      accent: senior ? subject?.accent ?? 'var(--accent)' : 'var(--accent)',
-      href: senior ? `/resources/${subject?.slug}` : undefined,
+      subject: strand,
+      label: `Year ${year} ${strand}`,
+      accent: strand === 'Science' ? 'var(--accent)' : subject?.accent ?? 'var(--accent)',
+      href: strand === 'Science' ? '/resources' : `/resources/${subject?.slug}`,
       items: [],
     });
   }
@@ -36,7 +38,7 @@ const ordered = [...groups.values()].sort((a, b) => a.year - b.year || (a.subjec
       <header class="page-head">
         <span class="eyebrow">Practice</span>
         <h1>Practice banks</h1>
-        <p class="page-sub">Self-marking question sets built from success criteria, grouped by year level. Each one tracks progress per criterion in the browser and generates similar questions on demand.</p>
+        <p class="page-sub">Self-marking question sets built from success criteria, grouped by year level and subject. Each one tracks progress per criterion in the browser and generates similar questions on demand.</p>
       </header>
 
       {ordered.length === 0 && <p class="empty">No practice banks yet.</p>}
