@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<title>TOOL NAME</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,ICON_SVG_BASE64">
+<link rel="apple-touch-icon" sizes="180x180" href="/tools/SLUG-icon-180.png">
+<link rel="manifest" href="/tools/SLUG.webmanifest">
+<meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TOOL NAME">
+<meta name="description" content="One sentence on what the tool does.">
+<style>
+  /* === StemVault app tokens (paste tokens.css here, unchanged) === */
+</style>
+<style>
+  /* === Tool-specific layout === */
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="inner">
+    <div><div class="title">TOOL NAME</div><div class="sub" id="subLabel">Ready</div></div>
+    <div class="spacer"></div>
+    <div class="settings-wrap">
+      <button class="gbtn icon" id="settingsBtn" type="button" aria-label="Settings" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+      <div class="popover" id="settings" hidden>
+        <div class="row"><span class="label">Appearance</span>
+          <div class="seg full" id="themeSeg"><button type="button" data-v="auto">Auto</button><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div>
+        </div>
+        <div class="row inline"><span id="soundLabel">Sound</span><button class="switch" id="soundToggle" type="button" role="switch" aria-checked="true" aria-labelledby="soundLabel"></button></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <div class="seg full" id="modeSeg" role="tablist">
+    <button type="button" data-v="a" role="tab">Mode A</button>
+    <button type="button" data-v="b" role="tab">Mode B</button>
+  </div>
+
+  <section class="glass panel stage" aria-live="polite">
+    <div class="digits" id="readout">00:00<span class="tenths">.0</span></div>
+    <div class="hint" id="meta">What the readout means</div>
+  </section>
+
+  <section class="glass panel">
+    <div style="display:flex; gap:10px">
+      <button type="button" class="gbtn pill" id="primary" style="flex:1">Start</button>
+      <button type="button" class="gbtn remove" id="resetBtn" style="flex:0 0 auto">Reset</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const STORE = 'SLUG-v1';                         // bump the suffix if the stored shape changes
+  let state = { theme: 'dark', sound: true, mode: 'a' };
+  try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+
+  // Settings + theme
+  const settings = $('settings'), settingsBtn = $('settingsBtn');
+  function openSettings(on) { settings.hidden = !on; settingsBtn.setAttribute('aria-expanded', String(on)); }
+  settingsBtn.addEventListener('click', () => openSettings(settings.hidden));
+  document.addEventListener('pointerdown', e => { if (!settings.hidden && !e.target.closest('.settings-wrap')) openSettings(false); }, { passive: true });
+  function segSync(seg, v) { seg.querySelectorAll('button').forEach(b => { const on = b.dataset.v === String(v); b.classList.toggle('on', on); b.setAttribute('aria-selected', on); }); }
+  function segOn(seg, fn) { seg.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) fn(b.dataset.v); }); }
+  function applyTheme() {
+    if (state.theme === 'dark' || state.theme === 'light') document.documentElement.setAttribute('data-theme', state.theme); else document.documentElement.removeAttribute('data-theme');
+    segSync($('themeSeg'), state.theme);
+  }
+  segOn($('themeSeg'), v => { state.theme = v; save(); applyTheme(); });
+  segOn($('modeSeg'), v => { state.mode = v; save(); segSync($('modeSeg'), v); });
+  $('soundToggle').addEventListener('click', () => { state.sound = !state.sound; save(); $('soundToggle').setAttribute('aria-checked', String(state.sound)); });
+
+  // Armed destructive action: first tap arms for 3 s, second tap acts.
+  let armT = null;
+  $('resetBtn').addEventListener('click', () => {
+    const b = $('resetBtn');
+    if (b.classList.contains('armed')) { clearTimeout(armT); b.classList.remove('armed'); b.textContent = 'Reset'; /* do the reset */ }
+    else { b.classList.add('armed'); b.textContent = 'Tap again'; armT = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Reset'; }, 3000); }
+  });
+
+  // Sound: Web Audio only, created on first user gesture.
+  let actx = null;
+  function beep(freq, dur) { if (!state.sound) return; try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = freq; g.gain.setValueAtTime(0.15, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur); o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + dur); } catch (e) {} }
+
+  // Keep the screen awake while something is running.
+  let wake = null;
+  async function keepAwake(on) { try { if (on && !wake && navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); if (!on && wake) { await wake.release(); wake = null; } } catch (e) {} }
+
+  // Tool logic goes here.
+
+  applyTheme(); segSync($('modeSeg'), state.mode); $('soundToggle').setAttribute('aria-checked', String(state.sound));
+})();
+</script>
+</body>
+</html>
