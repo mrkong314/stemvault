@@ -7540,11 +7540,18 @@ function buildSymbolItems(q) {
     }
   });
   filterSymbols(q).forEach(s => items.push({ kind: 'sym', s }));
+  // predefined constants last, matched on the name or its readable label
+  const consts = physConstants();
+  Object.keys(consts).sort(cmpVarNames).forEach(n => {
+    if (names.includes(n)) return;   // a section variable of the same name already listed above
+    const label = prettyVarLabel(n).toLowerCase();
+    if (!ql || label.includes(ql) || n.toLowerCase().includes(ql)) items.push({ kind: 'const', name: n, value: consts[n] });
+  });
   return items;
 }
 function chooseSymbolItem(it) {
   if (!it) { closeSymbolPicker(); return; }
-  if (it.kind === 'var') {
+  if (it.kind === 'var' || it.kind === 'const') {
     const mq = symbolTargetMQ || (symbolTargetLine && symbolTargetLine.mq);
     if (mq) { mq.focus(); mq.write(varToLatex(it.name)); }
     closeSymbolPicker();
@@ -7603,6 +7610,26 @@ function renderSymbolHome() {
   cellGrid(SYMBOL_LIST.filter(s => s.kind === 'cmd'));
   head('Letters');
   cellGrid(SYMBOL_LIST.filter(s => s.kind === 'text'));
+  // predefined constants at the bottom, as chips with their values (same list
+  // as the sidebar's constants panel, so g follows the 9.8 / 9.81 setting)
+  const consts = physConstants();
+  const constNames = Object.keys(consts).sort(cmpVarNames);
+  if (constNames.length) {
+    head('Constants');
+    const row = document.createElement('div'); row.className = 'sym-chiprow';
+    constNames.forEach(n => {
+      const chip = document.createElement('button'); chip.className = 'sym-chip';
+      const g = document.createElement('span');
+      try { katex.render(varToLatex(n), g, { throwOnError: false }); } catch (e) { g.textContent = prettyVarLabel(n); }
+      chip.appendChild(g);
+      let valTxt = '';
+      try { if (typeof numToPlainLabel === 'function') valTxt = numToPlainLabel(consts[n]); } catch (e) {}
+      if (valTxt) { const vs = document.createElement('span'); vs.className = 'sym-chip-val'; vs.textContent = valTxt; chip.appendChild(vs); }
+      chip.addEventListener('mousedown', (ev) => { ev.preventDefault(); chooseSymbolItem({ kind: 'const', name: n }); });
+      row.appendChild(chip);
+    });
+    symbolResults.appendChild(row);
+  }
 }
 function renderSymbolResults(q) {
   symbolActiveIdx = 0;
@@ -7621,14 +7648,14 @@ function renderSymbolResults(q) {
   symbolItems.forEach((it, i) => {
     if (it.kind !== lastKind) {
       const h = document.createElement('div'); h.className = 'fml-cat';
-      h.textContent = it.kind === 'var' ? 'In this section' : 'Symbols';
+      h.textContent = it.kind === 'var' ? 'In this section' : it.kind === 'const' ? 'Constants' : 'Symbols';
       symbolResults.appendChild(h); lastKind = it.kind;
     }
     const row = document.createElement('div');
     row.className = 'sym-row' + (i === 0 ? ' active' : '');
     row.innerHTML = '<span class="sym-glyph"></span><span class="sym-name"></span>';
     const glyphEl = row.querySelector('.sym-glyph'), nameEl = row.querySelector('.sym-name');
-    if (it.kind === 'var') {
+    if (it.kind === 'var' || it.kind === 'const') {
       try { katex.render(varToLatex(it.name), glyphEl, { throwOnError: false }); } catch (e) { glyphEl.textContent = prettyVarLabel(it.name); }
       let valTxt = '';
       try { if (it.value !== undefined && typeof numToPlainLabel === 'function') valTxt = ' = ' + numToPlainLabel(it.value); } catch (e) {}
