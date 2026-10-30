@@ -675,6 +675,8 @@ textarea.code:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent
 .content a,.cell a{color:var(--accent);text-decoration:none}
 .content a:hover,.cell a:hover{text-decoration:underline}
 .content s{color:var(--ink-dim)}
+.content .imath .katex{font-size:1.05em}
+.content .imath{padding:0 1px}
 
 /* tables */
 .tbl-wrap{margin:6px 0;min-width:0}
@@ -1019,6 +1021,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
         <tr><td>`code`</td><td>Inline code (Ctrl/Cmd+E)</td></tr>
         <tr><td>~~struck~~</td><td>Strikethrough (Ctrl/Cmd+Shift+X)</td></tr>
         <tr><td>==text==</td><td>Highlight</td></tr>
+        <tr><td>$2*10^3$</td><td>Inline maths inside a text line, typeset when you click away: calculator syntax ($sqrt(2)/2$, $pi/4$, $E=mc^2$) or LaTeX ($\frac{1}{2}$). No space just inside the dollars.</td></tr>
         <tr><td>[text](url)</td><td>Link. Bare https links also become clickable.</td></tr>
       </table>
       <h3>Keys</h3>
@@ -1152,6 +1155,7 @@ function parseInline(raw){
     if(closers[i]){ var c=closers[i]; delete closers[i]; html+=c.tag; i+=c.len; continue; }
     var ch=raw[i];
     if(ch==='`'){ var j=raw.indexOf('`',i+1); if(j>i+1){ html+='<code>'; for(var k=i+1;k<j;k++) push(raw[k],k); html+='</code>'; i=j+1; continue; } }
+    if(ch==='$'){ var jd=raw.indexOf('$',i+1); if(jd>i+1 && !/\s/.test(raw[i+1]) && !/\s/.test(raw[jd-1])){ var inner=raw.slice(i+1,jd); var kh=inlineMathHTML(inner); if(kh){ html+='<span class="imath">'+kh.html+'</span>'; for(var kk=0;kk<kh.len;kk++) map.push(i); i=jd+1; continue; } } }
     if(ch==='['){ var m=/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/.exec(raw.slice(i)); if(m){ html+='<a href="'+esc(m[2])+'" target="_blank" rel="noopener">'; for(var q=0;q<m[1].length;q++) push(m[1][q],i+1+q); html+='</a>'; i+=m[0].length; continue; } }
     if(/^https?:\/\/\S+/.test(raw.slice(i)) && (i===0 || /\s/.test(raw[i-1]))){ var um=/^https?:\/\/[^\s<>]+/.exec(raw.slice(i)); var u=um[0].replace(/[.,;:!?)]+$/,''); html+='<a href="'+esc(u)+'" target="_blank" rel="noopener">'; for(var z=0;z<u.length;z++) push(u[z],i+z); html+='</a>'; i+=u.length; continue; }
     var hit=null;
@@ -1169,6 +1173,15 @@ function parseInline(raw){
     push(ch,i); i++;
   }
   return {html:html,map:map};
+}
+
+/* $...$ inside a text line: LaTeX, or the calculator's plain syntax (2*10^3, sqrt(2), pi/4) converted to LaTeX */
+var _imCache={};
+function inlineMathHTML(inner){
+  if(_imCache[inner]!==undefined) return _imCache[inner];
+  var out=null;
+  try{ if(window.katex){ var tex=inner.indexOf('\\')>=0?inner:textToLatex(inner); var h=katex.renderToString(tex,{throwOnError:false,strict:'ignore',output:'html'}); var tmp=document.createElement('div'); tmp.innerHTML=h; out={html:h,len:tmp.textContent.length}; } }catch(e){ out=null; }
+  _imCache[inner]=out; return out;
 }
 
 /* ---------- caret helpers ---------- */
