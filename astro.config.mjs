@@ -8,5 +8,8 @@ export default defineConfig({
   trailingSlash: 'ignore',
   redirects: {
     '/tools/vce-motion-grapher': '/tools/vce-physics-grapher',
+    // Retired from the Tools list; the standalone pace calculator still exists for home-screen installs.
+    '/tools/pace-calculator': '/tools/pace-calculator.html',
+    '/tools/palette-picker': '/tools',
   },
 });

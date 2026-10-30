@@ -1,6 +1,7 @@
 ---
 title: "Unit 4 Physics Area of Study 1 Practice: Modern Physics"
 type: applet
+category: practice
 subject: Physics
 yearLevel: [11, 12]
 topic: "Modern Physics"

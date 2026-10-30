@@ -1,13 +1,13 @@
 ---
 import Logo from '~/components/brand/Logo.astro';
 import SearchBar from './SearchBar.astro';
-import EditToggle from './EditToggle.astro';
 
 const path = Astro.url.pathname;
 const isActive = (prefix: string) => path === prefix || path.startsWith(prefix + '/');
 const links = [
   { href: '/', label: 'Home', active: path === '/' },
   { href: '/resources', label: 'Resources', active: isActive('/resources') },
+  { href: '/practice', label: 'Practice', active: isActive('/practice') },
   { href: '/tools', label: 'Tools', active: isActive('/tools') },
 ];
 ---
@@ -27,7 +27,6 @@ const links = [
 
     <div class="header-tools">
       <SearchBar />
-      <EditToggle />
       <button
         type="button"
         class="menu-btn"

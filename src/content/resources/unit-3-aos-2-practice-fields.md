@@ -1,6 +1,7 @@
 ---
 title: "Unit 3 Area of Study 2 Physics Practice: Fields"
 type: applet
+category: practice
 subject: Physics
 yearLevel: [11, 12]
 topic: "Fields"

@@ -7,6 +7,7 @@ type FilterValues = {
   years: Set<string>;
   tags: Set<string>;
   types: Set<string>;
+  categories: Set<string>;
 };
 
 function readPanel(panel: HTMLElement): FilterValues {
@@ -20,6 +21,7 @@ function readPanel(panel: HTMLElement): FilterValues {
     years: get('year'),
     tags: get('tag'),
     types: get('type'),
+    categories: get('category'),
   };
 }
 
@@ -31,6 +33,10 @@ function matches(item: HTMLElement, f: FilterValues): boolean {
   if (f.types.size) {
     const t = item.dataset.type ?? '';
     if (!f.types.has(t)) return false;
+  }
+  if (f.categories.size) {
+    const c = item.dataset.category ?? '';
+    if (!f.categories.has(c)) return false;
   }
   if (f.years.size) {
     const itemYears = (item.dataset.years ?? '').split(',').map(s => s.trim()).filter(Boolean);

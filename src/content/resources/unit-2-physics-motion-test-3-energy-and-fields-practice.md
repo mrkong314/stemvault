@@ -1,6 +1,7 @@
 ---
 title: "Unit 2 Physics Motion Test 3 Energy and Fields Practice"
 type: applet
+category: practice
 subject: Physics
 yearLevel: [11]
 topic: "Energy and Fields"

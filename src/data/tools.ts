@@ -25,15 +25,9 @@ export const TOOLS: Tool[] = [
     href: '/tools/rep-timer',
   },
   {
-    slug: 'pace-calculator',
-    title: 'Pace Calculator',
-    description: 'Running pace, time and distance solver with km-by-km or mile splits for even and negative-split plans, plus Riegel race predictions. Installs to a phone home screen.',
-    href: '/tools/pace-calculator',
-  },
-  {
     slug: 'random-picker',
     title: 'Random Picker',
-    description: 'Pick one name, several, or make groups from any pasted list, with no-repeat pools, saved lists and a shuffle mode. Installs to a phone home screen.',
+    description: 'Spin a wheel of names to pick a student, with winners removed as you go, plus group maker and shuffle modes and saved lists. Installs to a phone home screen.',
     href: '/tools/random-picker',
   },
   {
@@ -41,12 +35,6 @@ export const TOOLS: Tool[] = [
     title: 'Scratchpad',
     description: 'Notes filed as tabs and groups, with checkboxes, lists, toggles, tables, inline calculator sections, Markdown shortcuts and pasted images. Saved only in the browser, on the device. Installs to a phone home screen.',
     href: '/tools/scratchpad.html',
-  },
-  {
-    slug: 'palette-picker',
-    title: 'Palette Picker',
-    description: 'Quick colour picker for teaching materials. Browse the StemVault palette or sample any hex.',
-    href: '/tools/palette-picker',
   },
   {
     slug: 'vce-electrical-circuit-maker',

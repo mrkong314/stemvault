@@ -2,7 +2,7 @@
 import { SUBJECT_NAMES } from '~/data/subjects';
 import { YEAR_LEVELS } from '~/data/yearLevels';
 import { getAllTags } from '~/lib/collections';
-import { TYPE_LABEL } from '~/lib/types';
+import { TYPE_LABEL, CATEGORY_LABEL } from '~/lib/types';
 
 interface Props {
   /** Selector for the items the panel filters (cards or list rows). */
@@ -23,12 +23,14 @@ const COLLAPSE_AFTER = 6;
 
 const subjectOpts = SUBJECT_NAMES.map(n => ({ value: n, label: n }));
 const typeOpts = (['applet', 'quiz', 'file', 'video'] as const).map(t => ({ value: t, label: TYPE_LABEL[t] }));
+const categoryOpts = (['practice', 'game'] as const).map(c => ({ value: c, label: CATEGORY_LABEL[c] }));
 const yearOpts = YEAR_LEVELS.map(y => ({ value: String(y), label: inline ? `Yr ${y}` : `Year ${y}` }));
 
 const sections = [
   ...(hideSubject ? [] : [{ name: 'subject', title: 'Subject', options: subjectOpts }]),
   { name: 'year', title: 'Year level', options: yearOpts },
   { name: 'type', title: 'Type', options: typeOpts },
+  { name: 'category', title: 'Category', options: categoryOpts },
 ];
 const tagVisible = tags.slice(0, COLLAPSE_AFTER);
 const tagOverflow = tags.slice(COLLAPSE_AFTER);

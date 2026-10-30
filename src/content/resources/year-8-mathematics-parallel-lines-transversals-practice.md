@@ -1,6 +1,7 @@
 ---
 title: "Year 8 Mathematics Parallel Lines and Transversals Practice"
 type: applet
+category: practice
 subject: Mathematics
 yearLevel: [8]
 topic: "Geometry"

@@ -16,6 +16,10 @@ export async function getResourcesByType(type: ResourceType): Promise<ResourceEn
   return (await getResources()).filter(r => r.data.type === type);
 }
 
+export async function getResourcesByCategory(category: 'practice' | 'game'): Promise<ResourceEntry[]> {
+  return (await getResources()).filter(r => r.data.category === category);
+}
+
 export async function getRecentResources(limit = 5): Promise<ResourceEntry[]> {
   return (await getResources()).slice(0, limit);
 }

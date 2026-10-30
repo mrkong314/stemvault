@@ -9,6 +9,8 @@ const yearSchema = z.array(z.number().int().refine(n => (YEAR_LEVELS as readonly
 
 const typeEnum = z.enum(['applet', 'file', 'video', 'quiz']);
 const formatEnum = z.enum(['pdf', 'ppt', 'doc', 'link']);
+// Optional grouping used for the Practice section and the category filter.
+const categoryEnum = z.enum(['practice', 'game']);
 
 const schema = z.object({
   title: z.string(),
@@ -18,6 +20,7 @@ const schema = z.object({
   tags: z.array(z.string()).default([]),
   description: z.string().optional(),
   topic: z.string().optional(),
+  category: categoryEnum.optional(),
   addedAt: z.coerce.date(),
   featured: z.boolean().default(false),
   unlisted: z.boolean().default(false),

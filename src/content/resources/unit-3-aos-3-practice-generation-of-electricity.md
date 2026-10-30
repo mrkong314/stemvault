@@ -1,6 +1,7 @@
 ---
 title: "Unit 3 Area of Study 3 Physics Practice: Generation of Electricity"
 type: applet
+category: practice
 subject: Physics
 yearLevel: [11, 12]
 topic: "Electromagnetism"

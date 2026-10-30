@@ -41,6 +41,7 @@ Common optional fields:
 - `tags`: array of short strings. The first tag is used as the topic fallback when `topic` is absent, so order it sensibly.
 - `topic`: the topic this sits under (drives the subject/topic pages). Prefer setting it explicitly.
 - `description`: one or two sentences. Recommended for applets and videos.
+- `category`: `practice` for a self-marking practice bank (these also appear in the Practice section) or `game` for a classroom game such as Taboo. Omit for everything else.
 - `sourceNote`: provenance / licensing note (used on file entries).
 - `featured`: `true` only if the user asks for it. Default `false`.
 - `unlisted`: `true` if the user wants it hidden from the catalogue (see Privacy). Default `false`.

@@ -3,6 +3,7 @@ import type { YearLevel } from '~/data/yearLevels';
 
 export type ResourceType = 'applet' | 'file' | 'video' | 'quiz';
 export type FileFormat = 'pdf' | 'ppt' | 'doc' | 'link';
+export type Category = 'practice' | 'game';
 
 export type FilterState = {
   subjects: Set<Subject>;
@@ -24,4 +25,9 @@ export const FORMAT_LABEL: Record<FileFormat, string> = {
   ppt: 'Powerpoint',
   doc: 'Word Doc',
   link: 'External Link',
+};
+
+export const CATEGORY_LABEL: Record<Category, string> = {
+  practice: 'Practice bank',
+  game: 'Game',
 };

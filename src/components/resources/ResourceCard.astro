@@ -8,7 +8,7 @@ interface Props {
   resource: ResourceEntry;
 }
 const { resource } = Astro.props;
-const { title, type, subject, yearLevel, tags, description, format } = resource.data;
+const { title, type, subject, yearLevel, tags, description, format, category } = resource.data;
 const href = resourceHref(resource);
 const external = isExternalHref(resource);
 const accent = SUBJECTS.find(s => s.name === subject)?.accent ?? 'var(--pine)';
@@ -18,6 +18,7 @@ const accent = SUBJECTS.find(s => s.name === subject)?.accent ?? 'var(--pine)';
   style={`--accent: ${accent}`}
   data-resource
   data-type={type}
+  data-category={category ?? ''}
   data-subject={subject}
   data-years={yearLevel.join(',')}
   data-tags={tags.join('|')}

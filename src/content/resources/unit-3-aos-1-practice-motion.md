@@ -1,6 +1,7 @@
 ---
 title: "Unit 3 Area of Study 1 Physics Practice: Motion"
 type: applet
+category: practice
 subject: Physics
 yearLevel: [11, 12]
 topic: "Motion"

@@ -1,6 +1,7 @@
 ---
 title: "2026 NHT Physics Exam Practice"
 type: applet
+category: practice
 subject: Physics
 yearLevel: [12]
 topic: "Exam Practice"

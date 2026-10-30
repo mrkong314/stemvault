@@ -1,6 +1,7 @@
 ---
 title: "VCE Physics Taboo"
 type: applet
+category: game
 subject: Physics
 yearLevel: [11, 12]
 topic: "Exam Practice"

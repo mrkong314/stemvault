@@ -1,6 +1,7 @@
 ---
 title: "Unit 2 Physics Motion Test 1 Kinematics Practice"
 type: applet
+category: practice
 subject: Physics
 yearLevel: [11]
 topic: "Kinematics"

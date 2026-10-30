@@ -1,6 +1,7 @@
 ---
 title: "Unit 1 and 2 Mathematical Methods Practice Bank"
 type: applet
+category: practice
 subject: Mathematics
 yearLevel: [11, 12]
 topic: "Mathematical Methods"

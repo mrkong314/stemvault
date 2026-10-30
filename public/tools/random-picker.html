@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Random Picker">
-<meta name="description" content="Pick one name, several, or make groups from any list, with no-repeat pools and saved lists.">
+<meta name="description" content="Spin a wheel of names to pick a student, remove winners as you go, make groups or shuffle a list. Lists are saved on the device.">
 <style>
   /* Standalone reset: the artifact host supplied these, the standalone page supplies them itself. */
   html { padding-top: env(safe-area-inset-top, 0px); }
@@ -158,11 +158,46 @@
   .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 90; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; }
   .remove.armed { color: #fff; background: var(--danger); border-color: transparent; }
   @media (prefers-reduced-motion: reduce) { .switch::after { transition: none; } }
+
+  /* Wheel */
+  .layout { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 860px) { .layout { grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr); align-items: start; } .app { max-width: 1100px; } .side { position: sticky; top: calc(70px + env(safe-area-inset-top, 0px)); } }
+  .wheel-panel { position: relative; align-items: center; gap: 10px; }
+  .wheel-wrap { position: relative; width: min(100%, 72vh, 640px); aspect-ratio: 1; margin: 0 auto; touch-action: manipulation; }
+  .wheel-wrap canvas { width: 100%; height: 100%; display: block; border-radius: 50%; cursor: pointer; }
+  .wheel-wrap.spinning canvas { cursor: default; }
+  .pointer { position: absolute; right: -6px; top: 50%; width: 0; height: 0; transform: translateY(-50%); border-top: 16px solid transparent; border-bottom: 16px solid transparent; border-right: 34px solid var(--ink); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); pointer-events: none; }
+  .hub { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 17%; height: 17%; border-radius: 50%; background: var(--panel); border: 3px solid var(--ink); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: clamp(0.9rem, 3vw, 1.4rem); letter-spacing: 0.02em; pointer-events: none; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+  .wheel-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20%; color: var(--ink-dim); font-weight: 500; pointer-events: none; }
+  .wheel-bar { display: flex; gap: 8px; width: 100%; align-items: center; flex-wrap: wrap; }
+  .wheel-bar .spacer { flex: 1; }
+  .wheel-bar .count { white-space: nowrap; }
+  .wheel-panel:fullscreen { background: var(--bg); padding: 24px; justify-content: center; border-radius: 0; }
+  .wheel-panel:fullscreen .wheel-wrap { width: min(92vw, 88vh); }
+  .wheel-panel.faux-fs { position: fixed; inset: 0; z-index: 80; background: var(--bg); padding: 24px; justify-content: center; border-radius: 0; border: 0; }
+  .wheel-panel.faux-fs .wheel-wrap { width: min(92vw, 88vh); }
+
+  /* Winner dialog */
+  .scrim { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  .dialog { width: min(520px, 100%); border-radius: 22px; padding: 28px 24px 22px; text-align: center; background: var(--panel); border: 1px solid var(--glass-border); box-shadow: 0 24px 60px rgba(0,0,0,0.35); display: flex; flex-direction: column; gap: 14px; animation: pop 0.25s ease-out; }
+  @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: none; opacity: 1; } }
+  .dialog .label { color: var(--accent); }
+  .dialog .winner { font-family: var(--font-digits); font-weight: 800; font-size: clamp(2rem, 9vw, 3.6rem); line-height: 1.05; letter-spacing: -0.02em; overflow-wrap: anywhere; text-wrap: balance; }
+  .dialog .actions { margin-top: 6px; }
+  .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 101; }
+
+  /* Results */
+  .results { display: flex; flex-direction: column; gap: 6px; }
+  .results li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--rule); font-weight: 600; }
+  .results li:first-child { border-top: 0; }
+  .results li .n { font-family: var(--font-digits); color: var(--ink-dim); font-weight: 500; min-width: 1.6em; font-size: 0.9rem; }
+  .results li .back { margin-left: auto; border: 1px solid var(--rule); background: transparent; color: var(--ink-dim); border-radius: 999px; padding: 3px 10px; font-size: 0.78rem; font-weight: 600; }
+  .results li .back:hover { color: var(--accent); border-color: var(--accent); }
 </style>
 
 <header class="topbar">
   <div class="inner">
-    <div><div class="title">Random Picker</div><div class="sub" id="subLabel">Pick one</div></div>
+    <div><div class="title">Random Picker</div><div class="sub" id="subLabel">Spin the wheel</div></div>
     <div class="spacer"></div>
     <div class="settings-wrap">
       <button class="gbtn icon" id="settingsBtn" type="button" aria-label="Settings" aria-expanded="false">
@@ -172,7 +207,12 @@
         <div class="row"><span class="label">Appearance</span>
           <div class="seg full" id="themeSeg"><button type="button" data-v="auto">Auto</button><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div>
         </div>
-        <div class="row inline"><span id="animLabel">Shuffle animation</span><button class="switch" id="animToggle" type="button" role="switch" aria-checked="true" aria-labelledby="animLabel"></button></div>
+        <div class="row"><span class="label">Spin time</span>
+          <div class="seg full" id="durSeg"><button type="button" data-v="3">3 s</button><button type="button" data-v="5">5 s</button><button type="button" data-v="8">8 s</button></div>
+        </div>
+        <div class="row inline"><span id="soundLabel">Sound</span><button class="switch" id="soundToggle" type="button" role="switch" aria-checked="true" aria-labelledby="soundLabel"></button></div>
+        <div class="row inline"><span id="autoRemoveLabel">Remove winner automatically</span><button class="switch" id="autoRemoveToggle" type="button" role="switch" aria-checked="false" aria-labelledby="autoRemoveLabel"></button></div>
+        <div class="row inline"><span id="confettiLabel">Confetti</span><button class="switch" id="confettiToggle" type="button" role="switch" aria-checked="true" aria-labelledby="confettiLabel"></button></div>
       </div>
     </div>
   </div>
@@ -185,47 +225,86 @@
   </div>
 
   <div class="seg full" id="modeSeg" role="tablist">
-    <button type="button" data-v="one" role="tab">One</button>
-    <button type="button" data-v="several" role="tab">Several</button>
+    <button type="button" data-v="wheel" role="tab">Wheel</button>
     <button type="button" data-v="groups" role="tab">Groups</button>
     <button type="button" data-v="shuffle" role="tab">Shuffle</button>
   </div>
 
-  <section class="glass panel stage" aria-live="polite">
-    <div class="result empty" id="result">Add some names below, then tap Pick.</div>
-    <div class="meta" id="meta"></div>
-  </section>
+  <div class="layout">
+    <div class="main">
+      <section class="glass panel wheel-panel" id="wheelPanel">
+        <div class="wheel-wrap" id="wheelWrap">
+          <canvas id="wheel" aria-label="Wheel of names"></canvas>
+          <div class="pointer" aria-hidden="true"></div>
+          <div class="hub" aria-hidden="true">SPIN</div>
+          <div class="wheel-empty" id="wheelEmpty" hidden>Add names in the list to fill the wheel.</div>
+        </div>
+        <div class="wheel-bar">
+          <button type="button" class="gbtn pill" id="spinBtn" style="flex:1">Spin</button>
+          <button type="button" class="gbtn" id="fsBtn" aria-pressed="false">Fullscreen</button>
+        </div>
+        <div class="wheel-bar">
+          <span class="count" id="wheelCount"></span>
+          <span class="spacer"></span>
+          <button type="button" class="gbtn ghost" id="resetWheel" style="min-height:36px; font-size:0.85rem">Restore all names</button>
+        </div>
+      </section>
 
-  <section class="glass panel">
-    <div class="options">
-      <div class="opt" id="countOpt" hidden><span class="label" id="countLabel">Pick</span>
-        <div class="stepper"><button type="button" id="countDown" aria-label="Fewer">−</button><span class="v" id="countVal">2</span><button type="button" id="countUp" aria-label="More">+</button></div>
-      </div>
-      <div class="opt" id="groupByOpt" hidden>
-        <div class="seg" id="groupBySeg"><button type="button" data-v="count">Groups</button><button type="button" data-v="size">Per group</button></div>
-      </div>
-      <div class="opt" id="repeatOpt"><span id="repeatLabel">No repeats</span><button class="switch" id="repeatToggle" type="button" role="switch" aria-checked="true" aria-labelledby="repeatLabel"></button></div>
-    </div>
-    <div class="actions">
-      <button type="button" class="gbtn pill" id="pickBtn">Pick</button>
-      <button type="button" class="gbtn" id="copyBtn" style="flex:0 0 auto">Copy</button>
-    </div>
-    <div class="actions" id="poolRow" hidden>
-      <span class="count" id="poolCount" style="align-self:center; flex:1"></span>
-      <button type="button" class="gbtn ghost" id="resetPool" style="flex:0 0 auto; min-height:38px">Reset pool</button>
-    </div>
-    <div class="history" id="history"></div>
-  </section>
+      <section class="glass panel stage" id="stagePanel" aria-live="polite" hidden>
+        <div class="result empty" id="result"></div>
+        <div class="meta" id="meta"></div>
+      </section>
 
-  <section class="glass panel editor">
-    <div class="head">
-      <input type="text" id="listName" placeholder="List name" maxlength="40" autocomplete="off" aria-label="List name">
-      <button type="button" class="gbtn remove" id="deleteList" style="min-height:38px; font-size:0.85rem">Delete</button>
+      <section class="glass panel" id="modePanel" hidden>
+        <div class="options">
+          <div class="opt" id="countOpt" hidden><span class="label" id="countLabel">Groups</span>
+            <div class="stepper"><button type="button" id="countDown" aria-label="Fewer">−</button><span class="v" id="countVal">2</span><button type="button" id="countUp" aria-label="More">+</button></div>
+          </div>
+          <div class="opt" id="groupByOpt" hidden>
+            <div class="seg" id="groupBySeg"><button type="button" data-v="count">Groups</button><button type="button" data-v="size">Per group</button></div>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" class="gbtn pill" id="pickBtn">Make groups</button>
+          <button type="button" class="gbtn" id="copyBtn" style="flex:0 0 auto">Copy</button>
+        </div>
+      </section>
     </div>
-    <textarea id="listText" placeholder="One name per line" spellcheck="false"></textarea>
-    <div class="options"><span class="count" id="listCount">0 names</span><button type="button" class="gbtn ghost" id="sortList" style="min-height:36px; font-size:0.85rem">Sort A–Z</button></div>
-  </section>
+
+    <div class="side">
+      <section class="glass panel editor">
+        <div class="head">
+          <input type="text" id="listName" placeholder="List name" maxlength="40" autocomplete="off" aria-label="List name">
+          <button type="button" class="gbtn remove" id="deleteList" style="min-height:38px; font-size:0.85rem">Delete</button>
+        </div>
+        <textarea id="listText" placeholder="One name per line" spellcheck="false"></textarea>
+        <div class="options"><span class="count" id="listCount">0 names</span>
+          <span style="display:flex; gap:6px">
+            <button type="button" class="gbtn ghost" id="shuffleList" style="min-height:36px; font-size:0.85rem">Shuffle</button>
+            <button type="button" class="gbtn ghost" id="sortList" style="min-height:36px; font-size:0.85rem">Sort A–Z</button>
+          </span>
+        </div>
+      </section>
+
+      <section class="glass panel" id="resultsPanel" style="margin-top:12px" hidden>
+        <div class="options"><span class="label">Results</span><button type="button" class="gbtn ghost" id="clearResults" style="min-height:32px; font-size:0.8rem">Clear</button></div>
+        <ul class="results" id="results"></ul>
+      </section>
+    </div>
+  </div>
 </div>
+
+<div class="scrim" id="winnerScrim" hidden>
+  <div class="dialog glass" role="dialog" aria-modal="true" aria-labelledby="winnerName">
+    <span class="label">We have a winner</span>
+    <div class="winner" id="winnerName"></div>
+    <div class="actions">
+      <button type="button" class="gbtn" id="winnerClose">Close</button>
+      <button type="button" class="gbtn pill" id="winnerRemove" style="min-height:48px; font-size:1rem">Remove</button>
+    </div>
+  </div>
+</div>
+<canvas class="confetti" id="confetti" hidden></canvas>
 
 <script>
 (function () {
@@ -234,15 +313,20 @@
   const STORE = 'random-picker-v1';
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
-  let state = { theme: 'dark', anim: true, mode: 'one', count: 2, groupBy: 'count', noRepeat: true, current: null, lists: [], pools: {}, history: {} };
+  let state = { theme: 'dark', mode: 'wheel', count: 2, groupBy: 'count', duration: 5, sound: true, autoRemove: false, confetti: true, current: null, lists: [], removed: {}, results: {} };
   try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
+  if (!['wheel', 'groups', 'shuffle'].includes(state.mode)) state.mode = 'wheel';
   if (!state.lists.length) {
     state.lists = [{ id: uid(), name: 'Example list', text: 'Alex\nBlake\nCasey\nDrew\nEmerson\nFinley\nHarper\nJordan\nKai\nMorgan\nParker\nQuinn\nRiley\nSage\nTaylor' }];
   }
   if (!state.lists.find(l => l.id === state.current)) state.current = state.lists[0].id;
+  state.removed = state.removed || {}; state.results = state.results || {};
   function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
   const cur = () => state.lists.find(l => l.id === state.current);
   const names = () => cur().text.split('\n').map(s => s.trim()).filter(Boolean);
+  const removedSet = () => new Set(state.removed[state.current] || []);
+  const active = () => { const r = removedSet(); return names().filter(n => !r.has(n)); };
+  function shuffled(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
   // ---- Settings ----
   const settings = $('settings'), settingsBtn = $('settingsBtn');
@@ -253,10 +337,13 @@
   function segOn(seg, fn) { seg.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) fn(b.dataset.v); }); }
   function applyTheme() {
     if (state.theme === 'dark' || state.theme === 'light') document.documentElement.setAttribute('data-theme', state.theme); else document.documentElement.removeAttribute('data-theme');
-    segSync($('themeSeg'), state.theme);
+    segSync($('themeSeg'), state.theme); drawWheel();
   }
   segOn($('themeSeg'), v => { state.theme = v; save(); applyTheme(); });
-  $('animToggle').addEventListener('click', () => { state.anim = !state.anim; save(); $('animToggle').setAttribute('aria-checked', String(state.anim)); });
+  segOn($('durSeg'), v => { state.duration = +v; save(); segSync($('durSeg'), state.duration); });
+  function wireSwitch(id, key) { const el = $(id); el.setAttribute('aria-checked', String(!!state[key])); el.addEventListener('click', () => { state[key] = !state[key]; save(); el.setAttribute('aria-checked', String(state[key])); }); }
+  wireSwitch('soundToggle', 'sound'); wireSwitch('autoRemoveToggle', 'autoRemove'); wireSwitch('confettiToggle', 'confetti');
+  if (matchMedia('(prefers-color-scheme: dark)').matches) { /* no-op; theme segment handles it */ }
 
   // ---- Lists ----
   const listSelect = $('listSelect'), listName = $('listName'), listText = $('listText');
@@ -268,113 +355,215 @@
     renderCount();
   }
   function renderCount() { const n = names().length; $('listCount').textContent = n + (n === 1 ? ' name' : ' names'); }
-  listSelect.addEventListener('change', () => { state.current = listSelect.value; save(); renderListSelect(); clearResult(); renderMode(); });
+  function switchList(id) { state.current = id; save(); renderListSelect(); clearResult(); renderMode(); }
+  listSelect.addEventListener('change', () => switchList(listSelect.value));
   listName.addEventListener('input', () => { cur().name = listName.value; save(); listSelect.options[listSelect.selectedIndex].textContent = listName.value || 'Untitled'; });
-  listText.addEventListener('input', () => { cur().text = listText.value; delete state.pools[state.current]; save(); renderCount(); renderPool(); });
-  $('newList').addEventListener('click', () => { const l = { id: uid(), name: 'New list', text: '' }; state.lists.push(l); state.current = l.id; save(); renderListSelect(); clearResult(); renderMode(); listText.focus(); });
-  $('sortList').addEventListener('click', () => { cur().text = names().sort((a, b) => a.localeCompare(b)).join('\n'); listText.value = cur().text; save(); });
+  listText.addEventListener('input', () => { cur().text = listText.value; save(); renderCount(); drawWheel(); renderWheelMeta(); });
+  $('newList').addEventListener('click', () => { const l = { id: uid(), name: 'New list', text: '' }; state.lists.push(l); switchList(l.id); listText.focus(); });
+  $('sortList').addEventListener('click', () => { cur().text = names().sort((a, b) => a.localeCompare(b)).join('\n'); listText.value = cur().text; save(); drawWheel(); });
+  $('shuffleList').addEventListener('click', () => { cur().text = shuffled(names()).join('\n'); listText.value = cur().text; save(); drawWheel(); });
   let armT = null;
   $('deleteList').addEventListener('click', () => {
     const b = $('deleteList');
     if (b.classList.contains('armed')) {
-      clearTimeout(armT); delete state.pools[state.current]; delete state.history[state.current];
+      clearTimeout(armT); delete state.removed[state.current]; delete state.results[state.current];
       state.lists = state.lists.filter(l => l.id !== state.current);
       if (!state.lists.length) state.lists.push({ id: uid(), name: 'New list', text: '' });
-      state.current = state.lists[0].id; save(); renderListSelect(); clearResult(); renderMode();
+      switchList(state.lists[0].id);
       b.classList.remove('armed'); b.textContent = 'Delete';
     } else { b.classList.add('armed'); b.textContent = 'Tap again'; armT = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Delete'; }, 3000); }
   });
 
   // ---- Modes ----
-  const MODE_LABEL = { one: 'Pick one', several: 'Pick several', groups: 'Make groups', shuffle: 'Shuffle order' };
+  const MODE_LABEL = { wheel: 'Spin the wheel', groups: 'Make groups', shuffle: 'Shuffle order' };
   segOn($('modeSeg'), v => { state.mode = v; save(); clearResult(); renderMode(); });
   segOn($('groupBySeg'), v => { state.groupBy = v; save(); renderMode(); });
   $('countDown').addEventListener('click', () => { state.count = Math.max(2, state.count - 1); save(); renderMode(); });
   $('countUp').addEventListener('click', () => { state.count = Math.min(50, state.count + 1); save(); renderMode(); });
-  $('repeatToggle').addEventListener('click', () => { state.noRepeat = !state.noRepeat; save(); renderMode(); });
   function renderMode() {
-    segSync($('modeSeg'), state.mode); segSync($('groupBySeg'), state.groupBy);
+    segSync($('modeSeg'), state.mode); segSync($('groupBySeg'), state.groupBy); segSync($('durSeg'), state.duration);
     $('subLabel').textContent = MODE_LABEL[state.mode];
-    $('countOpt').hidden = !(state.mode === 'several' || state.mode === 'groups');
-    $('countLabel').textContent = state.mode === 'groups' ? (state.groupBy === 'count' ? 'Groups' : 'Per group') : 'Pick';
+    const wheel = state.mode === 'wheel';
+    $('wheelPanel').hidden = !wheel; $('stagePanel').hidden = wheel; $('modePanel').hidden = wheel;
+    $('countOpt').hidden = state.mode !== 'groups';
+    $('countLabel').textContent = state.groupBy === 'count' ? 'Groups' : 'Per group';
     $('countVal').textContent = state.count;
     $('groupByOpt').hidden = state.mode !== 'groups';
-    $('repeatOpt').hidden = !(state.mode === 'one' || state.mode === 'several');
-    $('repeatToggle').setAttribute('aria-checked', String(state.noRepeat));
-    $('pickBtn').textContent = state.mode === 'groups' ? 'Make groups' : state.mode === 'shuffle' ? 'Shuffle' : 'Pick';
-    renderPool();
-  }
-  function pool() {
-    if (!state.noRepeat) return names().slice();
-    const all = names();
-    let p = state.pools[state.current];
-    if (!Array.isArray(p)) { p = all.slice(); state.pools[state.current] = p; }
-    return p.filter(n => all.includes(n));
-  }
-  function renderPool() {
-    const show = state.noRepeat && (state.mode === 'one' || state.mode === 'several');
-    $('poolRow').hidden = !show;
-    if (show) { const p = pool(), n = names().length; $('poolCount').textContent = p.length + ' of ' + n + ' remaining'; }
-    renderHistory();
-  }
-  $('resetPool').addEventListener('click', () => { delete state.pools[state.current]; state.history[state.current] = []; save(); renderPool(); clearResult(); });
-  function renderHistory() {
-    const h = (state.history[state.current] || []).slice(-8).reverse();
-    $('history').innerHTML = '';
-    if (state.mode !== 'one') return;
-    h.forEach(n => { const s = document.createElement('span'); s.textContent = n; $('history').appendChild(s); });
+    $('pickBtn').textContent = state.mode === 'groups' ? 'Make groups' : 'Shuffle';
+    if (wheel) { sizeWheel(); drawWheel(); }
+    renderWheelMeta(); renderResults();
   }
 
-  // ---- Picking ----
+  // ---- Wheel ----
+  const canvas = $('wheel'), wrap = $('wheelWrap');
+  const PALETTE = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+  let rot = 0, spinning = false, raf = null;
+  function sizeWheel() {
+    const rect = wrap.getBoundingClientRect(); const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const px = Math.max(100, Math.round(rect.width));
+    if (canvas.width !== px * dpr) { canvas.width = px * dpr; canvas.height = px * dpr; }
+  }
+  function segColor(i, n) {
+    // Avoid the first and last segment sharing a colour when n is a multiple of the palette length.
+    if (n % PALETTE.length === 1 && i === n - 1) return PALETTE[(i + 2) % PALETTE.length];
+    return PALETTE[i % PALETTE.length];
+  }
+  function drawWheel() {
+    const items = active(); const n = items.length;
+    $('wheelEmpty').hidden = n > 0;
+    const ctx = canvas.getContext('2d'); const W = canvas.width; const r = W / 2;
+    ctx.save(); ctx.clearRect(0, 0, W, W); ctx.translate(r, r); ctx.rotate(rot);
+    if (!n) { ctx.beginPath(); ctx.arc(0, 0, r - 4, 0, Math.PI * 2); ctx.fillStyle = 'rgba(128,128,128,0.15)'; ctx.fill(); ctx.restore(); return; }
+    const seg = (Math.PI * 2) / n;
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark' || (!document.documentElement.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    for (let i = 0; i < n; i++) {
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, r - 4, i * seg, (i + 1) * seg); ctx.closePath();
+      ctx.fillStyle = segColor(i, n); ctx.fill();
+      if (n <= 120) { ctx.strokeStyle = dark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.7)'; ctx.lineWidth = Math.max(1, W / 600); ctx.stroke(); }
+    }
+    // labels
+    const maxFont = Math.min(r * 0.11, (Math.PI * (r * 0.62) * 2 / n) * 0.78);
+    const font = Math.max(0, maxFont);
+    if (font >= W / 160) {
+      ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+      ctx.font = '600 ' + font + 'px ' + getComputedStyle(document.body).fontFamily;
+      ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = font * 0.15;
+      const maxW = r * 0.62;
+      for (let i = 0; i < n; i++) {
+        ctx.save(); ctx.rotate((i + 0.5) * seg);
+        let t = items[i];
+        while (t.length > 1 && ctx.measureText(t).width > maxW) t = t.slice(0, -2) + '…';
+        ctx.fillText(t, r * 0.9, 0); ctx.restore();
+      }
+    }
+    ctx.restore();
+    // rim
+    ctx.save(); ctx.translate(r, r); ctx.beginPath(); ctx.arc(0, 0, r - 3, 0, Math.PI * 2); ctx.strokeStyle = dark ? '#2c2c2e' : '#ffffff'; ctx.lineWidth = Math.max(3, W / 160); ctx.stroke(); ctx.restore();
+  }
+  function indexAtPointer(n) { const seg = (Math.PI * 2) / n; const a = ((-rot) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2); return Math.floor(a / seg) % n; }
+  function renderWheelMeta() {
+    const a = active().length, t = names().length;
+    $('wheelCount').textContent = t ? (a === t ? t + ' on the wheel' : a + ' of ' + t + ' on the wheel') : '';
+    $('resetWheel').hidden = a === t;
+  }
+  $('resetWheel').addEventListener('click', () => { delete state.removed[state.current]; save(); drawWheel(); renderWheelMeta(); });
+
+  // ---- Sound ----
+  let actx = null;
+  function audio() { if (!state.sound) return null; try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); return actx; } catch (e) { return null; } }
+  function tick() { const a = audio(); if (!a) return; const o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.value = 900; g.gain.setValueAtTime(0.05, a.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.04); o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime + 0.05); }
+  function chime() { const a = audio(); if (!a) return; [523, 659, 784, 1047].forEach((f, i) => { const o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.value = f; const t = a.currentTime + i * 0.09; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5); o.connect(g).connect(a.destination); o.start(t); o.stop(t + 0.55); }); }
+
+  // ---- Spin ----
+  function spin() {
+    if (spinning) return;
+    const items = active(); const n = items.length;
+    if (!n) { toast('Add names to the list first'); return; }
+    audio();
+    spinning = true; wrap.classList.add('spinning'); $('spinBtn').disabled = true;
+    const seg = (Math.PI * 2) / n;
+    const winner = Math.floor(Math.random() * n);
+    // Land somewhere inside the winning segment (not right on an edge).
+    const inside = (winner + 0.15 + Math.random() * 0.7) * seg;
+    const targetMod = ((-inside) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+    const startMod = ((rot % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    const turns = 5 + Math.floor(Math.random() * 3);
+    const delta = turns * Math.PI * 2 + ((targetMod - startMod + Math.PI * 2) % (Math.PI * 2));
+    const start = rot, dur = (state.duration || 5) * 1000, t0 = performance.now();
+    let lastIdx = indexAtPointer(n);
+    const ease = t => 1 - Math.pow(1 - t, 4);
+    cancelAnimationFrame(raf);
+    (function frame(now) {
+      const t = Math.min(1, (now - t0) / dur);
+      rot = start + delta * ease(t);
+      drawWheel();
+      const idx = indexAtPointer(n);
+      if (idx !== lastIdx) { tick(); lastIdx = idx; }
+      if (t < 1) raf = requestAnimationFrame(frame);
+      else { rot = rot % (Math.PI * 2); spinning = false; wrap.classList.remove('spinning'); $('spinBtn').disabled = false; finish(items[indexAtPointer(n)]); }
+    })(t0);
+  }
+  function finish(name) {
+    chime();
+    (state.results[state.current] = state.results[state.current] || []).push(name);
+    if (state.autoRemove) removeName(name);
+    save(); renderResults();
+    if (state.confetti) burst();
+    $('winnerName').textContent = name;
+    $('winnerRemove').hidden = state.autoRemove || !active().includes(name);
+    $('winnerScrim').hidden = false;
+    setTimeout(() => $('winnerClose').focus(), 50);
+  }
+  function removeName(name) { const r = state.removed[state.current] || []; if (!r.includes(name)) r.push(name); state.removed[state.current] = r; save(); drawWheel(); renderWheelMeta(); }
+  function restoreName(name) { state.removed[state.current] = (state.removed[state.current] || []).filter(x => x !== name); save(); drawWheel(); renderWheelMeta(); }
+  function closeWinner() { $('winnerScrim').hidden = true; }
+  $('winnerClose').addEventListener('click', closeWinner);
+  $('winnerRemove').addEventListener('click', () => { removeName($('winnerName').textContent); closeWinner(); });
+  $('winnerScrim').addEventListener('click', e => { if (e.target === $('winnerScrim')) closeWinner(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('winnerScrim').hidden) closeWinner(); else if (e.key === ' ' && state.mode === 'wheel' && !e.target.matches('input, textarea, select, button')) { e.preventDefault(); spin(); } });
+  canvas.addEventListener('click', spin);
+  $('spinBtn').addEventListener('click', spin);
+
+  // ---- Results list ----
+  function renderResults() {
+    const list = state.results[state.current] || [];
+    $('resultsPanel').hidden = state.mode !== 'wheel' || !list.length;
+    const ul = $('results'); ul.innerHTML = '';
+    const removed = removedSet();
+    list.slice().reverse().forEach((n, i) => {
+      const li = document.createElement('li');
+      const s = document.createElement('span'); s.className = 'n'; s.textContent = (list.length - i) + '.'; li.appendChild(s);
+      li.appendChild(document.createTextNode(n));
+      if (removed.has(n)) { const b = document.createElement('button'); b.type = 'button'; b.className = 'back'; b.textContent = 'Put back'; b.addEventListener('click', () => { restoreName(n); renderResults(); }); li.appendChild(b); }
+      ul.appendChild(li);
+    });
+  }
+  $('clearResults').addEventListener('click', () => { delete state.results[state.current]; save(); renderResults(); });
+
+  // ---- Fullscreen ----
+  const panel = $('wheelPanel'), fsBtn = $('fsBtn');
+  function fsSync(on) { fsBtn.textContent = on ? 'Exit fullscreen' : 'Fullscreen'; fsBtn.setAttribute('aria-pressed', String(on)); requestAnimationFrame(() => { sizeWheel(); drawWheel(); }); }
+  fsBtn.addEventListener('click', () => {
+    if (document.fullscreenElement) { document.exitFullscreen(); return; }
+    if (panel.classList.contains('faux-fs')) { panel.classList.remove('faux-fs'); fsSync(false); return; }
+    try { const p = panel.requestFullscreen && panel.requestFullscreen(); if (p && p.catch) p.catch(() => { panel.classList.add('faux-fs'); fsSync(true); }); else if (!p) { panel.classList.add('faux-fs'); fsSync(true); } } catch (e) { panel.classList.add('faux-fs'); fsSync(true); }
+  });
+  document.addEventListener('fullscreenchange', () => fsSync(document.fullscreenElement === panel));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && panel.classList.contains('faux-fs')) { panel.classList.remove('faux-fs'); fsSync(false); } });
+
+  // ---- Confetti ----
+  function burst() {
+    const c = $('confetti'); const ctx = c.getContext('2d'); const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    c.width = innerWidth * dpr; c.height = innerHeight * dpr; c.hidden = false; ctx.scale(dpr, dpr);
+    const parts = Array.from({ length: 140 }, () => ({ x: innerWidth / 2, y: innerHeight / 2, vx: (Math.random() - 0.5) * 18, vy: -Math.random() * 16 - 4, s: 5 + Math.random() * 6, c: PALETTE[Math.floor(Math.random() * PALETTE.length)], r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3 }));
+    const t0 = performance.now();
+    (function f(now) {
+      const t = (now - t0) / 1000; ctx.clearRect(0, 0, innerWidth, innerHeight);
+      parts.forEach(p => { p.vy += 0.5; p.x += p.vx; p.y += p.vy; p.vx *= 0.99; p.r += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.globalAlpha = Math.max(0, 1 - t / 2.2); ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); ctx.restore(); });
+      if (t < 2.3) requestAnimationFrame(f); else { c.hidden = true; ctx.setTransform(1, 0, 0, 1, 0, 0); }
+    })(t0);
+  }
+
+  // ---- Groups / shuffle ----
   const result = $('result'), meta = $('meta');
   let lastText = '';
-  function clearResult() { result.className = 'result empty'; result.textContent = 'Tap ' + ($('pickBtn').textContent || 'Pick') + ' to start.'; meta.textContent = ''; lastText = ''; }
-  function shuffled(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-  function spinThen(candidates, done) {
-    if (!state.anim || candidates.length < 2) return done();
-    result.className = 'result spin';
-    let i = 0, delay = 40; const start = performance.now();
-    (function step() {
-      result.textContent = candidates[i++ % candidates.length];
-      const t = performance.now() - start;
-      if (t < 650) { delay = 40 + (t / 650) * 110; setTimeout(step, delay); } else done();
-    })();
-  }
-  function showOne(n) { result.className = 'result'; result.textContent = n; }
-  function showList(items, numbered) {
+  function clearResult() { result.className = 'result empty'; result.textContent = 'Tap ' + ($('pickBtn').textContent || 'Make groups') + ' to start.'; meta.textContent = ''; lastText = ''; }
+  function showList(items) {
     result.className = 'result'; result.innerHTML = '';
     const ul = document.createElement('ul'); ul.className = 'multi';
-    items.forEach((n, i) => { const li = document.createElement('li'); if (numbered) { const s = document.createElement('span'); s.className = 'n'; s.textContent = (i + 1) + '.'; li.appendChild(s); } li.appendChild(document.createTextNode(n)); ul.appendChild(li); });
+    items.forEach((n, i) => { const li = document.createElement('li'); const s = document.createElement('span'); s.className = 'n'; s.textContent = (i + 1) + '.'; li.appendChild(s); li.appendChild(document.createTextNode(n)); ul.appendChild(li); });
     result.appendChild(ul);
   }
   function showGroups(groups) {
     result.className = 'result'; result.innerHTML = '';
-    const wrap = document.createElement('div'); wrap.className = 'groups';
-    groups.forEach((g, i) => { const d = document.createElement('div'); d.className = 'group'; const h = document.createElement('h4'); h.textContent = 'Group ' + (i + 1); d.appendChild(h); g.forEach(n => { const r = document.createElement('div'); r.textContent = n; d.appendChild(r); }); wrap.appendChild(d); });
-    result.appendChild(wrap);
+    const w = document.createElement('div'); w.className = 'groups';
+    groups.forEach((g, i) => { const d = document.createElement('div'); d.className = 'group'; const h = document.createElement('h4'); h.textContent = 'Group ' + (i + 1); d.appendChild(h); g.forEach(n => { const r = document.createElement('div'); r.textContent = n; d.appendChild(r); }); w.appendChild(d); });
+    result.appendChild(w);
   }
   $('pickBtn').addEventListener('click', () => {
     const all = names();
-    if (!all.length) { result.className = 'result empty'; result.textContent = 'The list is empty. Add names below.'; return; }
-    if (state.mode === 'one') {
-      let p = pool();
-      if (!p.length) { delete state.pools[state.current]; p = pool(); meta.textContent = 'Everyone has had a turn. Pool reset.'; }
-      const n = p[Math.floor(Math.random() * p.length)];
-      spinThen(p, () => {
-        showOne(n); lastText = n;
-        if (state.noRepeat) state.pools[state.current] = p.filter(x => x !== n);
-        (state.history[state.current] = state.history[state.current] || []).push(n);
-        save(); renderPool();
-        meta.textContent = state.noRepeat ? '' : all.length + ' in the list';
-      });
-    } else if (state.mode === 'several') {
-      let p = pool();
-      if (p.length < state.count) { delete state.pools[state.current]; p = pool(); meta.textContent = 'Not enough left, pool reset.'; } else meta.textContent = '';
-      const picks = shuffled(p).slice(0, Math.min(state.count, p.length));
-      showList(picks, true); lastText = picks.join('\n');
-      if (state.noRepeat) state.pools[state.current] = p.filter(x => !picks.includes(x));
-      save(); renderPool();
-    } else if (state.mode === 'groups') {
+    if (!all.length) { result.className = 'result empty'; result.textContent = 'The list is empty. Add names first.'; return; }
+    if (state.mode === 'groups') {
       const order = shuffled(all);
       const g = state.groupBy === 'count' ? Math.min(state.count, order.length) : Math.max(1, Math.ceil(order.length / state.count));
       const groups = Array.from({ length: g }, () => []);
@@ -383,7 +572,7 @@
       meta.textContent = g + (g === 1 ? ' group' : ' groups') + ', sizes ' + groups.map(x => x.length).join(' / ');
       lastText = groups.map((x, i) => 'Group ' + (i + 1) + ': ' + x.join(', ')).join('\n');
     } else {
-      const order = shuffled(all); showList(order, true); meta.textContent = order.length + ' in random order'; lastText = order.map((n, i) => (i + 1) + '. ' + n).join('\n');
+      const order = shuffled(all); showList(order); meta.textContent = order.length + ' in random order'; lastText = order.map((n, i) => (i + 1) + '. ' + n).join('\n');
     }
   });
 
@@ -396,8 +585,9 @@
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(lastText).then(done).catch(fallback); else fallback();
   });
 
-  applyTheme(); $('animToggle').setAttribute('aria-checked', String(state.anim));
-  renderListSelect(); renderMode(); clearResult();
+  window.addEventListener('resize', () => { if (state.mode === 'wheel') { sizeWheel(); drawWheel(); } });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawWheel);
+  applyTheme(); renderListSelect(); renderMode(); clearResult();
 })();
 </script>
 </body>

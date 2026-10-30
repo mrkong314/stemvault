@@ -1,5 +1,6 @@
 ---
 import Logo from '~/components/brand/Logo.astro';
+import EditToggle from '~/components/nav/EditToggle.astro';
 import { SUBJECTS } from '~/data/subjects';
 const year = new Date().getFullYear();
 ---
@@ -21,8 +22,8 @@ const year = new Date().getFullYear();
       <h4 class="footer-h">Site</h4>
       <ul role="list" class="footer-links">
         <li><a href="/resources">Resources</a></li>
+        <li><a href="/practice">Practice</a></li>
         <li><a href="/tools">Tools</a></li>
-        <li><a href="#" id="svault-footer-edit">Edit mode</a></li>
       </ul>
     </div>
     <div>
@@ -32,18 +33,9 @@ const year = new Date().getFullYear();
   </div>
   <div class="container footer-foot">
     <span>© {year} StemVault</span>
-    <span>Built with Astro</span>
+    <EditToggle />
   </div>
 </footer>
-
-<script>
-  // Footer "Edit mode" link opens the header EditToggle popover.
-  document.getElementById('svault-footer-edit')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    document.getElementById('svault-edit-trigger')?.click();
-  });
-</script>
 
 <style>
   .site-footer {

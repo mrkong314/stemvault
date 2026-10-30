@@ -1,6 +1,7 @@
 ---
 title: "Year 8 Electricity Practice Bank"
 type: applet
+category: practice
 subject: Physics
 yearLevel: [8]
 topic: "Electricity"

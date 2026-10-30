@@ -1,6 +1,7 @@
 ---
 title: "Year 11 Mathematical Methods Derivative Top Gun"
 type: applet
+category: game
 subject: Mathematics
 yearLevel: [11]
 topic: "Differential Calculus"

@@ -1,6 +1,7 @@
 ---
 title: "Year 8 Science Chemistry Revision Practice"
 type: applet
+category: practice
 subject: Chemistry
 yearLevel: [8]
 topic: "Matter and Chemical Reactions"
