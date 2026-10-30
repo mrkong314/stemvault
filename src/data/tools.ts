@@ -40,7 +40,7 @@ export const TOOLS: Tool[] = [
     slug: 'scratchpad',
     title: 'Scratchpad',
     description: 'Notes filed as tabs and groups, with checkboxes, lists, toggles, tables, inline calculator sections, Markdown shortcuts and pasted images. Saved only in the browser, on the device. Installs to a phone home screen.',
-    href: '/tools/scratchpad',
+    href: '/tools/scratchpad.html',
   },
   {
     slug: 'palette-picker',

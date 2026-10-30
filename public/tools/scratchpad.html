@@ -118,6 +118,20 @@ textarea.code{display:block;width:100%;font-family:var(--mono);font-size:.86rem;
 .block:focus-within .calc-foot button,.block.selected .calc-foot button{opacity:1}
 .calc-foot button:hover{color:var(--fg)}
 
+#bsl{position:absolute;z-index:5;width:280px;max-width:calc(100% - 8px);max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px}
+#bsl .item{display:flex;justify-content:space-between;gap:12px;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:.9rem;font-family:var(--mono)}
+#bsl .item .hint{color:var(--muted);font-family:var(--font);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
+#bsl .item.active{background:var(--accent-soft)}
+#tgrid{position:absolute;z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:10px}
+.tg-label{font-size:.8rem;color:var(--fg);margin-bottom:6px;font-variant-numeric:tabular-nums}
+.tg-cells{display:grid;grid-template-columns:repeat(8,22px);gap:3px}
+.tg-cell{width:22px;height:22px;border:1px solid var(--line);border-radius:3px;background:var(--bg);cursor:pointer}
+.tg-cell.on{background:var(--fg);border-color:var(--fg)}
+.tg-foot{font-size:.72rem;color:var(--muted);margin-top:8px}
+.cl-note{display:block;font-size:.72rem;color:var(--muted);font-family:var(--font);white-space:normal}
+.cl-out.muted{color:var(--muted)}
+.calc-modes button{font:inherit;font-size:.74rem;border:0;background:transparent;color:var(--muted);cursor:pointer;padding:0 6px 0 0;opacity:1}
+.calc-modes button:hover{color:var(--fg);text-decoration:underline;text-underline-offset:2px}
 #slash{position:absolute;z-index:5;width:260px;max-width:calc(100% - 8px);max-height:300px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px}
 #slash .item{display:flex;justify-content:space-between;gap:12px;padding:6px 10px;border-radius:5px;cursor:pointer;font-size:.92rem}
 #slash .item .hint{color:var(--muted);font-family:var(--mono);font-size:.74rem;white-space:nowrap}
@@ -263,7 +277,9 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
         <div id="settingsPopover" class="settings-popover" hidden>
           <div class="settings-row"><span class="settings-label">Appearance</span><div class="seg" data-key="theme"><button type="button" data-val="auto">Auto</button><button type="button" data-val="light">Light</button><button type="button" data-val="dark">Dark</button></div></div>
           <div class="settings-row"><span class="settings-label">Angle</span><div class="seg" data-key="angle"><button type="button" data-val="deg">Degrees</button><button type="button" data-val="rad">Radians</button></div></div>
-          <div class="settings-row"><span class="settings-label">Results</span><div class="seg" data-key="sigfigs"><button type="button" data-val="auto">Auto</button><button type="button" data-val="3">3 s.f.</button></div></div>
+          <div class="settings-row"><span class="settings-label">Result</span><div class="seg" data-key="exact"><button type="button" data-val="exact">Exact</button><button type="button" data-val="decimal">Decimal</button></div></div>
+          <div class="settings-row"><span class="settings-label">Significant figures</span><div class="seg" data-key="sigfigs"><button type="button" data-val="auto">Auto</button><button type="button" data-val="3">3 s.f.</button></div></div>
+          <div class="settings-row"><span class="settings-label">Solve</span><div class="seg" data-key="solve"><button type="button" data-val="first">First</button><button type="button" data-val="all">All</button></div></div>
           <div class="settings-sep"></div>
           <button type="button" class="settings-act" data-act="image">Add image</button>
           <button type="button" class="settings-act" data-act="copy">Copy note as Markdown</button>
@@ -289,6 +305,8 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
     <h1 id="title" contenteditable="true" spellcheck="true" data-ph="Untitled"></h1>
     <div id="editor" aria-label="Note"></div>
     <div id="slash" role="listbox" hidden></div>
+    <div id="bsl" class="picker" role="listbox" hidden></div>
+    <div id="tgrid" hidden></div>
     <div class="help" id="help" hidden>
       <h3>About</h3>
       <p style="margin-top:0;color:var(--fg)">Notes for quick ideas. Open the menu at the top left to switch notes, make new ones, and file them into groups. Click below the title and start typing. Type <code>/</code> at the start of a line for the block menu. A line shows its Markdown while you edit it and renders when you click away. Everything is saved as you type, only in this browser on this device, and nothing is sent anywhere.</p>
@@ -317,19 +335,24 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
       </table>
       <h3>Tables</h3>
       <table>
-        <tr><td>Tab / Shift+Tab</td><td>Next or previous cell. Tab in the last cell adds a row.</td></tr>
+        <tr><td>Size picker</td><td>Choosing Table from the menu asks for rows and columns first.</td></tr>
+        <tr><td>Tab / Shift+Tab</td><td>Next or previous cell. Tab in the last cell adds a row; Shift+Tab in the last column adds a column.</td></tr>
         <tr><td>Enter</td><td>Moves down a row, adding one at the bottom.</td></tr>
         <tr><td>Tools</td><td>Buttons under a table add or remove rows and columns, toggle the header row, or delete the table.</td></tr>
         <tr><td>Backspace</td><td>In an empty last row removes it. In an empty table removes the table.</td></tr>
       </table>
       <h3>Calculator</h3>
       <table>
-        <tr><td>2(3+4)^2, 2x</td><td>Each line is one expression. Implicit multiplication works.</td></tr>
-        <tr><td>a = 4</td><td>Assigns a variable for the lines below it. <code>ans</code> is the previous answer.</td></tr>
-        <tr><td>sin(30), asin(0.5)</td><td>Trig uses the angle setting (degrees by default).</td></tr>
-        <tr><td>sqrt, ln, log, log(x, b)</td><td><code>log</code> is base 10 unless given a base; <code>ln</code> is natural.</td></tr>
-        <tr><td>nCr(n,r), nPr, factorial</td><td>Plus normCDF, invNorm, binomPDF, binomCDF, mean, median, std, and the math.js library.</td></tr>
+        <tr><td>\</td><td>Type a backslash to search every function, constant and Greek letter; Enter inserts it and removes the backslash. In text lines the same search inserts symbols.</td></tr>
+        <tr><td>2(3+4)^2, 2x</td><td>Each line is one expression, evaluated by the same engine as the Calculator tool. Implicit multiplication works.</td></tr>
+        <tr><td>a = 4, or 2.5*12 = m</td><td>Defines a variable for the whole section, in any order. <code>ans</code> is the line above.</td></tr>
+        <tr><td>2v + 1 = 9 => v</td><td>Solves for v. So does <code>solve(2v+1=9, v)</code>, <code>2v+1=9, v</code>, or a plain equation with exactly one unknown. <code>solve(eq, x, [a, b])</code> restricts the domain; <code>cSolve</code> lists complex roots.</td></tr>
+        <tr><td>f(x) = x^2 + 3x</td><td>Defines a function: <code>f(2)</code>, <code>f'(2)</code> and <code>f''(x)</code> all work.</td></tr>
+        <tr><td>integrate, summation</td><td><code>integrate(f, x, a, b)</code> and <code>summation(body, n, lo, hi)</code>.</td></tr>
+        <tr><td>sin(30), asin(0.5)</td><td>Trig follows the angle setting (degrees by default). <code>log</code> is natural unless given a base, as in the Calculator.</td></tr>
+        <tr><td>nCr, nPr, normCDF, invNorm</td><td>Plus binomPDF, binomCDF, mean, median, stdev, zscore, polar, rect, Re, Im, Arg and the math.js library.</td></tr>
         <tr><td>c, g, G, k, h_J, m_e</td><td>VCE physics constants are predefined. Assign to override.</td></tr>
+        <tr><td>Exact / Decimal</td><td>Exact shows fractions, surds and multiples of π. Set it, the angle, precision and first or all roots in Settings or from the words under any calculator.</td></tr>
         <tr><td>Enter / Backspace</td><td>Adds or removes a line. Removing the last line turns the section back into text.</td></tr>
       </table>
       <h3>Inline</h3>
@@ -488,93 +511,1824 @@ function onEdge(el,dir){
 }
 function focusPlain(el,off){ el.focus(); setCaret(el,off==null?Infinity:off); }
 
-/* ---------- calculator engine (math.js, loaded separately) ---------- */
-var DEG=Math.PI/180, M=null;
-function getMath(){ if(M) return M; if(!window.math||!window.math.create) return null; try{ M=window.math.create(window.math.all,{}); }catch(e){ M=null; } return M; }
-var PHYS={q_e:1.6e-19,q_p:1.6e-19,m_e:9.11e-31,m_p:1.67e-27,c:3.0e8,k:8.99e9,G:6.67e-11,h_J:6.63e-34,h_e:4.14e-15,h_eV:4.14e-15,M_E:5.98e24,m_E:5.98e24,c_w:4200,c_ice:2100,c_steam:2000,c_iron:450,L_fw:3.34e5,L_vw:2.26e6,r_E:6.37e6,g:9.81};
-function _fact(n){ n=Math.round(n); if(n<0) return NaN; var r=1; for(var i=2;i<=n;i++) r*=i; return r; }
-function _nCr(n,r){ n=Math.round(n); r=Math.round(r); if(r<0||r>n) return 0; return _fact(n)/(_fact(r)*_fact(n-r)); }
-function _nPr(n,r){ n=Math.round(n); r=Math.round(r); if(r<0||r>n) return 0; return _fact(n)/_fact(n-r); }
-function _erf(x){ var s=x<0?-1:1; x=Math.abs(x); var t=1/(1+0.3275911*x); var y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x); return s*y; }
-function _normProb(z){ return 0.5*(1+_erf(z/Math.SQRT2)); }
-function _invNormStd(p){
-  if(p<=0) return -Infinity; if(p>=1) return Infinity;
-  var a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
-  var b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
-  var c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
-  var d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
-  var pl=0.02425, ph=1-pl, q, r;
-  if(p<pl){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
-  if(p>ph){ q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
-  q=p-0.5; r=q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+/* ---------- calculator engine: extracted from the StemVault Calculator tool (public/tools/calculator.html) ---------- */
+let angleMode='deg', exactMode=false; const DEG=Math.PI/180; function varToLatex(v){ return v; }
+function angleScope() {
+  if (angleMode === 'rad') return {};
+  return {
+    sin: x => Math.sin(x*DEG), cos: x => Math.cos(x*DEG), tan: x => Math.tan(x*DEG),
+    sec: x => 1/Math.cos(x*DEG), csc: x => 1/Math.sin(x*DEG), cot: x => 1/Math.tan(x*DEG),
+    arcsin: x => Math.asin(x)/DEG, arccos: x => Math.acos(x)/DEG, arctan: x => Math.atan(x)/DEG,
+    asin: x => Math.asin(x)/DEG, acos: x => Math.acos(x)/DEG, atan: x => Math.atan(x)/DEG
+  };
 }
-function baseScope(){
-  var s={};
-  for(var k in PHYS) s[k]=PHYS[k];
-  s.ln=Math.log; s.log=function(x,b){ return b==null?Math.log10(x):Math.log(x)/Math.log(b); };
-  s.nCr=_nCr; s.nPr=_nPr; s.factorial=_fact;
-  s.normCDF=function(lo,hi,mu,sd){ if(hi==null){ return _normProb(lo); } mu=mu==null?0:mu; sd=sd==null?1:sd; return _normProb((hi-mu)/sd)-_normProb((lo-mu)/sd); };
-  s.invNorm=function(p,mu,sd){ mu=mu==null?0:mu; sd=sd==null?1:sd; return mu+sd*_invNormStd(p); };
-  s.binomPDF=function(n,p,x){ return _nCr(n,x)*Math.pow(p,x)*Math.pow(1-p,n-x); };
-  s.binomCDF=function(n,p,x){ var t=0; for(var i=0;i<=Math.round(x);i++) t+=s.binomPDF(n,p,i); return t; };
-  if(state.settings.angle==='deg'){
-    s.sin=function(x){ return Math.sin(x*DEG); }; s.cos=function(x){ return Math.cos(x*DEG); }; s.tan=function(x){ return Math.tan(x*DEG); };
-    s.sec=function(x){ return 1/Math.cos(x*DEG); }; s.csc=function(x){ return 1/Math.sin(x*DEG); }; s.cot=function(x){ return 1/Math.tan(x*DEG); };
-    s.asin=function(x){ return Math.asin(x)/DEG; }; s.acos=function(x){ return Math.acos(x)/DEG; }; s.atan=function(x){ return Math.atan(x)/DEG; };
-    s.arcsin=s.asin; s.arccos=s.acos; s.arctan=s.atan;
-  } else { s.arcsin=Math.asin; s.arccos=Math.acos; s.arctan=Math.atan; }
+
+const FUNCS = ['sin','cos','tan','sec','csc','cot','sinh','cosh','tanh',
+  'arcsin','arccos','arctan','asin','acos','atan','ln','log','exp','sqrt',
+  'nthRoot','abs','floor','ceil','round','sign','deg','ans','mod','min','max',
+  'gcd','lcm','factorial','solve','integrate','summation',
+  'nCr','nPr','normCDF','invNorm','binomPDF','binomCDF','sumlist','add','zscore',
+  'stdev','mean','median','mod','round',
+  'Re','Im','Arg','cSolve','conj','polar','rect'];
+const CONSTS = ['pi','e'];
+const RESERVED = [...FUNCS, ...CONSTS];
+
+/* Predefined physics constants, available in every folder.
+   Charges to 2 sig figs (magnitude), masses to 3 sig figs. VCE/CODATA values.
+   For symbols with multiple uses (c, k) the primary VCE use is chosen; they can
+   be redefined on a line to override. */
+let gValue = 9.81;   // gravitational field strength; togg1eable 9.81 / 9.8 in settings
+const PHYS_CONSTANTS_BASE = {
+  q_e: 1.6e-19,    // electron charge magnitude (C), 2 sf
+  q_p: 1.6e-19,    // proton charge magnitude (C), 2 sf
+  m_e: 9.11e-31,   // electron mass (kg), 3 sf
+  m_p: 1.67e-27,   // proton mass (kg), 3 sf
+  c:   3.0e8,      // speed of light (m/s)
+  k:   8.99e9,     // Coulomb constant (N m^2 C^-2)
+  G:   6.67e-11,   // gravitational constant (N m^2 kg^-2)
+  h_J:  6.63e-34,  // Planck constant (J s), 3 sf (VCE)
+  h_e:  4.14e-15,  // Planck constant (eV s), 3 sf (VCE)
+  h_eV: 4.14e-15,  // Planck constant (eV s) -- alias of h_e
+  M_E: 5.98e24,    // mass of the Earth (kg), VCE formula sheet
+  m_E: 5.98e24,    // mass of the Earth (kg) -- alias of M_E; distinct from m_e (electron)
+  c_w:     4200,   // specific heat capacity of water (J kg^-1 K^-1)
+  c_ice:   2100,   // specific heat capacity of ice (J kg^-1 K^-1)
+  c_steam: 2000,   // specific heat capacity of steam (J kg^-1 K^-1)
+  c_iron:  450,    // specific heat capacity of solid iron (J kg^-1 K^-1)
+  L_fw:    3.34e5, // latent heat of fusion of water (J kg^-1), 3 sf
+  L_vw:    2.26e6, // latent heat of vaporisation of water (J kg^-1), 3 sf
+  r_E: 6.37e6      // radius of the Earth (m), VCE formula sheet
+};
+// g is added dynamically so the settings toggle can change its value
+function physConstants() { return { ...PHYS_CONSTANTS_BASE, g: gValue }; }
+const PHYS_CONSTANTS = physConstants();   // snapshot for name lookups
+const PHYS_NAMES = new Set(Object.keys(PHYS_CONSTANTS));
+
+/* Custom calculator functions injected into every evaluation scope. These cover
+   combinatorics and the common VCE statistics functions (normal + binomial),
+   plus list-summation helpers. They are plain JS so they work regardless of the
+   math.js build's optional functions. */
+function _fact(n) { n = Math.round(n); if (n < 0) return NaN; let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
+function _nCr(n, r) { n = Math.round(n); r = Math.round(r); if (r < 0 || r > n) return 0; return _fact(n) / (_fact(r) * _fact(n - r)); }
+function _nPr(n, r) { n = Math.round(n); r = Math.round(r); if (r < 0 || r > n) return 0; return _fact(n) / _fact(n - r); }
+// numerically stable error function (Abramowitz & Stegun 7.1.26)
+function _erf(x) {
+  const s = x < 0 ? -1 : 1; x = Math.abs(x);
+  const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return s * y;
+}
+function _normProb(z) { return 0.5 * (1 + _erf(z / Math.SQRT2)); }   // standard-normal CDF
+// inverse standard-normal CDF (quantile) -- Acklam's rational approximation
+function _invNormStd(p) {
+  if (p <= 0) return -Infinity; if (p >= 1) return Infinity;
+  const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+  const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+  const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+  const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+  const plow = 0.02425, phigh = 1 - plow; let q, r;
+  if (p < plow) { q = Math.sqrt(-2 * Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if (p <= phigh) { q = p - 0.5; r = q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1); }
+  q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+}
+function _flat(args) {   // flatten math.js matrices/arrays + plain numbers into a number[]
+  const out = [];
+  const push = v => {
+    if (v == null) return;
+    if (typeof v === 'number') out.push(v);
+    else if (Array.isArray(v)) v.forEach(push);
+    else if (v && typeof v.toArray === 'function') v.toArray().forEach(push);   // math.js Matrix
+    else if (typeof v === 'object' && typeof v.valueOf === 'function') out.push(Number(v.valueOf()));
+  };
+  args.forEach(push);
+  return out;
+}
+const CALC_FUNCS = {
+  factorial: (n) => _fact(n),
+  nCr: (n, r) => _nCr(n, r),
+  nPr: (n, r) => _nPr(n, r),
+  // normCDF(mean, std, lower, upper): P(lower < X < upper)
+  normCDF: (mean, std, lower, upper) => _normProb((upper - mean) / std) - _normProb((lower - mean) / std),
+  // binomPDF(n, p, k): P(X = k)
+  binomPDF: (n, p, k) => { k = Math.round(k); return _nCr(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k); },
+  // invNorm(area, mean, std): x such that P(X < x) = area (mean/std default 0/1)
+  invNorm: (area, mean, std) => { mean = (mean === undefined) ? 0 : mean; std = (std === undefined) ? 1 : std; return mean + std * _invNormStd(area); },
+  // binomCDF(n, p, lower, upper): P(lower <= X <= upper) summed over the range
+  binomCDF: (n, p, lower, upper) => {
+    lower = Math.round(lower); upper = Math.round(upper);
+    let s = 0; for (let i = Math.max(0, lower); i <= Math.min(n, upper); i++) s += _nCr(n, i) * Math.pow(p, i) * Math.pow(1 - p, n - i);
+    return s;
+  },
+  // add(...) / sumlist(...): add up all the numbers / list entries passed in
+  sumlist: (...args) => _flat(args).reduce((a, b) => a + b, 0),
+  add: (...args) => _flat(args).reduce((a, b) => a + b, 0),
+  // zscore(x, mean, std): standardised score
+  zscore: (x, mean, std) => (x - mean) / std,
+  // descriptive stats over a list or argument list (sample std, matching VCE)
+  stdev: (...args) => math.std(_flat(args)),
+  mean: (...args) => { const a = _flat(args); return a.reduce((s, v) => s + v, 0) / a.length; },
+  median: (...args) => math.median(_flat(args)),
+  // complex-number helpers (capitalised aliases of math.js re/im/arg/conj so
+  // they read like the Re()/Im()/Arg() keypad buttons)
+  Re: (z) => math.re(z),
+  Im: (z) => math.im(z),
+  Arg: (z) => math.arg(z),
+  conj: (z) => math.conj(z),
+  // rect -> polar: returns [r, theta] for a complex number (or a real x, with an
+  // optional y as a second argument). theta is in the current angle mode
+  // (degrees in Deg mode, radians in Rad mode), matching arctan etc.
+  polar: (z, y) => {
+    let re, im;
+    if (y !== undefined) { re = Number(z); im = Number(y); }            // polar(x, y)
+    else if (z && typeof z.re === 'number') { re = z.re; im = z.im; }   // polar(complex)
+    else { re = Number(z); im = 0; }
+    const r = Math.hypot(re, im);
+    let theta = Math.atan2(im, re);
+    if (angleMode === 'deg') theta = theta / DEG;
+    return [r, theta];
+  },
+  // polar -> rect: rect(r, theta) returns r cos(theta) + r sin(theta) i.
+  // Also accepts the [r, theta] pair that polar() returns, so rect(polar(z))
+  // round-trips. theta follows the current angle mode, matching polar.
+  rect: (r, theta) => {
+    if (theta === undefined) {
+      const a = (r && typeof r.toArray === 'function') ? r.toArray() : r;
+      if (Array.isArray(a) && a.length >= 2) { theta = Number(a[1]); r = Number(a[0]); }
+    }
+    r = Number(r); theta = Number(theta);
+    if (angleMode === 'deg') theta = theta * DEG;
+    return math.complex(r * Math.cos(theta), r * Math.sin(theta));
+  },
+};
+
+/* Parameter signatures for the Excel-style live hint shown while the caret is
+   inside a function's parentheses. The active argument (by comma position) is
+   highlighted. `rest:true` means the last parameter repeats (variadic). */
+const FUNC_SIGNATURES = {
+  nCr: ['n', 'r'],
+  nPr: ['n', 'r'],
+  factorial: ['n'],
+  normCDF: ['mean', 'std', 'lower', 'upper'],
+  invNorm: ['area', 'mean', 'std'],
+  binomPDF: ['n', 'p', 'k'],
+  binomCDF: ['n', 'p', 'lower', 'upper'],
+  sumlist: [{ name: 'value', rest: true }],
+  add: [{ name: 'value', rest: true }],
+  zscore: ['x', 'mean', 'std'],
+  mean: [{ name: 'value', rest: true }],
+  median: [{ name: 'value', rest: true }],
+  stdev: [{ name: 'value', rest: true }],
+  round: ['x', 'dp'],
+  log: ['value', 'base'],
+  nthRoot: ['value', 'n'],
+  gcd: [{ name: 'value', rest: true }],
+  lcm: [{ name: 'value', rest: true }],
+  min: [{ name: 'value', rest: true }],
+  max: [{ name: 'value', rest: true }],
+  mod: ['a', 'b'],
+  polar: ['z'],
+  rect: ['r', 'θ'],
+  solve: ['equation', 'variable'],
+  cSolve: ['equation', 'variable'],
+  Re: ['z'], Im: ['z'], Arg: ['z'], conj: ['z'],
+};
+
+/* Greek letters: LaTeX command -> unicode glyph used as the variable identifier.
+   math.js accepts single unicode letters as variable names. \pi is handled
+   separately (it stays the constant pi). Capitalized and lowercase forms are
+   distinct (\Sigma vs \sigma). */
+const GREEK = {
+  alpha:'α', beta:'β', gamma:'γ', delta:'δ', epsilon:'ε', zeta:'ζ', eta:'η',
+  theta:'θ', iota:'ι', kappa:'κ', lambda:'λ', mu:'μ', nu:'ν', xi:'ξ',
+  omicron:'ο', rho:'ρ', sigma:'σ', tau:'τ', upsilon:'υ', phi:'φ', chi:'χ',
+  psi:'ψ', omega:'ω', varphi:'ϕ', varepsilon:'ϵ', vartheta:'ϑ', varsigma:'ς',
+  varrho:'ϱ', varpi:'ϖ',
+  Gamma:'Γ', Delta:'Δ', Theta:'Θ', Lambda:'Λ', Xi:'Ξ', Pi:'Π', Sigma:'Σ',
+  Upsilon:'Υ', Phi:'Φ', Psi:'Ψ', Omega:'Ω'
+};
+/* the autoCommands list MathQuill uses to turn typed names into symbols */
+const GREEK_AUTOCOMMANDS = Object.keys(GREEK).join(' ');
+/* set of glyphs, for the tokenizer to recognise as single-letter variables */
+const GREEK_GLYPHS = new Set(Object.values(GREEK));
+/* searchable symbol list for the @ picker: {name, latex, glyph} */
+const SYMBOL_LIST = [
+  // Greek letters and math symbols (inserted as MathQuill commands)
+  ...Object.entries(GREEK).map(([name, glyph]) => ({ name, latex: '\\' + name, glyph, kind: 'cmd' })),
+  // every Latin letter (lower + upper), inserted as plain text, so the abc panel
+  // only needs to show the most common letters and the rest are searchable here
+  ...'abcdefghijklmnopqrstuvwxyz'.split('').map(ch => ({ name: 'letter ' + ch, latex: ch, glyph: ch, kind: 'text' })),
+  ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(ch => ({ name: 'letter ' + ch, latex: ch, glyph: ch, kind: 'text' })),
+];
+
+/* searchable formula list for the f(x) @ picker. Each entry:
+   {name, cat, kw, latex}  where `latex` is inserted into the math field and
+   `name` is the displayed/rendered formula (also rendered via KaTeX). */
+function parseIntegrals(s) {
+  let guard = 0;
+  while (guard++ < 10) {
+    const m = s.match(/\\int/);
+    if (!m) break;
+    let i = m.index;
+    let p = i + 4; // after \int
+    // optional _ lower then ^ upper, in either order
+    let lower = '0', upper = '1';
+    function readScript(str, idx) {
+      // expects str[idx] === '_' or '^'; returns {val, next}
+      let j = idx + 1;
+      if (str[j] === '{') { const close = matchBrace(str, j); return { val: str.slice(j+1, close), next: close+1 }; }
+      // single token (one char, or a \command)
+      if (str[j] === '\\') { let k=j+1; while(k<str.length && /[a-zA-Z]/.test(str[k])) k++; return { val: str.slice(j,k), next:k }; }
+      return { val: str[j], next: j+1 };
+    }
+    for (let pass=0; pass<2; pass++) {
+      if (s[p] === '_') { const r = readScript(s, p); lower = r.val; p = r.next; }
+      else if (s[p] === '^') { const r = readScript(s, p); upper = r.val; p = r.next; }
+    }
+    // integrand = from p up to the differential d<var>
+    const rest = s.slice(p);
+    // find the differential: optional \cdot/*/space, then 'd', then a variable token
+    const dm = rest.match(/(?:\\cdot|\\,|\*|\s)*d\s*([a-zA-Z]|\\[a-zA-Z]+)\s*$/);
+    let integrand, varTok, after = '';
+    if (dm) {
+      integrand = rest.slice(0, dm.index);
+      varTok = dm[1];
+    } else {
+      // no explicit dx: assume variable x, integrand is the rest
+      integrand = rest; varTok = 'x';
+    }
+    // recursively convert any nested constructs later in latexToMath; here just splice
+    const call = 'integrate(' + (integrand.trim()||'0') + ',' + varTok + ',' + lower + ',' + upper + ')';
+    s = s.slice(0, i) + call + after;
+  }
   return s;
 }
-function balanceParens(str){ var depth=0, out=''; for(var i=0;i<str.length;i++){ var ch=str[i]; if(ch==='('){ depth++; out+=ch; } else if(ch===')'){ if(depth>0){ depth--; out+=ch; } } else out+=ch; } while(depth-->0) out+=')'; return out; }
-function normalizeExpr(t){ return t.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/π/g,'pi').replace(/√/g,'sqrt').replace(/²/g,'^2').replace(/³/g,'^3').replace(/\s*=\s*$/,''); }
-function fmtNum(v){
-  if(!isFinite(v)) return v>0?'∞':v<0?'-∞':'undefined';
-  if(v===0) return '0';
-  var sf=state.settings.sigfigs, prec=sf==='auto'?12:+sf, abs=Math.abs(v);
-  var rounded=parseFloat(v.toPrecision(prec));
-  if(sf==='auto'){ if(abs>=1e-4 && abs<1e7) return rounded.toString(); }
-  else if(rounded===v && abs>=1e-4 && abs<1e7) return rounded.toString();
-  var exp=Math.floor(Math.log10(abs)); var mant=v/Math.pow(10,exp); mant=parseFloat(mant.toPrecision(prec)); if(Math.abs(mant)>=10){ mant/=10; exp++; }
-  return mant.toString()+' × 10^'+exp;
-}
-function fmtValue(v,m){
-  if(typeof v==='number') return fmtNum(v);
-  if(typeof v==='boolean') return String(v);
-  if(typeof v==='string') return v;
-  if(v && typeof v==='object'){
-    if(typeof v.re==='number' && typeof v.im==='number'){ var re=v.re, im=v.im; if(Math.abs(im)<1e-12) return fmtNum(re); var ip=(Math.abs(Math.abs(im)-1)<1e-12?'':fmtNum(Math.abs(im)))+'i'; if(Math.abs(re)<1e-12) return (im<0?'-':'')+ip; return fmtNum(re)+(im<0?' - ':' + ')+ip; }
-    if(typeof v.toArray==='function' || Array.isArray(v)){ var arr=Array.isArray(v)?v:v.toArray(); return '['+arr.map(function(x){ return fmtValue(x,m); }).join(', ')+']'; }
-    if(v.isFraction) return fmtNum(v.valueOf());
-    if(v.isBigNumber) return fmtNum(v.toNumber());
+function matchBrace(str, openIdx) {
+  let depth = 0;
+  for (let k = openIdx; k < str.length; k++) {
+    if (str[k] === '{') depth++;
+    else if (str[k] === '}') { depth--; if (depth === 0) return k; }
   }
-  try{ return m.format(v,{precision:12}); }catch(e){ return String(v); }
+  return str.length - 1;
 }
-function shortErr(e){
-  var msg=String(e&&e.message||e);
-  var m=/Undefined symbol (\S+)/.exec(msg); if(m) return m[1]+' is not defined';
-  if(/Unexpected end|Parenthesis|Value expected|Unexpected/i.test(msg)) return 'incomplete';
-  if(/Undefined function (\S+)/.test(msg)) return msg.replace('Undefined function ','')+' is not a function';
-  return msg.length>60?msg.slice(0,60)+'…':msg;
+
+/* Desmos-style summation: \sum_{n=1}^{N}(body) -> summation(body, n, 1, N).
+   The lower script holds "var=lo"; the body is the parenthesised group that
+   follows (the sigma key inserts explicit brackets so the body is unambiguous). */
+function parseSums(s) {
+  let guard = 0;
+  while (guard++ < 10) {
+    const m = s.match(/\\sum/);
+    if (!m) break;
+    const i = m.index;
+    let p = i + 4;                       // after \sum
+    let lowerRaw = '', upper = '';
+    for (let pass = 0; pass < 2; pass++) {
+      if (s[p] === '_') { const c = matchBrace(s, p + 1); lowerRaw = s.slice(p + 2, c); p = c + 1; }
+      else if (s[p] === '^') { const c = matchBrace(s, p + 1); upper = s.slice(p + 2, c); p = c + 1; }
+    }
+    // lower is "var=lo" (Desmos style); fall back to n / 1 if missing
+    let varName = 'n', lo = '1';
+    const eq = lowerRaw.indexOf('=');
+    if (eq !== -1) { varName = lowerRaw.slice(0, eq).trim() || 'n'; lo = lowerRaw.slice(eq + 1).trim() || '1'; }
+    else if (lowerRaw.trim()) { lo = lowerRaw.trim(); }
+    if (upper === '') upper = '1';
+    // body: a parenthesised group immediately after the scripts, else to end
+    let body = '', after = '';
+    while (p < s.length && s[p] === ' ') p++;
+    if (s[p] === '(') { const c = matchParen(s, p); body = s.slice(p + 1, c); after = s.slice(c + 1); }
+    else { body = s.slice(p); after = ''; }
+    const call = 'summation((' + (body.trim() || '0') + '),' + varName + ',' + lo + ',' + upper + ')';
+    s = s.slice(0, i) + call + after;
+  }
+  return s;
+}
+
+/* Expand integer ellipsis sequences inside [ ... ] lists, e.g. [1,2,...,5] ->
+   [1,2,3,4,5]. Only clear integer arithmetic patterns are expanded:
+     - terms before "..." must be integers, evenly spaced (>=1 term);
+     - with >=2 pre-terms the step is their common difference; with exactly 1
+       pre-term the step defaults to +1 (or -1 if the next term is smaller);
+     - the term after "..." must be an integer reachable on that step grid, in
+       the same direction.
+   Anything ambiguous/unreachable is LEFT UNCHANGED (still contains "..."), so
+   the recompute path can flag it as an invalid pattern. */
+function expandEllipsisLists(s) {
+  if (s.indexOf('...') === -1) return s;
+  // operate on each bracketed [...] group
+  return s.replace(/\[([^\[\]]*)\]/g, (whole, inner) => {
+    if (inner.indexOf('...') === -1) return whole;
+    const toks = inner.split(',').map(t => t.trim());
+    const isInt = (t) => /^-?\d+$/.test(t);
+    const out = [];
+    for (let i = 0; i < toks.length; i++) {
+      if (toks[i] !== '...') { out.push(toks[i]); continue; }
+      // gather the consecutive integer run immediately before this "..."
+      const pre = [];
+      for (let k = out.length - 1; k >= 0 && isInt(out[k]); k--) pre.unshift(parseInt(out[k], 10));
+      const next = toks[i + 1];
+      if (pre.length < 1 || next === undefined || !isInt(next)) return whole;   // can't expand -> leave as-is
+      const end = parseInt(next, 10);
+      // determine step
+      let step;
+      if (pre.length >= 2) {
+        step = pre[1] - pre[0];
+        for (let j = 2; j < pre.length; j++) if (pre[j] - pre[j-1] !== step) return whole;  // uneven -> invalid
+        if (step === 0) return whole;
+      } else {
+        step = (end >= pre[0]) ? 1 : -1;
+      }
+      const start = pre[pre.length - 1];
+      if (step > 0 && end < start) return whole;     // direction mismatch
+      if (step < 0 && end > start) return whole;
+      if ((end - start) % step !== 0) return whole;   // endpoint not on the grid
+      // fill from start+step up to and including end (start already in out)
+      for (let v = start + step; (step > 0 ? v <= end : v >= end); v += step) out.push(String(v));
+      // skip the original "next" token (it's now the last value we pushed)
+      i++;
+    }
+    return '[' + out.join(',') + ']';
+  });
+}
+
+function latexToMath(latex) {
+  let s = latex;
+  // half-life subscript: t_{1/2} (formula sheet) or t_{\frac{1}{2}} (typed) is
+  // one variable; '/' can't live in an identifier, so it becomes t_half
+  // internally and renders back as t_{1/2} (see varToLatex).
+  s = s.replace(/_\{\\frac\{1\}\{2\}\}/g, '_{half}').replace(/_\{1\/2\}/g, '_{half}');
+  s = s.replace(/\\left/g, '').replace(/\\right/g, '');
+  s = expandEllipsisLists(s);        // [1,2,...,5] -> [1,2,3,4,5] (integer patterns)
+  s = s.replace(/\\square/g, '');   // unfilled placeholder box -> empty (incomplete expr renders blank)
+  // absolute value bars |...| -> abs(...). Replace innermost pairs repeatedly so
+  // nested bars resolve from the inside out.
+  let pb;
+  do { pb = s; s = s.replace(/\|([^|]+)\|/g, 'abs($1)'); } while (s !== pb);
+  s = parseSums(s);                 // \sum_{n=1}^{N}(body) -> summation(...)
+  // Definite integral: \int_{a}^{b} integrand d<var>  ->  integrate(integrand, var, a, b)
+  // MathQuill emits \int_{a}^{b}; the integrand and the trailing d<var> are plain.
+  s = parseIntegrals(s);
+  // powers, fractions and roots convert together to a fixpoint: each pass
+  // clears the innermost braces, so deeply nested forms like
+  // \frac{1}{\sqrt{1-\frac{v^{2}}{c^{2}}}} fully resolve (converting them in
+  // separate sequential loops left outer constructs stuck behind exponent
+  // braces their regexes cannot cross)
+  let prev;
+  do { prev = s;
+    s = s.replace(/\^\{((?:[^{}]|\{[^{}]*\})*)\}/g, '^($1)');
+    s = s.replace(/\\frac\{((?:[^{}]|\{[^{}]*\})*)\}\{((?:[^{}]|\{[^{}]*\})*)\}/g, '(($1)/($2))');
+    s = s.replace(/\\sqrt\[((?:[^{}]|\{[^{}]*\})*)\]\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'nthRoot(($2),($1))');
+    s = s.replace(/\\sqrt\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'sqrt($1)');
+  } while (s !== prev);
+  s = s.replace(/\\operatorname\{([^}]*)\}/g, '$1');
+  s = s.replace(/\\log_\{((?:[^{}]|\{[^{}]*\})*)\}\s*\(((?:[^()]|\([^()]*\))*)\)/g, 'log($2,$1)');
+  s = s.replace(/\\log_(\w)\s*\(((?:[^()]|\([^()]*\))*)\)/g, 'log($2,$1)');
+  const fns = ['sin','cos','tan','sec','csc','cot','sinh','cosh','tanh',
+               'arcsin','arccos','arctan','ln','log','exp','abs','floor','ceil','round','sign'];
+  fns.forEach(fn => { s = s.replace(new RegExp('\\\\' + fn + '(?![a-zA-Z])', 'g'), fn); });
+  s = s.replace(/\\pi/g, 'pi ');
+  // Greek letters -> unicode glyphs (used as variable identifiers). Longest
+  // names first so \vartheta isn't partially matched by \theta etc.
+  Object.keys(GREEK).sort((a,b) => b.length - a.length).forEach(name => {
+    s = s.replace(new RegExp('\\\\' + name + '(?![a-zA-Z])', 'g'), GREEK[name]);
+  });
+  s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*').replace(/\\div/g, '/');
+  s = s.replace(/\bln\b/g, 'log');
+  s = s.replace(/\\degree|°/g, ' deg');
+  // percent postfix: a number (or close-paren) followed by % -> divide by 100
+  s = s.replace(/\\%/g, '%');
+  s = s.replace(/(\d+(?:\.\d+)?|\))\s*%/g, '($1/100)');
+  s = s.replace(/_\{([^}]*)\}/g, '_\u2039$1\u203A');   // subscript braces -> guillemet sentinels so the boundary survives
+  s = s.replace(/[{}]/g, '').replace(/\\,/g, '').replace(/\\/g, '');
+  return s.trim();
+}
+
+function tokenize(s) {
+  const toks = []; let i = 0;
+  const isLatin = c => /[A-Za-z]/.test(c || '');
+  const isGreek = c => GREEK_GLYPHS.has(c);
+  const A = c => isLatin(c) || isGreek(c);   // "letter" for variable purposes
+  const D = c => /[0-9]/.test(c || '');
+  while (i < s.length) {
+    const c = s[i];
+    if (/\s/.test(c)) { i++; continue; }
+    if (D(c) || (c === '.' && D(s[i+1]))) {
+      let j = i+1; while (j < s.length && /[0-9.]/.test(s[j])) j++;
+      toks.push({ t:'num', v:s.slice(i,j) }); i = j; continue;
+    }
+    if (A(c)) {
+      let matched = null;
+      // reserved words are Latin-only (sin, pi, etc.); only match against Latin runs
+      if (isLatin(c)) {
+        for (const w of RESERVED) {
+          if (s.startsWith(w,i) && !isLatin(s[i+w.length])) { if (!matched || w.length>matched.length) matched = w; }
+        }
+      }
+      if (matched === 'e' && c !== 'e') matched = null;
+      if (matched) { toks.push({ t:'name', v:matched, fn:FUNCS.includes(matched) }); i += matched.length; continue; }
+      // single letter (Latin or Greek), optional _subscript. MathQuill emits a
+      // multi-character subscript braced (q_{12}) and a single-character one bare
+      // (q_1). Braced subscripts arrive as guillemet sentinels (set in
+      // latexToMath) which fix the boundary; a bare "_" therefore takes exactly
+      // ONE character, so "q_1q_2" -> q_1, q_2 (two variables) not "q_1q".
+      let j = i+1; let name = c;
+      // Δ prefixes the following letter as ONE variable: Δv, ΔE_k, Δθ ...
+      // (the LaTeX "\Delta v" arrives as "Δ v", so whitespace is skipped)
+      if (c === 'Δ') {
+        let k = j; while (k < s.length && /\s/.test(s[k])) k++;
+        if (k < s.length && A(s[k])) { name += s[k]; j = k + 1; }
+      }
+      if (s[j] === '_') {
+        if (s[j+1] === '\u2039') {            // _‹...›  braced/multi-char subscript
+          let k = j+2, sub = '';
+          while (k < s.length && s[k] !== '\u203A') { sub += s[k]; k++; }
+          if (s[k] === '\u203A') k++;          // consume closing sentinel
+          name = name + '_' + sub; j = k;
+        } else if (j+1 < s.length && /[A-Za-z0-9]/.test(s[j+1])) {
+          name = name + '_' + s[j+1]; j += 2;  // bare single-character subscript
+        }
+      }
+      let outName = name;
+      if (name === 'E') outName = 'E_usr';
+      else if (name === 'Δt') outName = 't';   // elapsed time: Δt IS t
+      toks.push({ t:'name', v:outName, display:name, fn:false }); i = j; continue;
+    }
+    if (c === '(') { toks.push({ t:'lparen', v:c }); i++; continue; }
+    if (c === ')') { toks.push({ t:'rparen', v:c }); i++; continue; }
+    if (c === ',') { toks.push({ t:'comma', v:c }); i++; continue; }
+    toks.push({ t:'op', v:c }); i++;
+  }
+  return toks;
+}
+
+function insertImplicitMult(s) {
+  const toks = tokenize(s); let out = '';
+  for (let k = 0; k < toks.length; k++) {
+    const cur = toks[k], nxt = toks[k+1];
+    out += cur.v;
+    if (!nxt) continue;
+    const e = cur.t==='num' || cur.t==='rparen' || (cur.t==='name'&&!cur.fn);
+    const st = nxt.t==='num' || nxt.t==='lparen' || nxt.t==='name';
+    if (e && st) out += '*';
+  }
+  return out;
+}
+
+/* "equation => v" sugar: a top-level \Rightarrow rewrites the line into
+   solve(equation, subject) before parsing, so "2v+1=9 => v" IS solve(2v+1=9,v).
+   An incomplete arrow (no subject yet, or no '=' on the left) is dropped so the
+   remaining equation still parses while the line is being typed. */
+function rewriteArrowSolve(latex) {
+  const TAG = '\\Rightarrow';
+  const i = latex.lastIndexOf(TAG);
+  if (i === -1) return latex;
+  const lhs = latex.slice(0, i).trim();
+  const rhs = latex.slice(i + TAG.length).trim();
+  if (lhs && rhs && lhs.indexOf('=') !== -1) {
+    return '\\operatorname{solve}\\left(' + lhs + ',' + rhs + '\\right)';
+  }
+  return (lhs + ' ' + rhs).trim();
+}
+
+/* "equation, v" sugar: a single top-level comma followed by one standalone
+   variable reads as solve(equation, v) -- the comma form of the ⇒ arrow.
+   Fires only when the left side is an equation with exactly one top-level '=',
+   so lists, call arguments and plain comma typing are untouched. */
+function rewriteCommaSolve(expr) {
+  if (!expr) return expr;
+  let d = 0, comma = -1;
+  for (let i = 0; i < expr.length; i++) {
+    const ch = expr[i];
+    if (ch === '(' || ch === '[') d++;
+    else if (ch === ')' || ch === ']') { if (d > 0) d--; }
+    else if (ch === ',' && d === 0) { if (comma !== -1) return expr; comma = i; }
+  }
+  if (comma === -1) return expr;
+  const lhs = expr.slice(0, comma).trim();
+  const rhs = expr.slice(comma + 1).trim();
+  const rhsFlat = rhs.replace(/[()\s]/g, '');
+  const okSubject = TRAIL_VAR_RE.test(rhsFlat) ||
+    /^Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?\/c$/.test(rhsFlat);   // "v/c" ratio subject
+  if (!lhs || !okSubject) return expr;
+  let dd = 0, eq = 0;
+  for (const ch of lhs) {
+    if (ch === '(' || ch === '[') dd++;
+    else if (ch === ')' || ch === ']') { if (dd > 0) dd--; }
+    else if (ch === '=' && dd === 0) eq++;
+  }
+  if (eq !== 1) return expr;
+  return 'solve(' + lhs + ',' + rhs + ')';
+}
+
+/* ---- user-defined functions (Methods): f(x) = body ----
+   Definitions are detected from the RAW latex (before implicit multiplication
+   turns f(2) into f*2). Calls are then un-multiplied in the prepared string:
+   f*(2) -> f_fn(2), f'(2) -> f_dx(2), f''(2) -> f_ddx(2) -- mangled names a
+   math.js scope can hold as real functions. The registry is per section and
+   refreshed at the top of every recompute pass. */
+const FUNCDEF_RE = /^\s*([A-Za-z])\s*(?:\\left)?\(\s*([A-Za-z](?:\s*,\s*[A-Za-z])*)\s*(?:\\right)?\)\s*=(.*)$/;
+let CURR_FUNCS = new Map();   // name -> { params, bodyLatex, line }
+/* A definition's body is a plain expression: no solve arrow, no further '='.
+   "f(x) = 12 => x" and, once f exists, "f(x) = 12" are EQUATIONS, not
+   redefinitions -- only the first clean f(x)=body line defines f. */
+function funcDefMatch(lx) {
+  const m = lx.match(FUNCDEF_RE);
+  if (!m) return null;
+  if (m[3].indexOf('\\Rightarrow') !== -1 || m[3].indexOf('=') !== -1) return null;
+  return m;
+}
+function mangleUserCalls(expr) {
+  if (!CURR_FUNCS.size) return expr;
+  for (const name of CURR_FUNCS.keys()) {
+    expr = expr.split(name + "''*(").join(name + '_ddx(')
+               .split(name + "''(").join(name + '_ddx(')
+               .split(name + "'*(").join(name + '_dx(')
+               .split(name + "'(").join(name + '_dx(')
+               .split(name + '*(').join(name + '_fn(');
+  }
+  return expr;
+}
+const USERFN_NAME_RE = /^([A-Za-z])_(fn|dx|ddx)$/;
+
+function prepareExpr(latex) { return mangleUserCalls(rewriteCommaSolve(insertImplicitMult(latexToMath(rewriteArrowSolve(latex))))); }
+
+/* ---- numeric equation solver for solve(equation, variable) ----
+   Builds f(x) = LHS - RHS with all other variables taken from the folder scope,
+   then finds a root: exact for linear, Newton (multi-seed) for nonlinear. */
+function solveEquation(eqText, varName, scope) {
+  let L, R;
+  if (eqText.includes('=')) { const i = eqText.indexOf('='); L = eqText.slice(0,i); R = eqText.slice(i+1); }
+  else { L = eqText; R = '0'; }
+  let compiled = null;
+  try { compiled = math.compile('(' + L + ')-(' + R + ')'); } catch (e) {}
+  const fscope = { ...scope };
+  const f = compiled
+    ? (x => { fscope[varName] = x; try { return compiled.evaluate(fscope); } catch (e) { return NaN; } })
+    : (x => { try { return math.evaluate('(' + L + ')-(' + R + ')', { ...scope, [varName]: x }); } catch (e) { return NaN; } });
+
+  // exact linear shortcut
+  const f0 = f(0), f1 = f(1), f2 = f(2);
+  const m = f1 - f0, m2 = f2 - f1;
+  if (isFinite(m) && Math.abs(m - m2) < 1e-9 && Math.abs(m) > 1e-12) return cleanRoot(-f0 / m, f);
+
+  // the equation's own magnitude: physics expressions can live at 1e-19, where
+  // any absolute residual test would call every point a root
+  const fScale = fnScale(f);
+
+  // Newton from a spread of seeds; derivative step scales with |x| so it stays
+  // meaningful at large magnitudes. A positive root is returned as soon as one
+  // converges; negative roots are kept as fallbacks (physics answers are
+  // usually the positive branch).
+  const seeds = [0,1,-1,2,-2,0.5,-0.5,5,-5,10,-10,3.14159,1.5708,100,-100,1e4,-1e4];
+  const negatives = [];
+  for (const s0 of seeds) {
+    let x = s0;
+    for (let it = 0; it < 80; it++) {
+      const fx = f(x); if (!isFinite(fx)) break;
+      const h = Math.max(1e-9, Math.abs(x) * 1e-7), d = (f(x+h) - f(x-h)) / (2*h);
+      if (!isFinite(d) || d === 0) break;
+      const nx = x - fx / d; if (!isFinite(nx)) break;
+      if (Math.abs(nx - x) < 1e-12 * Math.max(1, Math.abs(x))) {
+        if (Math.abs(f(nx)) < 1e-6 * fScale) {
+          const r = cleanRoot(nx, f);
+          if (r >= 0) return r;
+          negatives.push(r);
+        }
+        break;
+      }
+      x = nx;
+    }
+  }
+
+  // Fallback: the seeds missed it (e.g. a root far out at 1e20, or wedged
+  // against a domain wall). Reuse the wide log-scale scanner and prefer the
+  // positive root nearest zero; failing that, the nearest-zero root found.
+  try {
+    const all = solveEquationAll(eqText, varName, scope);
+    if (all.roots && all.roots.length) {
+      const pos = all.roots.filter(r => r >= 0);
+      const pool = pos.length ? pos : all.roots;
+      return pool.slice().sort((a, b) => Math.abs(a) - Math.abs(b))[0];
+    }
+  } catch (e) {}
+  if (negatives.length) return negatives.sort((a, b) => Math.abs(a) - Math.abs(b))[0];
+  return undefined;
+}
+
+/* Find all distinct real roots of (LHS - RHS) in a bounded window by scanning
+   for sign changes and refining each with Newton's method. Numeric and bounded:
+   it returns the real roots within [lo, hi] only, so periodic equations report
+   the roots in that window rather than a general solution. Returns a sorted
+   array (possibly empty). */
+/* True if the expression contains a (non-inverse) circular trig function, which
+   makes the equation periodic -> we solve over one standard period. The \b
+   before the name means arcsin(/asin( etc. don't match (no word boundary before
+   "sin" in "arcsin"/"asin"). */
+function hasTrig(expr) {
+  return /\b(sin|cos|tan|sec|csc|cot)\s*\(/.test(expr);
+}
+
+/* If exprStr is a polynomial in the (single) variable, return its coefficients
+   ascending [a0, a1, ...]; otherwise null. Uses math.js rationalize. */
+function polyCoeffs(exprStr) {
+  try {
+    const n = math.rationalize(exprStr, {}, true);
+    if (n && n.coefficients && n.coefficients.length) return n.coefficients.map(Number);
+  } catch (e) {}
+  return null;
+}
+/* Cauchy bound: every real root of the polynomial lies in [-B, B]. */
+function cauchyBound(coeffs) {
+  const n = coeffs.length - 1, an = coeffs[n];
+  if (!an || !isFinite(an)) return null;
+  let m = 0;
+  for (let i = 0; i < n; i++) m = Math.max(m, Math.abs(coeffs[i] / an));
+  return 1 + m;
+}
+
+/* Build sample abscissae over [-hi, hi]: a dense linear band near zero plus
+   geometric (log-scale) spacing outward to hi, mirrored to negatives. This lets
+   a few thousand samples cover up to ~60 orders of magnitude so roots anywhere
+   in [-1e30, 1e30] get bracketed. Returns a sorted ascending array. */
+function buildScanGrid(hi, linBand, linStep, perDecade) {
+  const pts = new Set();
+  const lb = Math.min(linBand, hi);
+  for (let x = -lb; x <= lb; x += linStep) pts.add(+x.toFixed(6));
+  if (hi > lb) {
+    const s = Math.log10(lb || 1), e = Math.log10(hi);
+    const n = Math.ceil((e - s) * perDecade);
+    for (let i = 0; i <= n; i++) { const v = Math.pow(10, s + (e - s) * i / n); pts.add(v); pts.add(-v); }
+  }
+  return [...pts].sort((a, b) => a - b);
+}
+
+/* Typical magnitude of |f| over moderate probe points -- the reference scale
+   for every residual test, so equations living at 1e-19 behave like ones at 1. */
+function fnScale(f) {
+  const PROBES = [0.01, 0.1, 0.5, 1, 2, 5, 10, 100, 1e4, 1e6, -0.5, -1, -10, -100, -1e4];
+  let s = 0;
+  for (const p of PROBES) {
+    const v = f(p);
+    if (isFinite(v)) { const a = Math.abs(v); if (a > s) s = a; }
+  }
+  return (s && isFinite(s)) ? s : 1;
+}
+
+function solveEquationAll(eqText, varName, scope, lo, hi, steps) {
+  let L, R;
+  if (eqText.includes('=')) { const i = eqText.indexOf('='); L = eqText.slice(0,i); R = eqText.slice(i+1); }
+  else { L = eqText; R = '0'; }
+
+  let trig = false, mode = 'wide';
+  try { trig = hasTrig(eqText); } catch (e) {}
+
+  let compiled = null;
+  try { compiled = math.compile('(' + L + ')-(' + R + ')'); } catch (e) {}
+  const fscope = { ...scope };
+  const f = compiled
+    ? (x => { fscope[varName] = x; try { return compiled.evaluate(fscope); } catch (e) { return NaN; } })
+    : (x => { try { return math.evaluate('(' + L + ')-(' + R + ')', { ...scope, [varName]: x }); } catch (e) { return NaN; } });
+
+  const fScale = fnScale(f);
+  const roots = [];
+  const add = r => {
+    if (!isFinite(r)) return;
+    const c = cleanRoot(r, f) + 0;   // +0 normalises -0 to 0
+    if (!roots.some(e => Math.abs(e - c) < 1e-6 * Math.max(1, Math.abs(c)))) roots.push(c);
+  };
+  const newton = x0 => {
+    let x = x0;
+    for (let it = 0; it < 80; it++) {
+      const fx = f(x); if (!isFinite(fx)) break;
+      const h = Math.max(1e-9, Math.abs(x) * 1e-7), d = (f(x+h) - f(x-h)) / (2*h);
+      if (!isFinite(d) || d === 0) break;
+      const nx = x - fx / d; if (!isFinite(nx)) break;
+      if (Math.abs(nx - x) < 1e-12 * Math.max(1, Math.abs(x))) { if (Math.abs(f(nx)) < 1e-6 * fScale) return nx; break; }
+      x = nx;
+    }
+    return undefined;
+  };
+  const bisect = (a, b) => {
+    let fa = f(a), fb = f(b);
+    if (!isFinite(fa) || !isFinite(fb) || (fa < 0) === (fb < 0)) return undefined;
+    for (let it = 0; it < 200; it++) {
+      const m = (a + b) / 2, fm = f(m);
+      if (!isFinite(fm)) return undefined;
+      if (Math.abs(b - a) <= 1e-13 * Math.max(1, Math.abs(m)) || fm === 0) return m;
+      if ((fa < 0) !== (fm < 0)) b = m; else { a = m; fa = fm; }
+    }
+    return (a + b) / 2;
+  };
+
+  // --- TRIG: solve over one standard period in the current angle unit ---
+  if (trig && (lo === undefined || hi === undefined)) {
+    mode = 'trig';
+    if (angleMode === 'deg') { lo = 0; hi = 360; steps = 5760; }
+    else { lo = 0; hi = 2 * Math.PI; steps = 4000; }
+    const dx = (hi - lo) / steps;
+    let prev = f(lo);
+    if (isFinite(prev) && Math.abs(prev) < 1e-9 * fScale) add(lo);
+    for (let i = 1; i <= steps; i++) {
+      const x = lo + dx * i, cur = f(x);
+      if (isFinite(prev) && isFinite(cur) && (prev < 0) !== (cur < 0)) { const r = newton(x - dx/2); if (r !== undefined && r >= lo - 1e-6 && r <= hi + 1e-6) add(r); }
+      else if (isFinite(cur) && Math.abs(cur) < 1e-9 * fScale) add(x);
+      prev = cur;
+    }
+    return { roots: roots.sort((a,b)=>a-b), trig, mode, lo, hi };
+  }
+
+  // --- POLYNOMIAL: Cauchy bound contains every real root; LOG/OTHER: scan to 1e30 ---
+  const MAXR = 1e30;
+  let limit = MAXR;
+  const coeffs = polyCoeffs('(' + L + ')-(' + R + ')');
+  const B = coeffs ? cauchyBound(coeffs) : null;
+  if (B && isFinite(B)) { mode = 'poly'; limit = Math.min(B, MAXR); }
+  else { mode = 'wide'; limit = MAXR; }
+
+  // domain-edge hunting: f finite on one side of a grid step and NaN on the
+  // other means the function's domain ends between them. Binary-search the
+  // boundary, then look for a sign change between the finite side and a point
+  // just inside the wall -- e.g. γ = 1/sqrt(1 - v²/c²) has its root wedged
+  // against |v| = c, far from any log-grid point.
+  const edgeRoot = (fin, nan) => {
+    let a = fin, b = nan;
+    for (let it = 0; it < 90; it++) {
+      const m = (a + b) / 2;
+      if (isFinite(f(m))) a = m; else b = m;
+    }
+    const ffin = f(fin), fe = f(a);
+    if (!isFinite(ffin) || !isFinite(fe)) return;
+    if ((ffin < 0) !== (fe < 0)) { const r = bisect(fin, a); if (r !== undefined) add(r); }
+    // a root sitting exactly on the domain edge: judge the residual against the
+    // function's own scale, never against |x| (at x ~ 1e23 that accepts anything)
+    else if (Math.abs(fe) < 1e-9 * Math.max(1, Math.abs(ffin))) add(a);
+  };
+
+  // grid: dense linear band near zero + geometric spacing out to `limit`
+  const grid = buildScanGrid(limit, 200, 0.5, 40);
+  let pa = grid[0], pf = f(pa);
+  if (isFinite(pf) && Math.abs(pf) < 1e-12 * fScale) add(pa);
+  for (let i = 1; i < grid.length; i++) {
+    const a = grid[i], fa = f(a);
+    if (isFinite(pf) && isFinite(fa) && (pf < 0) !== (fa < 0)) {
+      let r = bisect(pa, a);
+      if (r !== undefined) { const nr = newton(r); if (nr !== undefined && Math.abs(f(nr)) <= Math.abs(f(r)) + 1e-12) r = nr; add(r); }
+    } else if (isFinite(fa) && isFinite(pf) && Math.abs(fa) < 1e-9 * Math.abs(pf)) {
+      // tangency root (no sign change): |f| collapses relative to its neighbour
+      add(a);
+    } else if (isFinite(pf) && !isFinite(fa)) {
+      edgeRoot(pa, a);
+    } else if (!isFinite(pf) && isFinite(fa)) {
+      edgeRoot(a, pa);
+    }
+    pa = a; pf = fa;
+  }
+  return { roots: roots.sort((a, b) => a - b), trig, mode, lo: -limit, hi: limit };
+}
+
+/* All real roots within a solving domain [lo, hi]: the wide solver's roots
+   filtered to the domain, merged with a dense sweep across it (the wide log
+   grid can step over roots inside a small interval; trig equations scan the
+   domain directly instead of one standard period). */
+function solveAllInDomain(eqText, varName, scope, lo, hi) {
+  const pushRoot = (arr, r) => {
+    const c = +r;
+    if (isFinite(c) && !arr.some(e => Math.abs(e - c) < 1e-6 * Math.max(1, Math.abs(c)))) arr.push(c);
+  };
+  let res;
+  try { res = solveEquationAll(eqText, varName, scope, lo, hi); } catch (e) { res = { roots: [] }; }
+  const tol = (v) => 1e-9 * Math.max(1, Math.abs(v));
+  const roots = [];
+  (res.roots || []).forEach(r => { if (r >= lo - tol(lo) && r <= hi + tol(hi)) pushRoot(roots, r); });
+  try {
+    const i = eqText.indexOf('=');
+    const L = i >= 0 ? eqText.slice(0, i) : eqText, R = i >= 0 ? eqText.slice(i + 1) : '0';
+    const compiled = math.compile('(' + L + ')-(' + R + ')');
+    const fscope = { ...scope };
+    const f = x => {
+      fscope[varName] = x;
+      try { const v = compiled.evaluate(fscope); return typeof v === 'number' ? v : NaN; } catch (e) { return NaN; }
+    };
+    // the residual scale comes from the function's size INSIDE the domain:
+    // probes far outside it would make the near-zero test meaningless
+    const N = 3000, dx = (hi - lo) / N;
+    const vals = new Array(N + 1);
+    let scale = 0;
+    for (let k = 0; k <= N; k++) {
+      const v = f(lo + dx * k); vals[k] = v;
+      if (isFinite(v)) { const a = Math.abs(v); if (a > scale) scale = a; }
+    }
+    if (!scale || !isFinite(scale)) scale = 1;
+    let px = lo, pv = vals[0];
+    if (isFinite(pv) && Math.abs(pv) < 1e-9 * scale) pushRoot(roots, lo);
+    for (let k = 1; k <= N; k++) {
+      const x = lo + dx * k, v = vals[k];
+      if (isFinite(pv) && isFinite(v) && (pv < 0) !== (v < 0)) {
+        let a = px, b = x, fa = pv;
+        for (let it = 0; it < 80; it++) {
+          const m2 = (a + b) / 2, fm = f(m2);
+          if (!isFinite(fm)) break;
+          if ((fa < 0) !== (fm < 0)) b = m2; else { a = m2; fa = fm; }
+        }
+        pushRoot(roots, (a + b) / 2);
+      } else if (isFinite(v) && Math.abs(v) < 1e-9 * scale && (!isFinite(pv) || Math.abs(pv) >= 1e-9 * scale)) {
+        pushRoot(roots, x);
+      }
+      px = x; pv = v;
+    }
+  } catch (e) {}
+  return { roots: roots.sort((a, b) => a - b), mode: 'domain', lo, hi };
+}
+
+/* Snap a root to the nearest integer only when that integer satisfies the
+   equation at least as well -- tidies 1.9999999998 -> 2 without destroying
+   genuinely tiny roots (3.3e-19 is within 1e-9 of 0 but is NOT a root at 0).
+   Without an equation to test against, integers still snap but a nonzero value
+   is never collapsed to 0. */
+function cleanRoot(x, f) {
+  const r = Math.round(x);
+  if (x === r) return x;
+  if (Math.abs(x - r) >= 1e-9) return x;
+  if (typeof f === 'function') {
+    try {
+      // purely relative: the snap must not worsen the residual (an absolute
+      // threshold here would re-collapse tiny physics-scale roots to 0)
+      const fr = Math.abs(f(r)), fx = Math.abs(f(x));
+      return (isFinite(fr) && fr <= fx * 4) ? r : x;
+    } catch (e) { return x; }
+  }
+  return r === 0 ? x : r;
+}
+
+/* Find the matching close paren for the '(' at index openIdx. */
+function matchParen(s, openIdx) {
+  let depth = 0;
+  for (let i = openIdx; i < s.length; i++) {
+    if (s[i] === '(') depth++;
+    else if (s[i] === ')') { depth--; if (depth === 0) return i; }
+  }
+  return -1;
+}
+
+/* Replace every solve(equation, var) in an expression with its numeric solution,
+   evaluated against the given scope. Handles nesting and inner parentheses.
+   Returns the rewritten expression (solve calls -> numbers), or throws on failure. */
+function resolveSolveCalls(expr, scope) {
+  let out = expr;
+  let guard = 0;
+  while (guard++ < 20) {
+    const idx = out.search(/\bsolve\s*\(/);
+    if (idx === -1) break;
+    const open = out.indexOf('(', idx);
+    const close = matchParen(out, open);
+    if (close === -1) throw new Error('solve: unbalanced parentheses');
+    const inner = out.slice(open + 1, close);
+    const args = splitSolveArgs(inner);
+    if (!args) throw new Error('solve needs an equation and a variable');
+    let root;
+    if (args.domain) {
+      const lo0 = Number(evalExpr(args.domain[0], scope)), hi0 = Number(evalExpr(args.domain[1], scope));
+      const lo = Math.min(lo0, hi0), hi = Math.max(lo0, hi0);
+      if (!isFinite(lo) || !isFinite(hi)) throw new Error('bad solving domain');
+      const roots = solveAllInDomain(args.eqText, args.varName, scope, lo, hi).roots;
+      const pos = roots.filter(r => r >= 0);
+      const pool = pos.length ? pos : roots;
+      root = pool.slice().sort((a, b) => Math.abs(a) - Math.abs(b))[0];
+    } else {
+      root = solveEquation(args.eqText, args.varName, scope);
+    }
+    if (root === undefined) throw new Error('no solution found');
+    out = out.slice(0, idx) + '(' + root + ')' + out.slice(close + 1);
+  }
+  return out;
+}
+
+function hasSolve(expr) { return /\bsolve\s*\(/.test(expr); }
+
+/* If `expr` is exactly a single solve(equation, variable) call (nothing else
+   around it), return {eqText, varName}; otherwise null. Used by all-solutions
+   mode, which can only list roots when the whole result IS the solve (a list
+   can't be chained into further arithmetic). */
+/* Split a solve(...) argument list at top-level commas (tracking both () and
+   []), and read an optional solving domain: solve(eq, x, [a, b]) or
+   solve(eq, x, a, b). Returns {eqText, varName, domain} or null. */
+function splitSolveArgs(inner) {
+  const parts = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i];
+    if (ch === '(' || ch === '[') depth++;
+    else if (ch === ')' || ch === ']') { if (depth > 0) depth--; }
+    else if (ch === ',' && depth === 0) { parts.push(inner.slice(start, i)); start = i + 1; }
+  }
+  parts.push(inner.slice(start));
+  if (parts.length < 2) return null;
+  const out = { eqText: parts[0].trim(), varName: parts[1].trim(), domain: null };
+  if (parts.length === 3) {
+    const mm = parts[2].trim().match(/^\[(.*)\]$/);
+    if (!mm) return null;
+    const halves = [];
+    let d2 = 0, s2 = 0;
+    for (let i = 0; i < mm[1].length; i++) {
+      const ch = mm[1][i];
+      if (ch === '(' || ch === '[') d2++;
+      else if (ch === ')' || ch === ']') { if (d2 > 0) d2--; }
+      else if (ch === ',' && d2 === 0) { halves.push(mm[1].slice(s2, i)); s2 = i + 1; }
+    }
+    halves.push(mm[1].slice(s2));
+    if (halves.length !== 2) return null;
+    out.domain = [halves[0].trim(), halves[1].trim()];
+  } else if (parts.length === 4) {
+    out.domain = [parts[2].trim(), parts[3].trim()];
+  } else if (parts.length > 4) return null;
+  return out;
+}
+function pureSolveCall(expr) {
+  const t = expr.trim();
+  const m = t.match(/^solve\s*\(/);
+  if (!m) return null;
+  const open = t.indexOf('(');
+  const close = matchParen(t, open);
+  if (close === -1 || close !== t.length - 1) return null;   // must end the expr
+  return splitSolveArgs(t.slice(open + 1, close));
+}
+
+/* ---- cSolve: all complex roots of a polynomial ----
+   complexRoots(coeffs) takes ascending real coefficients [a0,a1,...,an] and
+   returns every root (real and complex) as math.js Complex values, using the
+   Durand-Kerner (Weierstrass) method. Unlike math.js's eigs, this converges
+   reliably for polynomials with complex roots at any degree. Returns null if it
+   can't (degree < 1). */
+function complexRoots(coeffs) {
+  const c = coeffs.slice();
+  while (c.length > 1 && Math.abs(c[c.length - 1]) < 1e-14) c.pop();   // drop ~0 leading terms
+  const n = c.length - 1;
+  if (n < 1) return null;
+  const an = c[n];
+  if (!isFinite(an) || an === 0) return null;
+  // monic coefficients, ascending: a[0..n], a[n] = 1
+  const a = c.map(v => v / an);
+  // polynomial value p(z) via Horner (descending), z complex
+  const pAt = (z) => {
+    let acc = math.complex(a[n], 0);              // leading coeff (1)
+    for (let k = n - 1; k >= 0; k--) acc = math.add(math.multiply(acc, z), math.complex(a[k], 0));
+    return acc;
+  };
+  // initial guesses: powers of a fixed off-axis complex seed (classic D-K start)
+  const seed = math.complex(0.4, 0.9);
+  let roots = [];
+  let cur = math.complex(1, 0);
+  for (let i = 0; i < n; i++) { cur = math.multiply(cur, seed); roots.push(cur); }
+  // iterate
+  for (let iter = 0; iter < 500; iter++) {
+    let maxDelta = 0;
+    for (let i = 0; i < n; i++) {
+      const zi = roots[i];
+      let denom = math.complex(1, 0);
+      for (let j = 0; j < n; j++) {
+        if (j === i) continue;
+        denom = math.multiply(denom, math.subtract(zi, roots[j]));
+      }
+      if (math.abs(denom) < 1e-300) continue;     // coincident guesses; skip this pass
+      const delta = math.divide(pAt(zi), denom);
+      roots[i] = math.subtract(zi, delta);
+      const d = math.abs(delta);
+      if (d > maxDelta) maxDelta = d;
+    }
+    if (maxDelta < 1e-13) break;
+  }
+  return roots;
+}
+
+/* Round a math.js value (real number or Complex) to tidy near-integer parts and
+   snap floating dust to zero, so roots like 2.0000000003 - 1e-15 i display as 2. */
+function cleanComplexRoot(z) {
+  if (typeof z === 'number') return cleanRoot(z);
+  if (z && typeof z.re === 'number' && typeof z.im === 'number') {
+    const re = cleanRoot(z.re), im = cleanRoot(z.im);
+    if (Math.abs(im) < 1e-9) return re;                  // real -> plain number
+    return math.complex(re, im);
+  }
+  return z;
+}
+
+/* All complex roots of eqText in varName. Polynomial path uses complexRoots;
+   if eqText isn't a polynomial, falls back to the real all-roots scanner so
+   cSolve still does something sensible. Returns { roots, meta }. */
+function cSolveAll(eqText, varName, scope) {
+  // build (LHS)-(RHS) so polyCoeffs sees a single expression = 0
+  let expr;
+  if (eqText.includes('=')) { const i = eqText.indexOf('='); expr = '(' + eqText.slice(0, i) + ')-(' + eqText.slice(i + 1) + ')'; }
+  else expr = eqText;
+  // substitute known scope numbers for other free variables so polyCoeffs only
+  // sees the unknown (matches how solveEquationAll treats the folder scope)
+  let coeffs = polyCoeffs(expr);
+  if (coeffs) {
+    const roots = complexRoots(coeffs);
+    if (roots) {
+      const cleaned = roots.map(cleanComplexRoot);
+      // sort: real parts ascending, then imaginary parts ascending
+      cleaned.sort((p, q) => {
+        const pr = (typeof p === 'number') ? p : p.re, qr = (typeof q === 'number') ? q : q.re;
+        const pi = (typeof p === 'number') ? 0 : p.im, qi = (typeof q === 'number') ? 0 : q.im;
+        return (pr - qr) || (pi - qi);
+      });
+      return { roots: cleaned, meta: { complex: true } };
+    }
+  }
+  // non-polynomial fallback: real roots only (toggle-on solve behaviour)
+  const res = solveEquationAll(eqText, varName, scope);
+  return { roots: res.roots, meta: res };
+}
+
+/* If `expr` is exactly a single cSolve(equation, variable) call, return
+   {eqText, varName}; otherwise null. Parallels pureSolveCall. */
+function pureCSolveCall(expr) {
+  const t = expr.trim();
+  const m = t.match(/^cSolve\s*\(/);
+  if (!m) return null;
+  const open = t.indexOf('(');
+  const close = matchParen(t, open);
+  if (close === -1 || close !== t.length - 1) return null;
+  const inner = t.slice(open + 1, close);
+  let depth = 0, commaPos = -1;
+  for (let i = 0; i < inner.length; i++) {
+    if (inner[i] === '(') depth++;
+    else if (inner[i] === ')') depth--;
+    else if (inner[i] === ',' && depth === 0) commaPos = i;
+  }
+  if (commaPos === -1) return null;
+  return { eqText: inner.slice(0, commaPos).trim(), varName: inner.slice(commaPos + 1).trim() };
+}
+
+/* Solve a linear system. eqExprs are math.js expression strings (each "lhs=rhs",
+   or just "expr" treated as = 0). `scope` holds known values/constants. Unknowns
+   are every free symbol not in scope. Returns {solution:{var:val,...}, vars} or
+   {error: '...'}. Requires #equations == #unknowns and a unique solution. */
+function solveLinearSystem(eqExprs, scope) {
+  scope = scope || {};
+  const varSet = new Set();
+  const compiled = [];
+  for (const raw of eqExprs) {
+    const eq = (raw || '').trim();
+    if (eq === '') continue;
+    const i = eq.indexOf('=');
+    const L = i >= 0 ? eq.slice(0, i) : eq;
+    const R = i >= 0 ? eq.slice(i + 1) : '0';
+    const e = '(' + L + ')-(' + R + ')';
+    let node;
+    try { node = math.parse(e); } catch (err) { return { error: 'syntax error' }; }
+    node.traverse(n => {
+      if (n.type === 'SymbolNode' && !(n.name in scope) && !RESERVED.includes(n.name)) varSet.add(n.name);
+    });
+    compiled.push(node.compile());
+  }
+  if (compiled.length === 0) return { error: '' };
+  const vars = [...varSet];
+  if (vars.length === 0) return { error: 'no unknowns' };
+  if (compiled.length !== vars.length) {
+    return { error: vars.length + ' unknown' + (vars.length>1?'s':'') + ' (' + vars.map(prettyVarName).join(', ') + '), need ' + vars.length + ' equation' + (vars.length>1?'s':'') };
+  }
+  // linearity check + build A x = b via f(0) and unit vectors
+  const zero = {}; vars.forEach(v => zero[v] = 0);
+  const A = [], b = [];
+  for (const c of compiled) {
+    let f0;
+    try { f0 = c.evaluate({ ...scope, ...zero }); } catch (e) { return { error: 'cannot evaluate' }; }
+    if (typeof f0 !== 'number' || !isFinite(f0)) return { error: 'non-numeric' };
+    const row = [];
+    for (const v of vars) {
+      const u = { ...zero }; u[v] = 1;
+      let fv, f2;
+      try { fv = c.evaluate({ ...scope, ...u }); } catch (e) { return { error: 'cannot evaluate' }; }
+      // linearity sanity: coefficient from x=1 and x=2 must agree
+      const u2 = { ...zero }; u2[v] = 2;
+      try { f2 = c.evaluate({ ...scope, ...u2 }); } catch (e) { return { error: 'cannot evaluate' }; }
+      const co1 = fv - f0, co2 = (f2 - f0) / 2;
+      if (Math.abs(co1 - co2) > 1e-7 * (1 + Math.abs(co1))) return { error: 'not linear' };
+      row.push(co1);
+    }
+    A.push(row); b.push(-f0);
+  }
+  let sol;
+  try { sol = math.lusolve(A, b).map(r => r[0]); }
+  catch (e) { return { error: 'no unique solution' }; }
+  if (sol.some(x => !isFinite(x))) return { error: 'no unique solution' };
+  const out = {}; vars.forEach((v, i) => out[v] = cleanRoot(sol[i]));
+  return { solution: out, vars };
+}
+/* convert an internal var name (e.g. unicode glyphs, x_1) to display latex */
+function prettyVarName(v) { try { return varToLatex(v); } catch (e) { return v; } }
+
+/* numeric definite integral via Simpson's rule */
+function integrateNumeric(fExpr, varName, a, b, scope) {
+  const f = x => math.evaluate(fExpr, { ...scope, [varName]: x });
+  let n = 1000; if (n % 2) n++;
+  const h = (b - a) / n;
+  let s = f(a) + f(b);
+  for (let i = 1; i < n; i++) s += (i % 2 ? 4 : 2) * f(a + i * h);
+  const val = s * h / 3;
+  if (!isFinite(val)) throw new Error('integral did not converge');
+  return val;
+}
+
+/* Replace every integrate(integrand, var, a, b) with its numeric value. The
+   integrand and var are kept raw; the limits are evaluated against scope. */
+function resolveIntegrals(expr, scope) {
+  let out = expr; let guard = 0;
+  while (guard++ < 20) {
+    const idx = out.search(/\bintegrate\s*\(/);
+    if (idx === -1) break;
+    const open = out.indexOf('(', idx);
+    const close = matchParen(out, open);
+    if (close === -1) throw new Error('integral: unbalanced parentheses');
+    const inner = out.slice(open + 1, close);
+    // split into 4 top-level args: integrand, var, a, b
+    const parts = []; let depth = 0, last = 0;
+    for (let i = 0; i < inner.length; i++) {
+      if (inner[i] === '(') depth++;
+      else if (inner[i] === ')') depth--;
+      else if (inner[i] === ',' && depth === 0) { parts.push(inner.slice(last, i)); last = i + 1; }
+    }
+    parts.push(inner.slice(last));
+    if (parts.length < 4) throw new Error('integral needs integrand, variable, and limits');
+    const integrand = parts[0].trim();
+    const varName = parts[1].trim();
+    const a = math.evaluate(parts[2], scope);
+    const b = math.evaluate(parts[3], scope);
+    const val = integrateNumeric(integrand, varName, a, b, scope);
+    out = out.slice(0, idx) + '(' + val + ')' + out.slice(close + 1);
+  }
+  return out;
+}
+function hasIntegral(expr) { return /\bintegrate\s*\(/.test(expr); }
+
+/* Evaluate summation(body, var, lo, hi): sum body over integer var = lo..hi. */
+function resolveSums(expr, scope) {
+  let out = expr; let guard = 0;
+  while (guard++ < 20) {
+    const idx = out.search(/\bsummation\s*\(/);
+    if (idx === -1) break;
+    const open = out.indexOf('(', idx);
+    const close = matchParen(out, open);
+    if (close === -1) throw new Error('sum: unbalanced parentheses');
+    const inner = out.slice(open + 1, close);
+    const parts = []; let depth = 0, last = 0;
+    for (let i = 0; i < inner.length; i++) {
+      if (inner[i] === '(') depth++;
+      else if (inner[i] === ')') depth--;
+      else if (inner[i] === ',' && depth === 0) { parts.push(inner.slice(last, i)); last = i + 1; }
+    }
+    parts.push(inner.slice(last));
+    if (parts.length < 4) throw new Error('sum needs body, variable, lower, upper');
+    const body = parts[0].trim();
+    const varName = parts[1].trim();
+    let lo = Math.round(math.evaluate(parts[2], scope));
+    let hi = Math.round(math.evaluate(parts[3], scope));
+    let total = 0;
+    const compiled = math.compile(body);
+    const limit = 1e6;                    // guard against runaway ranges
+    if (hi - lo > limit) throw new Error('sum range too large');
+    for (let k = lo; k <= hi; k++) {
+      total += compiled.evaluate({ ...scope, [varName]: k });
+    }
+    out = out.slice(0, idx) + '(' + total + ')' + out.slice(close + 1);
+  }
+  return out;
+}
+function hasSum(expr) { return /\bsummation\s*\(/.test(expr); }
+
+/* A prepared expression's multi-char subscript names (E_usr, E_kmax, h_J)
+   carry a plain underscore, but the tokenizer's bare "_" rule reads exactly one
+   character (so typed q_1q_2 splits correctly). In a PREPARED string implicit
+   multiplication is already explicit, so a letter run after "_" is always one
+   subscript: wrap it in the tokenizer's sentinels so it reads back as ONE name
+   (without this, E_kmax re-tokenized as E_k, m, a, x -- phantom variables). */
+function protectSubscripts(s) {
+  return s.replace(/_([A-Za-z0-9]+)/g, '_‹$1›');
+}
+
+/* collect the free variable names referenced in an expression (non-function
+   single-letter names, excluding constants, ans, predefined constants, and any
+   solve() target var) */
+function referencedVars(expr) {
+  const toks = tokenize(protectSubscripts(expr)); const out = new Set();
+  for (const t of toks) {
+    // `i` is reserved for the imaginary unit (math.js) and is never offered as an
+    // undefined variable. If the user explicitly assigns `i = ...` in a field it
+    // becomes a defined name and overrides the imaginary unit via scope as normal.
+    if (t.t === 'name' && t.v === 'i') continue;
+    if (t.t === 'name' && USERFN_NAME_RE.test(t.v) && CURR_FUNCS.has(t.v[0])) continue;   // user-function calls are not variables
+    if (t.t === 'name' && !t.fn && !CONSTS.includes(t.v) && t.v !== 'ans' && !PHYS_NAMES.has(t.v)) out.add(t.v);
+  }
+  const solveTargets = [...expr.matchAll(/(?:solve|cSolve)\s*\(.*?,\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*\)/g)].map(m => m[1]);
+  solveTargets.forEach(v => out.delete(v));
+  // the integration variable in integrate(integrand, var, a, b) is bound, not free
+  const intVars = [...expr.matchAll(/integrate\s*\([^,]*,\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*,/g)].map(m => m[1]);
+  intVars.forEach(v => out.delete(v));
+  // the summation index in summation(body, var, lo, hi) is bound, not free
+  const sumVars = [...expr.matchAll(/summation\s*\(\s*\((?:[^()]|\([^()]*\))*\)\s*,\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*,/g)].map(m => m[1]);
+  sumVars.forEach(v => out.delete(v));
+  return [...out];
+}
+
+/* collect predefined physics constants referenced in an expression */
+function referencedPhys(expr) {
+  const toks = tokenize(protectSubscripts(expr)); const out = new Set();
+  for (const t of toks) {
+    if (t.t === 'name' && !t.fn && PHYS_NAMES.has(t.v)) out.add(t.v);
+  }
+  return [...out];
+}
+
+/* ---- result formatting ---- */
+let sigFigs = 'auto';   // 'auto' | 3  (set from the header; default Auto)
+let solveAllMode = false;   // when on, solve(eq,var) lists all real roots in a window
+
+function decimalLatex(value) {
+  // non-finite numbers typeset properly (∞ appears inside lists; a whole-line
+  // non-finite result renders as "undefined" in renderResult instead)
+  if (typeof value === 'number' && !isFinite(value)) {
+    if (isNaN(value)) return null;
+    return value > 0 ? '\\infty' : '-\\infty';
+  }
+  // lists/matrices: format each element the same way, render as [a, b, c]
+  if (value && typeof value === 'object' && (Array.isArray(value) || typeof value.toArray === 'function')) {
+    const arr = Array.isArray(value) ? value : value.toArray();
+    const parts = arr.map(el => {
+      const inner = decimalLatex(el);
+      return inner === null ? String(el) : inner;
+    });
+    return '\\left[' + parts.join(',\\ ') + '\\right]';
+  }
+  if (typeof value !== 'number' || !isFinite(value)) {
+    // complex numbers (math.js Complex): render as a+bi, reusing decimalLatex for
+    // each real component so sig-fig/scientific formatting stays consistent.
+    if (value && typeof value === 'object' && typeof value.re === 'number' && typeof value.im === 'number') {
+      const re = value.re, im = value.im;
+      const fmt = (x) => { const t = decimalLatex(x); return t === null ? String(x) : t; };
+      const TOL = 1e-12;
+      if (Math.abs(im) < TOL) return fmt(re);                       // purely real
+      const imMag = Math.abs(im);
+      const imPart = (Math.abs(imMag - 1) < TOL) ? 'i' : (fmt(imMag) + 'i');
+      if (Math.abs(re) < TOL) return (im < 0 ? '-' : '') + imPart;  // purely imaginary
+      return fmt(re) + (im < 0 ? '-' : '+') + imPart;
+    }
+    return null;
+  }
+  if (value === 0) return '0';
+  const prec = (sigFigs === 'auto') ? 12 : sigFigs;
+  const abs = Math.abs(value);
+
+  // Auto mode: ordinary notation in the everyday range, scientific outside it.
+  if (sigFigs === 'auto') {
+    if (abs >= 1e-4 && abs < 1e7) return parseFloat(value.toPrecision(prec)).toString();
+    let exp = Math.floor(Math.log10(abs));
+    let mant = value / Math.pow(10, exp);
+    mant = parseFloat(mant.toPrecision(prec));
+    if (Math.abs(mant) >= 10) { mant /= 10; exp++; }
+    return mant.toString() + ' \\times 10^{' + exp + '}';
+  }
+
+  // Fixed sig figs (3 s.f.): if rounding to `prec` figures changes the value,
+  // the answer isn't exact at this precision -> show it in scientific notation.
+  // Values that are already exact at this precision stay in plain notation.
+  const rounded = parseFloat(value.toPrecision(prec));
+  const wasRounded = rounded !== value;
+  if (!wasRounded && abs >= 1e-4 && abs < 1e7) {
+    return rounded.toString();        // exact at this precision, ordinary range
+  }
+  // scientific notation with the mantissa at `prec` sig figs
+  let exp = Math.floor(Math.log10(abs));
+  let mant = value / Math.pow(10, exp);
+  mant = parseFloat(mant.toPrecision(prec));
+  if (Math.abs(mant) >= 10) { mant /= 10; exp++; }
+  return mant.toString() + ' \\times 10^{' + exp + '}';
+}
+
+function exactLatex(value) {
+  // lists/matrices: format each element exactly, render as [a, b, c]
+  if (value && typeof value === 'object' && (Array.isArray(value) || typeof value.toArray === 'function')) {
+    const arr = Array.isArray(value) ? value : value.toArray();
+    const parts = arr.map(el => { const inner = exactLatex(el); return inner === null ? (decimalLatex(el) || String(el)) : inner; });
+    return '\\left[' + parts.join(',\\ ') + '\\right]';
+  }
+  // complex numbers in Exact mode -> rectangular a + bi with each part exact
+  // where possible (integer/surd/fraction), falling back to decimal parts.
+  // polar() still returns its [r, theta] list of reals, so an explicit
+  // ->polar conversion is untouched by this.
+  if (value && typeof value === 'object' && typeof value.re === 'number' && typeof value.im === 'number') {
+    const re = value.re, im = value.im;
+    if (Math.abs(im) < 1e-12) return exactLatex(re);          // purely real -> normal exact
+    const part = (x) => exactLatex(x) ?? decimalLatex(x) ?? String(x);
+    const imAbs = Math.abs(im);
+    const imTex = (Math.abs(imAbs - 1) < 1e-12 ? '' : part(imAbs)) + 'i';
+    if (Math.abs(re) < 1e-12) return (im < 0 ? '-' : '') + imTex;   // purely imaginary
+    return part(re) + (im < 0 ? '-' : '+') + imTex;
+  }
+  if (typeof value !== 'number' || !isFinite(value)) return null;
+  if (Number.isInteger(value)) {
+    const s = String(value);
+    // large/small integers stringify with exponential ("6.02e+23") -> use x10^n
+    if (/[eE]/.test(s)) return decimalLatex(value);
+    return s;
+  }
+  // pi multiples
+  const overPi = value / Math.PI;
+  try {
+    const f = math.fraction(overPi);
+    if (Number(f.d) <= 12 && Math.abs(overPi - Number(f.n)/Number(f.d)*Number(f.s)) < 1e-9 && Number(f.n) !== 0) {
+      const n = Number(f.n)*Number(f.s), d = Number(f.d);
+      const num = (Math.abs(n)===1 ? (n<0?'-':'') : n) + '\\pi';
+      return d===1 ? num : '\\frac{'+num+'}{'+d+'}';
+    }
+  } catch (e) {}
+  // plain fraction
+  try {
+    const fr = math.fraction(value);
+    const n = Number(fr.n) * Number(fr.s), d = Number(fr.d);
+    const approx = n / d;
+    // reject the degenerate 0/1 for a non-zero value (tiny numbers like 1.6e-19),
+    // and use a relative tolerance so we don't mis-snap small magnitudes
+    const tol = Math.max(1e-12, Math.abs(value) * 1e-12);
+    if (n !== 0 && d <= 10000 && Math.abs(value - approx) < tol) {
+      return '\\frac{' + n + '}{' + d + '}';
+    }
+  } catch (e) {}
+  // surd: value = (p/q)*sqrt(r) for square-free r. Detect via value^2 being rational.
+  const surd = surdLatex(value);
+  if (surd !== null) return surd;
+  return null; // irrational, not a simple surd: fall back to decimal
+}
+
+/* Largest square factor extraction: returns [outside, inside] so that
+   sqrt(n) = outside * sqrt(inside), with inside square-free. n must be a
+   non-negative integer. */
+function simplifyRadical(n) {
+  let outside = 1, inside = n;
+  for (let f = 2; f * f <= inside; f++) {
+    while (inside % (f * f) === 0) { inside /= (f * f); outside *= f; }
+  }
+  return [outside, inside];
+}
+
+/* If value is a rational multiple of a square root, return its exact LaTeX,
+   e.g. sqrt(2), 2 sqrt(3), sqrt(2)/2, (3 sqrt(5))/2. Otherwise null. */
+function surdLatex(value) {
+  if (typeof value !== 'number' || !isFinite(value) || value === 0) return null;
+  const sign = value < 0 ? -1 : 1;
+  const sq = value * value;            // value^2 should be rational for a surd
+  let fr;
+  try { fr = math.fraction(sq); } catch (e) { return null; }
+  const n = Number(fr.n), d = Number(fr.d);
+  if (!Number.isInteger(n) || !Number.isInteger(d) || d === 0 || n === 0) return null;
+  if (d > 10000 || n > 1e9) return null;
+  // reject if value^2 isn't really this fraction (guards against irrationals and
+  // tiny magnitudes that math.fraction rounds toward zero)
+  if (Math.abs(sq - n / d) > 1e-12 * Math.max(1, sq)) return null;
+  // value = sqrt(n/d) = sqrt(n*d)/d
+  const [out, insideRaw] = simplifyRadical(n * d);
+  const inside = insideRaw;
+  // if inside is 1 it's actually rational -> let the fraction path handle it
+  if (inside === 1) return null;
+  // coefficient = out/d, reduced
+  let cn = out, cd = d;
+  const g = gcdInt(cn, cd); cn /= g; cd /= g;
+  const radical = '\\sqrt{' + inside + '}';
+  const signStr = sign < 0 ? '-' : '';
+  // build coefficient * radical / denominator
+  let numerator;
+  if (cn === 1) numerator = signStr + radical;
+  else numerator = signStr + cn + radical;
+  if (cd === 1) return numerator;
+  return '\\frac{' + numerator + '}{' + cd + '}';
+}
+
+function gcdInt(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; }
+
+/* Render a result line. prefixLatex (optional) is LaTeX for the leading
+   "name =" part (so subscripts render); plainPrefix is the fallback text. */
+/* CAS-style exact simplification. Takes a math.js expression string and returns
+   simplified LaTeX, keeping transcendental atoms (sin(8), log(2), sqrt(3), pi, e)
+   symbolic while folding all rational/constant arithmetic and combining like
+   terms. Returns null if it can't parse or doesn't help. */
+const CAS_ATOM_WORDS = ['ATOMAA','ATOMBB','ATOMCC','ATOMDD','ATOMEE','ATOMFF','ATOMGG','ATOMHH','ATOMII','ATOMJJ','ATOMKK','ATOMLL'];
+const CAS_PROTECT_FNS = new Set(['sin','cos','tan','sec','csc','cot','asin','acos','atan',
+  'sinh','cosh','tanh','asinh','acosh','atanh','log','ln','exp','abs','sqrt','nthRoot','cbrt']);
+
+function simplifyExactLatex(expr) {
+  if (typeof expr !== 'string' || expr.trim() === '') return null;
+  let node;
+  try { node = math.parse(expr); } catch (e) { return null; }
+  const atoms = new Map(); let idx = 0;
+
+  // First, try to fold a sqrt to an exact numeric/surd form; if it reduces to a
+  // pure number or a clean surd, inline that LaTeX as an atom so it stays exact.
+  function protect(n) {
+    n = n.map(protect);
+    if (n.type === 'FunctionNode' && n.fn && CAS_PROTECT_FNS.has(n.fn.name)) {
+      // sqrt with a constant arg: try exact surd/number
+      if ((n.fn.name === 'sqrt') && n.args.length === 1) {
+        let val = null;
+        try { val = n.compile().evaluate({}); } catch (e) {}
+        if (typeof val === 'number' && isFinite(val)) {
+          const ex = exactLatex(val);            // integer / fraction / surd
+          if (ex !== null) {
+            const key = '(' + ex + ')';
+            if (![...atoms.values()].includes(key)) {}
+            const sym = CAS_ATOM_WORDS[idx++] || ('ATOMX' + idx);
+            atoms.set(sym, ex);
+            return new math.SymbolNode(sym);
+          }
+        }
+      }
+      if (idx >= CAS_ATOM_WORDS.length) throw new Error('too many atoms');
+      const key = n.toTex({ implicit: 'hide' });
+      // reuse a symbol for identical atoms so like terms combine
+      let sym = null;
+      for (const [s, tex] of atoms) { if (tex === key) { sym = s; break; } }
+      if (!sym) { sym = CAS_ATOM_WORDS[idx++]; atoms.set(sym, key); }
+      return new math.SymbolNode(sym);
+    }
+    return n;
+  }
+
+  let prot;
+  try { prot = protect(node); } catch (e) { return null; }
+  let simp;
+  try { simp = math.simplify(prot, {}, { exactFractions: true }); } catch (e) { return null; }
+  let tex;
+  try { tex = simp.toTex({ implicit: 'hide' }); } catch (e) { return null; }
+  // restore atoms
+  for (const [sym, atomTex] of atoms) { tex = tex.split(sym).join(atomTex); }
+  // cosmetics: cdot between coefficient and atom -> thin space (implicit mult)
+  tex = tex.replace(/\\cdot/g, '\\,');
+  // E-notation that math.js prints as 1\cdot10^{+9} or 1e+9 -> tidy
+  tex = tex.replace(/(\d)\s*\\,\s*10\^\{?\+?(-?\d+)\}?/g, '$1\\times10^{$2}');
+  tex = tex.replace(/(\d)e\+?(-?\d+)/g, '$1\\times10^{$2}');
+  return tex;
+}
+
+/* Tidy raw MathQuill LaTeX for echoing as an exact symbolic result. Strips empty
+   placeholders; leaves structure (\frac, \sqrt, \sin ...) for KaTeX to render. */
+function cleanEchoLatex(latex) {
+  let s = (latex || '').trim();
+  if (s === '') return null;
+  s = s.replace(/\\square/g, '');
+  return s;
+}
+
+/* Convert a result's LaTeX into copyable plaintext. Fractions -> a/b, surds ->
+   sqrt(x), scientific -> m x10^n. Falls back to a plain numeric string when the
+   LaTeX can't be cleanly linearised. */
+/* A numeric string safe to paste back into a calculator field: plain decimal
+   where JS wouldn't use exponential, otherwise mEexp form (no '+', which the
+   field's blur handler rewrites to x10^n; the bare 'e' alone would read as
+   Euler's number, so we always keep the exponent attached). */
+function sciSafe(value) {
+  const s = String(value);
+  if (!/[eE]/.test(s)) return s;          // already plain (e.g. 1500000, 0.0023)
+  return s.replace(/[eE]\+?/, 'E');       // 6.02e+23 -> 6.02E23
+}
+let MBIG = null;
+function bigMath() {
+  if (MBIG === null) {
+    try { MBIG = math.create(); MBIG.config({ number: 'BigNumber', precision: 24 }); }
+    catch (e) { MBIG = false; }
+  }
+  return MBIG || null;
+}
+
+function latexToPlain(valLatex, value) {
+  if (valLatex == null) {
+    if (typeof value === 'number' && isFinite(value)) return String(value);
+    return String(value);
+  }
+  let s = valLatex;
+  // nested \frac -> (num)/(den), repeat until none remain
+  let prev;
+  do { prev = s;
+    s = s.replace(/\\frac\{((?:[^{}]|\{[^{}]*\})*)\}\{((?:[^{}]|\{[^{}]*\})*)\}/g, '($1)/($2)');
+  } while (s !== prev);
+  s = s.replace(/\\sqrt\[((?:[^{}]|\{[^{}]*\})*)\]\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'nthroot($2,$1)');
+  s = s.replace(/\\sqrt\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'sqrt($1)');
+  s = s.replace(/\\infty/g, '∞');
+  s = s.replace(/\\times\s*10\^\{(-?\d+)\}/g, ' x10^$1');   // scientific
+  s = s.replace(/\\times\s*10\^(-?\d+)/g, ' x10^$1');
+  s = s.replace(/\\cdot|\\times/g, '*');
+  s = s.replace(/\\pi/g, 'pi').replace(/\\,/g, '');
+  s = s.replace(/\^\{([^{}]*)\}/g, '^$1');                  // a^{b} -> a^b
+  s = s.replace(/_\{([^{}]*)\}/g, '_$1');
+  s = s.replace(/\\left|\\right/g, '');
+  s = s.replace(/\\[a-zA-Z]+/g, m => m.slice(1));           // any leftover \cmd -> cmd
+  s = s.replace(/[{}]/g, '').replace(/\s+/g, ' ').trim();
+  // clean up redundant parens around a bare number, but NOT function-call args
+  // like sqrt(5) -> keep. Only strip when not preceded by a letter.
+  s = s.replace(/(^|[^A-Za-z0-9_])\((\-?\d+(?:\.\d+)?)\)/g, '$1$2');
+  if (s === '' && typeof value === 'number') return String(value);
+  return s;
+}
+function balanceParens(s) {
+  let depth = 0, out = '';
+  for (const ch of s) {
+    if (ch === '(') { depth++; out += ch; }
+    else if (ch === ')') { if (depth > 0) { depth--; out += ch; } /* else drop stray ) */ }
+    else out += ch;
+  }
+  if (depth > 0) out += ')'.repeat(depth);   // close what was left open
+  return out;
+}
+
+function evalExpr(text, scope) {
+  let t = text;
+  if (hasSum(t)) t = resolveSums(t, scope);
+  if (hasIntegral(t)) t = resolveIntegrals(t, scope);
+  if (hasSolve(t)) t = resolveSolveCalls(t, scope);
+  t = balanceParens(t);
+  const v = math.evaluate(t, scope);
+  // units aren't used here: a bare symbol like g, N, T that resolves to a math.js
+  // Unit means it was an undefined variable -> treat as unresolved (renders blank,
+  // and the undefined-variable prompt still fires).
+  if (v && typeof v === 'object' && v.isUnit) throw new Error('unit-as-variable');
+  // math.js reads "f_fn(x) = 12" with x defined as a FUNCTION ASSIGNMENT and
+  // returns the function; that is never a numeric answer here
+  if (typeof v === 'function') throw new Error('function-as-value');
+  return v;
+}
+function friendlyEvalError(err) {
+  const m = String((err && err.message) || err || '');
+  let mm;
+  if ((mm = m.match(/Undefined symbol (\S+)/))) {
+    if (mm[1] === 'ans') return 'ans: the line above has no value';
+    return mm[1] + ' is not defined';
+  }
+  if (/Unexpected end of expression|Value expected|Unexpected operator|Parenthesis|Unexpected part|Unexpected character/i.test(m)) return 'incomplete expression';
+  if (/Cannot convert|Unexpected type|dimension mismatch|Dimension/i.test(m)) return 'mismatched values (a list where a number is needed?)';
+  if (/Too many arguments|Too few arguments|Wrong number/i.test(m)) return 'wrong number of arguments';
+  if (/function-as-value/.test(m)) return 'reads as a definition: the unknown here is already defined';
+  return 'cannot evaluate';
+}
+const TRAIL_VAR_RE = /^Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?$/;
+function trailingAssign(expr) {
+  if (!expr) return null;
+  let depth = 0, eq = -1;
+  for (let i = 0; i < expr.length; i++) {
+    const ch = expr[i];
+    if (ch === '(' || ch === '[') depth++;
+    else if (ch === ')' || ch === ']') { if (depth > 0) depth--; }
+    else if (ch === '=' && depth === 0) { if (eq !== -1) return null; eq = i; }
+  }
+  if (eq === -1) return null;
+  const lhs = expr.slice(0, eq).trim();
+  const name = expr.slice(eq + 1).trim();
+  if (!lhs || !TRAIL_VAR_RE.test(name) || TRAIL_VAR_RE.test(lhs)) return null;
+  if (name === 'ans' || RESERVED.includes(name)) return null;
+  try { if (referencedVars(lhs).includes(name)) return null; } catch (e) { return null; }
+  return { name, rhs: lhs };
+}
+
+/* ---------- calculator sections: the Calculator tool's evaluation rules over plain-text lines ---------- */
+function engineReady(){ return !!(window.math && window.math.evaluate); }
+function syncEngineSettings(){ var S=state.settings; angleMode=S.angle==='rad'?'rad':'deg'; exactMode=S.exact==='exact'; sigFigs=S.sigfigs==='auto'?'auto':3; solveAllMode=S.solve==='all'; }
+function normalizeExpr(t){
+  return String(t||'').replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/π/g,'pi').replace(/√\s*\(/g,'sqrt(').replace(/√\s*([A-Za-z0-9.]+)/g,'sqrt($1)').replace(/²/g,'^2').replace(/³/g,'^3').replace(/⇒|=>/g,'\\Rightarrow').replace(/≤/g,'<=').replace(/≥/g,'>=').replace(/≠/g,'!=');
+}
+function scanFuncDefsText(lines){ var m2=new Map(); lines.forEach(function(l,i){ var m=funcDefMatch(l); if(m && !m2.has(m[1])) m2.set(m[1],{params:m[2].split(',').map(function(s){ return s.trim(); }),bodyLatex:m[3].trim(),line:i}); }); CURR_FUNCS=m2; return m2; }
+function prettyPlain(s){
+  s=String(s).replace(/ ?x10\^/g,' × 10^').replace(/\bpi\b/g,'π').replace(/\\/g,'').replace(/\bE_usr\b/g,'E');
+  s=s.replace(/sqrt\((\d+)\)/g,'√$1').replace(/sqrt\(/g,'√(');
+  s=s.replace(/(\d)\s*\*\s*([A-Za-zα-ωΑ-Ω√(])/g,'$1$2').replace(/\s*\*\s*/g,' × ');
+  return s.replace(/\s*([+\-])\s*(?=[^\s])/g,function(m,op,off,str){ return off===0?op:' '+op+' '; }).replace(/\(\s*-\s*/g,'(-').replace(/×\s*10\^\s*-\s*/g,'× 10^-').replace(/\s{2,}/g,' ').trim();
+}
+function prettyName(n){ return String(n).replace(/^E_usr$/,'E'); }
+function latexOf(value){ var t=exactMode?exactLatex(value):null; if(t===null) t=decimalLatex(value); if(t===null) t=String(value); return t; }
+function formatValue(value,opts){
+  opts=opts||{};
+  var isList=value && typeof value==='object' && (Array.isArray(value)||typeof value.toArray==='function');
+  if(isList){ var arr=Array.isArray(value)?value:value.toArray(); return '['+arr.map(function(el){ return prettyPlain(latexToPlain(latexOf(el),el)); }).join(', ')+']'; }
+  var valLatex=null;
+  if(exactMode){ valLatex=exactLatex(value); if(valLatex===null && opts.srcExpr) valLatex=simplifyExactLatex(opts.srcExpr); if(valLatex===null && opts.srcLatex) valLatex=cleanEchoLatex(opts.srcLatex); }
+  if(valLatex===null) valLatex=decimalLatex(value);
+  if(typeof value==='number' && !isFinite(value)){
+    valLatex='undefined';
+    if(!isNaN(value) && opts.srcExpr){ try{ var mb=bigMath(); if(mb){ var bscope={}, sc=opts.scope||{}; for(var k in sc){ var sv=sc[k]; if(typeof sv==='number'&&isFinite(sv)) bscope[k]=mb.bignumber(sv); else if(typeof sv==='function') bscope[k]=sv; } var bv=mb.evaluate(opts.srcExpr,bscope); if(bv && bv.isBigNumber && bv.isFinite() && !bv.isNaN()){ var ex=bv.e; var mant=bv.div(mb.bignumber(10).pow(ex)).toSignificantDigits(6).toString(); valLatex=(mant==='1')?'10^{'+ex+'}':(mant==='-1')?'-10^{'+ex+'}':mant+'\\times10^{'+ex+'}'; } } }catch(e){} }
+  }
+  return prettyPlain(latexToPlain(valLatex,value));
+}
+function rootsText(varName,roots,meta){
+  meta=meta||{};
+  if(!roots||!roots.length) return {text:'no solutions'};
+  var degUnit=meta.trig && angleMode==='deg';
+  var parts=roots.map(function(r){ return prettyName(varName)+' = '+prettyPlain(latexToPlain(latexOf(r),r))+(degUnit?'°':''); });
+  var note='';
+  if(meta.trig) note=(angleMode==='deg'?'over [0°, 360°], add 360n°':'over [0, 2π], add 2nπ');
+  else if(meta.mode==='wide') note='searched |x| ≤ 10^30; roots beyond may exist';
+  return {text:parts.join(',  '),note:note};
 }
 function evalCalc(b){
-  var m=getMath();
-  if(!m) return b.lines.map(function(){ return {text:'',err:'calculator engine not loaded'}; });
-  var scope=baseScope(), ans=null, out=[];
-  b.lines.forEach(function(src){
-    var t=normalizeExpr(src);
-    if(!t.trim()){ out.push({text:''}); return; }
-    try{
-      scope.ans=ans;
-      var v=m.evaluate(balanceParens(t),scope);
-      if(typeof v==='function'){ out.push({text:'function'}); return; }
-      if(v && v.isUnit) throw new Error('Undefined symbol '+v.toString().replace(/^1 /,''));
-      if(v===undefined){ out.push({text:''}); return; }
-      var txt=fmtValue(v,m);
-      if(typeof v==='number' || (v&&typeof v==='object'&&typeof v.re==='number')) ans=v;
-      out.push({text:txt});
-    }catch(e){ out.push({text:'',err:shortErr(e)}); }
+  var lines=(b.lines||[]).map(function(s){ return normalizeExpr(s); });
+  if(!engineReady()) return lines.map(function(){ return {text:'',err:'calculator engine not loaded'}; });
+  syncEngineSettings();
+  try{ return evalCalcImpl(lines); }catch(e){ return lines.map(function(){ return {text:'',err:'cannot evaluate'}; }); }
+}
+function evalCalcImpl(lines){
+  var scope=Object.assign({},angleScope(),physConstants(),CALC_FUNCS);
+  var definedNames=new Set();
+  scanFuncDefsText(lines);
+  var infos=lines.map(function(raw,i){
+    var fdm0=funcDefMatch(raw);
+    var fdm=fdm0 && CURR_FUNCS.get(fdm0[1]) && CURR_FUNCS.get(fdm0[1]).line===i ? fdm0 : null;
+    if(fdm){ var bodyExpr=''; try{ bodyExpr=prepareExpr(fdm[3]); }catch(e){} var fname=fdm[1]; definedNames.add(fname+'_fn'); definedNames.add(fname+'_dx'); definedNames.add(fname+'_ddx');
+      return {idx:i,raw:raw,expr:'FUNCDEF',isAssign:false,funcDef:{name:fname,params:fdm[2].split(',').map(function(s){ return s.trim(); }),bodyExpr:bodyExpr,bodyLatex:fdm[3].trim()}}; }
+    var expr=''; try{ expr=prepareExpr(raw); }catch(e){ expr=''; }
+    var m=expr.match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)\s*(.+)$/);
+    var t=m?null:trailingAssign(expr);
+    var name=m?m[1]:(t?t.name:null), rhs=m?m[2]:(t?t.rhs:null);
+    if(name) definedNames.add(name);
+    var solveDef=null, equation=false;
+    if(!m && !t && expr){
+      var ps=pureSolveCall(expr); var pc=ps?null:pureCSolveCall(expr);
+      if(ps && ps.varName){ var flat=ps.varName.replace(/[()\s]/g,''); var rm=flat.match(/^(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\/c$/);
+        solveDef=rm?{eqText:ps.eqText,varName:rm[1],complex:false,ratioC:true,domain:ps.domain}:{eqText:ps.eqText,varName:ps.varName,complex:false,domain:ps.domain}; }
+      else if(pc && pc.varName) solveDef={eqText:pc.eqText,varName:pc.varName,complex:true};
+      if(solveDef) definedNames.add(solveDef.varName);
+      else { var d=0,n=0; for(var q=0;q<expr.length;q++){ var ch=expr[q]; if(ch==='(') d++; else if(ch===')'){ if(d>0) d--; } else if(ch==='='&&d===0) n++; } equation=(n===1); }
+    }
+    return {idx:i,raw:raw,expr:expr,isAssign:!!(m||t),trailing:!!t,name:name,rhs:rhs,solveDef:solveDef,equation:equation};
   });
-  return out;
+  var ansIdx=function(idx){ for(var j=idx-1;j>=0;j--){ var inf=infos[j]; if(!inf.funcDef && inf.expr!=='') return j; } return -1; };
+  infos.forEach(function(info){
+    if(!info.funcDef) return; var fdv=info.funcDef;
+    try{
+      if(!fdv.bodyExpr.trim()) throw new Error('empty body');
+      var compiled=math.compile(balanceParens(fdv.bodyExpr)); var params=fdv.params;
+      var mk=function(evalBody){ return function(){ var args=arguments; var s2=Object.assign({},scope); params.forEach(function(p,i){ s2[p]=args[i]; }); return evalBody(s2); }; };
+      scope[fdv.name+'_fn']=mk(function(s2){ return compiled.evaluate(s2); });
+      var dNode=null,dC=null; try{ dNode=math.derivative(balanceParens(fdv.bodyExpr),params[0]); dC=dNode.compile(); }catch(e){}
+      fdv.dNode=dNode;
+      scope[fdv.name+'_dx']=dC?mk(function(s2){ return dC.evaluate(s2); }):function(){ var args=Array.prototype.slice.call(arguments); var fb=scope[fdv.name+'_fn']; var h=Math.max(1e-7,Math.abs(args[0])*1e-7); return (fb.apply(null,[args[0]+h].concat(args.slice(1)))-fb.apply(null,[args[0]-h].concat(args.slice(1))))/(2*h); };
+      var ddNode=null,ddC=null; try{ ddNode=math.derivative(dNode||balanceParens(fdv.bodyExpr),params[0]); ddC=ddNode.compile(); }catch(e){}
+      fdv.ddNode=ddNode;
+      scope[fdv.name+'_ddx']=ddC?mk(function(s2){ return ddC.evaluate(s2); }):function(){ var args=Array.prototype.slice.call(arguments); var fd2=scope[fdv.name+'_dx']; var h=Math.max(1e-6,Math.abs(args[0])*1e-6); return (fd2.apply(null,[args[0]+h].concat(args.slice(1)))-fd2.apply(null,[args[0]-h].concat(args.slice(1))))/(2*h); };
+      info.funcOk=true;
+    }catch(e){ info.funcErr=e; }
+  });
+  var lineValue=function(idx,depth){
+    if(idx<0 || (depth||0)>infos.length) return undefined;
+    var inf=infos[idx];
+    try{
+      if(inf.solveDef) return scope[inf.solveDef.varName];
+      if(inf.isAssign) return scope[inf.name];
+      var s2=Object.assign({},scope); var av=lineValue(ansIdx(idx),(depth||0)+1); if(av!==undefined) s2.ans=av; else delete s2.ans;
+      return evalExpr(inf.expr,s2);
+    }catch(e){ return undefined; }
+  };
+  var injectAns=function(sc,idx,srcExpr){ if(srcExpr!==undefined && srcExpr.indexOf('ans')===-1){ delete sc.ans; return sc; } var av=lineValue(ansIdx(idx)); if(av!==undefined) sc.ans=av; else delete sc.ans; return sc; };
+  infos.forEach(function(info){
+    if(!info.equation || info.solveDef) return;
+    try{ var eqi=info.expr.indexOf('='); if(eqi<=0 || info.expr.slice(0,eqi).trim()==='' || info.expr.slice(eqi+1).trim()==='') return;
+      var unknowns=referencedVars(info.expr).filter(function(v){ return !definedNames.has(v); });
+      if(unknowns.length===1){ info.solveDef={eqText:info.expr,varName:unknowns[0],complex:false,implicit:true}; definedNames.add(unknowns[0]); } }catch(e){}
+  });
+  var pending=infos.filter(function(i){ return (i.isAssign||i.solveDef) && i.expr!==''; }), progressed=true;
+  while(pending.length && progressed){
+    progressed=false; var still=[];
+    pending.forEach(function(info){
+      try{
+        var pScope=injectAns(Object.assign({},scope),info.idx,info.expr);
+        if(info.solveDef){
+          var sd=info.solveDef, val;
+          if(sd.complex){ var res=cSolveAll(sd.eqText,sd.varName,pScope); var roots=(res&&res.roots)||[]; if(!roots.length) throw new Error('no roots'); val=roots.length===1?roots[0]:roots; info._solveRes={roots:roots,meta:(res&&res.meta)||{}}; }
+          else if(sd.domain){ var lo0=Number(evalExpr(sd.domain[0],pScope)), hi0=Number(evalExpr(sd.domain[1],pScope)); var lo=Math.min(lo0,hi0), hi=Math.max(lo0,hi0); if(!isFinite(lo)||!isFinite(hi)) throw new Error('bad domain');
+            var resd=solveAllInDomain(sd.eqText,sd.varName,pScope,lo,hi); var rootsd=resd.roots; if(!rootsd.length) throw new Error('no roots');
+            if(solveAllMode){ val=rootsd.length===1?rootsd[0]:rootsd; info._solveRes={roots:rootsd,meta:resd}; } else { var pos=rootsd.filter(function(r){ return r>=0; }); var pool=pos.length?pos:rootsd; val=pool.slice().sort(function(a,b){ return Math.abs(a)-Math.abs(b); })[0]; } }
+          else if(solveAllMode){ var resa=solveEquationAll(sd.eqText,sd.varName,pScope); var rootsa=(resa&&resa.roots)||[]; if(!rootsa.length) throw new Error('no roots'); val=rootsa.length===1?rootsa[0]:rootsa; info._solveRes={roots:rootsa,meta:resa||{}}; }
+          else { val=solveEquation(sd.eqText,sd.varName,pScope); if(val===undefined || (typeof val==='number'&&!isFinite(val))) throw new Error('no root'); }
+          scope[sd.varName]=val; info.solved=val; progressed=true;
+        } else { scope[info.name]=evalExpr(info.rhs,pScope); progressed=true; }
+      }catch(e){ still.push(info); }
+    });
+    pending=still;
+  }
+  return infos.map(function(info){
+    if(info.expr==='') return {text:''};
+    if(info.funcDef){ var fdv=info.funcDef; var undefF=[]; try{ undefF=referencedVars(fdv.bodyExpr).filter(function(v){ return fdv.params.indexOf(v)<0 && !definedNames.has(v); }); }catch(e){}
+      if(info.funcErr) return {text:'',err:'function body cannot be read'};
+      if(fdv.dNode && !undefF.length){ try{ return {text:fdv.name+"'("+fdv.params[0]+') = '+prettyPlain(latexToPlain(fdv.dNode.toTex())),muted:true}; }catch(e){} }
+      return {text:'',muted:true}; }
+    if(info.expr.indexOf('...')!==-1) return {text:'',err:'invalid sequence pattern'};
+    var refExpr=info.isAssign?info.rhs:info.expr;
+    var undef=[]; try{ undef=referencedVars(refExpr).filter(function(v){ return !definedNames.has(v); }); }catch(e){}
+    var assignLHS=info.expr.match(/^\s*(Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?)\s*=(?!=)/); if(assignLHS) undef=undef.filter(function(v){ return v!==assignLHS[1]; });
+    var bareVar=/^\s*Δ?[A-Za-zΑ-Ωα-ωϑϕϵϖϱς](?:_[A-Za-z0-9]+)?\s*$/.test(info.expr); if(bareVar) undef=[];
+    try{
+      var eScope=injectAns(Object.assign({},scope),info.idx,info.expr);
+      var sym=info.expr.match(/^\s*([A-Za-z])_(fn|dx|ddx)\(([A-Za-z])\)\s*$/);
+      if(sym && CURR_FUNCS.has(sym[1]) && !definedNames.has(sym[3]) && !(sym[3] in eScope)){
+        var fdi=null; infos.forEach(function(x){ if(x.funcDef && x.funcDef.name===sym[1]) fdi=x; });
+        if(fdi && fdi.funcOk){ var tex=null; if(sym[2]==='fn') tex=fdi.funcDef.bodyLatex; else if(sym[2]==='dx'&&fdi.funcDef.dNode) tex=fdi.funcDef.dNode.toTex(); else if(sym[2]==='ddx'&&fdi.funcDef.ddNode) tex=fdi.funcDef.ddNode.toTex();
+          if(tex && sym[3]!==fdi.funcDef.params[0]){ var pp=fdi.funcDef.params[0]; tex=tex.replace(new RegExp('(?<![A-Za-z\\\\])'+pp+'(?![A-Za-z])','g'),sym[3]); }
+          if(tex) return {text:'= '+prettyPlain(latexToPlain(tex))}; }
+      }
+      var src=info.isAssign?info.rhs:info.expr;
+      var pureC=pureCSolveCall(src);
+      if(pureC){ var rc=cSolveAll(pureC.eqText,pureC.varName,eScope); return rootsText(pureC.varName,rc.roots,rc.meta||{}); }
+      var pure=solveAllMode?pureSolveCall(src):null;
+      if(pure){ var rs; if(pure.domain){ var l0=Number(evalExpr(pure.domain[0],eScope)), h0=Number(evalExpr(pure.domain[1],eScope)); rs=solveAllInDomain(pure.eqText,pure.varName,eScope,Math.min(l0,h0),Math.max(l0,h0)); } else rs=solveEquationAll(pure.eqText,pure.varName,eScope); return rootsText(pure.varName,rs.roots,rs); }
+      if(info.solveDef && info.solved!==undefined){
+        var sdr=info.solveDef, cVal=scope.c, asRatio=sdr.ratioC && typeof cVal==='number' && isFinite(cVal) && cVal!==0;
+        if(info._solveRes){ var rr=info._solveRes.roots; var vn=sdr.varName; if(asRatio){ rr=rr.map(function(r){ return r/cVal; }); vn=sdr.varName+'/c'; } return rootsText(vn,rr,info._solveRes.meta); }
+        var sval=asRatio?info.solved/cVal:info.solved;
+        return {text:prettyName(sdr.varName)+(asRatio?'/c = ':' = ')+formatValue(sval,{scope:eScope})};
+      }
+      if(info.solveDef && !info.isAssign && info.solved===undefined && !undef.length){
+        var eqi2=(info.solveDef.eqText||'').indexOf('='); var complete=eqi2>0 && info.solveDef.eqText.slice(0,eqi2).trim()!=='' && info.solveDef.eqText.slice(eqi2+1).trim()!=='';
+        return complete?{text:'no solutions'}:{text:''};
+      }
+      if(info.isAssign){ var value=evalExpr(info.rhs,eScope); var rhsRaw; if(info.trailing){ var eqAt=info.raw.lastIndexOf('='); rhsRaw=eqAt>=0?info.raw.slice(0,eqAt):info.raw; } else { var eqAt2=info.raw.indexOf('='); rhsRaw=eqAt2>=0?info.raw.slice(eqAt2+1):info.raw; }
+        return {text:prettyName(info.name)+' = '+formatValue(value,{srcLatex:rhsRaw,srcExpr:info.rhs,scope:eScope})}; }
+      var v2=evalExpr(info.expr,eScope);
+      return {text:'= '+formatValue(v2,{srcLatex:info.raw,srcExpr:info.expr,scope:eScope})};
+    }catch(err){
+      if(undef.length) return {text:'',err:'needs '+undef.join(', ')};
+      return {text:'',err:friendlyEvalError(err)};
+    }
+  });
+}
+
+/* ---------- backslash picker: functions, constants and symbols ---------- */
+var FN_DOCS={sin:'sine',cos:'cosine',tan:'tangent',sec:'secant',csc:'cosecant',cot:'cotangent',sinh:'hyperbolic sine',cosh:'hyperbolic cosine',tanh:'hyperbolic tangent',arcsin:'inverse sine',arccos:'inverse cosine',arctan:'inverse tangent',asin:'inverse sine',acos:'inverse cosine',atan:'inverse tangent',ln:'natural log',log:'natural log, or log(x, base)',exp:'e to the power',sqrt:'square root',nthRoot:'nthRoot(x, n)',abs:'absolute value',floor:'round down',ceil:'round up',round:'round(x, dp)',sign:'sign of x',mod:'mod(a, b)',min:'smallest of a list',max:'largest of a list',gcd:'greatest common divisor',lcm:'lowest common multiple',factorial:'n!',nCr:'combinations',nPr:'permutations',normCDF:'normCDF(mean, std, lower, upper)',invNorm:'invNorm(area, mean, std)',binomPDF:'binomPDF(n, p, k)',binomCDF:'binomCDF(n, p, lower, upper)',sumlist:'add up a list',add:'add up a list',zscore:'zscore(x, mean, std)',stdev:'sample standard deviation',mean:'mean of a list',median:'median of a list',solve:'solve(equation, variable)',cSolve:'all complex roots',integrate:'integrate(f, x, a, b)',summation:'summation(body, n, lo, hi)',Re:'real part',Im:'imaginary part',Arg:'argument of z',conj:'conjugate',polar:'polar(z) gives [r, θ]',rect:'rect(r, θ)',deg:'degrees marker',ans:'previous answer'};
+var MATH_SYMBOLS=[['pi','π'],['infinity','∞'],['Delta','Δ'],['degree','°'],['times','×'],['divide','÷'],['plus minus','±'],['less or equal','≤'],['greater or equal','≥'],['not equal','≠'],['approx','≈'],['arrow','→'],['implies','⇒'],['sqrt','√'],['squared','²'],['cubed','³'],['therefore','∴'],['sum','Σ'],['integral','∫'],['dot','·'],['bullet','•'],['em dash','—'],['check','✓'],['cross','✗']];
+function pickerItems(kind){
+  var items=[];
+  if(kind==='calc'){
+    FUNCS.forEach(function(f){ if(f==='ans'||f==='deg') return; items.push({name:f,hint:FN_DOCS[f]||'',insert:f+'(',after:')',k:'fn'}); });
+    items.push({name:'ans',hint:'previous answer',insert:'ans',k:'c'});
+    items.push({name:'pi',hint:'π',insert:'pi',k:'c'}); items.push({name:'e',hint:'Euler\u2019s number',insert:'e',k:'c'}); items.push({name:'i',hint:'imaginary unit',insert:'i',k:'c'});
+    var pc=physConstants(); Object.keys(pc).forEach(function(n){ items.push({name:n,hint:String(pc[n]),insert:n,k:'c'}); });
+  }
+  Object.keys(GREEK).forEach(function(n){ items.push({name:n,hint:GREEK[n],insert:GREEK[n],k:'g'}); });
+  if(kind!=='calc') MATH_SYMBOLS.forEach(function(p){ items.push({name:p[0],hint:p[1],insert:p[1],k:'s'}); });
+  return items;
+}
+var bsl=document.getElementById('bsl'), bslState={open:false,el:null,items:[],index:0,start:0,end:0};
+function bslCheck(el,kind){
+  var off=caretOffset(el), text=el.textContent, before=text.slice(0,off);
+  var m=/\\([A-Za-z0-9_]*)$/.exec(before);
+  if(!m){ if(bslState.open) closeBsl(); return; }
+  var q=m[1].toLowerCase();
+  var items=pickerItems(kind).filter(function(it){ return !q || it.name.toLowerCase().indexOf(q)>=0 || (it.hint||'').toLowerCase().indexOf(q)>=0; });
+  items.sort(function(a,b){ var sa=a.name.toLowerCase().indexOf(q)===0?0:1, sb=b.name.toLowerCase().indexOf(q)===0?0:1; return sa-sb; });
+  if(!items.length){ if(bslState.open) closeBsl(); return; }
+  bslState={open:true,el:el,items:items.slice(0,40),index:0,start:off-m[0].length,end:off,kind:kind};
+  var blk=el.closest('.block'); var top=blk.offsetTop+blk.offsetHeight+4; var left=Math.min(el.getBoundingClientRect().left-editor.getBoundingClientRect().left, Math.max(0,editor.clientWidth-280));
+  bsl.style.top=top+'px'; bsl.style.left=Math.max(0,left)+'px'; bsl.hidden=false; paintBsl();
+}
+function paintBsl(){ bsl.innerHTML=bslState.items.map(function(it,i){ return '<div class="item'+(i===bslState.index?' active':'')+'" data-i="'+i+'"><span>'+esc(it.name)+'</span><span class="hint">'+esc(it.hint||'')+'</span></div>'; }).join(''); var a=bsl.querySelector('.active'); if(a&&a.scrollIntoView) a.scrollIntoView({block:'nearest'}); }
+function closeBsl(){ bslState.open=false; bsl.hidden=true; }
+function applyBsl(i){
+  var st=bslState, it=st.items[i]; closeBsl(); if(!it||!st.el||!st.el.isConnected) return;
+  var el=st.el, text=el.textContent, nt=text.slice(0,st.start)+it.insert+(it.after||'')+text.slice(st.end);
+  el.textContent=nt; setCaret(el,st.start+it.insert.length);
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+}
+bsl.addEventListener('mousedown',function(e){ e.preventDefault(); var it=e.target.closest('.item'); if(it) applyBsl(+it.dataset.i); });
+function bslKey(e){
+  if(!bslState.open) return false;
+  if(e.key==='ArrowDown'){ e.preventDefault(); bslState.index=(bslState.index+1)%bslState.items.length; paintBsl(); return true; }
+  if(e.key==='ArrowUp'){ e.preventDefault(); bslState.index=(bslState.index-1+bslState.items.length)%bslState.items.length; paintBsl(); return true; }
+  if(e.key==='Enter'||e.key==='Tab'){ e.preventDefault(); applyBsl(bslState.index); return true; }
+  if(e.key==='Escape'){ e.preventDefault(); closeBsl(); return true; }
+  return false;
+}
+
+/* ---------- table size picker ---------- */
+var tgrid=document.getElementById('tgrid'), tgridState={open:false,blockId:null,r:2,c:2};
+function openTableGrid(b){
+  tgridState={open:true,blockId:b.id,r:2,c:2};
+  var el=blockEl(b.id); if(!el) return;
+  var cells=''; for(var r=1;r<=8;r++) for(var c=1;c<=8;c++) cells+='<span class="tg-cell" data-r="'+r+'" data-c="'+c+'"></span>';
+  tgrid.innerHTML='<div class="tg-label"></div><div class="tg-cells">'+cells+'</div><div class="tg-foot">Click a size, or use the arrow keys and Enter</div>';
+  tgrid.style.top=(el.offsetTop+el.offsetHeight+4)+'px'; tgrid.style.left=Math.min(el.querySelector('.content')?el.querySelector('.content').offsetLeft:0, Math.max(0,editor.clientWidth-240))+'px';
+  tgrid.hidden=false; paintTableGrid();
+}
+function paintTableGrid(){ tgrid.querySelectorAll('.tg-cell').forEach(function(x){ x.classList.toggle('on', +x.dataset.r<=tgridState.r && +x.dataset.c<=tgridState.c); }); tgrid.querySelector('.tg-label').textContent=tgridState.r+' rows × '+tgridState.c+' columns'; }
+function closeTableGrid(){ tgridState.open=false; tgrid.hidden=true; }
+function applyTableGrid(){
+  var b=getBlock(tgridState.blockId), r=tgridState.r, c=tgridState.c; closeTableGrid(); if(!b) return;
+  var rows=[]; for(var i=0;i<r;i++){ var row=[]; for(var j=0;j<c;j++) row.push(''); rows.push(row); }
+  b.type='table'; b.text=''; b.rows=rows; b.header=true; render(); focusBlock(b.id,0,{r:0,c:0}); save();
+}
+tgrid.addEventListener('mousemove',function(e){ var cell=e.target.closest('.tg-cell'); if(cell){ tgridState.r=+cell.dataset.r; tgridState.c=+cell.dataset.c; paintTableGrid(); } });
+tgrid.addEventListener('mousedown',function(e){ e.preventDefault(); var cell=e.target.closest('.tg-cell'); if(cell){ tgridState.r=+cell.dataset.r; tgridState.c=+cell.dataset.c; applyTableGrid(); } });
+function tgridKey(e){
+  if(!tgridState.open) return false;
+  if(e.key==='ArrowDown'){ e.preventDefault(); tgridState.r=Math.min(8,tgridState.r+1); paintTableGrid(); return true; }
+  if(e.key==='ArrowUp'){ e.preventDefault(); tgridState.r=Math.max(1,tgridState.r-1); paintTableGrid(); return true; }
+  if(e.key==='ArrowRight'){ e.preventDefault(); tgridState.c=Math.min(8,tgridState.c+1); paintTableGrid(); return true; }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); tgridState.c=Math.max(1,tgridState.c-1); paintTableGrid(); return true; }
+  if(e.key==='Enter'||e.key==='Tab'){ e.preventDefault(); applyTableGrid(); return true; }
+  if(e.key==='Escape'){ e.preventDefault(); closeTableGrid(); return true; }
+  return false;
 }
 
 /* ---------- rendering ---------- */
@@ -608,12 +2362,14 @@ function calcHTML(b){
   var s='<div class="calc"><div class="calc-lines">';
   b.lines.forEach(function(line,i){
     var r=res[i]||{text:''};
-    s+='<div class="cl"><div class="cl-in" contenteditable="true" spellcheck="false" autocapitalize="off" data-i="'+i+'">'+esc(line)+'</div>'+
-       '<div class="cl-out'+(r.err?' err':'')+'" data-i="'+i+'">'+(r.err?esc(r.err):(r.text?'= '+esc(r.text):''))+'</div></div>';
+    s+='<div class="cl"><div class="cl-in" contenteditable="true" spellcheck="false" autocapitalize="off" autocorrect="off" data-i="'+i+'">'+esc(line)+'</div>'+
+       '<div class="cl-out'+(r.err?' err':'')+(r.muted?' muted':'')+'" data-i="'+i+'">'+calcOutHTML(r)+'</div></div>';
   });
-  s+='</div><div class="calc-foot"><span>'+(state.settings.angle==='deg'?'deg':'rad')+' · '+(state.settings.sigfigs==='auto'?'auto':state.settings.sigfigs+' s.f.')+'</span><button type="button" data-act="del">Delete calculator</button></div></div>';
+  s+='</div><div class="calc-foot"><span class="calc-modes">'+calcModesHTML()+'</span><button type="button" data-act="del">Delete calculator</button></div></div>';
   return s;
 }
+function calcOutHTML(r){ if(r.err) return esc(r.err); var t=esc(r.text||''); if(r.note) t+='<span class="cl-note">'+esc(r.note)+'</span>'; return t; }
+function calcModesHTML(){ var S=state.settings; return '<button type="button" data-set="angle" data-val="'+(S.angle==='rad'?'deg':'rad')+'">'+(S.angle==='rad'?'rad':'deg')+'</button><button type="button" data-set="exact" data-val="'+(S.exact==='exact'?'decimal':'exact')+'">'+(S.exact==='exact'?'exact':'decimal')+'</button><button type="button" data-set="sigfigs" data-val="'+(S.sigfigs==='auto'?'3':'auto')+'">'+(S.sigfigs==='auto'?'auto':'3 s.f.')+'</button><button type="button" data-set="solve" data-val="'+(S.solve==='all'?'first':'all')+'">'+(S.solve==='all'?'all roots':'first root')+'</button>'; }
 function blockHTML(b,num){
   var cls='block t-'+b.type+(b.checked?' done':'')+(b.type==='toggle'&&!b.collapsed?' open':'')+(b.id===selectedId?' selected':'');
   var s='<div class="'+cls+'" data-id="'+b.id+'" style="--i:'+b.indent+'">';
@@ -796,7 +2552,7 @@ function cellMove(cell,b,dr,dc){
 function calcRefresh(b){
   var el=blockEl(b.id); if(!el) return;
   var res=evalCalc(b);
-  el.querySelectorAll('.cl-out').forEach(function(o,i){ var r=res[i]||{text:''}; o.classList.toggle('err',!!r.err); o.textContent=r.err?r.err:(r.text?'= '+r.text:''); });
+  el.querySelectorAll('.cl-out').forEach(function(o,i){ var r=res[i]||{text:''}; o.classList.toggle('err',!!r.err); o.classList.toggle('muted',!!r.muted); o.innerHTML=calcOutHTML(r); });
 }
 function calcLine(b,i,text){ b.lines[i]=text; calcRefresh(b); save(); }
 function calcInsert(b,i,text){ b.lines.splice(i+1,0,text||''); render(); focusBlock(b.id,0,{i:i+1}); save(); }
@@ -826,7 +2582,7 @@ function closeSlash(){ slashState.open=false; slash.hidden=true; }
 function convertTo(b,type){
   if(type==='image'){ b.text=''; pendingImageTarget=b.id; render(); document.getElementById('file').click(); return; }
   if(type==='divider'){ b.type='divider'; b.text=''; var nb=newBlock('p',{indent:b.indent}); insertAfter(b.id,nb); render(); focusBlock(nb.id,0); save(); return; }
-  if(type==='table'){ b.type='table'; b.text=''; b.rows=[['',''],['','']]; b.header=true; render(); focusBlock(b.id,0,{r:0,c:0}); save(); return; }
+  if(type==='table'){ b.text=''; render(); focusBlock(b.id,0); openTableGrid(b); return; }
   if(type==='calc'){ b.type='calc'; b.lines=[b.text||'']; b.text=''; render(); focusBlock(b.id,Infinity,{i:0}); save(); return; }
   b.type=type; b.text=''; if(type==='toggle') b.collapsed=false; render(); focusBlock(b.id,0); save();
 }
@@ -1214,7 +2970,7 @@ function paintSettings(){
   settingsPop.querySelectorAll('.seg').forEach(function(seg){ var key=seg.dataset.key; seg.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.val===String(state.settings[key])); b.setAttribute('aria-pressed', b.dataset.val===String(state.settings[key])?'true':'false'); }); });
 }
 settingsPop.addEventListener('click',function(e){
-  var b=e.target.closest('.seg button'); if(b){ var key=b.closest('.seg').dataset.key; state.settings[key]=b.dataset.val; if(key==='theme') applyTheme(); paintSettings(); paintDock(); if(key!=='theme') doc.blocks.forEach(function(bl){ if(bl.type==='calc') rerenderBlock(bl.id); }); save(); return; }
+  var b=e.target.closest('.seg button'); if(b){ setSetting(b.closest('.seg').dataset.key,b.dataset.val); return; }
   var act=e.target.closest('[data-act]'); if(!act) return;
   var a=act.dataset.act;
   if(a==='image'){ pendingImageTarget=null; document.getElementById('file').click(); closeSettings(); }
@@ -1222,6 +2978,7 @@ settingsPop.addEventListener('click',function(e){
   else if(a==='guide'){ var h=document.getElementById('help'); h.hidden=!h.hidden; closeSettings(); if(!h.hidden) h.scrollIntoView({behavior:'smooth',block:'start'}); }
   else if(a==='clear'){ closeSettings(); confirmIfNotEmpty(docIsEmpty(doc),'Clear everything in this note?','Clear').then(function(ok){ if(!ok) return; doc.title=''; doc.blocks=[newBlock('p')]; selectedId=null; paintTitle(); render(); renderTabList(); save(); focusBlock(doc.blocks[0].id,0); toast('Note cleared'); }); }
 });
+function setSetting(key,val){ state.settings[key]=val; if(key==='theme') applyTheme(); paintSettings(); if(key!=='theme') doc.blocks.forEach(function(bl){ if(bl.type==='calc') rerenderBlock(bl.id); }); save(); }
 function openSettings(){ settingsPop.hidden=false; settingsBtn.setAttribute('aria-expanded','true'); paintSettings(); }
 function closeSettings(){ settingsPop.hidden=true; settingsBtn.setAttribute('aria-expanded','false'); }
 settingsBtn.addEventListener('click',function(e){ e.stopPropagation(); settingsPop.hidden?openSettings():closeSettings(); });
@@ -1254,7 +3011,7 @@ editor.addEventListener('click',function(e){
   if(e.target.closest('.tog')){ b.collapsed=!b.collapsed; render(); save(); return; }
   if(e.target.closest('.img-x')){ removeBoxBlock(b); return; }
   var tb=e.target.closest('.tbl-tools button'); if(tb){ var fc=blk._lastCell||{r:0,c:0}; tableAct(b,tb.dataset.act,fc.r,fc.c); return; }
-  var cb=e.target.closest('.calc-foot button'); if(cb){ removeBoxBlock(b); return; }
+  var cb=e.target.closest('.calc-foot button'); if(cb){ if(cb.dataset.set){ setSetting(cb.dataset.set,cb.dataset.val); } else removeBoxBlock(b); return; }
   if(e.target.closest('.calc') && !e.target.closest('.cl-in')){ var ins=blk.querySelectorAll('.cl-in'); if(ins.length && !e.target.closest('.cl-out')) focusPlain(ins[ins.length-1],Infinity); }
 });
 editor.addEventListener('focusin',function(e){
@@ -1263,7 +3020,8 @@ editor.addEventListener('focusin',function(e){
   if(e.target.closest('.caption')||e.target.tagName==='TEXTAREA'||e.target.closest('.cl-in')){ if(selectedId) select(null); }
 });
 editor.addEventListener('focusout',function(e){
-  var c=e.target.closest('.content'); if(c){ leaveRaw(c); if(slashState.open) setTimeout(function(){ if(!editor.contains(document.activeElement)) closeSlash(); },0); return; }
+  var c=e.target.closest('.content'); if(c){ leaveRaw(c); if(slashState.open||bslState.open) setTimeout(function(){ if(!editor.contains(document.activeElement)){ closeSlash(); closeBsl(); } },0); return; }
+  if(e.target.closest('.cl-in') && bslState.open) setTimeout(function(){ if(!editor.contains(document.activeElement)) closeBsl(); },0);
   var cell=e.target.closest('.cell'); if(cell) leaveRawCell(cell);
 });
 editor.addEventListener('beforeinput',function(e){
@@ -1285,7 +3043,7 @@ editor.addEventListener('input',function(e){
   if(e.target.tagName==='TEXTAREA'){ b.text=e.target.value; autosize(e.target); save(); return; }
   if(e.target.closest('.caption')){ b.text=e.target.textContent.replace(/\n/g,' '); var img=blk.querySelector('img'); if(img) img.alt=b.text; save(); return; }
   var cell=e.target.closest('.cell'); if(cell){ if(cell.textContent==='' && cell.innerHTML!=='') cell.innerHTML=''; var row=b.rows[+cell.dataset.r]; if(row) row[+cell.dataset.c]=cell.textContent.replace(/\n/g,' '); save(); return; }
-  var cl=e.target.closest('.cl-in'); if(cl){ if(cl.textContent==='' && cl.innerHTML!=='') cl.innerHTML=''; calcLine(b,+cl.dataset.i,cl.textContent.replace(/\n/g,' ')); return; }
+  var cl=e.target.closest('.cl-in'); if(cl){ if(cl.textContent==='' && cl.innerHTML!=='') cl.innerHTML=''; calcLine(b,+cl.dataset.i,cl.textContent.replace(/\n/g,' ')); bslCheck(cl,'calc'); return; }
   var c=e.target.closest('.content'); if(!c) return;
   if(c.textContent==='' && c.innerHTML!=='') c.innerHTML='';
   var text=c.textContent.replace(/\n/g,' ');
@@ -1297,12 +3055,15 @@ editor.addEventListener('input',function(e){
   if(text==='---'){ convertTo(b,'divider'); return; }
   if(/^\|.*\|$/.test(text) && text.length>2){ var cells=splitTableRow(text); if(cells.length>=2){ b.type='table'; b.text=''; b.rows=[cells,cells.map(function(){ return ''; })]; b.header=true; render(); focusBlock(b.id,0,{r:1,c:0}); save(); return; } }
   if(text.charAt(0)==='/' && text.indexOf(' ')<0) openSlash(b,text.slice(1)); else if(slashState.open) closeSlash();
+  bslCheck(c,'text');
 });
 var tabListTimer=null; function renderTabListSoon(){ clearTimeout(tabListTimer); tabListTimer=setTimeout(renderTabList,500); }
 editor.addEventListener('keydown',function(e){
   var mod=e.metaKey||e.ctrlKey;
   var blk=e.target.closest('.block'); if(!blk) return;
   var b=getBlock(blk.dataset.id); if(!b) return;
+  if(bslKey(e)) return;
+  if(tgridKey(e)) return;
   if(slashState.open && slashState.blockId===b.id){
     if(e.key==='ArrowDown'){ e.preventDefault(); slashState.index=(slashState.index+1)%slashState.items.length; paintSlash(); return; }
     if(e.key==='ArrowUp'){ e.preventDefault(); slashState.index=(slashState.index-1+slashState.items.length)%slashState.items.length; paintSlash(); return; }
@@ -1330,7 +3091,7 @@ editor.addEventListener('keydown',function(e){
   var cell=e.target.closest('.cell');
   if(cell){
     var r=+cell.dataset.r, cc=+cell.dataset.c;
-    if(e.key==='Tab'){ e.preventDefault(); cellMove(cell,b,0,e.shiftKey?-1:1); return; }
+    if(e.key==='Tab'){ e.preventDefault(); if(e.shiftKey && cc===b.rows[0].length-1){ tableAct(b,'col',r,cc); return; } cellMove(cell,b,0,e.shiftKey?-1:1); return; }
     if(e.key==='ArrowUp' && onEdge(cell,-1)){ e.preventDefault(); if(r===0){ moveFocus(b,-1); } else cellMove(cell,b,-1,0); return; }
     if(e.key==='ArrowDown' && onEdge(cell,1)){ e.preventDefault(); if(r===b.rows.length-1){ if(!moveFocus(b,1)) appendBlockAfter(b,'p'); } else cellMove(cell,b,1,0); return; }
     if(e.key==='ArrowLeft' && selectionCollapsed() && caretOffset(cell)===0 && (r>0||cc>0)){ e.preventDefault(); cellMove(cell,b,0,-1); return; }
@@ -1375,7 +3136,7 @@ document.addEventListener('keydown',function(e){
   if(e.key==='ArrowDown'||e.key==='Enter'){ e.preventDefault(); if(!moveFocus(b,1)) appendBlockAfter(b,'p'); return; }
   if(e.key==='Escape'){ select(null); }
 });
-document.addEventListener('mousedown',function(e){ if(selectedId && !editor.contains(e.target)) select(null); if(slashState.open && !slash.contains(e.target) && !editor.contains(e.target)) closeSlash(); });
+document.addEventListener('mousedown',function(e){ if(selectedId && !editor.contains(e.target)) select(null); if(slashState.open && !slash.contains(e.target) && !editor.contains(e.target)) closeSlash();  if(bslState.open && !bsl.contains(e.target)) closeBsl(); if(tgridState.open && !tgrid.contains(e.target)) closeTableGrid(); });
 editor.addEventListener('paste',function(e){
   var cd=e.clipboardData; if(!cd) return;
   var files=Array.prototype.filter.call(cd.files||[],function(f){ return /^image\//.test(f.type); });
@@ -1428,7 +3189,7 @@ function blockbarAct(k){
 }
 
 /* ---------- boot ---------- */
-function freshState(){ return {version:2,tabs:[],groups:[],activeTabId:null,favourites:[],tabSeq:0,groupSeq:0,settings:{theme:'auto',angle:'deg',sigfigs:'auto'}}; }
+function freshState(){ return {version:2,tabs:[],groups:[],activeTabId:null,favourites:[],tabSeq:0,groupSeq:0,settings:{theme:'auto',angle:'deg',sigfigs:'auto',exact:'decimal',solve:'first'}}; }
 function boot(){
   try{ var th=localStorage.getItem(THEME_KEY); if(th==='light'||th==='dark') document.documentElement.setAttribute('data-theme',th); }catch(e){}
   loadKey(KEY).then(function(v){
@@ -1437,7 +3198,7 @@ function boot(){
     return loadKey(OLD_KEY).then(function(old){ if(old && old.blocks){ state.tabs.push({id:'t'+(++state.tabSeq),doc:old}); } });
   }).then(function(){
     if(!state.settings) state.settings={};
-    var S=state.settings; if(!S.theme) S.theme='auto'; if(!S.angle) S.angle='deg'; if(!S.sigfigs) S.sigfigs='auto';
+    var S=state.settings; if(!S.theme) S.theme='auto'; if(!S.angle) S.angle='deg'; if(!S.sigfigs) S.sigfigs='auto'; if(!S.exact) S.exact='decimal'; if(!S.solve) S.solve='first';
     if(!state.groups) state.groups=[]; if(!state.favourites) state.favourites=[]; if(!state.tabSeq) state.tabSeq=state.tabs.length; if(!state.groupSeq) state.groupSeq=state.groups.length;
     state.tabs.forEach(function(t){ if(!t.doc) t.doc=blankDoc(); if(!t.doc.blocks||!t.doc.blocks.length) t.doc.blocks=[newBlock('p')]; t.doc.blocks.forEach(function(b){ if(!b.id) b.id=uid(); if(typeof b.indent!=='number') b.indent=0; if(typeof b.text!=='string') b.text=''; if(b.type==='table'&&!b.rows) b.rows=[['','']]; if(b.type==='calc'&&!b.lines) b.lines=['']; }); });
     applyTheme(); paintSettings(); paintDock();
