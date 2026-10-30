@@ -6,8 +6,8 @@
   "scope": "/tools/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#121212",
-  "theme_color": "#121212",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
   "icons": [
     {
       "src": "/tools/notepad-icon-192.png",
