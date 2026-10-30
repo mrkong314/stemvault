@@ -20,6 +20,13 @@ export const TYPE_LABEL: Record<ResourceType, string> = {
   quiz: 'Quiz',
 };
 
+export const TYPE_LABEL_PLURAL: Record<ResourceType, string> = {
+  applet: 'Applets',
+  file: 'Files',
+  video: 'Videos',
+  quiz: 'Quizzes',
+};
+
 export const FORMAT_LABEL: Record<FileFormat, string> = {
   pdf: 'PDF',
   ppt: 'Powerpoint',

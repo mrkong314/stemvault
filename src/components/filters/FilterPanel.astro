@@ -2,7 +2,7 @@
 import { SUBJECT_NAMES } from '~/data/subjects';
 import { YEAR_LEVELS } from '~/data/yearLevels';
 import { getAllTags } from '~/lib/collections';
-import { TYPE_LABEL, CATEGORY_LABEL } from '~/lib/types';
+import { TYPE_LABEL, TYPE_LABEL_PLURAL, CATEGORY_LABEL } from '~/lib/types';
 
 interface Props {
   /** Selector for the items the panel filters (cards or list rows). */
@@ -23,7 +23,7 @@ const tags = inline ? [] : await getAllTags();
 const COLLAPSE_AFTER = 6;
 
 const subjectOpts = SUBJECT_NAMES.map(n => ({ value: n, label: n }));
-const typeOpts = (['applet', 'quiz', 'file', 'video'] as const).map(t => ({ value: t, label: TYPE_LABEL[t] + 's' }));
+const typeOpts = (['applet', 'quiz', 'file', 'video'] as const).map(t => ({ value: t, label: TYPE_LABEL_PLURAL[t] }));
 const categoryOpts = (['practice', 'game'] as const).map(c => ({ value: c, label: CATEGORY_LABEL[c] + 's' }));
 const yearOpts = YEAR_LEVELS.map(y => ({ value: String(y), label: String(y) }));
 
@@ -31,7 +31,7 @@ const yearOpts = YEAR_LEVELS.map(y => ({ value: String(y), label: String(y) }));
 const inlineSections = [
   ...(hideSubject ? [] : [{ name: 'subject', title: 'Subject', options: subjectOpts }]),
   { name: 'year', title: 'Year', options: yearOpts },
-  { name: 'type', title: 'Type', options: typeOpts.map(o => ({ ...o, label: o.label.replace(/s$/, '') })) },
+  { name: 'type', title: 'Type', options: typeOpts.map(o => ({ ...o, label: TYPE_LABEL[o.value] })) },
   { name: 'category', title: 'Category', options: categoryOpts.map(o => ({ ...o, label: o.label.replace(/s$/, '') })) },
 ];
 const tagVisible = tags.slice(0, COLLAPSE_AFTER);
