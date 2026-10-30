@@ -482,9 +482,10 @@
   --bg:#fafafa; --surface:#ffffff; --fg:#191919; --muted:#8c8c8c; --line:#e6e6e6; --accent:#191919; --accent-soft:#ececec;
   --code-bg:#f1f1f1; --hl:#e6e6e6; --danger:#191919; --shadow:0 8px 24px rgba(0,0,0,.08); --panel:#f3f3f3;
   --font:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --calc-accent:#0a84ff; --calc-assign:#34c759; --calc-shadow:0 8px 30px rgba(31,45,80,.10),0 2px 8px rgba(31,45,80,.06); --calc-edge:rgba(255,255,255,.9); --calc-row:rgba(127,127,127,.06); --calc-focus:rgba(10,132,255,.08);
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#121212; --surface:#191919; --fg:#e6e6e6; --muted:#7a7a7a; --line:#2a2a2a; --accent:#e6e6e6; --accent-soft:#262626; --code-bg:#1d1d1d; --hl:#3a3a3a; --danger:#e6e6e6; --shadow:0 8px 24px rgba(0,0,0,.5); --panel:#171717; color-scheme:dark } }
-:root[data-theme="dark"]{ --bg:#121212; --surface:#191919; --fg:#e6e6e6; --muted:#7a7a7a; --line:#2a2a2a; --accent:#e6e6e6; --accent-soft:#262626; --code-bg:#1d1d1d; --hl:#3a3a3a; --danger:#e6e6e6; --shadow:0 8px 24px rgba(0,0,0,.5); --panel:#171717; color-scheme:dark }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#121212; --surface:#191919; --fg:#e6e6e6; --muted:#7a7a7a; --line:#2a2a2a; --accent:#e6e6e6; --accent-soft:#262626; --code-bg:#1d1d1d; --hl:#3a3a3a; --danger:#e6e6e6; --shadow:0 8px 24px rgba(0,0,0,.5); --panel:#171717; --calc-accent:#0a84ff; --calc-assign:#30d158; --calc-shadow:0 8px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4); --calc-edge:rgba(255,255,255,.14); --calc-row:rgba(255,255,255,.04); --calc-focus:rgba(10,132,255,.14); color-scheme:dark } }
+:root[data-theme="dark"]{ --bg:#121212; --surface:#191919; --fg:#e6e6e6; --muted:#7a7a7a; --line:#2a2a2a; --accent:#e6e6e6; --accent-soft:#262626; --code-bg:#1d1d1d; --hl:#3a3a3a; --danger:#e6e6e6; --shadow:0 8px 24px rgba(0,0,0,.5); --panel:#171717; --calc-accent:#0a84ff; --calc-assign:#30d158; --calc-shadow:0 8px 30px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4); --calc-edge:rgba(255,255,255,.14); --calc-row:rgba(255,255,255,.04); --calc-focus:rgba(10,132,255,.14); color-scheme:dark }
 
 html,body{height:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:17px;line-height:1.55;-webkit-text-size-adjust:100%}
@@ -507,7 +508,15 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 #editor{position:relative;flex:1;min-height:50vh}
 #editor.drop{outline:1px dashed var(--muted);outline-offset:8px}
 
-.block{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:start;padding-left:calc(var(--i,0)*24px);border-radius:4px;transition:background .12s}
+.block{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);align-items:start;padding-left:calc(var(--i,0)*24px);border-radius:4px;transition:background .12s}
+.block .drag{position:absolute;left:calc(var(--i,0)*24px - 20px);top:.45em;width:18px;color:var(--muted);font-size:.9rem;line-height:1;letter-spacing:-.25em;cursor:grab;opacity:0;user-select:none;touch-action:none;transition:opacity .12s}
+.block:hover .drag,.block:focus-within .drag,.block.selected .drag{opacity:.7}
+.block .drag:hover{opacity:1;color:var(--fg)}
+.block.dragging{opacity:.4}
+.block.drop-before{box-shadow:inset 0 3px 0 var(--fg)}
+.block.drop-after{box-shadow:inset 0 -3px 0 var(--fg)}
+.block.t-calc:focus-within:not(.selected),.block.t-math:focus-within:not(.selected){background:transparent;box-shadow:none}
+#editor.all-selected .block{background:var(--accent-soft);box-shadow:-6px 0 0 var(--accent-soft),6px 0 0 var(--accent-soft)}
 .block.selected,.block:focus-within{background:var(--accent-soft);box-shadow:-6px 0 0 var(--accent-soft),6px 0 0 var(--accent-soft)}
 .gutter{display:flex;justify-content:center;align-items:flex-start;padding-top:3px;min-height:1.6em;user-select:none}
 .content{min-width:0;min-height:1.6em;padding:3px 2px;word-wrap:break-word;overflow-wrap:anywhere;white-space:pre-wrap}
@@ -558,17 +567,29 @@ textarea.code{display:block;width:100%;font-family:var(--mono);font-size:.86rem;
 .tbl-tools button:hover,.tbl-tools button[aria-pressed="true"]{color:var(--fg)}
 
 /* calculator block */
-.calc{margin:6px 0;border:1px solid var(--line);border-radius:8px;background:var(--surface);min-width:0}
-.calc-lines{padding:4px 0}
-.cl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:3px 14px}
-.cl-in{display:block;min-width:0;font-size:1.05rem;line-height:1.5;min-height:1.6em;color:var(--fg)}
+.calc,.mathblk{margin:8px 0;border:1px solid var(--line);border-radius:14px;background:var(--surface);min-width:0;box-shadow:var(--calc-shadow),inset 0 1px 0 var(--calc-edge);overflow:hidden}
+.calc-lines{padding:0}
+.cl{display:flex;flex-wrap:wrap;gap:.3rem .6rem;align-items:center;padding:.35rem .9rem;border-top:1px solid var(--line);transition:background .12s}
+.cl:first-child{border-top:0}
+.cl:hover{background:var(--calc-row)}
+.cl:focus-within{background:var(--calc-focus)}
+.cl .cl-in{flex:1 1 12em;min-width:0}
+.cl .cl-out{margin-left:auto;flex:0 1 auto;max-width:100%}
+.cl-in{display:block;min-width:0;font-size:1.05rem;line-height:normal;min-height:1.4rem;color:var(--fg)}
 .cl-in.mq-editable-field{border:0!important;box-shadow:none!important;background:transparent;padding:2px 0;border-radius:0}
 .cl-in.mq-editable-field.mq-focused{border:0!important;box-shadow:none!important}
 .cl-in .mq-cursor{border-left-color:currentColor!important}
-.cl-in .mq-root-block{padding:0 2px;min-width:1em}
+.cl-in .mq-root-block,.cl-in.mq-editable-field .mq-root-block{padding:0 2px;min-width:1em;white-space:normal;display:block;overflow-wrap:anywhere;word-break:break-word}
+.cl-in .mq-root-block .mq-supsub,.cl-in .mq-root-block .mq-supsub *,.cl-in .mq-root-block .mq-fraction,.cl-in .mq-root-block .mq-fraction *,.cl-in .mq-root-block .mq-sqrt-stem,.cl-in .mq-root-block .mq-sqrt-stem *,.cl-in .mq-root-block .mq-nthroot,.cl-in .mq-root-block .mq-nthroot *,.cl-in .mq-root-block .mq-paren{overflow-wrap:normal;word-break:normal;white-space:nowrap}
+.cl-in .mq-fraction{font-size:95%}
+.cl-in .mq-sqrt-stem{border-top-width:1px}
+.cl-in var.mq-operator-name + .mq-non-leaf{margin-left:.14em}
+.cl-in .mq-paren + .mq-non-leaf{padding:0 .12em}
+.cl-in .mq-supsub:has(> .mq-sub){margin-right:.1em}
 .cl-in .mq-empty{background:transparent}
 .cl-in.mq-math-mode .mq-selection{background:var(--accent-soft)}
-.cl-out{font-family:var(--mono);font-size:.92rem;color:var(--fg);text-align:right;white-space:nowrap;max-width:50%;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.cl-out{font-family:var(--font);font-size:1.05rem;color:var(--calc-accent);font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.cl-out .katex{font-size:1.05rem;color:inherit}
 .cl-out.err{color:var(--muted);font-size:.78rem;font-family:var(--font);white-space:nowrap;max-width:45%;min-width:7em;overflow:hidden;text-overflow:ellipsis}
 
 
@@ -591,14 +612,11 @@ textarea.code{display:block;width:100%;font-family:var(--mono);font-size:.86rem;
 .tg-cell.on{background:var(--fg);border-color:var(--fg)}
 .tg-foot{font-size:.72rem;color:var(--muted);margin-top:8px}
 .cl-note{display:block;font-size:.72rem;color:var(--muted);font-family:var(--font);white-space:normal}
-.cl-out.muted{color:var(--muted)}
+.cl-out.muted{color:var(--muted);font-weight:400}
 .cl-out .needs{font-size:.76rem;color:var(--muted);font-family:var(--font)}
 .vchip{font:inherit;font-size:.76rem;font-family:var(--font);padding:1px 7px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);cursor:pointer}
 .vchip:hover{border-color:var(--fg)}
-.mathblk{margin:6px 0;min-width:0}
-.mathblk .cl{grid-template-columns:minmax(0,1fr);padding:2px 4px}
-.mathblk .cl-in{font-size:1.2rem;padding:4px 0}
-.mathblk .calc-foot{border-top:0;padding-left:4px}
+.mathblk .cl-in{font-size:1.15rem}
 #bsl .item.formula{font-family:var(--font)}
 #bsl .item.formula .katex{font-size:.95em}
 .cl-out{font-family:var(--font)}
@@ -872,6 +890,8 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
       </table>
       <h3>Keys</h3>
       <table>
+        <tr><td>Ctrl/Cmd+A</td><td>Once selects the whole block; again selects the whole note. Backspace then deletes the selection (Ctrl/Cmd+Z brings it back).</td></tr>
+        <tr><td>Drag</td><td>A ⋮⋮ handle appears to the left of a block on hover or focus; drag it to move the block, with anything indented beneath it.</td></tr>
         <tr><td>Ctrl/Cmd+Z, Shift+Z</td><td>Undo and redo changes to this note, including deleted blocks</td></tr>
         <tr><td>Enter</td><td>New block. Enter on an empty list item ends the list.</td></tr>
         <tr><td>Tab / Shift+Tab</td><td>Indent or outdent a block and what sits beneath it</td></tr>
@@ -2972,11 +2992,12 @@ function initCalcFields(){
       }
     });
     el._quiet=true; try{ mq.latex(b.lines[i]||''); }catch(e){} el._quiet=false; el._mq=mq;
-    el.addEventListener('keyup',function(){ pfxCheck(el); }); el.addEventListener('mouseup',function(){ pfxCheck(el); });
+    el.addEventListener('keyup',function(e){ if(e.key==='*') el._sciHeld=false; if(e.key==='^') el._supHeld=false; pfxCheck(el); }); el.addEventListener('mouseup',function(){ pfxCheck(el); });
   });
 }
 /* ---------- scientific notation: ** or ^^ gives ×10^, with a metric-prefix dropdown for the empty exponent ---------- */
 function insertSciExp(mq){ mq.cmd('\\times'); mq.typedText('10'); mq.cmd('^'); }
+function inEmptySup(el){ var cur=el.querySelector('.mq-cursor'); var sup=cur&&cur.closest('.mq-sup'); if(!sup) return false; return !Array.prototype.some.call(sup.querySelectorAll('*'),function(x){ return !x.classList.contains('mq-cursor') && x.textContent.replace(/[\u200b\s]/g,'')!==''; }); }
 /* a times sign typed inside a filled exponent lands after the exponent, as in the Calculator */
 function typeTimes(el){ var mq=el._mq; if(!mq) return; var cur=el.querySelector('.mq-cursor'); var sup=cur&&cur.closest('.mq-sup'); if(sup){ var filled=Array.prototype.some.call(sup.querySelectorAll('*'),function(x){ return !x.classList.contains('mq-cursor') && x.textContent.replace(/[\u200b\s]/g,'')!==''; }); if(filled) mq.keystroke('Right'); } mq.cmd('\\times'); }
 function expandArrowShortcut(mq){ var latex; try{ latex=mq.latex(); }catch(e){ return; } if(latex.indexOf('=>')===-1) return; try{ mq.latex(latex.replace(/=>/g,'\\Rightarrow ')); mq.moveToRightEnd(); }catch(e){} }
@@ -3067,7 +3088,11 @@ editor.addEventListener('keydown',function(e){
   if(bslState.open && bslState.mq){ if(bslKeyMq(e)){ e.preventDefault(); e.stopPropagation(); } return; }
   if(pfxState.open && pfxState.el===cl){ if(pfxKey(e)){ e.preventDefault(); e.stopPropagation(); return; } }
   var now=Date.now(), dbl=cl._dbl; cl._dbl=null;
-  if(e.key==='*' && !e.ctrlKey && !e.metaKey && !e.altKey){ e.preventDefault(); e.stopPropagation(); var mqx=cl._mq; if(dbl && dbl.key==='*' && now-dbl.t<500){ mqx.keystroke('Backspace'); insertSciExp(mqx); } else { typeTimes(cl); cl._dbl={key:'*',t:now}; } return; }
+  if(e.key==='*' && !e.ctrlKey && !e.metaKey && !e.altKey){ e.preventDefault(); e.stopPropagation(); var mqx=cl._mq;
+    if(e.repeat){ if(cl._sciHeld) return; cl._sciHeld=true; mqx.keystroke('Backspace'); insertSciExp(mqx); return; }
+    if(dbl && dbl.key==='*' && now-dbl.t<500){ mqx.keystroke('Backspace'); insertSciExp(mqx); } else { typeTimes(cl); cl._dbl={key:'*',t:now}; } return; }
+  if(e.key==='^' && inEmptySup(cl)){ if(e.repeat || cl._supHeld){ e.preventDefault(); e.stopPropagation(); cl._supHeld=true; return; } }
+  if(e.repeat && inEmptySup(cl) && /^[\^*]$/.test(e.key)){ e.preventDefault(); e.stopPropagation(); return; }
   if(e.key==='\\'){ e.preventDefault(); e.stopPropagation(); openBslMq(cl,'calc'); }
   else if(e.key==='@'){ e.preventDefault(); e.stopPropagation(); openBslMq(cl,'at'); }
 },true);
@@ -3217,6 +3242,7 @@ function mathHTML(b){
 function blockHTML(b,num){
   var cls='block t-'+b.type+(b.checked?' done':'')+(b.type==='toggle'&&!b.collapsed?' open':'')+(b.id===selectedId?' selected':'');
   var s='<div class="'+cls+'" data-id="'+b.id+'" style="--i:'+b.indent+'">';
+  s+='<span class="drag" title="Drag to move" aria-hidden="true">⋮⋮</span>';
   s+='<div class="gutter">';
   if(b.type==='bullet') s+='<span class="dot"></span>';
   else if(b.type==='number') s+='<span class="num">'+num+'.</span>';
@@ -3891,6 +3917,60 @@ document.getElementById('restoreFile').addEventListener('change',function(e){
   fr.readAsText(f);
 });
 
+/* ---------- Ctrl/Cmd+A: once selects the block, twice selects the whole note ---------- */
+var allSelected=false;
+function selectAllBlocks(){ allSelected=true; select(null); editor.classList.add('all-selected'); if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); }
+function clearAllSelected(){ if(!allSelected) return; allSelected=false; editor.classList.remove('all-selected'); }
+document.addEventListener('keydown',function(e){
+  if((e.metaKey||e.ctrlKey) && (e.key==='a'||e.key==='A')){
+    var blk=e.target.closest?e.target.closest('.block'):null;
+    if(!blk && !selectedId && !allSelected) return;
+    e.preventDefault(); e.stopPropagation();
+    if(allSelected) return;
+    if(selectedId && (!blk || blk.dataset.id===selectedId)){ selectAllBlocks(); return; }
+    if(blk){ select(blk.dataset.id); return; }
+    if(selectedId) selectAllBlocks();
+    return;
+  }
+  if(!allSelected) return;
+  if(e.key==='Backspace'||e.key==='Delete'){ e.preventDefault(); clearAllSelected(); doc.blocks=[newBlock('p')]; selectedId=null; render(); renderTabList(); save(); focusBlock(doc.blocks[0].id,0); toast('Note cleared (Ctrl/Cmd+Z to undo)'); return; }
+  if(e.key==='Escape'){ e.preventDefault(); clearAllSelected(); return; }
+  if(!e.metaKey && !e.ctrlKey && e.key.length===1) clearAllSelected();
+},true);
+document.addEventListener('mousedown',function(){ clearAllSelected(); },true);
+
+/* ---------- drag a block by its handle to reorder (with its indented children) ---------- */
+editor.addEventListener('pointerdown',function(e){
+  var h=e.target.closest('.drag'); if(!h || e.button!==0) return;
+  var blk=h.closest('.block'); var id=blk.dataset.id; var b=getBlock(id); if(!b) return;
+  e.preventDefault(); if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+  var pid=e.pointerId, target=null, where='after', ghost=null, moved=false;
+  try{ h.setPointerCapture(pid); }catch(x){}
+  var clear=function(){ editor.querySelectorAll('.drop-before,.drop-after').forEach(function(x){ x.classList.remove('drop-before','drop-after'); }); };
+  var move=function(ev){
+    if(!moved){ moved=true; blk.classList.add('dragging'); ghost=document.createElement('div'); ghost.className='drag-ghost'; ghost.textContent=b.text||TYPE_INFO[b.type].label; document.body.appendChild(ghost); }
+    ghost.style.left=(ev.clientX+14)+'px'; ghost.style.top=(ev.clientY-10)+'px';
+    clear(); target=null;
+    var els=document.elementsFromPoint(ev.clientX,ev.clientY);
+    for(var i=0;i<els.length;i++){ var c=els[i].closest?els[i].closest('.block'):null; if(c && c!==blk){ target=c; break; } }
+    if(!target) return;
+    var r=target.getBoundingClientRect(); where=ev.clientY<r.top+r.height/2?'before':'after';
+    target.classList.add(where==='before'?'drop-before':'drop-after');
+  };
+  var up=function(){
+    document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up);
+    clear(); if(ghost) ghost.remove(); blk.classList.remove('dragging');
+    if(!moved||!target) return;
+    var i=idx(id), end=subtreeEnd(i); var chunk=doc.blocks.splice(i,end-i);
+    var ti=idx(target.dataset.id); if(ti<0){ Array.prototype.splice.apply(doc.blocks,[i,0].concat(chunk)); return; }
+    var tb=doc.blocks[ti]; var at=where==='before'?ti:subtreeEnd(ti);
+    var delta=tb.indent-chunk[0].indent; chunk.forEach(function(c){ c.indent=Math.max(0,c.indent+delta); });
+    Array.prototype.splice.apply(doc.blocks,[at,0].concat(chunk));
+    render(); select(id); save();
+  };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
+});
+
 /* ---------- undo and redo of note changes ---------- */
 function snapshotNow(){ return JSON.stringify({tab:state.activeTabId,doc:doc}); }
 function pushHistory(){ if(!doc) return; var s=snapshotNow(); if(hist.stack[hist.index]===s) return; hist.stack=hist.stack.slice(0,hist.index+1); hist.stack.push(s); if(hist.stack.length>hist.max) hist.stack.shift(); hist.index=hist.stack.length-1; }
@@ -4105,7 +4185,7 @@ function insertAtCaret(el,text,back){
   var off=caretOffset(el), cur=el.textContent; el.textContent=cur.slice(0,off)+text+cur.slice(off); setCaret(el,off+text.length-(back||0));
   el.dispatchEvent(new Event('input',{bubbles:true}));
 }
-var CALCPAD={lp:function(m){ m.typedText('('); },rp:function(m){ m.typedText(')'); },pow:function(m){ m.typedText('^'); },sq:function(m){ m.typedText('^2'); m.keystroke('Right'); },sqrt:function(m){ m.cmd('\\sqrt'); },pi:function(m){ m.cmd('\\pi'); },div:function(m){ m.typedText('/'); },mul:function(m,cl){ typeTimes(cl); },sub:function(m){ m.typedText('-'); },add:function(m){ m.typedText('+'); },eq:function(m){ m.typedText('='); },arrow:function(m){ m.write('\\Rightarrow '); },comma:function(m){ m.typedText(','); },ans:function(m){ m.typedText('ans'); },e:function(m){ m.typedText('e'); },abs:function(m){ m.typedText('|'); },left:function(m){ m.keystroke('Left'); },right:function(m){ m.keystroke('Right'); },bsl:null};
+var CALCPAD={lp:function(m){ m.typedText('('); },rp:function(m){ m.typedText(')'); },pow:function(m,cl){ if(inEmptySup(cl)) return; m.typedText('^'); },sq:function(m,cl){ if(inEmptySup(cl)) return; m.typedText('^2'); m.keystroke('Right'); },sqrt:function(m){ m.cmd('\\sqrt'); },pi:function(m){ m.cmd('\\pi'); },div:function(m){ m.typedText('/'); },mul:function(m,cl){ typeTimes(cl); },sub:function(m){ m.typedText('-'); },add:function(m){ m.typedText('+'); },eq:function(m){ m.typedText('='); },arrow:function(m){ m.write('\\Rightarrow '); },comma:function(m){ m.typedText(','); },ans:function(m){ m.typedText('ans'); },e:function(m){ m.typedText('e'); },abs:function(m){ m.typedText('|'); },left:function(m){ m.keystroke('Left'); },right:function(m){ m.keystroke('Right'); },bsl:null};
 ['sin','cos','tan','asin','acos','atan','ln','log','solve','nCr'].forEach(function(f){ CALCPAD[f]=function(m){ m.typedText(f+'('); }; });
 function calcpadAct(bt){ var el=document.activeElement; var cl=el&&el.closest?el.closest('.cl-in'):null; if(!cl||!cl._mq) return; var k=bt.dataset.k; if(k==='bsl'){ openBslMq(cl); return; } var fn=CALCPAD[k]; if(fn){ fn(cl._mq,cl); cl._mq.focus(); } }
 calcpad.addEventListener('mousedown',function(e){ e.preventDefault(); });
