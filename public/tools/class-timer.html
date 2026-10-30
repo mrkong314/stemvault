@@ -122,10 +122,12 @@
     body { height: auto; min-height: 100dvh; overflow: auto; display: block; }
     .scroll { overflow: visible; flex: none; }
   }
-  /* Landscape on a laptop or tablet: two columns. The period clock, the full bell list and
-     cold call sit pinned on the left; the timer stack scrolls on the right. Portrait keeps
-     the single phone column above. Big display has its own landscape grid further down. */
-  @media (min-width: 900px) and (orientation: landscape) {
+  /* Laptop or tablet: two columns. The period clock, the full bell list and cold call sit
+     pinned on the left; the timer stack scrolls on the right. Chosen by input device rather
+     than orientation: a mouse or trackpad at 900px+ in any window shape, or a touch device at
+     tablet-landscape widths (1000px+). Phones keep the single column above in either
+     orientation. Big display has its own landscape grid further down. */
+  @media (pointer: fine) and (min-width: 900px), (pointer: none) and (min-width: 900px), (min-width: 1000px) {
     body:not(.big) header.topbar .inner, body:not(.big) .app { max-width: 1180px; }
     body:not(.big) .app {
       display: grid; grid-template-columns: minmax(360px, 5fr) minmax(0, 6fr); grid-template-rows: auto auto auto 1fr;

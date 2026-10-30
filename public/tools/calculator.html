@@ -1457,10 +1457,14 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     width: 1.4em; height: 2px; background: currentColor; border-radius: 1px; margin: 1px 0;
   }
 
-  /* Landscape / desktop: full-width app. The math entries fill the main area and
+  /* Desktop layout: full-width app. The math entries fill the main area and
      the paged keypad (123 / abc / f(x)) sits in a wider right-hand panel, scaled
-     up for the larger screen -- same key layout as portrait, desktop proportions. */
-  @media (min-width: 720px) and (orientation: landscape) {
+     up for the larger screen -- same key layout as the phone, desktop proportions.
+     Chosen by input device rather than orientation: a mouse or trackpad (fine
+     pointer) at 720px+ always gets this, whatever the window shape; a touch
+     device gets it only at tablet-landscape widths (1000px+), so a phone never
+     does. */
+  @media (pointer: fine) and (min-width: 720px), (pointer: none) and (min-width: 720px), (min-width: 1000px) {
     #app { max-width: none; flex-direction: row; }
     .header-wrap { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
     /* generous bottom padding: the last line always has clear space below it, so
@@ -1485,9 +1489,11 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     .folder { margin: 0.7rem 1rem; }
   }
 
-  /* portrait / mobile: tighten the header, switch to the paged keypad, and cap
-     the keypad height so the active math cell above stays visible */
-  @media (orientation: portrait), (max-width: 719px) {
+  /* Phone layout: tighten the header, switch to the paged keypad, and cap the
+     keypad height so the active math cell above stays visible. Applies to any
+     touch device under 1000px wide in either orientation, and to any window
+     narrower than 720px. */
+  @media (pointer: coarse) and (max-width: 999px), (max-width: 719px) {
     /* single-row title bar: hamburger, name, star, settings gear. The mode
        controls now live in the settings popover, so no second row is needed. */
     header {
