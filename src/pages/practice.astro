@@ -23,7 +23,7 @@ for (const r of banks) {
       year,
       subject: strand,
       label: `Year ${year} ${strand}`,
-      accent: strand === 'Science' ? 'var(--accent)' : subject?.accent ?? 'var(--accent)',
+      accent: '',
       href: strand === 'Science' ? '/resources' : `/resources/${subject?.slug}`,
       items: [],
     });
@@ -31,6 +31,9 @@ for (const r of banks) {
   groups.get(key)!.items.push(r);
 }
 const ordered = [...groups.values()].sort((a, b) => a.year - b.year || (a.subject ?? '').localeCompare(b.subject ?? ''));
+// Alternate heading colours down the page so neighbouring groups are easy to tell apart.
+const PALETTE = ['#30d158', '#ff9f0a', '#0a84ff', '#bf5af2', '#64d2ff', '#ff375f'];
+ordered.forEach((g, i) => { g.accent = PALETTE[i % PALETTE.length]; });
 ---
 <BaseLayout title="Practice · StemVault" description="Self-marking practice banks for VCE and junior science and maths, grouped by subject.">
   <section class="page">
@@ -70,8 +73,9 @@ const ordered = [...groups.values()].sort((a, b) => a.year - b.year || (a.subjec
     border-bottom: 2px solid var(--accent);
   }
   .group-head h2 { margin: 0; font-size: 1.35rem; }
-  .group-head h2 a { color: var(--ink); }
-  .group-head h2 a:hover { color: var(--accent); }
+  .group-head h2 { color: var(--accent); }
+  .group-head h2 a { color: inherit; }
+  .group-head h2 a:hover { opacity: 0.8; }
   .group-count {
     font-size: 0.8rem;
     color: var(--ink-mute);
