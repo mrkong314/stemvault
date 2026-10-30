@@ -589,6 +589,15 @@ textarea.code{display:block;width:100%;font-family:var(--mono);font-size:.86rem;
 .tg-foot{font-size:.72rem;color:var(--muted);margin-top:8px}
 .cl-note{display:block;font-size:.72rem;color:var(--muted);font-family:var(--font);white-space:normal}
 .cl-out.muted{color:var(--muted)}
+.cl-out .needs{font-size:.76rem;color:var(--muted);font-family:var(--font)}
+.vchip{font:inherit;font-size:.76rem;font-family:var(--font);padding:1px 7px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg);cursor:pointer}
+.vchip:hover{border-color:var(--fg)}
+.mathblk{margin:6px 0;min-width:0}
+.mathblk .cl{grid-template-columns:minmax(0,1fr);padding:2px 4px}
+.mathblk .cl-in{font-size:1.2rem;padding:4px 0}
+.mathblk .calc-foot{border-top:0;padding-left:4px}
+#bsl .item.formula{font-family:var(--font)}
+#bsl .item.formula .katex{font-size:.95em}
 .cl-out{font-family:var(--font)}
 .cl .katex{font-size:1.05em;white-space:normal}
 .cl-out .katex{white-space:nowrap}
@@ -774,6 +783,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
         <button type="button" data-bb="quote" aria-label="Quote">“</button>
         <button type="button" data-bb="table" aria-label="Table">⊞</button>
         <button type="button" data-bb="calc" aria-label="Calculator"><span class="k">=</span></button>
+        <button type="button" data-bb="math" aria-label="Maths"><span class="k">∑</span></button>
         <button type="button" data-bb="image" aria-label="Image">▣</button>
       </div>
       <div id="calcpad" role="toolbar" aria-label="Calculator keys">
@@ -815,6 +825,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
         <tr><td>```</td><td>Code block (Enter adds lines, Ctrl/Cmd+Enter leaves it)</td></tr>
         <tr><td>| a | b |</td><td>Table with those column headings</td></tr>
         <tr><td>=</td><td>Calculator section</td></tr>
+        <tr><td>$$</td><td>Maths block: typeset equations, not evaluated</td></tr>
         <tr><td>---</td><td>Divider</td></tr>
         <tr><td>/</td><td>Block menu, including Table, Calculator and Image</td></tr>
       </table>
@@ -829,6 +840,8 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
       <h3>Calculator</h3>
       <table>
         <tr><td>\</td><td>Type a backslash, then letters, to search every function, constant and Greek letter; Enter inserts the choice. Nothing is left behind in the line. In text lines the same search inserts symbols.</td></tr>
+        <tr><td>@</td><td>Type @, then letters, to search the Calculator’s formula sheet and constants by name or topic (suvat, snell, kinetic); Enter writes the formula into the line.</td></tr>
+        <tr><td>needs x</td><td>A line that uses an undefined variable shows a + x chip; click it to add a line defining x above.</td></tr>
         <tr><td>2(3+4)^2, 2x</td><td>Each line is one expression, evaluated by the same engine as the Calculator tool. Implicit multiplication works.</td></tr>
         <tr><td>a = 4, or 2.5*12 = m</td><td>Defines a variable for the whole section, in any order. <code>ans</code> is the line above.</td></tr>
         <tr><td>2v + 1 = 9 => v</td><td>Solves for v. So does <code>solve(2v+1=9, v)</code>, <code>2v+1=9, v</code>, or a plain equation with exactly one unknown. <code>solve(eq, x, [a, b])</code> restricts the domain; <code>cSolve</code> lists complex roots.</td></tr>
@@ -839,7 +852,8 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
         <tr><td>c, g, G, k, h_J, m_e</td><td>VCE physics constants are predefined. Assign to override.</td></tr>
         <tr><td>Typeset as you type</td><td>Calculator lines are maths fields like the Calculator tool: / makes a fraction, ^ a power, sqrt a root, and names like sin or pi become symbols. Results are typeset too.</td></tr>
         <tr><td>Exact / Decimal</td><td>Exact shows fractions, surds and multiples of π. Set it, the angle, precision and first or all roots in Settings or from the words under any calculator, which appear on hover.</td></tr>
-        <tr><td>Enter / Backspace</td><td>Adds or removes a line. Removing the last line turns the section back into text.</td></tr>
+        <tr><td>Enter / Backspace</td><td>Adds or removes a line. Backspace on the only line clears it; Delete calculator (under the section) removes it.</td></tr>
+        <tr><td>Maths block</td><td>/math or $$ gives the same typeset entry without results, for writing equations and working. \ and @ search work there too.</td></tr>
       </table>
       <h3>Inline</h3>
       <table>
@@ -903,7 +917,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
 var KEY='pocket-scratchpad-v2', OLD_KEY='pocket-scratchpad-v1', THEME_KEY='pocket-scratchpad-theme';
 var TEXT_TYPES=['p','h1','h2','h3','bullet','number','todo','toggle','quote','code'];
 var LIST_TYPES=['bullet','number','todo'];
-var BOX_TYPES=['image','divider','table','calc'];
+var BOX_TYPES=['image','divider','table','calc','math'];
 var TYPE_INFO={
   p:{label:'Text',hint:'Plain paragraph'},
   h1:{label:'Heading 1',hint:'# '},
@@ -917,12 +931,13 @@ var TYPE_INFO={
   code:{label:'Code block',hint:'```'},
   table:{label:'Table',hint:'| a | b |'},
   calc:{label:'Calculator',hint:'= '},
+  math:{label:'Maths',hint:'$$ '},
   image:{label:'Image',hint:'Choose a file, or paste one'},
   divider:{label:'Divider',hint:'---'}
 };
-var SLASH_ORDER=['p','h1','h2','h3','bullet','number','todo','toggle','quote','code','table','calc','image','divider'];
+var SLASH_ORDER=['p','h1','h2','h3','bullet','number','todo','toggle','quote','code','table','calc','math','image','divider'];
 var PLACEHOLDER={p:'',h1:'Heading 1',h2:'Heading 2',h3:'Heading 3',bullet:'',number:'',todo:'',toggle:'',quote:'',code:'Code'};
-var PREFIX_SHORTCUTS=[['### ','h3'],['## ','h2'],['# ','h1'],['- ','bullet'],['* ','bullet'],['+ ','toggle'],['1. ','number'],['[] ','todo'],['[ ] ','todo'],['> ','toggle'],['" ','quote'],['= ','calc']];
+var PREFIX_SHORTCUTS=[['### ','h3'],['## ','h2'],['# ','h1'],['- ','bullet'],['* ','bullet'],['+ ','toggle'],['1. ','number'],['[] ','todo'],['[ ] ','todo'],['> ','toggle'],['" ','quote'],['= ','calc'],['$$ ','math']];
 var GROUP_COLORS=['#5b7fa6','#5f9e7a','#b98a4a','#b4635f','#8a6fb0','#5a9aa8','#a89b4a','#9a7a8a'];
 
 var state=null, doc=null, saveTimer=null, selectedId=null, storage='idb', pendingImageTarget=null;
@@ -932,7 +947,7 @@ var slashState={open:false,blockId:null,items:[],index:0};
 
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } return b; }
+function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } return b; }
 function getBlock(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return doc.blocks[i]; return null; }
 function idx(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return i; return -1; }
 function isText(b){ return TEXT_TYPES.indexOf(b.type)>=0; }
@@ -2598,6 +2613,121 @@ function trailingAssign(expr) {
   return { name, rhs: lhs };
 }
 
+/* formula sheet from the Calculator tool (for the @ picker) */
+const FORMULA_LIST = [
+  // Thermal
+  { name:'Q = mc\\Delta T', cat:'Thermal', kw:'heat, specific heat capacity, temperature change, mass, calorimetry, thermal energy, delta', latex:'Q=mc\\Delta T', free:['c'] },
+  { name:'Q = mc(T_f - T_i)', cat:'Thermal', kw:'heat, specific heat capacity, temperature change, final, initial, expanded, mass, calorimetry, thermal energy, delta', latex:'Q=mc\\left(T_{f}-T_{i}\\right)', free:['c'] },
+  { name:'Q = mL_F', cat:'Thermal', kw:'latent heat, latent heat of fusion, melting, freezing, phase change, mass, heat', latex:'Q=mL_{F}' },
+  { name:'Q = mL_V', cat:'Thermal', kw:'latent heat, latent heat of vaporisation, boiling, condensing, evaporation, phase change, mass, heat', latex:'Q=mL_{V}' },
+  { name:'T_K = T_C + 273', cat:'Thermal', kw:'temperature, kelvin, celsius, absolute zero, conversion', latex:'T_{K}=T_{C}+273' },
+  { name:'\\lambda_{max} = b/T', cat:'Thermal', kw:'wien, blackbody, peak wavelength, temperature, thermal radiation, emission', latex:'\\lambda_{max}=\\frac{b}{T}' },
+  { name:'P/A = \\sigma T^4', cat:'Thermal', kw:'stefan boltzmann, blackbody, radiated power, temperature, thermal radiation, intensity', latex:'\\frac{P}{A}=\\sigma T^{4}' },
+  // Nuclear
+  { name:'E = mc^2', cat:'Nuclear', kw:'mass energy, mass defect, binding energy, nuclear, einstein, speed of light', latex:'E=mc^{2}' },
+  { name:'n = t/t_{1/2}', cat:'Nuclear', kw:'half life, number of half lives, elapsed time, decay', latex:'n=\\frac{t}{t_{1/2}}' },
+  { name:'N = N_0 (1/2)^n', cat:'Nuclear', kw:'radioactive decay, half life, undecayed nuclei, number of half lives, decay, exponential', latex:'N=N_{0}\\left(\\frac{1}{2}\\right)^{n}' },
+  { name:'A = A_0 (1/2)^n', cat:'Nuclear', kw:'activity, half life, decay rate, becquerel, number of half lives, radioactive decay, exponential', latex:'A=A_{0}\\left(\\frac{1}{2}\\right)^{n}' },
+  { name:'D = E/m', cat:'Nuclear', kw:'absorbed dose, gray, radiation energy, mass, dose', latex:'D=\\frac{E}{m}' },
+  { name:'H = D W_R', cat:'Nuclear', kw:'equivalent dose, sievert, radiation weighting factor, absorbed dose, quality factor, dose', latex:'H=DW_{R}' },
+  { name:'D_{eff} = H W_T', cat:'Nuclear', kw:'effective dose, sievert, tissue weighting factor, equivalent dose, dose', latex:'D_{eff}=HW_{T}' },
+  // Motion
+  { name:'v = s/t', cat:'Motion', kw:'velocity, speed, average velocity, displacement, time', latex:'v=\\frac{s}{t}' },
+  { name:'a = v/t', cat:'Motion', kw:'acceleration, average acceleration, velocity change, time', latex:'a=\\frac{v}{t}' },
+  { name:'v_{avg} = (u+v)/2', cat:'Motion', kw:'average velocity, mean velocity, suvat, uniform acceleration', latex:'v_{avg}=\\frac{u+v}{2}' },
+  { name:'v = u + at', cat:'Motion', kw:'suvat, kinematics, final velocity, initial velocity, acceleration, time, constant acceleration', latex:'v=u+at' },
+  { name:'s = ut + \\frac12 at^2', cat:'Motion', kw:'suvat, kinematics, displacement, initial velocity, acceleration, time, constant acceleration', latex:'s=ut+\\frac{1}{2}at^{2}' },
+  { name:'s = vt - \\frac12 at^2', cat:'Motion', kw:'suvat, kinematics, displacement, final velocity, acceleration, time, constant acceleration', latex:'s=vt-\\frac{1}{2}at^{2}' },
+  { name:'v^2 = u^2 + 2as', cat:'Motion', kw:'suvat, kinematics, final velocity, initial velocity, acceleration, displacement, no time', latex:'v^{2}=u^{2}+2as' },
+  { name:'s = \\frac12 (v+u)t', cat:'Motion', kw:'suvat, kinematics, displacement, average velocity, time', latex:'s=\\frac{1}{2}\\left(v+u\\right)t' },
+  { name:'F_{net} = ma', cat:'Motion', kw:'newton, second law, net force, resultant force, mass, acceleration', latex:'F_{net}=ma' },
+  { name:'a = v^2/r', cat:'Motion', kw:'circular motion, centripetal acceleration, orbit, radius, period, pi', latex:'a=\\frac{v^{2}}{r}' },
+  { name:'a = 4\\pi^2 r/T^2', cat:'Motion', kw:'circular motion, centripetal acceleration, orbit, radius, period, pi', latex:'a=\\frac{4\\pi^{2}r}{T^{2}}' },
+  { name:'F = kx', cat:'Motion', kw:'hooke, spring, restoring force, spring constant, extension, compression', latex:'F=kx', free:['k'] },
+  { name:'mg = kx', cat:'Motion', kw:'oscillation, mass spring, equilibrium, hooke, weight, spring constant, extension', latex:'mg=kx', free:['k'] },
+  { name:'T = 2\\pi\\sqrt{m/k}', cat:'Motion', kw:'oscillation, shm, simple harmonic motion, period, mass spring, spring constant, pi', latex:'T=2\\pi\\sqrt{\\frac{m}{k}}', free:['k'] },
+  { name:'T = 2\\pi\\sqrt{L/g}', cat:'Motion', kw:'oscillation, shm, simple harmonic motion, period, pendulum, length, gravity, pi', latex:'T=2\\pi\\sqrt{\\frac{L}{g}}' },
+  { name:'E_s = \\frac12 kx^2', cat:'Motion', kw:'elastic potential energy, spring energy, strain energy, hooke, spring constant', latex:'E_{s}=\\frac{1}{2}kx^{2}', free:['k'] },
+  { name:'E_g = mgh', cat:'Motion', kw:'gravitational potential energy, gpe, height, mass, gravity', latex:'E_{g}=mgh' },
+  { name:'E_k = \\frac12 mv^2', cat:'Motion', kw:'kinetic energy, ke, mass, velocity, speed', latex:'E_{k}=\\frac{1}{2}mv^{2}' },
+  { name:'\\frac12 mv_1^2 + mgh_1 = \\frac12 mv_2^2 + mgh_2', cat:'Motion', kw:'energy conservation, conservation of energy, kinetic gravitational, initial final, falling, projectile, roller coaster, height, velocity', latex:'\\frac{1}{2}mv_{1}^{2}+mgh_{1}=\\frac{1}{2}mv_{2}^{2}+mgh_{2}' },
+  { name:'\\frac12 mv_1^2 + mgh_1 + \\frac12 kx_1^2 = \\frac12 mv_2^2 + mgh_2 + \\frac12 kx_2^2', cat:'Motion', kw:'energy conservation, conservation of energy, spring, elastic potential, kinetic gravitational spring, initial final, spring constant, extension', latex:'\\frac{1}{2}mv_{1}^{2}+mgh_{1}+\\frac{1}{2}kx_{1}^{2}=\\frac{1}{2}mv_{2}^{2}+mgh_{2}+\\frac{1}{2}kx_{2}^{2}', free:['k'] },
+  { name:'W = Fs', cat:'Motion', kw:'work, work done, force, displacement, energy transfer', latex:'W=Fs' },
+  { name:'P = W/t', cat:'Motion', kw:'power, work, time, watt', latex:'P=\\frac{W}{t}' },
+  { name:'P = Fv', cat:'Motion', kw:'power, force, velocity, watt', latex:'P=Fv' },
+  { name:'F = Gm_1 m_2/r^2', cat:'Motion', kw:'gravitation, universal gravitation, newton, gravitational force, mass, separation, inverse square', latex:'F=\\frac{Gm_{1}m_{2}}{r^{2}}' },
+  { name:'g = GM/r^2', cat:'Motion', kw:'gravitational field, field strength, central mass, radius, distance', latex:'g=\\frac{GM}{r^{2}}' },
+  { name:'r^3/T^2 = GM/4\\pi^2', cat:'Motion', kw:'kepler, third law, orbit, orbital radius, period, satellite, ratio, pi', latex:'\\frac{r^{3}}{T^{2}}=\\frac{GM}{4\\pi^{2}}' },
+  { name:'v = \\sqrt{GM/r}', cat:'Motion', kw:'orbital velocity, orbital speed, circular orbit, satellite, kepler, gravitation, central mass, radius', latex:'v=\\sqrt{\\frac{GM}{r}}' },
+  { name:'T = 2\\pi\\sqrt{r^3/GM}', cat:'Motion', kw:'kepler, third law, orbital period, orbit, radius, satellite, pi', latex:'T=2\\pi\\sqrt{\\frac{r^{3}}{GM}}' },
+  { name:'M = 4\\pi^2 r^3/GT^2', cat:'Motion', kw:'kepler, third law, central mass, planet mass, star mass, orbit, radius, period, pi', latex:'M=\\frac{4\\pi^{2}r^{3}}{GT^{2}}' },
+  { name:'GM = 4\\pi^2 r^3/T^2', cat:'Motion', kw:'kepler, third law, standard gravitational parameter, orbit, radius, period, pi', latex:'GM=\\frac{4\\pi^{2}r^{3}}{T^{2}}' },
+  { name:'p = mv', cat:'Motion', kw:'momentum, linear momentum, mass, velocity', latex:'p=mv' },
+  { name:'I = Ft', cat:'Motion', kw:'impulse, force, time, momentum change', latex:'I=Ft' },
+  { name:'m_1 u_1 + m_2 u_2 = m_1 v_1 + m_2 v_2', cat:'Motion', kw:'momentum conservation, conservation of momentum, collision, inelastic, two objects, before after, mass, velocity', latex:'m_{1}u_{1}+m_{2}u_{2}=m_{1}v_{1}+m_{2}v_{2}' },
+  { name:'\\frac12 m_1 u_1^2 + \\frac12 m_2 u_2^2 = \\frac12 m_1 v_1^2 + \\frac12 m_2 v_2^2', cat:'Motion', kw:'elastic collision, kinetic energy conserved, collision, momentum, two objects', latex:'\\frac{1}{2}m_{1}u_{1}^{2}+\\frac{1}{2}m_{2}u_{2}^{2}=\\frac{1}{2}m_{1}v_{1}^{2}+\\frac{1}{2}m_{2}v_{2}^{2}' },
+  { name:'\\gamma = 1/\\sqrt{1 - (v/c)^2}', cat:'Motion', kw:'relativity, special relativity, lorentz factor, gamma, speed of light, velocity', latex:'\\gamma=\\frac{1}{\\sqrt{1-\\left(\\frac{v}{c}\\right)^{2}}}' },
+  { name:'t = t_0 \\gamma', cat:'Motion', kw:'relativity, time dilation, proper time, observed time, gamma, lorentz', latex:'t=t_{0}\\gamma' },
+  { name:'L = L_0/\\gamma', cat:'Motion', kw:'relativity, length contraction, proper length, observed length, gamma, lorentz', latex:'L=\\frac{L_{0}}{\\gamma}' },
+  { name:'E_{rest} = mc^2', cat:'Motion', kw:'relativity, rest energy, mass energy, mass, speed of light', latex:'E_{rest}=mc^{2}' },
+  { name:'E_{total} = \\gamma mc^2', cat:'Motion', kw:'relativity, total energy, relativistic energy, gamma, mass, speed of light', latex:'E_{total}=\\gamma mc^{2}' },
+  { name:'E_k = (\\gamma - 1)mc^2', cat:'Motion', kw:'relativity, relativistic kinetic energy, gamma, mass, speed of light', latex:'E_{k}=\\left(\\gamma-1\\right)mc^{2}' },
+  // Fields
+  { name:'E = V/d', cat:'Fields', kw:'electric field, parallel plates, voltage, plate separation, uniform field', latex:'E=\\frac{V}{d}' },
+  { name:'\\frac12 mv^2 = qV', cat:'Fields', kw:'work energy, charge acceleration, kinetic energy, voltage, charge, electron gun', latex:'\\frac{1}{2}mv^{2}=qV' },
+  { name:'E = kq/r^2', cat:'Fields', kw:'electric field, point charge, coulomb constant, charge, distance, inverse square', latex:'E=\\frac{kq}{r^{2}}' },
+  { name:'F = qE', cat:'Fields', kw:'electric force, charge, field strength', latex:'F=qE' },
+  { name:'F = kq_1 q_2/r^2', cat:'Fields', kw:'coulomb, coulombs law, electrostatic force, point charges, charge, separation, inverse square', latex:'F=\\frac{kq_{1}q_{2}}{r^{2}}' },
+  { name:'F = Bvq', cat:'Fields', kw:'magnetic force, lorentz, moving charge, charge, velocity, magnetic field', latex:'F=Bvq' },
+  { name:'F = nBIl', cat:'Fields', kw:'magnetic force, conductor, current carrying, wire, current, length, magnetic field, motor', latex:'F=nBIl' },
+  { name:'r = mv/Bq', cat:'Fields', kw:'radius, circular path, charged particle, mass, velocity, charge, magnetic field', latex:'r=\\frac{mv}{Bq}' },
+  // Electricity
+  { name:'V = RI', cat:'Electricity', kw:'ohms law, resistance, voltage, current', latex:'V=RI' },
+  { name:'P = VI', cat:'Electricity', kw:'power, electrical power, voltage, current', latex:'P=VI' },
+  { name:'P = I^2 R', cat:'Electricity', kw:'power, electrical power, current, resistance', latex:'P=I^{2}R' },
+  { name:'Q = It', cat:'Electricity', kw:'charge, current, time, coulombs', latex:'Q=It' },
+  { name:'E = VIt', cat:'Electricity', kw:'electrical energy, voltage, current, time, joules', latex:'E=VIt' },
+  { name:'E = Pt', cat:'Electricity', kw:'electrical energy, power, time, joules', latex:'E=Pt' },
+  { name:'R_T = R_1 + R_2', cat:'Electricity', kw:'resistance, series, resistors, total resistance', latex:'R_{T}=R_{1}+R_{2}' },
+  { name:'R_T = (1/R_1 + 1/R_2)^{-1}', cat:'Electricity', kw:'resistance, parallel, resistors, total resistance', latex:'R_{T}=\\left(\\frac{1}{R_{1}}+\\frac{1}{R_{2}}\\right)^{-1}' },
+  { name:'V_1/V_2 = N_1/N_2 = I_2/I_1', cat:'Electricity', kw:'transformer, ideal transformer, turns ratio, step up, step down, primary, secondary, voltage, current, generation', latex:'\\frac{V_{1}}{V_{2}}=\\frac{N_{1}}{N_{2}}=\\frac{I_{2}}{I_{1}}' },
+  { name:'V_{RMS} = V_p/\\sqrt2', cat:'Electricity', kw:'rms, root mean square, ac voltage, peak voltage, alternating current, generation', latex:'V_{RMS}=\\frac{V_{p}}{\\sqrt{2}}' },
+  { name:'I_{RMS} = I_p/\\sqrt2', cat:'Electricity', kw:'rms, root mean square, ac current, peak current, alternating current, generation', latex:'I_{RMS}=\\frac{I_{p}}{\\sqrt{2}}' },
+  { name:'\\varepsilon = -N\\Delta\\Phi_B/\\Delta t', cat:'Electricity', kw:'faraday, lenz, emf, induced voltage, magnetic flux, flux, turns, rate of change, generation, delta', latex:'\\varepsilon=-N\\frac{\\Delta\\Phi_{B}}{\\Delta t}' },
+  { name:'\\Phi_B = B_\\perp A', cat:'Electricity', kw:'magnetic flux, flux, area, faraday, generation', latex:'\\Phi_{B}=B_{\\perp}A' },
+  { name:'V_{drop} = I_{line} R_{line}', cat:'Electricity', kw:'transmission, voltage drop, power lines, line current, line resistance, generation', latex:'V_{drop}=I_{line}R_{line}' },
+  { name:'P_{loss} = I_{line}^2 R_{line}', cat:'Electricity', kw:'transmission, power loss, power lines, line current, line resistance, heat loss, generation', latex:'P_{loss}=I_{line}^{2}R_{line}' },
+  // Light and Matter
+  { name:'v = f\\lambda', cat:'Light and Matter', kw:'wave equation, wave speed, frequency, wavelength, lambda', latex:'v=f\\lambda' },
+  { name:'T = 1/f', cat:'Light and Matter', kw:'period, frequency, inverse', latex:'T=\\frac{1}{f}' },
+  { name:'P_D = n\\lambda', cat:'Light and Matter', kw:'interference, constructive, path difference, in phase, wavelength, lambda, double slit', latex:'P_{D}=n\\lambda' },
+  { name:'P_D = (n - \\frac12)\\lambda', cat:'Light and Matter', kw:'interference, destructive, path difference, out of phase, wavelength, lambda, double slit', latex:'P_{D}=\\left(n-\\frac{1}{2}\\right)\\lambda' },
+  { name:'x = \\lambda L/d', cat:'Light and Matter', kw:'fringe spacing, double slit, youngs, interference, wavelength, lambda, slit separation, screen distance', latex:'x=\\frac{\\lambda L}{d}' },
+  { name:'\\lambda_n = 2L/n', cat:'Light and Matter', kw:'standing wave, string, fixed both ends, harmonic, wavelength, lambda, overtone, resonance', latex:'\\lambda_{n}=\\frac{2L}{n}' },
+  { name:'f_n = nv/2L', cat:'Light and Matter', kw:'standing wave, string, fixed both ends, harmonic, frequency, fundamental, overtone, resonance', latex:'f_{n}=\\frac{nv}{2L}' },
+  { name:'f_n = n f_1', cat:'Light and Matter', kw:'standing wave, harmonic, frequency, fundamental, overtone, resonance', latex:'f_{n}=nf_{1}' },
+  { name:'n_1 \\sin\\theta_1 = n_2 \\sin\\theta_2', cat:'Light and Matter', kw:'snell, refraction, refractive index, angle of incidence, angle of refraction, bending', latex:'n_{1}\\sin\\theta_{1}=n_{2}\\sin\\theta_{2}' },
+  { name:'n_1 v_1 = n_2 v_2', cat:'Light and Matter', kw:'refractive index, wave speed, refraction, media', latex:'n_{1}v_{1}=n_{2}v_{2}' },
+  { name:'E_{kmax} = h_J f - \\phi', cat:'Light and Matter', kw:'photoelectric, photoelectric effect, max kinetic energy, planck, frequency, work function, phi, photon', latex:'E_{kmax}=h_{J}f-\\phi' },
+  { name:'\\phi = h_J f_0', cat:'Light and Matter', kw:'work function, phi, threshold frequency, cutoff frequency, planck, photoelectric', latex:'\\phi=h_{J}f_{0}' },
+  { name:'eV_0 = E_{kmax}', cat:'Light and Matter', kw:'stopping voltage, stopping potential, photoelectric, photocurrent, max kinetic energy', latex:'eV_{0}=E_{kmax}' },
+  { name:'V_0 = h_e f - \\phi', cat:'Light and Matter', kw:'stopping voltage, stopping potential, cutoff voltage, photoelectric, planck ev, work function in ev, phi, frequency', latex:'V_{0}=h_{e}f-\\phi' },
+  { name:'E_{kmax} = h_J c/\\lambda - \\phi', cat:'Light and Matter', kw:'photoelectric, max kinetic energy, wavelength, lambda, work function, phi, planck, speed of light', latex:'E_{kmax}=\\frac{h_{J}c}{\\lambda}-\\phi' },
+  { name:'E_{kmax} = h_J(f - f_0)', cat:'Light and Matter', kw:'photoelectric, max kinetic energy, expanded work function, threshold frequency, cutoff frequency, planck', latex:'E_{kmax}=h_{J}\\left(f-f_{0}\\right)' },
+  { name:'V_0 = h_e c/\\lambda - \\phi', cat:'Light and Matter', kw:'stopping voltage, stopping potential, wavelength, lambda, photoelectric, work function in ev, phi, planck ev', latex:'V_{0}=\\frac{h_{e}c}{\\lambda}-\\phi' },
+  { name:'V_0 = h_e(f - f_0)', cat:'Light and Matter', kw:'stopping voltage, stopping potential, expanded work function, threshold frequency, cutoff frequency, photoelectric, planck ev', latex:'V_{0}=h_{e}\\left(f-f_{0}\\right)' },
+  { name:'E = h_J f', cat:'Light and Matter', kw:'photon energy, planck, frequency, quantum', latex:'E=h_{J}f' },
+  { name:'E = h_J c/\\lambda', cat:'Light and Matter', kw:'photon energy, planck, wavelength, lambda, speed of light, quantum', latex:'E=\\frac{h_{J}c}{\\lambda}' },
+  { name:'E_{d} = E_{high} - E_{low} = h_J f', cat:'Light and Matter', kw:'energy levels, atomic transition, emission, absorption, spectral line, photon, planck, delta', latex:'E_{d}=E_{high}-E_{low}=h_{J}f' },
+  { name:'p = h_J/\\lambda', cat:'Light and Matter', kw:'photon momentum, planck, wavelength, lambda', latex:'p=\\frac{h_{J}}{\\lambda}' },
+  { name:'F = 2nh_J/(\\lambda t)', cat:'Light and Matter', kw:'photon bombardment, radiation force, perfect reflection, photon momentum, number of photons, wavelength, lambda, time', latex:'F=\\frac{2nh_{J}}{\\lambda t}' },
+  { name:'F = 2P/c', cat:'Light and Matter', kw:'radiation force, perfect reflection, power, photon momentum, light pressure', latex:'F=\\frac{2P}{c}' },
+  { name:'m_1 u_1 + h_J/\\lambda_1 = m_1 v_1 - h_J/\\lambda_2', cat:'Light and Matter', kw:'photon momentum, inelastic collision, imperfect reflection, wavelength change, momentum conservation, photon absorbed, lambda', latex:'m_{1}u_{1}+\\frac{h_{J}}{\\lambda_{1}}=m_{1}v_{1}-\\frac{h_{J}}{\\lambda_{2}}' },
+  { name:'\\lambda = h_J/p', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, momentum, planck', latex:'\\lambda=\\frac{h_{J}}{p}' },
+  { name:'\\lambda = h_J/mv', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, mass, velocity, speed, planck', latex:'\\lambda=\\frac{h_{J}}{mv}' },
+  { name:'\\lambda = h_J/\\sqrt{2mE_k}', cat:'Light and Matter', kw:'de broglie, matter wave, wavelength, lambda, kinetic energy, mass, planck', latex:'\\lambda=\\frac{h_{J}}{\\sqrt{2mE_{k}}}' },
+];
+
 /* ---------- calculator sections: the Calculator tool's evaluation rules over plain-text lines ---------- */
 function engineReady(){ return !!(window.math && window.math.evaluate); }
 function syncEngineSettings(){ var S=state.settings; angleMode=S.angle==='rad'?'rad':'deg'; exactMode=S.exact==='exact'; sigFigs=S.sigfigs==='auto'?'auto':3; solveAllMode=S.solve==='all'; }
@@ -2764,7 +2894,7 @@ function evalCalcImpl(lines){
       var v2=evalExpr(info.expr,eScope);
       return withPrefix('= ','=\\,',formatValue(v2,{srcLatex:info.raw,srcExpr:info.expr,scope:eScope}));
     }catch(err){
-      if(undef.length) return {text:'',err:'needs '+undef.join(', ')};
+      if(undef.length) return {text:'',err:'needs '+undef.join(', '),undef:undef};
       return {text:'',err:friendlyEvalError(err)};
     }
   });
@@ -2831,7 +2961,7 @@ function initCalcFields(){
         enter:function(){ calcInsert(b,i,''); },
         upOutOf:function(){ if(i===0) moveFocus(b,-1); else focusBlock(b.id,Infinity,{i:i-1}); },
         downOutOf:function(){ if(i===b.lines.length-1){ if(!moveFocus(b,1)) appendBlockAfter(b,'p'); } else focusBlock(b.id,0,{i:i+1}); },
-        deleteOutOf:function(dir){ if(dir===MQ.L){ if(!(mq.latex()||'').trim()) calcRemove(b,i); else if(i>0) focusBlock(b.id,Infinity,{i:i-1}); } },
+        deleteOutOf:function(dir){ if(dir===MQ.L){ if(!(mq.latex()||'').trim()){ if(b.lines.length>1) calcRemove(b,i); } else if(i>0) focusBlock(b.id,Infinity,{i:i-1}); } },
         moveOutOf:function(dir){ if(dir===MQ.L){ if(i>0) focusBlock(b.id,Infinity,{i:i-1}); } else if(i<b.lines.length-1) focusBlock(b.id,0,{i:i+1}); }
       }
     });
@@ -2839,22 +2969,23 @@ function initCalcFields(){
   });
 }
 function focusCalcField(el,off){ var mq=el._mq; if(!mq){ el.focus(); return; } mq.focus(); if(off===0) mq.moveToLeftEnd(); else mq.moveToRightEnd(); }
-function openBslMq(cl){
-  bslState={open:true,el:cl,mq:cl._mq,items:[],index:0,query:'',kind:'calc'};
+function openBslMq(cl,kind){
+  bslState={open:true,el:cl,mq:cl._mq,items:[],index:0,query:'',kind:kind||'calc'};
   bslQueryMq();
 }
 function bslQueryMq(){
   var q=bslState.query.toLowerCase();
-  var items=pickerItems('calc').filter(function(it){ return !q || it.name.toLowerCase().indexOf(q)>=0 || (it.hint||'').toLowerCase().indexOf(q)>=0; });
+  var items=pickerItems(bslState.kind).filter(function(it){ return !q || it.name.toLowerCase().indexOf(q)>=0 || (it.hint||'').toLowerCase().indexOf(q)>=0 || (it.kw||'').toLowerCase().indexOf(q)>=0; });
   items.sort(function(a,b){ var sa=a.name.toLowerCase().indexOf(q)===0?0:1, sb=b.name.toLowerCase().indexOf(q)===0?0:1; return sa-sb; });
-  bslState.items=items.slice(0,40); bslState.index=0;
+  bslState.items=items.slice(0,60); bslState.index=0;
   var blk=bslState.el.closest('.block'); bsl.hidden=false; placePopup(bsl,blk,bslState.el,280);
-  if(!items.length){ bsl.innerHTML='<div class="item"><span>\\'+esc(bslState.query)+'</span><span class="hint">no match</span></div>'; return; }
+  if(!items.length){ bsl.innerHTML='<div class="item"><span>'+(bslState.kind==='at'?'@':'\\')+esc(bslState.query)+'</span><span class="hint">no match</span></div>'; return; }
   paintBsl();
 }
 function applyBslMq(i){
   var st=bslState, it=st.items[i], mq=st.mq; closeBsl(); if(!it||!mq) return;
-  if(it.name==='sqrt') mq.cmd('\\sqrt');
+  if(it.k==='formula') mq.write(it.insert);
+  else if(it.name==='sqrt') mq.cmd('\\sqrt');
   else if(it.name==='nthRoot') mq.typedText('nthroot');
   else if(it.k==='fn') mq.typedText(it.name+'(');
   else if(it.k==='g') mq.cmd('\\'+it.name);
@@ -2875,7 +3006,8 @@ function bslKeyMq(e){
 editor.addEventListener('keydown',function(e){
   var cl=e.target.closest?e.target.closest('.cl-in'):null; if(!cl||!cl._mq) return;
   if(bslState.open && bslState.mq){ if(bslKeyMq(e)){ e.preventDefault(); e.stopPropagation(); } return; }
-  if(e.key==='\\'){ e.preventDefault(); e.stopPropagation(); openBslMq(cl); }
+  if(e.key==='\\'){ e.preventDefault(); e.stopPropagation(); openBslMq(cl,'calc'); }
+  else if(e.key==='@'){ e.preventDefault(); e.stopPropagation(); openBslMq(cl,'at'); }
 },true);
 
 function enterRawCalc(cl){
@@ -2897,6 +3029,11 @@ var FN_DOCS={sin:'sine',cos:'cosine',tan:'tangent',sec:'secant',csc:'cosecant',c
 var MATH_SYMBOLS=[['pi','π'],['infinity','∞'],['Delta','Δ'],['degree','°'],['times','×'],['divide','÷'],['plus minus','±'],['less or equal','≤'],['greater or equal','≥'],['not equal','≠'],['approx','≈'],['arrow','→'],['implies','⇒'],['sqrt','√'],['squared','²'],['cubed','³'],['therefore','∴'],['sum','Σ'],['integral','∫'],['dot','·'],['bullet','•'],['em dash','—'],['check','✓'],['cross','✗']];
 function pickerItems(kind){
   var items=[];
+  if(kind==='at'){
+    var pc0=physConstants(); Object.keys(pc0).forEach(function(n){ items.push({name:n,hint:String(pc0[n]),insert:n,k:'c',kw:'constant'}); });
+    FORMULA_LIST.forEach(function(f){ items.push({name:f.name,tex:f.latex,hint:f.cat,kw:(f.kw||'')+' '+f.cat.toLowerCase(),insert:f.latex,k:'formula'}); });
+    return items;
+  }
   if(kind==='calc'){
     FUNCS.forEach(function(f){ if(f==='ans'||f==='deg') return; items.push({name:f,hint:FN_DOCS[f]||'',insert:f+'(',after:')',k:'fn'}); });
     items.push({name:'ans',hint:'previous answer',insert:'ans',k:'c'});
@@ -2919,7 +3056,7 @@ function bslCheck(el,kind){
   bslState={open:true,el:el,items:items.slice(0,40),index:0,start:off-m[0].length,end:off,kind:kind};
   var blk=el.closest('.block'); bsl.hidden=false; placePopup(bsl,blk,el,280); paintBsl();
 }
-function paintBsl(){ bsl.innerHTML=bslState.items.map(function(it,i){ return '<div class="item'+(i===bslState.index?' active':'')+'" data-i="'+i+'"><span>'+esc(it.name)+'</span><span class="hint">'+esc(it.hint||'')+'</span></div>'; }).join(''); var a=bsl.querySelector('.active'); if(a&&a.scrollIntoView) a.scrollIntoView({block:'nearest'}); }
+function paintBsl(){ bsl.innerHTML=bslState.items.map(function(it,i){ var label=it.tex?(katexHTML(it.tex)||esc(it.name)):esc(it.name); return '<div class="item'+(i===bslState.index?' active':'')+(it.tex?' formula':'')+'" data-i="'+i+'"><span>'+label+'</span><span class="hint">'+esc(it.hint||'')+'</span></div>'; }).join(''); var a=bsl.querySelector('.active'); if(a&&a.scrollIntoView) a.scrollIntoView({block:'nearest'}); }
 function closeBsl(){ bslState.open=false; bslState.mq=null; bsl.hidden=true; }
 function applyBsl(i){
   var st=bslState, it=st.items[i]; closeBsl(); if(!it||!st.el||!st.el.isConnected) return;
@@ -3006,8 +3143,14 @@ function calcHTML(b){
   s+='</div><div class="calc-foot"><span class="calc-modes">'+calcModesHTML()+'</span><button type="button" data-act="del">Delete calculator</button></div></div>';
   return s;
 }
-function calcOutHTML(r){ if(r.err) return esc(r.err); var t=r.latex?katexHTML(r.latex):''; if(!t) t=esc(r.text||''); if(r.note) t+='<span class="cl-note">'+esc(r.note)+'</span>'; return t; }
+function calcOutHTML(r){ if(r.undef&&r.undef.length) return '<span class="needs">needs</span> '+r.undef.map(function(v){ return '<button type="button" class="vchip" data-var="'+esc(v)+'" title="Add a line defining '+esc(v)+'">+ '+esc(prettyName(v))+'</button>'; }).join(' '); if(r.err) return esc(r.err); var t=r.latex?katexHTML(r.latex):''; if(!t) t=esc(r.text||''); if(r.note) t+='<span class="cl-note">'+esc(r.note)+'</span>'; return t; }
 function calcModesHTML(){ var S=state.settings; return '<button type="button" data-set="angle" data-val="'+(S.angle==='rad'?'deg':'rad')+'">'+(S.angle==='rad'?'rad':'deg')+'</button><button type="button" data-set="exact" data-val="'+(S.exact==='exact'?'decimal':'exact')+'">'+(S.exact==='exact'?'exact':'decimal')+'</button><button type="button" data-set="sigfigs" data-val="'+(S.sigfigs==='auto'?'3':'auto')+'">'+(S.sigfigs==='auto'?'auto':'3 s.f.')+'</button><button type="button" data-set="solve" data-val="'+(S.solve==='all'?'first':'all')+'">'+(S.solve==='all'?'all roots':'first root')+'</button>'; }
+function mathHTML(b){
+  var s='<div class="mathblk"><div class="calc-lines">';
+  b.lines.forEach(function(line,i){ s+='<div class="cl ml"><span class="cl-in" data-i="'+i+'"></span></div>'; });
+  s+='</div><div class="calc-foot"><span>maths, not evaluated</span><button type="button" data-act="del">Delete maths block</button></div></div>';
+  return s;
+}
 function blockHTML(b,num){
   var cls='block t-'+b.type+(b.checked?' done':'')+(b.type==='toggle'&&!b.collapsed?' open':'')+(b.id===selectedId?' selected':'');
   var s='<div class="'+cls+'" data-id="'+b.id+'" style="--i:'+b.indent+'">';
@@ -3027,6 +3170,8 @@ function blockHTML(b,num){
     s+=tableHTML(b);
   } else if(b.type==='calc'){
     s+=calcHTML(b);
+  } else if(b.type==='math'){
+    s+=mathHTML(b);
   } else {
     s+='<div class="content" contenteditable="true" spellcheck="true" data-ph="'+esc(PLACEHOLDER[b.type]||'')+'">'+contentHTML(b)+'</div>';
   }
@@ -3074,7 +3219,7 @@ function focusBlock(id,off,extra){
   if(b.type==='image' || b.type==='divider'){ select(id); return; }
   if(b.type==='code'){ var t=el.querySelector('textarea'); t.focus(); var p=off==null||off===Infinity?t.value.length:off; t.setSelectionRange(p,p); return; }
   if(b.type==='table'){ var cells=el.querySelectorAll('.cell'); if(!cells.length) return; var r=extra&&extra.r!=null?extra.r:(off===Infinity?b.rows.length-1:0); var cI=extra&&extra.c!=null?extra.c:0; var cell=el.querySelector('.cell[data-r="'+r+'"][data-c="'+cI+'"]')||cells[0]; cell._pendingCaret=off; cell.focus(); if(document.activeElement===cell) enterRawCell(cell); return; }
-  if(b.type==='calc'){ var ins=el.querySelectorAll('.cl-in'); if(!ins.length) return; var li=extra&&extra.i!=null?extra.i:(off===Infinity?ins.length-1:0); li=Math.max(0,Math.min(li,ins.length-1)); focusCalcField(ins[li],off); return; }
+  if(b.type==='calc'||b.type==='math'){ var ins=el.querySelectorAll('.cl-in'); if(!ins.length) return; var li=extra&&extra.i!=null?extra.i:(off===Infinity?ins.length-1:0); li=Math.max(0,Math.min(li,ins.length-1)); focusCalcField(ins[li],off); return; }
   var c=el.querySelector('.content'); c._pendingCaret=off; c.focus();
   if(document.activeElement===c && c.dataset.mode!=='raw') enterRaw(c);
 }
@@ -3203,6 +3348,7 @@ function cellMove(cell,b,dr,dc){
 
 /* ---------- calculator block operations ---------- */
 function calcRefresh(b){
+  if(b.type!=='calc') return;
   var el=blockEl(b.id); if(!el) return;
   var res=evalCalc(b);
   el.querySelectorAll('.cl-out').forEach(function(o,i){ var r=res[i]||{text:''}; o.classList.toggle('err',!!r.err); o.classList.toggle('muted',!!r.muted); o.innerHTML=calcOutHTML(r); });
@@ -3211,12 +3357,12 @@ var calcTimer=null;
 function calcLine(b,i,text){ b.lines[i]=text; clearTimeout(calcTimer); calcTimer=setTimeout(function(){ calcRefresh(b); },120); save(); }
 function calcInsert(b,i,text){ b.lines.splice(i+1,0,text||''); render(); focusBlock(b.id,0,{i:i+1}); save(); }
 function calcRemove(b,i){
-  if(b.lines.length<=1){ var p=newBlock('p',{indent:b.indent}); doc.blocks.splice(idx(b.id),1,p); render(); focusBlock(p.id,0); save(); return; }
+  if(b.lines.length<=1){ b.lines=['']; render(); focusBlock(b.id,0,{i:0}); save(); return; }
   b.lines.splice(i,1); render(); focusBlock(b.id,Infinity,{i:Math.max(0,i-1)}); save();
 }
 
 /* ---------- slash menu ---------- */
-var SLASH_ALIASES={p:'text paragraph plain',h1:'heading title big',h2:'heading subheading',h3:'heading small',bullet:'list bullets dot',number:'list numbered ordered',todo:'checkbox task tick check',toggle:'collapse fold dropdown',quote:'blockquote',code:'monospace snippet',table:'grid cells columns rows',calc:'calculator maths math sum equation solve',image:'photo picture upload',divider:'rule line separator hr'};
+var SLASH_ALIASES={p:'text paragraph plain',h1:'heading title big',h2:'heading subheading',h3:'heading small',bullet:'list bullets dot',number:'list numbered ordered',todo:'checkbox task tick check',toggle:'collapse fold dropdown',quote:'blockquote',code:'monospace snippet',table:'grid cells columns rows',calc:'calculator calc sum solve evaluate',math:'maths math equation formula latex typeset display',image:'photo picture upload',divider:'rule line separator hr'};
 function openSlash(b,query){
   var q=query.toLowerCase();
   slashState.items=SLASH_ORDER.filter(function(t){ return !q || TYPE_INFO[t].label.toLowerCase().indexOf(q)>=0 || t.indexOf(q)>=0 || (SLASH_ALIASES[t]||'').indexOf(q)>=0; });
@@ -3236,7 +3382,7 @@ function convertTo(b,type){
   if(type==='image'){ b.text=''; pendingImageTarget=b.id; render(); document.getElementById('file').click(); return; }
   if(type==='divider'){ b.type='divider'; b.text=''; var nb=newBlock('p',{indent:b.indent}); insertAfter(b.id,nb); render(); focusBlock(nb.id,0); save(); return; }
   if(type==='table'){ b.text=''; render(); focusBlock(b.id,0); openTableGrid(b); return; }
-  if(type==='calc'){ b.type='calc'; b.lines=[textToLatex(b.text||'')]; b.tex=true; b.text=''; render(); focusBlock(b.id,Infinity,{i:0}); save(); return; }
+  if(type==='calc'||type==='math'){ b.type=type; b.lines=[textToLatex(b.text||'')]; b.tex=true; b.text=''; render(); focusBlock(b.id,Infinity,{i:0}); save(); return; }
   b.type=type; b.text=''; if(type==='toggle') b.collapsed=false; render(); focusBlock(b.id,0); save();
 }
 function applySlash(type){ var b=getBlock(slashState.blockId); closeSlash(); if(!b) return; b.text=''; var el=blockEl(b.id); var c=el&&el.querySelector('.content'); if(c&&c.dataset.mode==='raw') c.textContent=''; convertTo(b,type); }
@@ -3296,6 +3442,7 @@ function parseMarkdown(text,baseIndent){
       if(fence[1]==='calc'){ out.push(newBlock('calc',{lines:buf.map(function(l){ return textToLatex(l.replace(/\s+=\s+[^=]*$/,'').replace(/^\s+/,'')); }),tex:true,indent:baseIndent})); }
       else out.push(newBlock('code',{text:buf.join('\n'),indent:baseIndent}));
       continue; }
+    if(/^\s*\$\$.*\$\$\s*$/.test(line)){ var ml=[]; while(i<lines.length && /^\s*\$\$.*\$\$\s*$/.test(lines[i])){ ml.push(lines[i].trim().replace(/^\$\$/,'').replace(/\$\$$/,'').trim()); i++; } out.push(newBlock('math',{lines:ml,tex:true,indent:baseIndent})); continue; }
     if(/^\s*\|.*\|\s*$/.test(line)){
       var rows=[], header=false;
       while(i<lines.length && /^\s*\|.*\|\s*$/.test(lines[i])){
@@ -3343,6 +3490,7 @@ function toMarkdown(d){
       case 'quote': lines.push(ind+'> '+b.text); break;
       case 'code': lines.push(ind+'```'); b.text.split('\n').forEach(function(l){ lines.push(ind+l); }); lines.push(ind+'```'); break;
       case 'divider': lines.push('---'); break;
+      case 'math': b.lines.forEach(function(l){ lines.push(ind+'$$'+l+'$$'); }); break;
       case 'image': lines.push(ind+'!['+(b.text||'image')+'](image stored on this device)'); break;
       case 'table':
         b.rows.forEach(function(row,r){ lines.push(ind+'| '+row.map(function(c){ return c.replace(/\|/g,'\\|'); }).join(' | ')+' |'); if(r===0 && b.header) lines.push(ind+'|'+row.map(function(){ return ' --- |'; }).join('')); });
@@ -3378,7 +3526,7 @@ function confirmDialog(message,okLabel){
     setTimeout(function(){ ov.querySelector('.ok').focus(); },0);
   });
 }
-function docIsEmpty(d){ if(d.title&&d.title.trim()) return false; return d.blocks.every(function(b){ if(b.type==='image'||b.type==='table') return false; if(b.type==='calc') return b.lines.every(function(l){ return !l.trim(); }); if(b.type==='divider') return true; return !(b.text&&b.text.trim()); }); }
+function docIsEmpty(d){ if(d.title&&d.title.trim()) return false; return d.blocks.every(function(b){ if(b.type==='image'||b.type==='table') return false; if(b.type==='calc'||b.type==='math') return b.lines.every(function(l){ return !l.trim(); }); if(b.type==='divider') return true; return !(b.text&&b.text.trim()); }); }
 function confirmIfNotEmpty(empty,msg,ok){ return empty?Promise.resolve(true):confirmDialog(msg,ok); }
 
 /* ---------- tabs and groups ---------- */
@@ -3443,7 +3591,7 @@ function startTabRename(row,t,nameEl){
   row.replaceChild(inp,nameEl); inp.focus(); inp.select();
 }
 var tabFilter='';
-function tabMatches(t){ if(!tabFilter) return true; var q=tabFilter; if(tabName(t).toLowerCase().indexOf(q)>=0) return true; var d=t.doc; if((d.title||'').toLowerCase().indexOf(q)>=0) return true; return d.blocks.some(function(b){ if(b.text && b.text.toLowerCase().indexOf(q)>=0) return true; if(b.type==='table') return b.rows.some(function(r){ return r.some(function(c){ return c.toLowerCase().indexOf(q)>=0; }); }); if(b.type==='calc') return b.lines.some(function(l){ return l.toLowerCase().indexOf(q)>=0; }); return false; }); }
+function tabMatches(t){ if(!tabFilter) return true; var q=tabFilter; if(tabName(t).toLowerCase().indexOf(q)>=0) return true; var d=t.doc; if((d.title||'').toLowerCase().indexOf(q)>=0) return true; return d.blocks.some(function(b){ if(b.text && b.text.toLowerCase().indexOf(q)>=0) return true; if(b.type==='table') return b.rows.some(function(r){ return r.some(function(c){ return c.toLowerCase().indexOf(q)>=0; }); }); if(b.type==='calc'||b.type==='math') return b.lines.some(function(l){ return l.toLowerCase().indexOf(q)>=0; }); return false; }); }
 function renderTabList(){
   normalizeTabOrder();
   tabList.innerHTML=''; favList.innerHTML='';
@@ -3725,6 +3873,7 @@ editor.addEventListener('click',function(e){
   if(e.target.closest('.tog')){ b.collapsed=!b.collapsed; render(); save(); return; }
   if(e.target.closest('.img-x')){ removeBoxBlock(b); return; }
   var tb=e.target.closest('.tbl-tools button'); if(tb){ var fc=blk._lastCell||{r:0,c:0}; tableAct(b,tb.dataset.act,fc.r,fc.c); return; }
+  var vc=e.target.closest('.vchip'); if(vc && (b.type==='calc')){ var li=+vc.closest('.cl-out').dataset.i; var vn=vc.dataset.var; var lat=varLatex(vn)+'='; b.lines.splice(li,0,lat); render(); focusBlock(b.id,Infinity,{i:li}); save(); return; }
   var cb=e.target.closest('.calc-foot button'); if(cb){ if(cb.dataset.set){ setSetting(cb.dataset.set,cb.dataset.val); } else removeBoxBlock(b); return; }
   if(e.target.closest('.calc') && !e.target.closest('.cl-in')){ var ins=blk.querySelectorAll('.cl-in'); if(ins.length && !e.target.closest('.cl-out')) focusPlain(ins[ins.length-1],Infinity); }
 });
@@ -3755,7 +3904,7 @@ editor.addEventListener('beforeinput',function(e){
 editor.addEventListener('input',function(e){
   var blk=e.target.closest('.block'); if(!blk) return;
   var b=getBlock(blk.dataset.id); if(!b) return;
-  if(e.target.tagName==='TEXTAREA'){ b.text=e.target.value; autosize(e.target); save(); return; }
+  if(e.target.tagName==='TEXTAREA'){ if(!e.target.classList.contains('code')) return; b.text=e.target.value; autosize(e.target); save(); return; }
   if(e.target.closest('.caption')){ b.text=e.target.textContent.replace(/\n/g,' '); var img=blk.querySelector('img'); if(img) img.alt=b.text; save(); return; }
   var cell=e.target.closest('.cell'); if(cell){ if(cell.textContent==='' && cell.innerHTML!=='') cell.innerHTML=''; var row=b.rows[+cell.dataset.r]; if(row) row[+cell.dataset.c]=cell.textContent.replace(/\n/g,' '); save(); return; }
   if(e.target.closest('.cl-in')) return;
@@ -3765,7 +3914,7 @@ editor.addEventListener('input',function(e){
   b.text=text; save();
   if(idx(b.id)===0 || !doc.title) renderTabListSoon();
   var off=caretOffset(c);
-  for(var i=0;i<PREFIX_SHORTCUTS.length;i++){ var k=PREFIX_SHORTCUTS[i][0]; if(text.startsWith(k) && off===k.length){ var type=PREFIX_SHORTCUTS[i][1]; if(type==='calc'){ b.text=text.slice(k.length); convertTo(b,'calc'); return; } b.type=type; b.text=text.slice(k.length); if(b.type==='toggle') b.collapsed=false; render(); focusBlock(b.id,0); save(); return; } }
+  for(var i=0;i<PREFIX_SHORTCUTS.length;i++){ var k=PREFIX_SHORTCUTS[i][0]; if(text.startsWith(k) && off===k.length){ var type=PREFIX_SHORTCUTS[i][1]; if(type==='calc'||type==='math'){ b.text=text.slice(k.length); convertTo(b,type); return; } b.type=type; b.text=text.slice(k.length); if(b.type==='toggle') b.collapsed=false; render(); focusBlock(b.id,0); save(); return; } }
   if(text==='```'){ b.type='code'; b.text=''; render(); focusBlock(b.id,0); save(); return; }
   if(text==='---'){ convertTo(b,'divider'); return; }
   if(/^\|.*\|$/.test(text) && text.length>2){ var cells=splitTableRow(text); if(cells.length>=2){ b.type='table'; b.text=''; b.rows=[cells,cells.map(function(){ return ''; })]; b.header=true; render(); focusBlock(b.id,0,{r:1,c:0}); save(); return; } }
@@ -3785,7 +3934,8 @@ editor.addEventListener('keydown',function(e){
     if(e.key==='Enter'||e.key==='Tab'){ e.preventDefault(); applySlash(slashState.items[slashState.index]); return; }
     if(e.key==='Escape'){ e.preventDefault(); closeSlash(); return; }
   }
-  if(e.target.tagName==='TEXTAREA'){
+  if(e.target.tagName==='TEXTAREA' && !e.target.classList.contains('code')){ var clx=e.target.closest('.cl-in'); if(!clx) return; }
+  if(e.target.classList.contains('code')){
     var t=e.target;
     if(e.key==='Tab'&&!e.shiftKey){ e.preventDefault(); var s=t.selectionStart; t.setRangeText('  ',s,t.selectionEnd,'end'); b.text=t.value; autosize(t); save(); return; }
     if(e.key==='Backspace' && t.value===''){ e.preventDefault(); b.type='p'; render(); focusBlock(b.id,0); save(); return; }
@@ -3857,8 +4007,8 @@ editor.addEventListener('paste',function(e){
   if(files.length){ e.preventDefault(); insertImages(files,anchor); return; }
   var text=cd.getData('text/plain'); if(!text) return;
   e.preventDefault();
-  if(e.target.tagName==='TEXTAREA'){ var t=e.target; t.setRangeText(text,t.selectionStart,t.selectionEnd,'end'); t.dispatchEvent(new Event('input',{bubbles:true})); return; }
   if(e.target.closest('.cl-in')) return;
+  if(e.target.classList.contains('code')){ var t=e.target; t.setRangeText(text,t.selectionStart,t.selectionEnd,'end'); t.dispatchEvent(new Event('input',{bubbles:true})); return; }
   if(e.target.closest('.caption, .cell')){ document.execCommand('insertText',false,text.replace(/\s*\n+\s*/g,' ')); return; }
   var c=e.target.closest('.content'); if(!c||!blk) return;
   if(text.indexOf('\n')<0 && !/^\|.*\|$/.test(text.trim())){ document.execCommand('insertText',false,text); return; }
@@ -3907,7 +4057,7 @@ function blockbarAct(k){
   var b=getBlock(c.closest('.block').dataset.id); if(!b) return; var off=caretOffset(c);
   if(k==='indent'||k==='outdent'){ if(setIndent(b,k==='indent'?1:-1)){ render(); focusBlock(b.id,off); save(); } return; }
   if(k==='image'){ pendingImageTarget=b.id; document.getElementById('file').click(); return; }
-  if(k==='table'||k==='calc'){ convertTo(b,k); return; }
+  if(k==='table'||k==='calc'||k==='math'){ convertTo(b,k); return; }
   if(k==='heading'){ b.type=b.type==='h1'?'h2':b.type==='h2'?'h3':b.type==='h3'?'p':'h1'; }
   else b.type=(b.type===k?'p':k);
   if(b.type==='toggle') b.collapsed=false;
@@ -3926,7 +4076,7 @@ function boot(){
     if(!state.settings) state.settings={};
     var S=state.settings; if(!S.theme) S.theme='auto'; if(!S.angle) S.angle='deg'; if(!S.sigfigs) S.sigfigs='auto'; if(!S.exact) S.exact='decimal'; if(!S.solve) S.solve='first';
     if(!state.groups) state.groups=[]; if(!state.favourites) state.favourites=[]; if(!state.tabSeq) state.tabSeq=state.tabs.length; if(!state.groupSeq) state.groupSeq=state.groups.length;
-    state.tabs.forEach(function(t){ if(!t.doc) t.doc=blankDoc(); if(!t.doc.blocks||!t.doc.blocks.length) t.doc.blocks=[newBlock('p')]; t.doc.blocks.forEach(function(b){ if(!b.id) b.id=uid(); if(typeof b.indent!=='number') b.indent=0; if(typeof b.text!=='string') b.text=''; if(b.type==='table'&&!b.rows) b.rows=[['','']]; if(b.type==='calc'){ if(!b.lines) b.lines=['']; migrateCalc(b); } }); });
+    state.tabs.forEach(function(t){ if(!t.doc) t.doc=blankDoc(); if(!t.doc.blocks||!t.doc.blocks.length) t.doc.blocks=[newBlock('p')]; t.doc.blocks.forEach(function(b){ if(!b.id) b.id=uid(); if(typeof b.indent!=='number') b.indent=0; if(typeof b.text!=='string') b.text=''; if(b.type==='table'&&!b.rows) b.rows=[['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.type==='calc') migrateCalc(b); } }); });
     applyTheme(); paintSettings(); paintDock();
     if(!state.tabs.length){ newTab(); setStatus(''); setTimeout(function(){ titleEl.focus(); },0); }
     else { var id=tabById(state.activeTabId)?state.activeTabId:state.tabs[0].id; switchTab(id,true); setStatus('Saved on this device'); }
