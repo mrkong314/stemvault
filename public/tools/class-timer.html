@@ -112,7 +112,7 @@
     scrollbar-width: none;
   }
   .scroll::-webkit-scrollbar { display: none; }
-  .scroll > .coldcall { margin-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
+  .scroll > .notes { margin-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
   /* Timers fill at least one screen of the scroll area, so cold call only appears when scrolled to. */
   .stack { display: flex; flex-direction: column; gap: 12px; flex: none; min-height: 100%; }
   @media (max-height: 600px) { .stack { min-height: 0; } }
@@ -128,8 +128,9 @@
   @media (min-width: 900px) and (orientation: landscape) {
     body:not(.big) header.topbar .inner, body:not(.big) .app { max-width: 1180px; }
     body:not(.big) .app {
-      display: grid; grid-template-columns: minmax(360px, 5fr) minmax(0, 6fr); grid-template-rows: auto auto 1fr;
+      display: grid; grid-template-columns: minmax(360px, 5fr) minmax(0, 6fr); grid-template-rows: auto auto auto 1fr;
       column-gap: 24px; row-gap: 12px; align-items: start; overflow-y: auto;
+      padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     }
     body:not(.big) .period { grid-column: 1; grid-row: 1; }
     body:not(.big) .strip { grid-column: 1; grid-row: 2; flex-wrap: wrap; overflow: visible; }
@@ -137,10 +138,12 @@
     body:not(.big) .stack {
       grid-column: 2; grid-row: 1 / -1; align-self: stretch; min-height: 0; overflow-y: auto;
       -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none;
-      padding: 2px 2px calc(28px + env(safe-area-inset-bottom, 0px));
+      padding: 2px 2px 16px;
     }
     body:not(.big) .stack::-webkit-scrollbar { display: none; }
-    body:not(.big) .scroll > .coldcall { grid-column: 1; grid-row: 3; margin-bottom: 0; }
+    body:not(.big) .scroll > .coldcall { grid-column: 1; grid-row: 3; }
+    body:not(.big) .scroll > .notes { grid-column: 1; grid-row: 4; align-self: stretch; margin-bottom: 0; }
+    body:not(.big) .notes-text { flex: 1 1 0; min-height: 56px; max-height: none; }
     body:not(.big) .digits { font-size: clamp(5rem, 9vw, 8rem); }
     body:not(.big) .timer .digits { font-size: clamp(3.4rem, 6vw, 5.4rem); }
   }
@@ -358,6 +361,22 @@
   @media (pointer: coarse) { textarea { font-size: 16px; } }
   .cls-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 
+  /* Notes panel: a quiet writing area under cold call in the Scratchpad's style. Plain text that
+     grows with what is typed, quiet text buttons in the footer, saved only on this device. */
+  .notes { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px 8px; }
+  .notes:focus-within { border-color: var(--rule-strong); }
+  .notes-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .notes-text {
+    width: 100%; min-height: 96px; max-height: 50vh; resize: none; border: 0; background: transparent; padding: 4px 0;
+    font-family: var(--font); font-size: 1rem; line-height: 1.55; overflow-y: auto; overflow-wrap: anywhere;
+  }
+  .notes-text:focus-visible { outline: none; }
+  .notes-text::placeholder { color: var(--ink-dim); opacity: 0.7; }
+  .notes-foot { display: flex; justify-content: flex-end; gap: 18px; }
+  .tb { font: inherit; font-size: 0.8rem; font-weight: 600; line-height: 1.2; padding: 4px 2px; min-height: 32px; border: 0; background: transparent; color: var(--ink-dim); border-radius: 4px; }
+  .tb:hover { color: var(--ink); }
+  .tb.armed { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+
   body.flash { animation: flash 0.4s steps(2, end) 3; }
   @keyframes flash { 50% { background: var(--danger); } }
 
@@ -367,7 +386,7 @@
   body.big .app { max-width: none; min-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px)); display: grid; grid-template-rows: 1fr auto; gap: 12px; padding-top: env(safe-area-inset-top, 0px); }
   body.big { height: auto; min-height: 100dvh; overflow: auto; display: block; }
   body.big .scroll { overflow: visible; margin: 0; padding: 0; }
-  body.big .coldcall { display: none; }
+  body.big .coldcall, body.big .notes { display: none; }
   body.big .period { justify-content: center; text-align: center; }
   body.big .period .eyebrow { justify-content: center; }
   body.big .app > * { min-width: 0; }
@@ -485,6 +504,18 @@
           <span class="num" id="ccCount"></span>
           <button type="button" class="reset" id="ccReset">Restart cycle</button>
         </div>
+      </div>
+    </section>
+
+    <section class="glass panel notes" id="notes" aria-label="Notes">
+      <div class="notes-head">
+        <span class="label">Notes</span>
+        <span class="hint" id="notesStatus" aria-live="polite"></span>
+      </div>
+      <textarea class="notes-text" id="notesText" rows="3" spellcheck="true" autocomplete="off" placeholder="Jot something down" aria-label="Notes"></textarea>
+      <div class="notes-foot">
+        <button type="button" class="tb" id="notesCopy">Copy</button>
+        <button type="button" class="tb" id="notesClear">Clear</button>
       </div>
     </section>
   </div>
@@ -1073,6 +1104,34 @@
     }
   });
 
+  // ---- Notes: plain text kept on this device, stored apart from the timer state ----
+  const NOTES = 'class-timer-notes-v1';
+  const notesText = $('notesText'), notesStatus = $('notesStatus'), notesClear = $('notesClear');
+  let notesTimer = null, notesArm = null;
+  try { notesText.value = localStorage.getItem(NOTES) || ''; } catch (e) {}
+  function sizeNotes() { notesText.style.height = 'auto'; notesText.style.height = (notesText.scrollHeight + 2) + 'px'; }
+  function persistNotes() {
+    clearTimeout(notesTimer); notesTimer = null;
+    try { localStorage.setItem(NOTES, notesText.value); notesStatus.textContent = notesText.value ? 'Saved on this device' : ''; }
+    catch (e) { notesStatus.textContent = 'Not saved: browser storage is blocked or full'; }
+  }
+  notesText.addEventListener('input', () => { sizeNotes(); notesStatus.textContent = 'Unsaved changes'; clearTimeout(notesTimer); notesTimer = setTimeout(persistNotes, 400); });
+  window.addEventListener('pagehide', () => { if (notesTimer) persistNotes(); });
+  window.addEventListener('resize', sizeNotes);
+  $('notesCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(notesText.value); notesStatus.textContent = 'Copied'; }
+    catch (e) { notesText.focus(); notesText.select(); notesStatus.textContent = 'Select and copy'; }
+  });
+  notesClear.addEventListener('click', () => {
+    if (notesClear.classList.contains('armed')) {
+      clearTimeout(notesArm); notesClear.classList.remove('armed'); notesClear.textContent = 'Clear';
+      notesText.value = ''; sizeNotes(); persistNotes(); notesStatus.textContent = 'Cleared';
+    } else {
+      notesClear.classList.add('armed'); notesClear.textContent = 'Tap again to clear';
+      notesArm = setTimeout(() => { notesClear.classList.remove('armed'); notesClear.textContent = 'Clear'; }, 3000);
+    }
+  });
+
   // ---- Big display ----
   const bigBtn = $('bigBtn'), exitBig = $('exitBig');
   function setBig(on) {
@@ -1099,7 +1158,7 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { holdWake(); renderPeriod(); state.timers.forEach(renderTimer); renderCold(); } });
 
   // ---- Boot ----
-  applyTheme(); syncSettings(); mountTimers(); renderPeriod(); renderCold(); holdWake();
+  applyTheme(); syncSettings(); mountTimers(); renderPeriod(); renderCold(); sizeNotes(); holdWake();
   setInterval(renderPeriod, 250);
   setInterval(() => state.timers.forEach(renderTimer), 100);
 })();
