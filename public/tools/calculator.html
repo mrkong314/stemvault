@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Calculator">
 
 <!-- Offline build: KaTeX, jQuery, MathQuill, math.js inlined below (fonts embedded as woff2 data URIs). No network needed once loaded. -->
@@ -616,7 +616,9 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
 
   header {
     flex: 0 0 auto; display: flex; align-items: center; gap: 0.6rem;
-    padding: 0.7rem 1rem;
+    /* top padding grows by the status bar / Dynamic Island inset (installed
+       app, viewport-fit=cover) so the title row sits clear of it */
+    padding: calc(0.7rem + env(safe-area-inset-top, 0px) * 1.25) 1rem 0.7rem;
     position: relative; z-index: 50;   /* keep header + settings popover above the line content below */
     background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     border-bottom: 1px solid var(--glass-border);
@@ -1037,7 +1039,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   }
   #presentOverlay .pr-bar {
     position: sticky; top: 0; display: flex; align-items: center; gap: 0.5rem;
-    padding: 0.55rem 1.2rem; background: var(--header-bg);
+    padding: calc(0.55rem + env(safe-area-inset-top, 0px) * 1.25) 1.2rem 0.55rem; background: var(--header-bg);
     backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     border-bottom: 1px solid var(--glass-border);
   }
@@ -1489,7 +1491,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     /* single-row title bar: hamburger, name, star, settings gear. The mode
        controls now live in the settings popover, so no second row is needed. */
     header {
-      gap: 0.4rem; padding: 0.5rem 0.7rem;
+      gap: 0.4rem; padding: calc(0.5rem + env(safe-area-inset-top, 0px) * 1.25) 0.7rem 0.5rem;
       align-items: center;
     }
     header { flex-wrap: wrap; row-gap: 0.4rem; }
@@ -1503,7 +1505,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     /* second row holds undo / redo / settings, right-aligned */
     header #undoBtn, header #redoBtn, header .settings-wrap { order: 2; }
     header #undoBtn { margin-left: auto; }
-    #sidepanel { padding-top: 96px !important; }
+    #sidepanel { padding-top: calc(96px + env(safe-area-inset-top, 0px) * 1.25) !important; }
     /* keep the settings popover within the viewport on narrow screens */
     .settings-popover { min-width: 0; width: min(78vw, 260px); }
 
@@ -1545,7 +1547,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     background: var(--glass-strong); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     border-right: 1px solid var(--glass-border);
     transform: translateX(-100%); transition: transform 0.26s cubic-bezier(0.22,1,0.36,1);
-    z-index: 40; display: flex; flex-direction: column; padding-top: 60px;
+    z-index: 40; display: flex; flex-direction: column; padding-top: calc(60px + env(safe-area-inset-top, 0px) * 1.25);
     box-shadow: 2px 0 24px rgba(31,45,80,0.18);
   }
   #app.panel-open #sidepanel { transform: translateX(0); }
