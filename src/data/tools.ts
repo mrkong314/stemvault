@@ -15,7 +15,7 @@ export const TOOLS: Tool[] = [
   {
     slug: 'class-timer',
     title: 'Class Timer',
-    description: 'Countdown to the end of the current period with adjustable bell times, plus multiple named stopwatches and countdowns and a cold-call name picker with on-device class lists. Installs to a phone home screen.',
+    description: 'Countdown to the end of the current period with adjustable bell times, multiple named stopwatches and countdowns, an optional lesson phase timer that logs starter, explicit teaching and independent practice times, and a cold-call name picker with on-device class lists. Installs to a phone home screen.',
     href: '/tools/class-timer',
   },
   {

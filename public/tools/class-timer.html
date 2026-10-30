@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Class Timer">
-<meta name="description" content="Countdown to the end of the current period with adjustable bell times and multiple named stopwatches and countdowns, plus a cold-call name picker with class lists kept on the device.">
+<meta name="description" content="Countdown to the end of the current period with adjustable bell times, multiple named stopwatches and countdowns, a lesson phase timer that logs starter, explicit teaching and independent practice times, and a cold-call name picker with class lists kept on the device.">
 <style>
   /* Standalone reset: the artifact host supplied these, the standalone page supplies them itself. */
   [hidden] { display: none !important; }
@@ -145,8 +145,49 @@
     body:not(.big) .scroll > .notes { grid-column: 1; grid-row: 4; align-self: stretch; margin-bottom: 0; }
     body:not(.big) .notes-text { flex: 1 1 0; min-height: 56px; max-height: none; }
     body:not(.big) .digits { font-size: clamp(5rem, 9vw, 8rem); }
-    body:not(.big) .timer .digits { font-size: clamp(3.4rem, 6vw, 5.4rem); }
+    body:not(.big) .timer .digits, body:not(.big) .phase .digits { font-size: clamp(3.4rem, 6vw, 5.4rem); }
   }
+
+  /* Phase timer panel: three phase chips, the running phase in large digits, Back and Next. */
+  .phase { display: flex; flex-direction: column; gap: 8px; }
+  .ph-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .ph-head .hint { text-align: right; min-width: 0; }
+  .ph-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .ph-chip { border-radius: 11px; padding: 7px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; opacity: 0.5;
+    background: var(--glass); border: 1px solid var(--glass-border); box-shadow: inset 0 1px 0 var(--glass-edge); }
+  .ph-chip .n { font-weight: 600; font-size: 0.78rem; line-height: 1.2; }
+  .ph-chip .t { font-size: 0.95rem; color: var(--ink-dim); }
+  .ph-chip.done { opacity: 1; }
+  .ph-chip.now { opacity: 1; background: var(--accent); border-color: transparent; color: #fff; box-shadow: 0 2px 8px rgba(10,132,255,0.35); }
+  .ph-chip.now .t { color: rgba(255,255,255,0.85); }
+  :root[data-theme="dark"] .ph-chip.now { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; }
+  :root[data-theme="dark"] .ph-chip.now .t { color: var(--accent); opacity: 0.8; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .ph-chip.now { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; }
+    :root:not([data-theme="light"]) .ph-chip.now .t { color: var(--accent); opacity: 0.8; }
+  }
+  .ph-now { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+  .phase .digits { font-size: clamp(3.4rem, 20vw, 5.4rem); margin: 0 0 2px; }
+  .phase.idle .digits { color: var(--ink-dim); }
+  .ph-controls { display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; }
+  .ph-controls .gbtn { min-height: 54px; font-size: 1.05rem; }
+  .phase .meta { margin-top: 0; }
+  .ph-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  body.big .phase { text-align: center; }
+  body.big .ph-head, body.big .ph-now { justify-content: center; }
+  body.big .ph-foot { display: none; }
+  body.big .phase .digits { font-size: clamp(3.6rem, 16vw, 9rem); }
+  body.big .ph-controls { max-width: 380px; margin: 0 auto; width: 100%; }
+
+  /* Phase log sheet: one card per lesson, class editable, figures underneath. */
+  .log-rows { display: flex; flex-direction: column; }
+  .log-row { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-top: 1px solid var(--rule); }
+  .log-top { display: flex; align-items: center; gap: 8px; }
+  .log-when { font-weight: 600; font-size: 0.92rem; white-space: nowrap; }
+  .log-cls { flex: 1; min-width: 0; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--rule-strong); background: var(--surface); font-size: 0.9rem; }
+  .log-row .remove { flex: none; }
+  .log-figs { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.82rem; color: var(--ink-dim); }
+  .log-figs b { color: var(--ink); font-weight: 600; }
 
   /* Glass primitives */
   .glass {
@@ -458,6 +499,10 @@
         </div>
         <div class="sep"></div>
         <div class="row inline">
+          <span id="phaseLabel">Phase timer above timers</span>
+          <button class="switch" id="phaseToggle" type="button" role="switch" aria-checked="false" aria-labelledby="phaseLabel"></button>
+        </div>
+        <div class="row inline">
           <span id="chimeLabel">Chime at end of period</span>
           <button class="switch" id="chimeToggle" type="button" role="switch" aria-checked="false" aria-labelledby="chimeLabel"></button>
         </div>
@@ -484,6 +529,29 @@
 
   <div class="scroll" id="scroll">
     <div class="stack">
+      <section class="glass panel phase idle" id="phase" hidden aria-label="Phase timer">
+        <div class="ph-head">
+          <span class="label">Phase timer</span>
+          <span class="hint num" id="phContext"></span>
+        </div>
+        <div class="ph-chips num" id="phChips">
+          <div class="ph-chip"><span class="n">Starter</span><span class="t">00:00</span></div>
+          <div class="ph-chip"><span class="n">Explicit teaching</span><span class="t">00:00</span></div>
+          <div class="ph-chip"><span class="n">Independent practice</span><span class="t">00:00</span></div>
+        </div>
+        <div class="ph-now"><span class="label" id="phLabel">Between lessons</span></div>
+        <div class="digits num" id="phDigits">--:--</div>
+        <div class="ph-controls">
+          <button type="button" class="gbtn" id="phBack" disabled>Back</button>
+          <button type="button" class="gbtn pill" id="phNext" disabled>Start lesson</button>
+        </div>
+        <div class="meta num"><span id="phTotal"></span><span id="phSettle"></span></div>
+        <div class="ph-foot">
+          <span class="hint num" id="phLogCount"></span>
+          <button type="button" class="tb" id="phLogBtn">View log</button>
+        </div>
+      </section>
+
       <div class="timers" id="timers"></div>
 
       <div class="add-row">
@@ -553,6 +621,29 @@
         <button type="button" class="gbtn danger" id="resetBells">Reset to default</button>
       </div>
       <span class="hint">Edit a name, start or end directly. Rows re-sort by start time.</span>
+      <div class="sheet-actions">
+        <button type="button" class="gbtn ghost" id="saveBells">Save as every Monday</button>
+        <button type="button" class="gbtn ghost" id="forgetBells" hidden>Use the built-in Monday</button>
+      </div>
+      <span class="hint" id="bellsSaveHint">Today's edits clear at midnight. Save as every Monday keeps them for all Mondays on this device.</span>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="logOverlay" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="logTitle">
+    <div class="sheet-head">
+      <h3 id="logTitle">Phase log</h3>
+      <button type="button" class="gbtn ghost" id="logDone" style="min-height:36px">Done</button>
+    </div>
+    <div class="sheet-body">
+      <span class="hint">One lesson per row, newest first. Settle is bell to Start. Type a class name on any row.</span>
+      <div class="log-rows" id="logRows"></div>
+      <div class="sheet-actions">
+        <button type="button" class="gbtn ghost" id="logExport">Export CSV</button>
+        <button type="button" class="gbtn danger" id="logClear">Clear log</button>
+      </div>
+      <span class="hint">Lessons stay on this device. Export shares a CSV file on a phone and downloads it on a laptop; it also lists every Back and Next with its time.</span>
     </div>
   </div>
 </div>
@@ -630,6 +721,8 @@
   if (!Array.isArray(state.classes)) state.classes = [];
   // cold call: per-class no-repeat pools and pick history, plus today's absentees (cleared at midnight)
   if (!state.cc || typeof state.cc !== 'object') state.cc = { pools: {}, hist: {}, absent: null };
+  if (!state.phase || typeof state.phase !== 'object') state.phase = { on: false, lesson: null };
+  if (!state.bells || typeof state.bells !== 'object') state.bells = {};   // saved weekday bell times, keyed by day
   function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
   function newTimer(mode) { return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: '', mode, running: false, startAt: 0, acc: 0, target: 300000, laps: [], fired: false }; }
 
@@ -651,7 +744,8 @@
   }
 
   // ---- Today's bells: default day list, or an edited copy that lives for today only ----
-  const defaults = key => TIMETABLES[key].map(r => ({ name: r[0], start: r[1], end: r[2], note: r[3] || '' }));
+  const fileDefaults = key => TIMETABLES[key].map(r => ({ name: r[0], start: r[1], end: r[2], note: r[3] || '' }));
+  const defaults = key => (state.bells[key] || fileDefaults(key)).map(p => ({ name: p.name, start: p.start, end: p.end, note: p.note || '' }));
   function ensureToday(now) {
     if (state.today && state.today.date !== now.dateKey) { state.today = null; save(); }
     if (!state.today) state.today = { date: now.dateKey, base: 'auto', periods: null };
@@ -679,7 +773,7 @@
   function nextSchoolDay(now) {
     for (let i = 1; i <= 7; i++) {
       const key = DAY_KEYS[(now.dayIndex + i) % 7];
-      if (TIMETABLES[key]) return { daysAhead: i, key, first: toSecs(TIMETABLES[key][0][1]), firstName: TIMETABLES[key][0][0], firstHm: TIMETABLES[key][0][1] };
+      if (TIMETABLES[key]) { const d = defaults(key); if (d.length) return { daysAhead: i, key, first: toSecs(d[0].start), firstName: d[0].name, firstHm: d[0].start }; }
     }
     return null;
   }
@@ -756,6 +850,7 @@
     if (lastPeriodKey !== null && periodKey !== lastPeriodKey && lastKind === 'in' && state.chime) beep(3);
     lastPeriodKey = periodKey; lastKind = sit.kind;
     renderStrip(sit, now);
+    renderPhase(now, sit);
   }
 
   // ---- Audio ----
@@ -960,7 +1055,7 @@
     });
   }
   function bellsChanged(rerender) { lastStripKey = null; renderPeriod(); if (rerender) renderBells(); }
-  $('editBellsBtn').addEventListener('click', () => { openSettings(false); renderBells(); overlay.hidden = false; });
+  $('editBellsBtn').addEventListener('click', () => { openSettings(false); renderBells(); renderBellButtons(); overlay.hidden = false; });
   $('bellsDone').addEventListener('click', () => { overlay.hidden = true; });
   overlay.addEventListener('pointerdown', e => { if (e.target === overlay) overlay.hidden = true; }, { passive: true });
   overlay.querySelector('.shift .seg').addEventListener('click', e => {
@@ -978,6 +1073,20 @@
     const rows = bellRows.querySelectorAll('.bell-row'); if (rows.length) rows[rows.length - 1].scrollIntoView({ block: 'nearest' });
   });
   $('resetBells').addEventListener('click', () => { const t = ensureToday(melb()); t.periods = null; save(); bellsChanged(true); });
+  const saveBells = $('saveBells'), forgetBells = $('forgetBells');
+  function bellsKey() { const now = melb(), t = ensureToday(now); return t.base === 'auto' ? now.dayKey : t.base; }
+  function renderBellButtons() {
+    const key = bellsKey(), day = DAY_NAMES[key] || key;
+    saveBells.textContent = 'Save as every ' + day; forgetBells.textContent = 'Use the built-in ' + day;
+    saveBells.hidden = !TIMETABLES[key]; forgetBells.hidden = !state.bells[key];
+    $('bellsSaveHint').textContent = "Today's edits clear at midnight. Save as every " + day + ' keeps them for all ' + day + 's on this device.';
+  }
+  saveBells.addEventListener('click', () => {
+    const now = melb(), t = ensureToday(now), key = bellsKey();
+    state.bells[key] = editablePeriods(now).map(p => ({ name: p.name, start: p.start, end: p.end, note: p.note || '' }));
+    t.periods = null; save(); bellsChanged(true); renderBellButtons();
+  });
+  forgetBells.addEventListener('click', () => { const t = ensureToday(melb()); delete state.bells[bellsKey()]; t.periods = null; save(); bellsChanged(true); renderBellButtons(); });
 
   // ---- Cold call ----
   const cc = { panel: $('coldcall'), classSel: $('ccClass'), setup: $('ccSetup'), main: $('ccMain'), name: $('ccName'), pick: $('ccPick'), absent: $('ccAbsent'), undo: $('ccUndo'), count: $('ccCount'), reset: $('ccReset') };
@@ -1114,6 +1223,149 @@
     }
   });
 
+  // ---- Phase timer: starter, explicit teaching, independent practice. One lesson per teaching period, logged on this device. ----
+  const PHASES = ['Starter', 'Explicit teaching', 'Independent practice'], SHORT = ['Starter', 'Teaching', 'Practice'];
+  const LOG = 'class-timer-phases-v1';
+  const ph = { panel: $('phase'), ctx: $('phContext'), chips: Array.from($('phChips').children), label: $('phLabel'), digits: $('phDigits'),
+    back: $('phBack'), next: $('phNext'), total: $('phTotal'), settle: $('phSettle'), count: $('phLogCount') };
+  let log = [];
+  try { log = JSON.parse(localStorage.getItem(LOG) || '[]'); } catch (e) {}
+  if (!Array.isArray(log)) log = [];
+  function saveLog() { try { localStorage.setItem(LOG, JSON.stringify(log)); } catch (e) {} }
+  const hmFmt = new Intl.DateTimeFormat('en-AU', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const hmsFmt = new Intl.DateTimeFormat('en-AU', { timeZone: TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  function lessonFor(now, sit) {
+    if (sit.kind !== 'in' || sit.period.isBreak) return null;
+    const nowMs = Date.now(), p = sit.period;
+    return { key: now.dateKey + '|' + p.name, date: now.dateKey, day: now.dayKey, period: p.name, startHm: p.startHm,
+      periodStartMs: nowMs - (now.secs - p.start) * 1000, periodEndMs: nowMs + (p.end - now.secs) * 1000,
+      started: 0, cur: 0, phaseAt: 0, acc: [0, 0, 0], trans: [], ended: 0 };
+  }
+  const phaseMs = (L, i, at) => L.acc[i] + (L.started && !L.ended && i === L.cur ? at - L.phaseAt : 0);
+  function finishLesson(L, at) {
+    if (!L.started || L.ended) return;
+    at = Math.max(L.phaseAt, Math.min(at, L.periodEndMs));   // a lesson left running ends at the bell
+    L.acc[L.cur] += at - L.phaseAt; L.phaseAt = at; L.ended = at;
+    log.push({ id: at.toString(36) + Math.random().toString(36).slice(2, 6), date: L.date, day: L.day, period: L.period, cls: '',
+      periodStart: L.startHm, start: hmFmt.format(new Date(L.started)), settle: L.started - L.periodStartMs,
+      acc: L.acc.slice(), total: at - L.started, ended: hmFmt.format(new Date(at)), trans: L.trans.slice() });
+    if (log.length > 500) log.splice(0, log.length - 500);
+    saveLog();
+  }
+  function renderPhase(now, sit) {
+    const nowMs = Date.now(), next = lessonFor(now, sit);
+    let L = state.phase.lesson;
+    if (L && (!next || next.key !== L.key)) { finishLesson(L, nowMs); L = state.phase.lesson = null; save(); }   // new period: log and reset
+    ph.panel.hidden = !state.phase.on;
+    if (!state.phase.on) { if (L) { finishLesson(L, nowMs); state.phase.lesson = null; save(); } return; }
+    if (!L && next) { L = state.phase.lesson = next; save(); }
+    else if (L && next) { L.periodStartMs = next.periodStartMs; L.periodEndMs = next.periodEndMs; }   // follow adjusted bells
+    const running = L && L.started && !L.ended;
+    ph.panel.classList.toggle('idle', !running);
+    ph.chips.forEach((c, i) => {
+      c.classList.toggle('now', !!running && i === L.cur);
+      c.classList.toggle('done', !!L && !!L.started && (L.acc[i] > 0 || i < L.cur));
+      c.lastElementChild.innerHTML = hms(L ? phaseMs(L, i, nowMs) / 1000 : 0);
+    });
+    if (!L) {
+      ph.ctx.textContent = sit.kind === 'in' ? sit.period.name : sit.kind === 'gap' ? 'Next ' + sit.next.name + ' at ' + sit.next.startHm : 'No more lessons today';
+      ph.label.textContent = 'Between lessons'; ph.digits.innerHTML = '--:--';
+      ph.back.disabled = true; ph.next.disabled = true; ph.next.textContent = 'Start lesson';
+      ph.total.textContent = ''; ph.settle.textContent = '';
+    } else if (!L.started) {
+      ph.ctx.textContent = L.period;
+      ph.label.textContent = 'Since the bell'; ph.digits.innerHTML = hms((nowMs - L.periodStartMs) / 1000);
+      ph.back.disabled = true; ph.next.disabled = false; ph.next.textContent = 'Start lesson';
+      ph.total.textContent = 'Tap Start when the starter begins'; ph.settle.textContent = '';
+    } else if (L.ended) {
+      ph.ctx.textContent = L.period;
+      ph.label.textContent = 'Lesson logged'; ph.digits.innerHTML = hms((L.ended - L.started) / 1000);
+      ph.back.disabled = true; ph.next.disabled = true; ph.next.textContent = 'Logged';
+      ph.total.innerHTML = 'Resets when <b>' + (sit.next ? sit.next.name : 'the next period') + '</b> starts'; ph.settle.textContent = '';
+    } else {
+      ph.ctx.textContent = L.period;
+      ph.label.textContent = PHASES[L.cur]; ph.digits.innerHTML = hms(phaseMs(L, L.cur, nowMs) / 1000);
+      ph.back.disabled = L.cur === 0; ph.next.disabled = false;
+      ph.next.textContent = L.cur < 2 ? 'Next: ' + SHORT[L.cur + 1] : 'End lesson';
+      ph.total.innerHTML = 'Lesson <b>' + hms((nowMs - L.started) / 1000) + '</b>';
+      ph.settle.innerHTML = 'Settled in <b>' + hms((L.started - L.periodStartMs) / 1000) + '</b>';
+    }
+    ph.count.textContent = log.length + (log.length === 1 ? ' lesson logged' : ' lessons logged');
+  }
+  ph.next.addEventListener('click', () => {
+    const L = state.phase.lesson; if (!L || L.ended) return;
+    const at = Date.now();
+    if (!L.started) { L.started = at; L.cur = 0; L.phaseAt = at; L.trans.push({ i: 0, at }); }
+    else if (L.cur < 2) { L.acc[L.cur] += at - L.phaseAt; L.cur++; L.phaseAt = at; L.trans.push({ i: L.cur, at }); }
+    else finishLesson(L, at);
+    save(); renderPeriod(); holdWake();
+  });
+  ph.back.addEventListener('click', () => {
+    const L = state.phase.lesson; if (!L || !L.started || L.ended || !L.cur) return;
+    const at = Date.now();
+    L.acc[L.cur] += at - L.phaseAt; L.cur--; L.phaseAt = at; L.trans.push({ i: L.cur, at });
+    save(); renderPeriod();
+  });
+  const phaseToggle = $('phaseToggle');
+  function syncPhase() { phaseToggle.setAttribute('aria-checked', String(!!state.phase.on)); }
+  phaseToggle.addEventListener('click', () => { state.phase.on = !state.phase.on; save(); syncPhase(); renderPeriod(); });
+
+  // ---- Phase log sheet ----
+  const logOverlay = $('logOverlay'), logRows = $('logRows'), logClear = $('logClear');
+  const mmss = ms => { const t = Math.max(0, Math.round(ms / 1000)); return Math.floor(t / 60) + ':' + pad(t % 60); };
+  function renderLog() {
+    logRows.innerHTML = '';
+    if (!log.length) { const e = document.createElement('span'); e.className = 'hint'; e.textContent = 'No lessons logged yet. Lessons are logged when they end or at the bell.'; logRows.appendChild(e); return; }
+    log.slice().reverse().forEach(r => {
+      const row = document.createElement('div'); row.className = 'log-row'; row.dataset.id = r.id;
+      const top = document.createElement('div'); top.className = 'log-top';
+      const when = document.createElement('span'); when.className = 'log-when num';
+      when.textContent = (DAY_NAMES[r.day] || '').slice(0, 3) + ' ' + r.date.slice(8) + '/' + r.date.slice(5, 7) + ' · ' + r.period;
+      const cls = document.createElement('input'); cls.type = 'text'; cls.className = 'log-cls'; cls.maxLength = 30; cls.autocomplete = 'off';
+      cls.placeholder = 'Class'; cls.value = r.cls || ''; cls.id = 'log-cls-' + r.id; cls.setAttribute('aria-label', 'Class for this lesson');
+      cls.addEventListener('input', () => { r.cls = cls.value.trim(); saveLog(); });
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'remove'; del.textContent = 'Delete'; let arm = null;
+      del.addEventListener('click', () => {
+        if (del.classList.contains('armed')) { clearTimeout(arm); log = log.filter(x => x.id !== r.id); saveLog(); renderLog(); renderPeriod(); }
+        else { del.classList.add('armed'); del.textContent = 'Tap again'; arm = setTimeout(() => { del.classList.remove('armed'); del.textContent = 'Delete'; }, 3000); }
+      });
+      top.append(when, cls, del);
+      const figs = document.createElement('div'); figs.className = 'log-figs num';
+      [['Settle', r.settle], ['Starter', r.acc[0]], ['Teaching', r.acc[1]], ['Practice', r.acc[2]], ['Total', r.total]].forEach(([k, v]) => {
+        const sp = document.createElement('span'); const b = document.createElement('b'); b.textContent = mmss(v); sp.append(k + ' ', b); figs.appendChild(sp);
+      });
+      row.append(top, figs); logRows.appendChild(row);
+    });
+  }
+  function csv() {
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"', sec = ms => Math.round(ms / 1000);
+    const head = 'date,weekday,period,class,period_start,lesson_start,settle_s,starter_s,teaching_s,practice_s,total_s,ended,moves,move_log';
+    return [head].concat(log.map(r => [r.date, r.day, r.period, q(r.cls), r.periodStart, r.start, sec(r.settle), sec(r.acc[0]), sec(r.acc[1]), sec(r.acc[2]), sec(r.total), r.ended,
+      r.trans.length, q(r.trans.map(t => SHORT[t.i] + '@' + hmsFmt.format(new Date(t.at))).join(';'))].join(','))).join('\r\n');
+  }
+  async function exportCsv() {
+    const text = csv(), name = 'class-timer-phases-' + melb().dateKey + '.csv';
+    if (matchMedia('(pointer: coarse)').matches && navigator.canShare) {   // phone or tablet: the share sheet
+      try {
+        const file = new File([text], name, { type: 'text/csv' });
+        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Phase log' }); return; }
+      } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a'), url = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  function openLog(on) { logOverlay.hidden = !on; if (on) { openSettings(false); renderLog(); } }
+  $('phLogBtn').addEventListener('click', () => openLog(true));
+  $('logDone').addEventListener('click', () => openLog(false));
+  logOverlay.addEventListener('pointerdown', e => { if (e.target === logOverlay) openLog(false); }, { passive: true });
+  $('logExport').addEventListener('click', exportCsv);
+  let logArm = null;
+  logClear.addEventListener('click', () => {
+    if (logClear.classList.contains('armed')) { clearTimeout(logArm); logClear.classList.remove('armed'); logClear.textContent = 'Clear log'; log = []; saveLog(); renderLog(); renderPeriod(); }
+    else { logClear.classList.add('armed'); logClear.textContent = 'Tap again to clear'; logArm = setTimeout(() => { logClear.classList.remove('armed'); logClear.textContent = 'Clear log'; }, 3000); }
+  });
+
   // ---- Notes: plain text kept on this device, stored apart from the timer state ----
   const NOTES = 'class-timer-notes-v1';
   const notesText = $('notesText'), notesStatus = $('notesStatus'), notesClear = $('notesClear');
@@ -1168,7 +1420,7 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { holdWake(); renderPeriod(); state.timers.forEach(renderTimer); renderCold(); } });
 
   // ---- Boot ----
-  applyTheme(); syncSettings(); mountTimers(); renderPeriod(); renderCold(); sizeNotes(); holdWake();
+  applyTheme(); syncSettings(); syncPhase(); mountTimers(); renderPeriod(); renderCold(); sizeNotes(); holdWake();
   setInterval(renderPeriod, 250);
   setInterval(() => state.timers.forEach(renderTimer), 100);
 })();
