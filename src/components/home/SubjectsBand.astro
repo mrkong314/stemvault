@@ -11,6 +11,13 @@ const tiles = SUBJECTS.map(s => ({
 }));
 ---
 <section class="band" aria-label="Browse by subject">
+  <div class="container band-head">
+    <div>
+      <span class="eyebrow">Resources</span>
+      <h2 class="band-title">Browse by subject</h2>
+    </div>
+    <a href="/resources" class="band-all">All resources →</a>
+  </div>
   <div class="container band-inner">
     {tiles.map(s => (
       <a class="band-tile card" href={`/resources/${s.slug}`} style={`--accent: ${s.accent}`}>
@@ -23,6 +30,10 @@ const tiles = SUBJECTS.map(s => ({
 </section>
 
 <style>
+  .band { padding-top: 3.25rem; }
+  .band-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 0.8rem; }
+  .band-title { font-size: 1.35rem; margin: 0.2rem 0 0; }
+  .band-all { font-size: 0.8rem; font-weight: 600; }
   .band-inner { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
   .band-tile {
     position: relative; display: flex; flex-direction: column; gap: 0.25rem;

@@ -10,7 +10,10 @@ const ICONS: Record<string, string> = {
 <section class="quick" aria-label="Frequently used tools">
   <div class="container">
     <div class="quick-head">
-      <span class="label-mono">Frequently used</span>
+      <div>
+        <span class="eyebrow">Workshop</span>
+        <h2 class="quick-title">Tools</h2>
+      </div>
       <a href="/tools" class="quick-all">All tools →</a>
     </div>
     <div class="quick-grid">
@@ -31,8 +34,9 @@ const ICONS: Record<string, string> = {
 </section>
 
 <style>
-  .quick { padding: 0 0 1.5rem; }
-  .quick-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.6rem; }
+  .quick { padding: 0.5rem 0 0; }
+  .quick-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 0.8rem; }
+  .quick-title { font-size: 1.35rem; margin: 0.2rem 0 0; }
   .quick-all { font-size: 0.8rem; font-weight: 600; }
   .quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
   .quick-tile { display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem 1rem; color: var(--ink); }
