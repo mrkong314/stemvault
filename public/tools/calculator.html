@@ -1516,7 +1516,10 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
       display: block;                 /* no longer the math grid; holds the paged pad */
       grid-template-columns: none;
       flex: 0 0 auto;                 /* take exactly the height the pad needs */
-      padding: 8px;
+      /* bottom padding clears the home indicator on phones (installed app or
+         viewport-fit=cover) with a little extra so the caret row sits clear of
+         the screen edge and is easy to reach */
+      padding: 8px 8px calc(12px + env(safe-area-inset-bottom, 0px));
     }
     #keypad > .landscape-key { display: none; }   /* hide the landscape math grid */
     #portraitPad { display: block; }
