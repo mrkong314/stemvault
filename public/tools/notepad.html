@@ -601,7 +601,7 @@ body::before{opacity:.28}
 .topbar{top:env(safe-area-inset-top,0px);padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
 .topbar .inner{max-width:none;flex-wrap:wrap;gap:8px 10px}
 .topbar .title{font-size:1.1rem}
-.topbar .sub{display:none}
+.topbar .title{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #status{display:none}
 .settings-wrap{position:relative}
 .page{position:relative;max-width:960px;margin:0 auto;padding:12px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px}
@@ -617,7 +617,11 @@ body::before{opacity:.28}
 .block{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);align-items:start;padding-left:calc(var(--i,0)*24px);border-radius:8px;transition:background .12s}
 .block.selected,.block:focus-within{background:var(--accent-tint);box-shadow:-8px 0 0 var(--accent-tint),8px 0 0 var(--accent-tint)}
 .block.t-calc:focus-within:not(.selected),.block.t-math:focus-within:not(.selected){background:transparent;box-shadow:none}
-#editor.all-selected .block{background:var(--accent-tint);box-shadow:-8px 0 0 var(--accent-tint),8px 0 0 var(--accent-tint)}
+#editor.all-selected .block,.block.msel{background:var(--accent-tint);box-shadow:-8px 0 0 var(--accent-tint),8px 0 0 var(--accent-tint)}
+.block.msel .calc,.block.msel .mathblk{box-shadow:0 0 0 2px var(--accent)}
+#marquee{position:fixed;z-index:50;border:1px solid var(--accent);background:var(--accent-tint);border-radius:4px;pointer-events:none}
+body.marquee-on{user-select:none;-webkit-user-select:none;cursor:crosshair}
+.block.t-table .drag,.block.t-calc .drag,.block.t-math .drag,.block.t-image .drag{top:50%;transform:translateY(-50%);font-size:1.25rem;width:22px;left:calc(var(--i,0)*24px - 24px)}
 .block .drag{position:absolute;left:calc(var(--i,0)*24px - 20px);top:.45em;width:18px;color:var(--ink-dim);font-size:.9rem;line-height:1;letter-spacing:-.25em;cursor:grab;opacity:0;user-select:none;touch-action:none;transition:opacity .12s}
 .block:hover .drag,.block:focus-within .drag,.block.selected .drag{opacity:.7}
 .block .drag:hover{opacity:1;color:var(--ink)}
@@ -829,7 +833,6 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
   #app:not(.dock-off) #sidepanel{transform:none;transition:none}
   #app:not(.dock-off) #panelScrim{display:none}
   #app:not(.dock-off) .topbar{padding-left:calc(290px + 16px)}
-  .topbar .sub{display:block}
 }
 /* touch: block toolbar and keypad under the top bar, larger targets */
 @media (pointer:coarse){
@@ -873,7 +876,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
   <header class="topbar">
     <div class="inner">
       <button id="panelToggle" class="gbtn icon" type="button" aria-label="Notes" aria-expanded="false" title="Notes"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-      <div><div class="title">Notepad</div><div class="sub">Notes, tables and typeset working, kept on this device</div></div>
+      <div class="title" id="barTitle">Notepad</div>
       <span id="status" aria-live="polite" hidden></span>
       <div class="spacer"></div>
       <div class="settings-wrap">
@@ -928,6 +931,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
     <div id="bsl" class="picker" role="listbox" hidden></div>
     <div id="tgrid" hidden></div>
     <div id="pfx" role="listbox" hidden></div>
+    <div id="marquee" hidden></div>
     <div class="help glass" id="help" hidden>
       <h3>About</h3>
       <p style="margin-top:0;color:var(--fg)">Notes for quick ideas. Open the menu at the top left to switch notes, make new ones, and file them into groups. Click below the title and start typing. Type <code>/</code> at the start of a line for the block menu. A line shows its Markdown while you edit it and renders when you click away. Everything is saved as you type, only in this browser on this device, and nothing is sent anywhere.</p>
@@ -997,7 +1001,8 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
       <h3>Keys</h3>
       <table>
         <tr><td>Ctrl/Cmd+A</td><td>Once selects the whole block; again selects the whole note. Backspace then deletes the selection (Ctrl/Cmd+Z brings it back).</td></tr>
-        <tr><td>Drag</td><td>A ⋮⋮ handle appears to the left of a block on hover or focus; drag it to move the block, with anything indented beneath it.</td></tr>
+        <tr><td>Drag</td><td>A ⋮⋮ handle appears to the left of a block on hover or focus; drag it to move the block, with anything indented beneath it. The handle is larger and centred on tables, calculators, maths blocks and images.</td></tr>
+        <tr><td>Select several</td><td>Shift+Up/Down from a line, Shift+click on a block, or drag across the page to select a run of blocks. Then drag a handle to move them all, Alt+Up/Down to shift them, Tab to indent, or Backspace to delete.</td></tr>
         <tr><td>Ctrl/Cmd+Z, Shift+Z</td><td>Undo and redo changes to this note, including deleted blocks</td></tr>
         <tr><td>Enter</td><td>New block. Enter on an empty list item ends the list.</td></tr>
         <tr><td>Tab / Shift+Tab</td><td>Indent or outdent a block and what sits beneath it</td></tr>
@@ -1110,6 +1115,7 @@ function persist(){
 }
 function save(){ setStatus('Unsaved changes'); clearTimeout(saveTimer); saveTimer=setTimeout(persist,400); clearTimeout(hist.timer); hist.timer=setTimeout(pushHistory,500); }
 var hist={stack:[],index:-1,max:80,timer:null};
+function checkpoint(){ if(typeof pushHistory==='function'){ clearTimeout(hist.timer); pushHistory(); } }
 
 /* ---------- inline markdown → html, with a rendered→raw caret map ---------- */
 var DELIMS=[{m:'**',t:'strong'},{m:'~~',t:'s'},{m:'==',t:'mark'},{m:'*',t:'em'},{m:'_',t:'em'}];
@@ -3480,6 +3486,7 @@ function splitBlock(el,b){
   insertAfter(b.id,nb); render(); focusBlock(nb.id,0); save();
 }
 function backspaceAtStart(el,b){
+  checkpoint();
   if(b.type!=='p'){ b.type='p'; render(); focusBlock(b.id,0); save(); return; }
   if(b.indent>0){ setIndent(b,-1); render(); focusBlock(b.id,0); save(); return; }
   var prev=neighbour(b.id,-1); if(!prev) return;
@@ -3490,6 +3497,7 @@ function backspaceAtStart(el,b){
 }
 function deleteAtEnd(el,b){
   var next=neighbour(b.id,1); if(!next || !isText(next)) return;
+  checkpoint();
   var at=b.text.length; b.text+=next.text; removeBlock(next.id); render(); focusBlock(b.id,at); save();
 }
 function setIndent(b,delta){
@@ -3515,6 +3523,7 @@ function wrapSelection(mark){
   document.execCommand('insertText',false,mark+t+mark);
 }
 function removeBoxBlock(b){
+  checkpoint();
   var prev=neighbour(b.id,-1), next=neighbour(b.id,1);
   removeBlock(b.id); selectedId=null;
   if(!doc.blocks.length) doc.blocks.push(newBlock('p'));
@@ -3526,6 +3535,7 @@ function removeBoxBlock(b){
 
 /* ---------- table operations ---------- */
 function tableAct(b,act,r,c){
+  checkpoint();
   var cols=b.rows[0]?b.rows[0].length:1;
   if(act==='row'){ var nr=[]; for(var i=0;i<cols;i++) nr.push(''); b.rows.splice(r+1,0,nr); render(); focusBlock(b.id,0,{r:r+1,c:0}); }
   else if(act==='col'){ b.rows.forEach(function(row){ row.splice(c+1,0,''); }); render(); focusBlock(b.id,0,{r:r,c:c+1}); }
@@ -3556,6 +3566,7 @@ function calcLine(b,i,text){ b.lines[i]=text; clearTimeout(calcTimer); calcTimer
 function addVariables(b,i,names){ if(!names||!names.length) return -1; names.forEach(function(v,k){ b.lines.splice(i+1+k,0,varLatex(v)+'=1'); }); render(); focusBlock(b.id,Infinity,{i:i+1}); save(); return i+1; }
 function calcInsert(b,i,text){ b.lines.splice(i+1,0,text||''); render(); focusBlock(b.id,0,{i:i+1}); save(); }
 function calcRemove(b,i){
+  checkpoint();
   if(b.lines.length<=1){ var p=newBlock('p',{indent:b.indent}); doc.blocks.splice(idx(b.id),1,p); render(); focusBlock(p.id,0); save(); return; }
   b.lines.splice(i,1); render(); focusBlock(b.id,Infinity,{i:Math.max(0,i-1)}); save();
 }
@@ -3578,6 +3589,7 @@ function paintSlash(){
 }
 function closeSlash(){ slashState.open=false; slash.hidden=true; }
 function convertTo(b,type){
+  checkpoint();
   if(type==='image'){ b.text=''; pendingImageTarget=b.id; render(); document.getElementById('file').click(); return; }
   if(type==='divider'){ b.type='divider'; b.text=''; var nb=newBlock('p',{indent:b.indent}); insertAfter(b.id,nb); render(); focusBlock(nb.id,0); save(); return; }
   if(type==='table'){ b.text=''; render(); focusBlock(b.id,0); openTableGrid(b); return; }
@@ -3758,7 +3770,7 @@ function newTab(d,opts){
 function switchTab(id,keepPanel){
   var t=tabById(id); if(!t) return;
   if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  state.activeTabId=id; doc=t.doc; selectedId=null; closeSlash(); resetHistory();
+  state.activeTabId=id; doc=t.doc; selectedId=null; closeSlash(); resetHistory(); rangeSel=null; rangeAnchor=rangeFocus=-1;
   if(!doc.blocks||!doc.blocks.length) doc.blocks=[newBlock('p')];
   paintTitle(); render(); renderTabList(); save();
   if(!keepPanel) closePanel();
@@ -3810,6 +3822,7 @@ function renderTabList(){
       row.addEventListener('click',function(){ switchTab(id); }); favList.appendChild(row); });
   }
   document.getElementById('noteCount').textContent=state.tabs.length+(state.tabs.length===1?' note':' notes');
+  var bt=document.getElementById('barTitle'), at=activeTab(); if(bt&&at) bt.textContent=tabName(at);
 }
 function buildTabRow(t,g){
   var row=document.createElement('div'); row.className='tab'+(t.id===state.activeTabId?' active':'')+(g?' grouped':''); row.dataset.tabId=t.id; if(g) row.style.setProperty('--group-color',g.color);
@@ -4043,7 +4056,7 @@ document.addEventListener('keydown',function(e){
     return;
   }
   if(!allSelected) return;
-  if(e.key==='Backspace'||e.key==='Delete'){ e.preventDefault(); clearAllSelected(); doc.blocks=[newBlock('p')]; selectedId=null; render(); renderTabList(); save(); focusBlock(doc.blocks[0].id,0); toast('Note cleared (Ctrl/Cmd+Z to undo)'); return; }
+  if(e.key==='Backspace'||e.key==='Delete'){ e.preventDefault(); clearAllSelected(); checkpoint(); doc.blocks=[newBlock('p')]; selectedId=null; render(); renderTabList(); save(); focusBlock(doc.blocks[0].id,0); toast('Note cleared (Ctrl/Cmd+Z to undo)'); return; }
   if(e.key==='Escape'){ e.preventDefault(); clearAllSelected(); return; }
   if(!e.metaKey && !e.ctrlKey && e.key.length===1) clearAllSelected();
 },true);
@@ -4055,31 +4068,91 @@ editor.addEventListener('pointerdown',function(e){
   var blk=h.closest('.block'); var id=blk.dataset.id; var b=getBlock(id); if(!b) return;
   e.preventDefault(); if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
   var pid=e.pointerId, target=null, where='after', ghost=null, moved=false;
+  var bi=idx(id); var rangeDrag=!!(rangeSel && bi>=rangeSel.a && bi<=rangeSel.b);
   try{ h.setPointerCapture(pid); }catch(x){}
   var clear=function(){ editor.querySelectorAll('.drop-before,.drop-after').forEach(function(x){ x.classList.remove('drop-before','drop-after'); }); };
   var move=function(ev){
-    if(!moved){ moved=true; blk.classList.add('dragging'); ghost=document.createElement('div'); ghost.className='drag-ghost'; ghost.textContent=b.text||TYPE_INFO[b.type].label; document.body.appendChild(ghost); }
+    if(!moved){ moved=true; blk.classList.add('dragging'); ghost=document.createElement('div'); ghost.className='drag-ghost'; ghost.textContent=rangeDrag?((rangeSel.b-rangeSel.a+1)+' blocks'):(b.text||TYPE_INFO[b.type].label); document.body.appendChild(ghost); if(rangeDrag) editor.querySelectorAll('.block.msel').forEach(function(x){ x.classList.add('dragging'); }); }
     ghost.style.left=(ev.clientX+14)+'px'; ghost.style.top=(ev.clientY-10)+'px';
     clear(); target=null;
     var els=document.elementsFromPoint(ev.clientX,ev.clientY);
-    for(var i=0;i<els.length;i++){ var c=els[i].closest?els[i].closest('.block'):null; if(c && c!==blk){ target=c; break; } }
+    for(var i=0;i<els.length;i++){ var c=els[i].closest?els[i].closest('.block'):null; if(c && c!==blk && !(rangeDrag && c.classList.contains('msel'))){ target=c; break; } }
     if(!target) return;
     var r=target.getBoundingClientRect(); where=ev.clientY<r.top+r.height/2?'before':'after';
     target.classList.add(where==='before'?'drop-before':'drop-after');
   };
   var up=function(){
     document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up);
-    clear(); if(ghost) ghost.remove(); blk.classList.remove('dragging');
+    clear(); if(ghost) ghost.remove(); editor.querySelectorAll('.block.dragging').forEach(function(x){ x.classList.remove('dragging'); });
     if(!moved||!target) return;
-    var i=idx(id), end=subtreeEnd(i); var chunk=doc.blocks.splice(i,end-i);
+    checkpoint();
+    var i=rangeDrag?rangeSel.a:idx(id), end=rangeDrag?subtreeEnd(rangeSel.b):subtreeEnd(i); var chunk=doc.blocks.splice(i,end-i); var n=chunk.length;
     var ti=idx(target.dataset.id); if(ti<0){ Array.prototype.splice.apply(doc.blocks,[i,0].concat(chunk)); return; }
     var tb=doc.blocks[ti]; var at=where==='before'?ti:subtreeEnd(ti);
     var delta=tb.indent-chunk[0].indent; chunk.forEach(function(c){ c.indent=Math.max(0,c.indent+delta); });
     Array.prototype.splice.apply(doc.blocks,[at,0].concat(chunk));
-    render(); select(id); save();
+    render(); if(rangeDrag){ rangeAnchor=at; rangeFocus=at+n-1; setRange(at,at+n-1); } else select(id); save();
   };
   document.addEventListener('pointermove',move); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
 });
+
+/* ---------- multi-block selection: Shift+arrows, Shift+click, or drag across the page ---------- */
+var rangeSel=null, rangeAnchor=-1, rangeFocus=-1;
+function visIndices(){ var out=[]; visibleList().forEach(function(v,i){ if(!v.hidden) out.push(i); }); return out; }
+function paintRange(){ editor.querySelectorAll('.block.msel').forEach(function(x){ x.classList.remove('msel'); }); if(!rangeSel) return; for(var i=rangeSel.a;i<=rangeSel.b;i++){ var el=blockEl(doc.blocks[i].id); if(el) el.classList.add('msel'); } }
+function setRange(a,b){ rangeSel={a:Math.min(a,b),b:Math.max(a,b)}; select(null); closeSlash(); closeBsl(); closePfx(); if(document.activeElement&&document.activeElement.blur&&editor.contains(document.activeElement)) document.activeElement.blur(); paintRange(); }
+function clearRange(){ if(!rangeSel) return; rangeSel=null; rangeAnchor=rangeFocus=-1; paintRange(); }
+function stepVisible(i,dir){ var vis=visIndices(); var k=vis.indexOf(i); if(k<0){ return dir<0?vis[0]:vis[vis.length-1]; } return vis[Math.max(0,Math.min(vis.length-1,k+dir))]; }
+function extendRange(fromIdx,dir){ if(!rangeSel){ rangeAnchor=fromIdx; rangeFocus=stepVisible(fromIdx,dir); } else rangeFocus=stepVisible(rangeFocus,dir); setRange(rangeAnchor,rangeFocus); var el=blockEl(doc.blocks[rangeFocus].id); if(el&&el.scrollIntoView) el.scrollIntoView({block:'nearest'}); }
+function deleteRange(){ if(!rangeSel) return; checkpoint(); var a=rangeSel.a, e=subtreeEnd(rangeSel.b); clearRange(); doc.blocks.splice(a,e-a); if(!doc.blocks.length) doc.blocks.push(newBlock('p')); render(); var t=doc.blocks[Math.min(a,doc.blocks.length-1)]; if(t) focusBlock(t.id,0); save(); toast('Blocks deleted (Ctrl/Cmd+Z to undo)'); }
+function moveRange(dir){
+  if(!rangeSel) return; checkpoint(); var a=rangeSel.a, e=subtreeEnd(rangeSel.b); var chunk=doc.blocks.splice(a,e-a); var at=a;
+  if(dir<0){ if(a>0){ var k=a-1; while(k>0 && doc.blocks[k].indent>chunk[0].indent) k--; if(doc.blocks[k].indent<chunk[0].indent) k=a-1; at=k; } }
+  else { if(a<doc.blocks.length){ at=subtreeEnd(a); } }
+  Array.prototype.splice.apply(doc.blocks,[at,0].concat(chunk)); render(); rangeAnchor=at; rangeFocus=at+chunk.length-1; setRange(at,rangeFocus); save();
+}
+document.addEventListener('keydown',function(e){
+  var inField=e.target.closest && (e.target.closest('#sidepanel')||e.target.closest('#tabMenu')||e.target.closest('#confirm')||e.target.closest('#settingsPopover')||e.target.id==='title');
+  if(inField) return;
+  var blk=e.target.closest?e.target.closest('.block'):null;
+  if(e.shiftKey && (e.key==='ArrowDown'||e.key==='ArrowUp') && !e.altKey && !e.metaKey && !e.ctrlKey){
+    var dir=e.key==='ArrowDown'?1:-1;
+    if(rangeSel){ e.preventDefault(); e.stopPropagation(); extendRange(-1,dir); return; }
+    var c=e.target.closest?e.target.closest('.content'):null;
+    if(c && blk && onEdge(c,dir)){ e.preventDefault(); e.stopPropagation(); extendRange(idx(blk.dataset.id),dir); return; }
+    if(selectedId){ e.preventDefault(); e.stopPropagation(); var si=idx(selectedId); extendRange(si,dir); return; }
+    return;
+  }
+  if(!rangeSel) return;
+  if(e.key==='Backspace'||e.key==='Delete'){ e.preventDefault(); e.stopPropagation(); deleteRange(); return; }
+  if(e.altKey && (e.key==='ArrowUp'||e.key==='ArrowDown')){ e.preventDefault(); e.stopPropagation(); moveRange(e.key==='ArrowUp'?-1:1); return; }
+  if(e.key==='ArrowUp'||e.key==='ArrowDown'){ e.preventDefault(); e.stopPropagation(); var f=rangeFocus; clearRange(); var t=doc.blocks[f]; if(t) focusBlock(t.id, e.key==='ArrowUp'?Infinity:0); return; }
+  if(e.key==='Escape'){ e.preventDefault(); var f2=rangeFocus; clearRange(); var t2=doc.blocks[f2]; if(t2) focusBlock(t2.id,0); return; }
+  if(e.key==='Tab'){ e.preventDefault(); for(var i=rangeSel.a;i<=rangeSel.b;i++){ var bb=doc.blocks[i]; if(e.shiftKey){ if(bb.indent>0) bb.indent--; } else bb.indent=Math.min(6,bb.indent+1); } render(); paintRange(); save(); return; }
+  if((e.metaKey||e.ctrlKey) && (e.key==='a'||e.key==='A')){ e.preventDefault(); clearRange(); selectAllBlocks(); return; }
+  if(!e.metaKey && !e.ctrlKey && e.key.length===1) clearRange();
+},true);
+var marquee=document.getElementById('marquee'), marqueeMoved=false;
+document.querySelector('.note').addEventListener('pointerdown',function(e){
+  if(e.button!==0) return;
+  if(e.target.closest('.content, .cell, .cl-in, textarea, button, a, .drag, .caption, .rule, img, #title, .tbl-tools, .cl-out')) return;
+  var blk=e.target.closest('.block');
+  if(e.shiftKey && blk){ e.preventDefault(); var bi=idx(blk.dataset.id); var from=rangeSel?rangeAnchor:(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.block')?idx(document.activeElement.closest('.block').dataset.id):(selectedId?idx(selectedId):bi)); rangeAnchor=from; rangeFocus=bi; setRange(from,bi); return; }
+  var sx=e.clientX, sy=e.clientY, pid=e.pointerId; marqueeMoved=false;
+  var move=function(ev){
+    var dx=ev.clientX-sx, dy=ev.clientY-sy;
+    if(!marqueeMoved){ if(Math.abs(dx)+Math.abs(dy)<8) return; marqueeMoved=true; document.body.classList.add('marquee-on'); if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); clearRange(); select(null); }
+    ev.preventDefault();
+    var x=Math.min(sx,ev.clientX), y=Math.min(sy,ev.clientY), w=Math.abs(dx), h=Math.abs(dy);
+    marquee.hidden=false; marquee.style.left=x+'px'; marquee.style.top=y+'px'; marquee.style.width=w+'px'; marquee.style.height=h+'px';
+    var lo=-1, hi=-1;
+    editor.querySelectorAll('.block').forEach(function(el){ var r=el.getBoundingClientRect(); if(r.bottom>y && r.top<y+h && r.right>x && r.left<x+w){ var i=idx(el.dataset.id); if(lo<0||i<lo) lo=i; if(i>hi) hi=i; } });
+    if(lo>=0){ rangeAnchor=lo; rangeFocus=hi; setRange(lo,hi); } else clearRange();
+  };
+  var up=function(){ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); marquee.hidden=true; document.body.classList.remove('marquee-on'); setTimeout(function(){ marqueeMoved=false; },0); };
+  document.addEventListener('pointermove',move); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up);
+});
+document.addEventListener('mousedown',function(e){ if(rangeSel && !e.shiftKey && !(e.target.closest&&e.target.closest('.drag'))) clearRange(); },true);
 
 /* ---------- undo and redo of note changes ---------- */
 function snapshotNow(){ return JSON.stringify({tab:state.activeTabId,doc:doc}); }
@@ -4120,6 +4193,7 @@ editor.addEventListener('mousedown',function(e){
 });
 editor.addEventListener('click',function(e){
   var blk=e.target.closest('.block');
+  if(marqueeMoved) return;
   if(!blk){ if(e.target===editor){ var last=doc.blocks[doc.blocks.length-1]; if(last && last.type==='p' && last.text==='') focusBlock(last.id,0); else { var nb=newBlock('p'); doc.blocks.push(nb); render(); focusBlock(nb.id,0); save(); } } return; }
   var b=getBlock(blk.dataset.id);
   if(e.target.closest('.chk')){ b.checked=!b.checked; blk.classList.toggle('done',b.checked); e.target.setAttribute('aria-pressed',b.checked?'true':'false'); save(); return; }
@@ -4247,7 +4321,7 @@ document.addEventListener('keydown',function(e){
   if(!selectedId) return;
   if(e.target.closest && (e.target.closest('.content')||e.target.closest('.caption')||e.target.closest('.cell')||e.target.closest('.cl-in')||e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT'||e.target.id==='title')) return;
   var b=getBlock(selectedId); if(!b){ selectedId=null; return; }
-  if(e.key==='Backspace'||e.key==='Delete'){ e.preventDefault(); var prev=neighbour(b.id,-1), next=neighbour(b.id,1); removeBlock(b.id); selectedId=null; render(); var tgt=(e.key==='Backspace'?prev:next)||next||prev; if(tgt) focusBlock(tgt.id, e.key==='Backspace'?Infinity:0); save(); return; }
+  if(e.key==='Backspace'||e.key==='Delete'){ e.preventDefault(); checkpoint(); var prev=neighbour(b.id,-1), next=neighbour(b.id,1); removeBlock(b.id); selectedId=null; render(); var tgt=(e.key==='Backspace'?prev:next)||next||prev; if(tgt) focusBlock(tgt.id, e.key==='Backspace'?Infinity:0); save(); return; }
   if(e.key==='ArrowUp'){ e.preventDefault(); moveFocus(b,-1); return; }
   if(e.key==='ArrowDown'||e.key==='Enter'){ e.preventDefault(); if(!moveFocus(b,1)) appendBlockAfter(b,'p'); return; }
   if(e.key==='Escape'){ select(null); }
