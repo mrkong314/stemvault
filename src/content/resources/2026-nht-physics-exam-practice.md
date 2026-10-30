@@ -1,5 +1,5 @@
 ---
-title: "2026 NHT Physics Exam Practice"
+title: "2026 NHT Physics Exam - Practice Bank"
 type: applet
 category: practice
 subject: Physics

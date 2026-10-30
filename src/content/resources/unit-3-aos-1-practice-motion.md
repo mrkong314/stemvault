@@ -1,5 +1,5 @@
 ---
-title: "Unit 3 Area of Study 1 Physics Practice: Motion"
+title: "Unit 3 Area of Study 1 Physics: Motion - Practice Bank"
 type: applet
 category: practice
 subject: Physics

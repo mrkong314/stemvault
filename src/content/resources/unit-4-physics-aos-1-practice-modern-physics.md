@@ -1,5 +1,5 @@
 ---
-title: "Unit 4 Physics Area of Study 1 Practice: Modern Physics"
+title: "Unit 4 Area of Study 1 Physics: Modern Physics - Practice Bank"
 type: applet
 category: practice
 subject: Physics

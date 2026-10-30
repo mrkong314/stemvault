@@ -1,5 +1,5 @@
 ---
-title: "Unit 3 Area of Study 2 Physics Practice: Fields"
+title: "Unit 3 Area of Study 2 Physics: Fields - Practice Bank"
 type: applet
 category: practice
 subject: Physics

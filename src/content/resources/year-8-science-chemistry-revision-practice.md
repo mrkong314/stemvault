@@ -1,5 +1,5 @@
 ---
-title: "Year 8 Science Chemistry Revision Practice"
+title: "Year 8 Science Chemistry Revision - Practice Bank"
 type: applet
 category: practice
 subject: Chemistry

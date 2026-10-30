@@ -1,5 +1,5 @@
 ---
-title: "Unit 3 Area of Study 3 Physics Practice: Generation of Electricity"
+title: "Unit 3 Area of Study 3 Physics: Generation of Electricity - Practice Bank"
 type: applet
 category: practice
 subject: Physics

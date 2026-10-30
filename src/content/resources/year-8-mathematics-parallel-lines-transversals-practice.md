@@ -1,5 +1,5 @@
 ---
-title: "Year 8 Mathematics Parallel Lines and Transversals Practice"
+title: "Year 8 Mathematics Parallel Lines and Transversals - Practice Bank"
 type: applet
 category: practice
 subject: Mathematics

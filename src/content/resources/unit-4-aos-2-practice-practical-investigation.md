@@ -1,5 +1,5 @@
 ---
-title: "Unit 4 Area of Study 2 Physics Practice: Practical Investigation"
+title: "Unit 4 Area of Study 2 Physics: Practical Investigation - Practice Bank"
 type: applet
 category: practice
 subject: Physics

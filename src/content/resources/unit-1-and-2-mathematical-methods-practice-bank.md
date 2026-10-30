@@ -1,5 +1,5 @@
 ---
-title: "Unit 1 and 2 Mathematical Methods Practice Bank"
+title: "Unit 1 and 2 Mathematical Methods - Practice Bank"
 type: applet
 category: practice
 subject: Mathematics

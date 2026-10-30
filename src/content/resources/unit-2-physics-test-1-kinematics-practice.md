@@ -1,5 +1,5 @@
 ---
-title: "Unit 2 Physics Motion Test 1 Kinematics Practice"
+title: "Unit 2 Physics Motion Test 1 Kinematics - Practice Bank"
 type: applet
 category: practice
 subject: Physics
