@@ -8,8 +8,9 @@ export default defineConfig({
   trailingSlash: 'ignore',
   redirects: {
     '/tools/vce-motion-grapher': '/tools/vce-physics-grapher',
-    // Retired from the Tools list; the standalone pace calculator still exists for home-screen installs.
-    '/tools/pace-calculator': '/tools/pace-calculator.html',
+    '/tools/pace-calculator': '/tools',
     '/tools/palette-picker': '/tools',
+    // Scratchpad was renamed Notepad.
+    '/tools/scratchpad': '/tools/notepad.html',
   },
 });

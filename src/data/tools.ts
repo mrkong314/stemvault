@@ -31,10 +31,10 @@ export const TOOLS: Tool[] = [
     href: '/tools/random-picker',
   },
   {
-    slug: 'scratchpad',
-    title: 'Scratchpad',
+    slug: 'notepad',
+    title: 'Notepad',
     description: 'Notes filed as tabs and groups, with checkboxes, lists, toggles, tables, inline calculator sections, Markdown shortcuts and pasted images. Saved only in the browser, on the device. Installs to a phone home screen.',
-    href: '/tools/scratchpad.html',
+    href: '/tools/notepad.html',
   },
   {
     slug: 'vce-electrical-circuit-maker',
@@ -59,6 +59,6 @@ export const TOOLS: Tool[] = [
 /** Frequently used tools, linked from the header and the home page. They open full screen. */
 export const QUICK_TOOLS: { slug: string; label: string; href: string; blurb: string }[] = [
   { slug: 'calculator', label: 'Calculator', href: '/tools/calculator.html', blurb: 'Symbolic input, formula rendering, equation editor.' },
-  { slug: 'scratchpad', label: 'Scratchpad', href: '/tools/scratchpad.html', blurb: 'Notes, tables and inline calculations, saved on this device.' },
+  { slug: 'notepad', label: 'Notepad', href: '/tools/notepad.html', blurb: 'Notes, tables and inline calculations, saved on this device.' },
   { slug: 'class-timer', label: 'Class Timer', href: '/tools/class-timer.html', blurb: 'Period countdown, stopwatches and cold-call picker.' },
 ];
