@@ -1,6 +1,6 @@
 ---
-name: stemvault-app-design
-description: Build or restyle a phone-first, home-screen-installable teaching tool in the StemVault app style used by Class Timer, Rep Timer and Random Picker (glass top bar clear of the iOS status bar, OLED-black dark mode, rounded tabular digits, iOS segments, switches and armed delete buttons, bottom sheets, on-device state, web manifest and icons). ALWAYS trigger on "/stemvault-app-design", and on "like the class timer", "class timer style", "phone tool", "installable tool", "home-screen app", "make it a PWA for StemVault", or any request for a timer, picker, tracker or classroom utility that teachers will run on a phone or project on a screen. For applets and quizzes embedded in the catalogue use stemvault-design instead.
+name: stemvault-class-timer-aesthetic
+description: Build or restyle a phone-first, home-screen-installable teaching tool in the StemVault app style used by Class Timer, Rep Timer and Random Picker (glass top bar clear of the iOS status bar, OLED-black dark mode, rounded tabular digits, iOS segments, switches and armed delete buttons, bottom sheets, on-device state, web manifest and icons). ALWAYS trigger on "/stemvault-class-timer-aesthetic", and on "class timer aesthetic", "like the class timer", "class timer style", "phone tool", "installable tool", "home-screen app", "make it a PWA for StemVault", or any request for a timer, picker, tracker or classroom utility that teachers will run on a phone or project on a screen. For applets and quizzes embedded in the catalogue use stemvault-calculator-aesthetic instead.
 ---
 
 Produce a single self-contained `.html` tool that behaves like Class Timer: it opens full screen with no site chrome, installs to a phone home screen with its own icon, reads cleanly under the iOS status bar, and runs from on-device state. Files in this folder are the source of truth; read them before writing any markup:
@@ -11,7 +11,7 @@ Produce a single self-contained `.html` tool that behaves like Class Timer: it o
 
 ## How this differs from the website / Calculator style
 
-Same light palette, fonts and control shapes as `stemvault-design`, but tuned for a phone in a classroom:
+Same light palette, fonts and control shapes as `stemvault-calculator-aesthetic`, but tuned for a phone in a classroom:
 
 - **Dark mode is pure OLED black.** No ambient gradient, no translucent tint, hairline borders only. The primary pill button is outlined blue on black rather than filled, so nothing glows. Dark is the default `state.theme` because these tools are usually projected or glanced at.
 - **One column, 620px max.** Everything stacks; the important readout is huge (`.digits`, SF Rounded, tabular numerals) and the controls below it are 44px or taller. Secondary editors (lists, bell times, settings that need space) open in a bottom `.sheet`, not inline.
