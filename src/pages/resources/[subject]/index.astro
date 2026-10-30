@@ -73,19 +73,19 @@ const total = all.filter(r => r.data.subject === subject).length;
     color: var(--ink);
     height: 100%;
   }
-  .topic-link:hover { border-color: var(--accent); }
   .topic-name {
-    font-family: var(--font-display);
-    font-size: 1.1rem;
+    font-weight: 600;
+    font-size: 1rem;
     line-height: 1.2;
     transition: color var(--ease);
   }
   .topic-link:hover .topic-name { color: var(--accent); }
   .topic-count {
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    color: var(--ink-mute);
-    background: var(--paper-warm);
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--ink-dim);
+    background: var(--glass-key);
+    border: 1px solid var(--glass-border);
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
     flex-shrink: 0;

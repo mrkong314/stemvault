@@ -1,8 +1,8 @@
 export const SUBJECTS = [
-  { name: 'Mathematics', slug: 'mathematics', accent: '#1f5d4c' },
-  { name: 'Chemistry', slug: 'chemistry', accent: '#c97a28' },
-  { name: 'Physics', slug: 'physics', accent: '#2d6a8f' },
-  { name: 'Biology', slug: 'biology', accent: '#6b8b3a' },
+  { name: 'Mathematics', slug: 'mathematics', accent: '#30d158' },
+  { name: 'Chemistry', slug: 'chemistry', accent: '#ff9f0a' },
+  { name: 'Physics', slug: 'physics', accent: '#0a84ff' },
+  { name: 'Biology', slug: 'biology', accent: '#bf5af2' },
 ] as const;
 
 export type Subject = (typeof SUBJECTS)[number]['name'];

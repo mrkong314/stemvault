@@ -84,37 +84,37 @@ const hasAbout = Astro.slots.has('about');
     justify-content: space-between;
     gap: 1rem;
     padding: 0.45rem 1rem;
-    background: var(--paper);
-    border-bottom: 1px solid var(--line);
+    background: var(--glass);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--glass-border);
   }
   .applet-bar .crumbs { margin: 0; flex-wrap: nowrap; }
   .bar-actions { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
   .bar-btn {
     display: inline-flex;
     align-items: center;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--ink-soft);
-    background: transparent;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--glass-key);
+    border: 1px solid var(--glass-border);
+    border-radius: 9px;
+    padding: 0.4rem 0.8rem;
     line-height: 1;
     cursor: pointer;
     white-space: nowrap;
     transition: border-color var(--ease), color var(--ease), background var(--ease);
   }
-  .bar-btn:hover { border-color: var(--pine); color: var(--pine); }
-  .bar-btn[aria-expanded="true"] { background: var(--pine); border-color: var(--pine); color: #fff; }
+  .bar-btn:hover { color: var(--accent); background: var(--glass-strong); }
+  .bar-btn[aria-expanded="true"] { background: var(--accent); border-color: transparent; color: #fff; }
 
   .about-panel {
     position: absolute;
     left: 0; right: 0;
     z-index: 5;
-    background: var(--surface);
-    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+    border-bottom: 1px solid var(--glass-border);
     box-shadow: var(--shadow-pop);
     max-height: 70vh;
     overflow-y: auto;

@@ -25,15 +25,13 @@ const { label, kind = 'applet', href } = Astro.props;
     align-items: center;
     gap: 0.3rem;
     padding: 0.35rem 0.75rem;
-    border: 1px dashed var(--amber);
-    border-radius: 999px;
-    font-family: var(--font-mono);
-    font-size: 0.64rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--amber);
+    border: 1px dashed var(--warn);
+    border-radius: 9px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--warn);
     background: var(--amber-tint);
     white-space: nowrap;
   }
-  .add-btn:hover { background: var(--amber); color: #fff; }
+  .add-btn:hover { background: var(--warn); color: #fff; }
 </style>

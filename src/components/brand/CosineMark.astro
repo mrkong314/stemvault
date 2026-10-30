@@ -4,7 +4,8 @@ interface Props {
   fill?: string;
   stroke?: string;
 }
-const { size = 48, fill = 'var(--pine)', stroke = '#ffffff' } = Astro.props;
+const { size = 48, fill, stroke = '#ffffff' } = Astro.props;
+const gradId = 'cosine-grad-' + Math.random().toString(36).slice(2, 8);
 ---
 <svg
   width={size}
@@ -14,7 +15,13 @@ const { size = 48, fill = 'var(--pine)', stroke = '#ffffff' } = Astro.props;
   aria-hidden="true"
   role="img"
 >
-  <rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill={fill} />
+  <defs>
+    <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b7a63" />
+      <stop offset="1" stop-color="#174a3c" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill={fill ?? `url(#${gradId})`} />
   <!--
     One full cosine period from x=10 to x=54.
     y(x) = 32 - 20 * cos((x - 10) * 2π / 44)

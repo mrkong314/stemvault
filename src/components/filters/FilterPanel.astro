@@ -10,8 +10,9 @@ interface Props {
   /** Hide the subject section (e.g., on subject-scoped pages). */
   hideSubject?: boolean;
   /**
-   * sidebar: collapsible sections with checkboxes and a searchable tag list.
-   * inline:  a compact horizontal chip bar (subject/year/type only).
+   * sidebar: glass panel with round checks (subject), a year segment,
+   *          switches (type, category) and a searchable tag list.
+   * inline:  a compact horizontal strip of segments (no tags).
    */
   variant?: 'sidebar' | 'inline';
 }
@@ -22,27 +23,28 @@ const tags = inline ? [] : await getAllTags();
 const COLLAPSE_AFTER = 6;
 
 const subjectOpts = SUBJECT_NAMES.map(n => ({ value: n, label: n }));
-const typeOpts = (['applet', 'quiz', 'file', 'video'] as const).map(t => ({ value: t, label: TYPE_LABEL[t] }));
-const categoryOpts = (['practice', 'game'] as const).map(c => ({ value: c, label: CATEGORY_LABEL[c] }));
-const yearOpts = YEAR_LEVELS.map(y => ({ value: String(y), label: inline ? `Yr ${y}` : `Year ${y}` }));
+const typeOpts = (['applet', 'quiz', 'file', 'video'] as const).map(t => ({ value: t, label: TYPE_LABEL[t] + 's' }));
+const categoryOpts = (['practice', 'game'] as const).map(c => ({ value: c, label: CATEGORY_LABEL[c] + 's' }));
+const yearOpts = YEAR_LEVELS.map(y => ({ value: String(y), label: String(y) }));
 
-const sections = [
+/** Inline strip groups (every control is a segment button). */
+const inlineSections = [
   ...(hideSubject ? [] : [{ name: 'subject', title: 'Subject', options: subjectOpts }]),
-  { name: 'year', title: 'Year level', options: yearOpts },
-  { name: 'type', title: 'Type', options: typeOpts },
-  { name: 'category', title: 'Category', options: categoryOpts },
+  { name: 'year', title: 'Year', options: yearOpts },
+  { name: 'type', title: 'Type', options: typeOpts.map(o => ({ ...o, label: o.label.replace(/s$/, '') })) },
+  { name: 'category', title: 'Category', options: categoryOpts.map(o => ({ ...o, label: o.label.replace(/s$/, '') })) },
 ];
 const tagVisible = tags.slice(0, COLLAPSE_AFTER);
 const tagOverflow = tags.slice(COLLAPSE_AFTER);
 ---
 {inline ? (
-  <div class="filter-inline" data-filter-panel data-target={target} role="group" aria-label="Filter resources">
-    {sections.map(s => (
+  <div class="filter-inline glass" data-filter-panel data-target={target} role="group" aria-label="Filter resources">
+    {inlineSections.map(s => (
       <div class="inline-group">
         <span class="label-mono inline-title">{s.title}</span>
-        <div class="chips">
+        <div class="seg">
           {s.options.map(o => (
-            <label class="chip">
+            <label class="segopt">
               <input type="checkbox" name={s.name} value={o.value} />
               <span>{o.label}</span>
             </label>
@@ -56,53 +58,74 @@ const tagOverflow = tags.slice(COLLAPSE_AFTER);
     </div>
   </div>
 ) : (
-  <aside class="filter-panel card" data-filter-panel data-target={target} aria-label="Filter resources">
+  <aside class="filter-panel glass" data-filter-panel data-target={target} aria-label="Filter resources">
     <div class="filter-header">
-      <span class="label-mono">Filters</span>
+      <span class="filter-title">Filters</span>
       <button type="button" class="filter-clear" data-filter-clear>Clear</button>
     </div>
 
-    {sections.map(s => {
-      const visible = s.options.slice(0, COLLAPSE_AFTER);
-      const overflow = s.options.slice(COLLAPSE_AFTER);
-      return (
-        <details class="filter-section" open>
-          <summary>
-            <span>{s.title}</span>
-            <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </summary>
-          <ul role="list" class="check-list">
-            {visible.map(o => (
-              <li>
-                <label class="check">
-                  <input type="checkbox" name={s.name} value={o.value} />
-                  <span class="check-box" aria-hidden="true"></span>
-                  <span class="check-label">{o.label}</span>
-                </label>
-              </li>
-            ))}
-            {overflow.map(o => (
-              <li data-check-overflow hidden>
-                <label class="check">
-                  <input type="checkbox" name={s.name} value={o.value} />
-                  <span class="check-box" aria-hidden="true"></span>
-                  <span class="check-label">{o.label}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
-          {overflow.length > 0 && (
-            <button type="button" class="show-more" data-show-more data-overflow-count={overflow.length}>
-              <span data-more-label>+{overflow.length} more</span>
-            </button>
-          )}
-        </details>
-      );
-    })}
+    {!hideSubject && (
+      <div class="filter-section">
+        <div class="section-title">Subject</div>
+        <ul role="list" class="check-list">
+          {subjectOpts.map(o => (
+            <li>
+              <label class="check">
+                <span class="check-label">{o.label}</span>
+                <input type="checkbox" name="subject" value={o.value} />
+                <span class="check-box" aria-hidden="true"></span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
 
-    <details class="filter-section">
+    <div class="filter-section">
+      <div class="section-title">Year level</div>
+      <div class="seg years">
+        {yearOpts.map(o => (
+          <label class="segopt">
+            <input type="checkbox" name="year" value={o.value} />
+            <span>{o.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+
+    <div class="filter-section">
+      <div class="section-title">Type</div>
+      <ul role="list" class="check-list">
+        {typeOpts.map(o => (
+          <li>
+            <label class="toggle">
+              <span class="check-label">{o.label}</span>
+              <input type="checkbox" name="type" value={o.value} />
+              <span class="switch" aria-hidden="true"></span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="filter-section">
+      <div class="section-title">Category</div>
+      <ul role="list" class="check-list">
+        {categoryOpts.map(o => (
+          <li>
+            <label class="toggle">
+              <span class="check-label">{o.label}</span>
+              <input type="checkbox" name="category" value={o.value} />
+              <span class="switch" aria-hidden="true"></span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <details class="filter-section tags">
       <summary>
-        <span>Tags</span>
+        <span class="section-title">Tags</span>
         <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </summary>
       <div class="tag-search">
@@ -116,18 +139,18 @@ const tagOverflow = tags.slice(COLLAPSE_AFTER);
         {tagVisible.map(t => (
           <li data-tag-item={t.toLowerCase()}>
             <label class="check">
+              <span class="check-label">{t}</span>
               <input type="checkbox" name="tag" value={t} />
               <span class="check-box" aria-hidden="true"></span>
-              <span class="check-label">{t}</span>
             </label>
           </li>
         ))}
         {tagOverflow.map(t => (
           <li data-tag-item={t.toLowerCase()} data-check-overflow hidden>
             <label class="check">
+              <span class="check-label">{t}</span>
               <input type="checkbox" name="tag" value={t} />
               <span class="check-box" aria-hidden="true"></span>
-              <span class="check-label">{t}</span>
             </label>
           </li>
         ))}
@@ -148,7 +171,7 @@ const tagOverflow = tags.slice(COLLAPSE_AFTER);
 <script>
   import '~/scripts/filters.ts';
 
-  // "+N more" toggle for collapsed option lists.
+  // "+N more" toggle for the collapsed tag list.
   document.querySelectorAll<HTMLButtonElement>('[data-show-more]').forEach(btn => {
     btn.addEventListener('click', () => {
       const section = btn.closest('details');
@@ -158,8 +181,9 @@ const tagOverflow = tags.slice(COLLAPSE_AFTER);
       const expanded = btn.dataset.expanded === '1';
       btn.dataset.expanded = expanded ? '' : '1';
       label.textContent = expanded ? `+${btn.dataset.overflowCount} more` : 'Show fewer';
-      section?.querySelector<HTMLInputElement>('[data-tag-search]')?.dispatchEvent(new Event('input'));
-      if (!section?.querySelector('[data-tag-search]')) overflow.forEach(el => (el.hidden = expanded));
+      const search = section?.querySelector<HTMLInputElement>('[data-tag-search]');
+      if (search) search.dispatchEvent(new Event('input'));
+      else overflow.forEach(el => (el.hidden = expanded));
     });
   });
 
@@ -185,152 +209,62 @@ const tagOverflow = tags.slice(COLLAPSE_AFTER);
 </script>
 
 <style>
-  /* Shared */
-  .filter-clear {
-    background: transparent;
-    border: none;
-    padding: 0;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--ink-mute);
-  }
-  .filter-clear:hover { color: var(--amber); }
-  .filter-count {
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.06em;
-    color: var(--ink-mute);
-  }
+  .filter-clear { background: transparent; border: none; padding: 0; font-size: 0.82rem; font-weight: 600; color: var(--accent); }
+  .filter-clear:hover { color: var(--accent-deep); }
+  .filter-count { font-size: 0.78rem; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+  .section-title { font-size: 0.9rem; font-weight: 600; color: var(--ink); margin-bottom: 0.35rem; }
 
   /* Sidebar variant */
   .filter-panel {
+    border-radius: 18px;
     padding: 1rem 1.1rem 0.9rem;
-    position: sticky;
-    top: calc(var(--header-h) + 1rem);
-    max-height: calc(100dvh - var(--header-h) - 2rem);
-    overflow-y: auto;
+    position: sticky; top: calc(var(--header-h) + 1rem);
+    max-height: calc(100dvh - var(--header-h) - 2rem); overflow-y: auto;
   }
-  .filter-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding-bottom: 0.6rem;
-    border-bottom: 1px solid var(--line-soft);
-  }
-  .filter-section { border-bottom: 1px solid var(--line-soft); padding: 0.55rem 0; }
+  .filter-header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 0.6rem; border-bottom: 1px solid var(--rule); }
+  .filter-title { font-weight: 600; font-size: 0.95rem; }
+  .filter-section { border-bottom: 1px solid var(--rule); padding: 0.7rem 0; }
   .filter-section:last-of-type { border-bottom: 0; }
-  summary {
-    list-style: none;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    font-size: 0.86rem;
-    font-weight: 500;
-    padding: 0.3rem 0;
-    color: var(--ink);
-  }
-  summary::-webkit-details-marker { display: none; }
-  .chev { width: 14px; height: 14px; color: var(--ink-mute); transition: transform var(--ease); }
-  details[open] .chev { transform: rotate(180deg); }
 
-  .check-list { margin: 0.25rem 0 0; }
-  .check {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    padding: 0.28rem 0;
-    cursor: pointer;
-    font-size: 0.86rem;
-    color: var(--ink-soft);
+  .check, .toggle {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+    padding: 0.32rem 0; cursor: pointer; font-size: 0.92rem; color: var(--ink);
   }
-  .check input { position: absolute; opacity: 0; width: 0; height: 0; }
-  .check-box {
-    width: 15px; height: 15px;
-    border: 1.5px solid var(--line);
-    border-radius: 4px;
-    background: var(--surface);
-    flex-shrink: 0;
-    position: relative;
-    transition: background var(--ease), border-color var(--ease);
-  }
-  .check:hover .check-box { border-color: var(--pine); }
-  .check input:checked + .check-box { background: var(--pine); border-color: var(--pine); }
-  .check input:checked + .check-box::after {
-    content: '';
-    position: absolute;
-    left: 4px; top: 1px;
-    width: 4px; height: 8px;
-    border: solid #fff;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-  }
-  .check input:focus-visible + .check-box { outline: 2px solid var(--pine); outline-offset: 2px; }
+  .check input, .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
   .check-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .check-box { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--rule-strong); background: var(--surface); flex-shrink: 0; position: relative; transition: background var(--ease), border-color var(--ease); }
+  .check:hover .check-box { border-color: var(--accent); }
+  .check input:checked + .check-box { background: var(--accent); border-color: var(--accent); }
+  .check input:checked + .check-box::after { content: ''; position: absolute; left: 6px; top: 3px; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .check input:focus-visible + .check-box, .toggle input:focus-visible + .switch { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .toggle input:checked + .switch { background: var(--assign); }
+  .toggle input:checked + .switch::after { left: 18px; }
 
-  .show-more {
-    background: transparent;
-    border: none;
-    padding: 0.3rem 0 0;
-    font-family: var(--font-mono);
-    font-size: 0.64rem;
-    letter-spacing: 0.06em;
-    color: var(--pine);
-  }
-  .show-more:hover { color: var(--amber); }
+  .years { display: flex; width: 100%; }
+  .years .segopt { flex: 1; }
+  .segopt { position: relative; cursor: pointer; display: inline-flex; }
+  .segopt input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .segopt span { display: block; width: 100%; text-align: center; font-size: 0.84rem; font-weight: 500; padding: 0.42rem 0.6rem; border-radius: 8px; color: var(--ink); transition: background var(--ease), color var(--ease); }
+  .segopt:hover span { background: var(--glass); }
+  .segopt input:checked + span { background: var(--accent); color: #fff; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14); }
+  .segopt input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-  .tag-search {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 0.3rem 0.65rem;
-    margin: 0.3rem 0 0.4rem;
-    background: var(--paper);
-  }
-  .tag-search:focus-within { border-color: var(--pine); }
-  .search-ico { width: 13px; height: 13px; color: var(--ink-mute); flex-shrink: 0; }
-  .tag-search input {
-    flex: 1; min-width: 0;
-    border: none; background: transparent; outline: none;
-    font: inherit; font-size: 0.82rem; color: var(--ink);
-  }
-  .filter-foot { padding-top: 0.6rem; border-top: 1px solid var(--line-soft); }
+  summary { list-style: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  summary::-webkit-details-marker { display: none; }
+  summary .section-title { margin: 0; }
+  .chev { width: 14px; height: 14px; color: var(--ink-dim); transition: transform var(--ease); }
+  details[open] .chev { transform: rotate(180deg); }
+  .tags .check-list { margin-top: 0.2rem; }
+  .show-more { background: transparent; border: none; padding: 0.3rem 0 0; font-size: 0.8rem; font-weight: 600; color: var(--accent); }
+  .tag-search { display: flex; align-items: center; gap: 0.4rem; border: 1px solid var(--rule-strong); border-radius: 9px; padding: 0.35rem 0.65rem; margin: 0.5rem 0 0.3rem; background: var(--surface); }
+  .tag-search:focus-within { border-color: var(--accent); }
+  .search-ico { width: 13px; height: 13px; color: var(--ink-dim); flex-shrink: 0; }
+  .tag-search input { flex: 1; min-width: 0; border: none; background: transparent; outline: none; font: inherit; font-size: 0.86rem; color: var(--ink); }
+  .filter-foot { padding-top: 0.6rem; border-top: 1px solid var(--rule); }
 
   /* Inline variant */
-  .filter-inline {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem 1.5rem;
-    padding: 0.8rem 1rem;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    margin-bottom: 1.25rem;
-  }
-  .inline-group { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .filter-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.25rem; padding: 0.7rem 0.9rem; border-radius: 16px; margin-bottom: 1.25rem; }
+  .inline-group { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
   .inline-title { flex-shrink: 0; }
-  .chips { display: flex; gap: 0.3rem; flex-wrap: wrap; }
-  .chip { position: relative; cursor: pointer; }
-  .chip input { position: absolute; opacity: 0; width: 0; height: 0; }
-  .chip span {
-    display: inline-block;
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.04em;
-    padding: 0.28rem 0.6rem;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    color: var(--ink-soft);
-    background: var(--paper);
-    transition: background var(--ease), color var(--ease), border-color var(--ease);
-  }
-  .chip:hover span { border-color: var(--pine); color: var(--pine); }
-  .chip input:checked + span { background: var(--pine); border-color: var(--pine); color: #fff; }
-  .chip input:focus-visible + span { outline: 2px solid var(--pine); outline-offset: 2px; }
   .inline-foot { margin-left: auto; display: flex; gap: 0.9rem; align-items: center; }
 </style>
