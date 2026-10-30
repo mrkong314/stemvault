@@ -597,6 +597,8 @@ textarea.code{display:block;width:100%;font-family:var(--mono);font-size:.86rem;
 #bsl .item{display:flex;justify-content:space-between;gap:12px;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:.9rem;font-family:var(--mono)}
 #bsl .item .hint{color:var(--muted);font-family:var(--font);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
 #bsl .item.active{background:var(--accent-soft)}
+#bsl .pk-search{position:sticky;top:-4px;padding:6px 10px 7px;margin:-4px -4px 4px;background:var(--surface);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:.9rem;color:var(--fg)}
+#bsl .pk-search .pk-tip{color:var(--muted);font-family:var(--font);font-size:.78rem;margin-left:8px}
 #pfx{position:fixed;z-index:9;width:240px;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px;font-size:.88rem}
 #pfx .pfx-search{padding:4px 10px 6px;font-size:.76rem;color:var(--fg);border-bottom:1px solid var(--line);margin-bottom:3px}
 #pfx .pfx-search.empty{color:var(--muted);font-style:italic}
@@ -3056,10 +3058,10 @@ function openBslMq(cl,kind){
 function bslQueryMq(){
   var q=bslState.query.toLowerCase();
   var items=pickerItems(bslState.kind).filter(function(it){ return !q || it.name.toLowerCase().indexOf(q)>=0 || (it.hint||'').toLowerCase().indexOf(q)>=0 || (it.kw||'').toLowerCase().indexOf(q)>=0; });
-  items.sort(function(a,b){ var sa=a.name.toLowerCase().indexOf(q)===0?0:1, sb=b.name.toLowerCase().indexOf(q)===0?0:1; return sa-sb; });
-  bslState.items=items.slice(0,60); bslState.index=0;
+  items.sort(function(a,b){ var ga=a.grp||0, gb=b.grp||0; if(ga!==gb) return ga-gb; var sa=a.name.toLowerCase().indexOf(q)===0?0:1, sb=b.name.toLowerCase().indexOf(q)===0?0:1; return sa-sb; });
+  bslState.items=items.slice(0,160); bslState.index=0;
   var blk=bslState.el.closest('.block'); bsl.hidden=false; placePopup(bsl,blk,bslState.el,280);
-  if(!items.length){ bsl.innerHTML='<div class="item"><span>'+(bslState.kind==='at'?'@':'\\')+esc(bslState.query)+'</span><span class="hint">no match</span></div>'; return; }
+  if(!items.length){ bsl.innerHTML='<div class="pk-search">'+(bslState.kind==='at'?'@':'\\')+esc(bslState.query)+'</div><div class="item"><span class="hint">no match</span></div>'; return; }
   paintBsl();
 }
 function applyBslMq(i){
@@ -3114,18 +3116,20 @@ function leaveRawCalc(cl){
 /* ---------- backslash picker: functions, constants and symbols ---------- */
 var FN_DOCS={sin:'sine',cos:'cosine',tan:'tangent',sec:'secant',csc:'cosecant',cot:'cotangent',sinh:'hyperbolic sine',cosh:'hyperbolic cosine',tanh:'hyperbolic tangent',arcsin:'inverse sine',arccos:'inverse cosine',arctan:'inverse tangent',asin:'inverse sine',acos:'inverse cosine',atan:'inverse tangent',ln:'natural log',log:'natural log, or log(x, base)',exp:'e to the power',sqrt:'square root',nthRoot:'nthRoot(x, n)',abs:'absolute value',floor:'round down',ceil:'round up',round:'round(x, dp)',sign:'sign of x',mod:'mod(a, b)',min:'smallest of a list',max:'largest of a list',gcd:'greatest common divisor',lcm:'lowest common multiple',factorial:'n!',nCr:'combinations',nPr:'permutations',normCDF:'normCDF(mean, std, lower, upper)',invNorm:'invNorm(area, mean, std)',binomPDF:'binomPDF(n, p, k)',binomCDF:'binomCDF(n, p, lower, upper)',sumlist:'add up a list',add:'add up a list',zscore:'zscore(x, mean, std)',stdev:'sample standard deviation',mean:'mean of a list',median:'median of a list',solve:'solve(equation, variable)',cSolve:'all complex roots',integrate:'integrate(f, x, a, b)',summation:'summation(body, n, lo, hi)',Re:'real part',Im:'imaginary part',Arg:'argument of z',conj:'conjugate',polar:'polar(z) gives [r, θ]',rect:'rect(r, θ)',deg:'degrees marker',ans:'previous answer'};
 var MATH_SYMBOLS=[['pi','π'],['infinity','∞'],['Delta','Δ'],['degree','°'],['times','×'],['divide','÷'],['plus minus','±'],['less or equal','≤'],['greater or equal','≥'],['not equal','≠'],['approx','≈'],['arrow','→'],['implies','⇒'],['sqrt','√'],['squared','²'],['cubed','³'],['therefore','∴'],['sum','Σ'],['integral','∫'],['dot','·'],['bullet','•'],['em dash','—'],['check','✓'],['cross','✗']];
+var CONST_KW={q_e:'electron charge',q_p:'proton charge',m_e:'electron mass',m_p:'proton mass',c:'speed of light',k:'coulomb constant',G:'gravitational constant',h_J:'planck constant joule seconds',h_e:'planck constant electron volt',h_eV:'planck constant electron volt',M_E:'mass of the earth',m_E:'mass of the earth',c_w:'specific heat capacity water',c_ice:'specific heat capacity ice',c_steam:'specific heat capacity steam',c_iron:'specific heat capacity iron',L_fw:'latent heat of fusion water',L_vw:'latent heat of vaporisation water',r_E:'radius of the earth',g:'gravitational field strength gravity'};
+function constTex(n,v){ var t=null; try{ t=decimalLatex(v); }catch(e){} return varLatex(n)+'='+(t||String(v)); }
 function pickerItems(kind){
   var items=[];
   if(kind==='at'){
-    var pc0=physConstants(); Object.keys(pc0).forEach(function(n){ items.push({name:n,hint:String(pc0[n]),insert:n,k:'c',kw:'constant'}); });
-    FORMULA_LIST.forEach(function(f){ items.push({name:f.name,tex:f.latex,hint:f.cat,kw:(f.kw||'')+' '+f.cat.toLowerCase(),insert:f.latex,k:'formula'}); });
+    FORMULA_LIST.forEach(function(f){ items.push({name:f.name,tex:f.latex,hint:f.cat,kw:(f.kw||'')+' '+f.cat.toLowerCase(),insert:f.latex,k:'formula',grp:0}); });
+    var pc0=physConstants(); Object.keys(pc0).forEach(function(n){ items.push({name:n,tex:constTex(n,pc0[n]),hint:CONST_KW[n]||'constant',insert:n,k:'c',kw:'constant '+(CONST_KW[n]||''),grp:1}); });
     return items;
   }
   if(kind==='calc'){
     FUNCS.forEach(function(f){ if(f==='ans'||f==='deg') return; items.push({name:f,hint:FN_DOCS[f]||'',insert:f+'(',after:')',k:'fn'}); });
     items.push({name:'ans',hint:'previous answer',insert:'ans',k:'c'});
     items.push({name:'pi',hint:'π',insert:'pi',k:'c'}); items.push({name:'e',hint:'Euler\u2019s number',insert:'e',k:'c'}); items.push({name:'i',hint:'imaginary unit',insert:'i',k:'c'});
-    var pc=physConstants(); Object.keys(pc).forEach(function(n){ items.push({name:n,hint:String(pc[n]),insert:n,k:'c'}); });
+    var pc=physConstants(); Object.keys(pc).forEach(function(n){ items.push({name:n,tex:constTex(n,pc[n]),hint:CONST_KW[n]||'constant',insert:n,k:'c',kw:'constant '+(CONST_KW[n]||''),grp:1}); });
   }
   Object.keys(GREEK).forEach(function(n){ items.push({name:n,hint:GREEK[n],insert:GREEK[n],k:'g'}); });
   if(kind!=='calc') MATH_SYMBOLS.forEach(function(p){ items.push({name:p[0],hint:p[1],insert:p[1],k:'s'}); });
@@ -3143,7 +3147,7 @@ function bslCheck(el,kind){
   bslState={open:true,el:el,items:items.slice(0,40),index:0,start:off-m[0].length,end:off,kind:kind};
   var blk=el.closest('.block'); bsl.hidden=false; placePopup(bsl,blk,el,280); paintBsl();
 }
-function paintBsl(){ bsl.innerHTML=bslState.items.map(function(it,i){ var label=it.tex?(katexHTML(it.tex)||esc(it.name)):esc(it.name); return '<div class="item'+(i===bslState.index?' active':'')+(it.tex?' formula':'')+'" data-i="'+i+'"><span>'+label+'</span><span class="hint">'+esc(it.hint||'')+'</span></div>'; }).join(''); var a=bsl.querySelector('.active'); if(a&&a.scrollIntoView) a.scrollIntoView({block:'nearest'}); }
+function paintBsl(){ var head=bslState.mq?'<div class="pk-search'+(bslState.query?'':' empty')+'">'+(bslState.kind==='at'?'@':'\\')+esc(bslState.query||'')+(bslState.query?'':'<span class="pk-tip">type to search</span>')+'</div>':''; bsl.innerHTML=head+bslState.items.map(function(it,i){ var label=it.tex?(katexHTML(it.tex)||esc(it.name)):esc(it.name); return '<div class="item'+(i===bslState.index?' active':'')+(it.tex?' formula':'')+'" data-i="'+i+'"><span>'+label+'</span><span class="hint">'+esc(it.hint||'')+'</span></div>'; }).join(''); var a=bsl.querySelector('.active'); if(a&&a.scrollIntoView) a.scrollIntoView({block:'nearest'}); }
 function closeBsl(){ bslState.open=false; bslState.mq=null; bsl.hidden=true; }
 
 function applyBsl(i){
