@@ -196,6 +196,37 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
 .settings-act{display:block;width:100%;text-align:left;font:inherit;font-size:.86rem;padding:6px 2px;border:0;background:transparent;color:var(--fg);cursor:pointer;border-radius:4px}
 .settings-act:hover{color:var(--muted)}
 
+/* laptop landscape: the notes panel docks as a permanent left column */
+@media (min-width:1024px) and (orientation:landscape){
+  #app:not(.dock-off){padding-left:290px}
+  #app:not(.dock-off) #sidepanel{transform:none;transition:none}
+  #app:not(.dock-off) #panelScrim{display:none}
+  #app:not(.dock-off) .page{max-width:80ch}
+  .page{padding-block:18px 48px}
+}
+/* phone portrait: sticky top row with a block toolbar, larger targets, no hover-only controls */
+@media (pointer:coarse){
+  .topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:var(--bg);margin-left:calc(-1*max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1*max(16px,env(safe-area-inset-right,0px)));padding:6px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px));flex-wrap:wrap}
+  .ib{width:40px;height:40px}
+  input.tname-edit,.tgroup-name{font-size:16px}
+  .tab{padding-top:9px;padding-bottom:9px}
+  .tab button{opacity:.6;width:28px;height:28px}
+  .tbl-tools,.calc-foot button{display:flex;opacity:1}
+  .page{padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))}
+  #blockbar{display:none;flex-basis:100%;gap:2px;overflow-x:auto;scrollbar-width:none;padding:2px 0 0;-webkit-overflow-scrolling:touch}
+  #blockbar::-webkit-scrollbar{display:none}
+  body.editing #blockbar{display:flex}
+  #blockbar button{flex:0 0 auto;height:34px;min-width:40px;padding:0 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--fg);font:inherit;font-size:.9rem;line-height:1}
+  #blockbar button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  #blockbar button .k{font-family:var(--mono);font-size:.82rem}
+}
+@media (pointer:coarse) and (orientation:portrait){
+  body{font-size:17px}
+  .block.selected,.block:focus-within{box-shadow:none}
+  .cl{padding-left:10px;padding-right:10px}
+  .settings-popover{right:-4px}
+}
+#blockbar{display:none}
 .help{margin-top:28px;padding:14px 0 0;border-top:1px solid var(--line);font-size:.86rem;color:var(--fg)}
 .help h3{margin:14px 0 6px;font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .help h3:first-child{margin-top:0}
@@ -240,6 +271,19 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
           <div class="settings-sep"></div>
           <button type="button" class="settings-act" data-act="clear">Clear this note</button>
         </div>
+      </div>
+      <div id="blockbar" role="toolbar" aria-label="Block tools">
+        <button type="button" data-bb="outdent" aria-label="Outdent">⇤</button>
+        <button type="button" data-bb="indent" aria-label="Indent">⇥</button>
+        <button type="button" data-bb="bullet" aria-label="Bulleted list">•</button>
+        <button type="button" data-bb="number" aria-label="Numbered list"><span class="k">1.</span></button>
+        <button type="button" data-bb="todo" aria-label="To-do">☐</button>
+        <button type="button" data-bb="toggle" aria-label="Toggle">▸</button>
+        <button type="button" data-bb="heading" aria-label="Heading"><span class="k">H</span></button>
+        <button type="button" data-bb="quote" aria-label="Quote">“</button>
+        <button type="button" data-bb="table" aria-label="Table">⊞</button>
+        <button type="button" data-bb="calc" aria-label="Calculator"><span class="k">=</span></button>
+        <button type="button" data-bb="image" aria-label="Image">▣</button>
       </div>
     </div>
     <h1 id="title" contenteditable="true" spellcheck="true" data-ph="Untitled"></h1>
@@ -1155,7 +1199,7 @@ function applyDrop(kind,id,targetEl,where){
 /* ---------- side panel ---------- */
 function openPanel(){ appEl.classList.add('panel-open'); document.getElementById('panelToggle').setAttribute('aria-expanded','true'); }
 function closePanel(){ appEl.classList.remove('panel-open'); document.getElementById('panelToggle').setAttribute('aria-expanded','false'); }
-document.getElementById('panelToggle').addEventListener('click',function(){ appEl.classList.contains('panel-open')?closePanel():openPanel(); });
+document.getElementById('panelToggle').addEventListener('click',function(){ if(isDocked()){ state.settings.dockOff=!state.settings.dockOff; paintDock(); save(); return; } appEl.classList.contains('panel-open')?closePanel():openPanel(); });
 document.getElementById('panelScrim').addEventListener('click',closePanel);
 document.getElementById('newTab').addEventListener('click',function(){ newTab(); closePanel(); setTimeout(function(){ document.getElementById('title').focus(); },0); });
 
@@ -1170,7 +1214,7 @@ function paintSettings(){
   settingsPop.querySelectorAll('.seg').forEach(function(seg){ var key=seg.dataset.key; seg.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.val===String(state.settings[key])); b.setAttribute('aria-pressed', b.dataset.val===String(state.settings[key])?'true':'false'); }); });
 }
 settingsPop.addEventListener('click',function(e){
-  var b=e.target.closest('.seg button'); if(b){ var key=b.closest('.seg').dataset.key; state.settings[key]=b.dataset.val; if(key==='theme') applyTheme(); paintSettings(); if(key!=='theme') doc.blocks.forEach(function(bl){ if(bl.type==='calc') rerenderBlock(bl.id); }); save(); return; }
+  var b=e.target.closest('.seg button'); if(b){ var key=b.closest('.seg').dataset.key; state.settings[key]=b.dataset.val; if(key==='theme') applyTheme(); paintSettings(); paintDock(); if(key!=='theme') doc.blocks.forEach(function(bl){ if(bl.type==='calc') rerenderBlock(bl.id); }); save(); return; }
   var act=e.target.closest('[data-act]'); if(!act) return;
   var a=act.dataset.act;
   if(a==='image'){ pendingImageTarget=null; document.getElementById('file').click(); closeSettings(); }
@@ -1359,6 +1403,30 @@ window.addEventListener('pagehide',function(){ if(saveTimer) persist(); });
 document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden' && saveTimer) persist(); });
 window.addEventListener('load',function(){ if(doc) doc.blocks.forEach(function(b){ if(b.type==='calc') calcRefresh(b); }); });
 
+/* ---------- layout modes: docked panel on wide landscape, block toolbar on touch ---------- */
+var wideQ=window.matchMedia('(min-width:1024px) and (orientation:landscape)');
+function isDocked(){ return wideQ.matches; }
+function paintDock(){ appEl.classList.toggle('dock-off', !!(state&&state.settings.dockOff)); if(isDocked()) closePanel(); }
+try{ wideQ.addEventListener('change',paintDock); }catch(e){}
+var blockbar=document.getElementById('blockbar'), editingTimer=null;
+editor.addEventListener('focusin',function(e){ clearTimeout(editingTimer); var on=!!e.target.closest('.content'); document.body.classList.toggle('editing',on); if(on) paintBlockbar(e.target.closest('.block')); });
+editor.addEventListener('focusout',function(){ clearTimeout(editingTimer); editingTimer=setTimeout(function(){ if(!editor.contains(document.activeElement)) document.body.classList.remove('editing'); },150); });
+function paintBlockbar(blk){ var b=blk?getBlock(blk.dataset.id):null; blockbar.querySelectorAll('button').forEach(function(bt){ var k=bt.dataset.bb; bt.classList.toggle('on', !!b && (k===b.type || (k==='heading' && /^h[123]$/.test(b.type)))); }); }
+blockbar.addEventListener('mousedown',function(e){ e.preventDefault(); });
+blockbar.addEventListener('touchstart',function(e){ e.preventDefault(); var bt=e.target.closest('button'); if(bt) blockbarAct(bt.dataset.bb); },{passive:false});
+blockbar.addEventListener('click',function(e){ var bt=e.target.closest('button'); if(bt && !('ontouchstart' in window)) blockbarAct(bt.dataset.bb); });
+function blockbarAct(k){
+  var c=document.activeElement; if(!c||!c.closest||!c.closest('.content')) return;
+  var b=getBlock(c.closest('.block').dataset.id); if(!b) return; var off=caretOffset(c);
+  if(k==='indent'||k==='outdent'){ if(setIndent(b,k==='indent'?1:-1)){ render(); focusBlock(b.id,off); save(); } return; }
+  if(k==='image'){ pendingImageTarget=b.id; document.getElementById('file').click(); return; }
+  if(k==='table'||k==='calc'){ convertTo(b,k); return; }
+  if(k==='heading'){ b.type=b.type==='h1'?'h2':b.type==='h2'?'h3':b.type==='h3'?'p':'h1'; }
+  else b.type=(b.type===k?'p':k);
+  if(b.type==='toggle') b.collapsed=false;
+  render(); focusBlock(b.id,off); save(); paintBlockbar(blockEl(b.id));
+}
+
 /* ---------- boot ---------- */
 function freshState(){ return {version:2,tabs:[],groups:[],activeTabId:null,favourites:[],tabSeq:0,groupSeq:0,settings:{theme:'auto',angle:'deg',sigfigs:'auto'}}; }
 function boot(){
@@ -1372,7 +1440,7 @@ function boot(){
     var S=state.settings; if(!S.theme) S.theme='auto'; if(!S.angle) S.angle='deg'; if(!S.sigfigs) S.sigfigs='auto';
     if(!state.groups) state.groups=[]; if(!state.favourites) state.favourites=[]; if(!state.tabSeq) state.tabSeq=state.tabs.length; if(!state.groupSeq) state.groupSeq=state.groups.length;
     state.tabs.forEach(function(t){ if(!t.doc) t.doc=blankDoc(); if(!t.doc.blocks||!t.doc.blocks.length) t.doc.blocks=[newBlock('p')]; t.doc.blocks.forEach(function(b){ if(!b.id) b.id=uid(); if(typeof b.indent!=='number') b.indent=0; if(typeof b.text!=='string') b.text=''; if(b.type==='table'&&!b.rows) b.rows=[['','']]; if(b.type==='calc'&&!b.lines) b.lines=['']; }); });
-    applyTheme(); paintSettings();
+    applyTheme(); paintSettings(); paintDock();
     if(!state.tabs.length){ newTab(); setStatus(''); setTimeout(function(){ titleEl.focus(); },0); }
     else { var id=tabById(state.activeTabId)?state.activeTabId:state.tabs[0].id; switchTab(id,true); setStatus('Saved on this device'); }
   });
