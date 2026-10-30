@@ -2,6 +2,7 @@
 import Logo from '~/components/brand/Logo.astro';
 import SearchBar from './SearchBar.astro';
 import ThemeToggle from './ThemeToggle.astro';
+import { QUICK_TOOLS } from '~/data/tools';
 
 const path = Astro.url.pathname;
 const isActive = (prefix: string) => path === prefix || path.startsWith(prefix + '/');
@@ -11,12 +12,7 @@ const links = [
   { href: '/practice', label: 'Practice', active: isActive('/practice') },
   { href: '/tools', label: 'Tools', active: isActive('/tools') },
 ];
-// Frequently used tools, opened full screen, shown beside the main nav.
-const quick = [
-  { href: '/tools/calculator.html', label: 'Calculator' },
-  { href: '/tools/scratchpad.html', label: 'Scratchpad' },
-  { href: '/tools/class-timer.html', label: 'Class Timer' },
-];
+const quick = QUICK_TOOLS;
 ---
 <header class="site-header" id="site-header">
   <div class="container-wide header-inner">

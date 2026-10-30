@@ -2,6 +2,7 @@
 import BaseLayout from '~/layouts/BaseLayout.astro';
 import Hero from '~/components/home/Hero.astro';
 import SubjectsBand from '~/components/home/SubjectsBand.astro';
+import QuickTools from '~/components/home/QuickTools.astro';
 import FilterPanel from '~/components/filters/FilterPanel.astro';
 import ResourceGrid from '~/components/resources/ResourceGrid.astro';
 import { getResources } from '~/lib/collections';
@@ -10,6 +11,7 @@ const resources = await getResources();
 ---
 <BaseLayout title="StemVault · interactive teaching tools">
   <Hero />
+  <QuickTools />
   <SubjectsBand />
 
   <section class="browse" id="browse">
