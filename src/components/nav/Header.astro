@@ -11,6 +11,12 @@ const links = [
   { href: '/practice', label: 'Practice', active: isActive('/practice') },
   { href: '/tools', label: 'Tools', active: isActive('/tools') },
 ];
+// Frequently used tools, opened full screen, shown beside the main nav.
+const quick = [
+  { href: '/tools/calculator.html', label: 'Calculator' },
+  { href: '/tools/scratchpad.html', label: 'Scratchpad' },
+  { href: '/tools/class-timer.html', label: 'Class Timer' },
+];
 ---
 <header class="site-header" id="site-header">
   <div class="container-wide header-inner">
@@ -18,13 +24,20 @@ const links = [
       <Logo size={30} />
     </div>
 
-    <nav class="primary-nav seg" aria-label="Primary">
-      {links.map(l => (
-        <a href={l.href} class:list={['nav-link', { on: l.active }]} aria-current={l.active ? 'page' : undefined}>
-          {l.label}
-        </a>
-      ))}
-    </nav>
+    <div class="nav-group">
+      <nav class="primary-nav seg" aria-label="Primary">
+        {links.map(l => (
+          <a href={l.href} class:list={['nav-link', { on: l.active }]} aria-current={l.active ? 'page' : undefined}>
+            {l.label}
+          </a>
+        ))}
+      </nav>
+      <nav class="quick-nav" aria-label="Frequently used tools">
+        {quick.map(q => (
+          <a href={q.href} class="quick-link">{q.label}</a>
+        ))}
+      </nav>
+    </div>
 
     <div class="header-tools">
       <SearchBar />
@@ -47,6 +60,10 @@ const links = [
     <div class="container-wide mobile-inner">
       {links.map(l => (
         <a href={l.href} class:list={['mobile-link', { active: l.active }]}>{l.label}</a>
+      ))}
+      <span class="mobile-label">Frequently used</span>
+      {quick.map(q => (
+        <a href={q.href} class="mobile-link quick">{q.label}</a>
       ))}
     </div>
   </nav>
@@ -94,7 +111,14 @@ const links = [
   }
   .header-brand { display: flex; align-items: center; }
 
-  .primary-nav { justify-self: start; margin-left: 0.5rem; }
+  .nav-group { display: flex; align-items: center; gap: 0.6rem; justify-self: start; margin-left: 0.5rem; min-width: 0; }
+  .quick-nav { display: flex; align-items: center; gap: 0.15rem; padding-left: 0.6rem; border-left: 1px solid var(--rule); }
+  .quick-link {
+    font-size: 0.85rem; font-weight: 500; color: var(--ink-dim);
+    padding: 0.42rem 0.6rem; border-radius: 8px; white-space: nowrap;
+    transition: color var(--ease), background var(--ease);
+  }
+  .quick-link:hover { color: var(--accent); background: var(--glass-key); }
   .nav-link { text-decoration: none; }
   .nav-link:hover { color: var(--ink); background: var(--glass); }
 
@@ -118,10 +142,13 @@ const links = [
   .mobile-link { font-weight: 500; font-size: 0.95rem; color: var(--ink); padding: 0.7rem 0.25rem; border-bottom: 1px solid var(--rule); }
   .mobile-link:last-child { border-bottom: 0; }
   .mobile-link.active { color: var(--accent); font-weight: 600; }
+  .mobile-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); padding: 0.9rem 0.25rem 0.3rem; }
+  .mobile-link.quick { color: var(--ink-dim); }
 
+  @media (max-width: 1100px) { .quick-nav { display: none; } }
   @media (max-width: 860px) {
     .header-inner { grid-template-columns: auto minmax(0, 1fr); gap: 0.75rem; }
-    .primary-nav { display: none; }
+    .nav-group { display: none; }
     .header-tools { justify-content: flex-end; min-width: 0; }
     .menu-btn { display: inline-flex; flex-shrink: 0; }
   }
