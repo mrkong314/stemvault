@@ -11,17 +11,19 @@ interface Props {
   fullPage?: boolean;
 }
 const {
-  title = 'StemVault - interactive teaching tools',
+  title = 'StemVault · interactive teaching tools',
   description = 'A place for interactive teaching tools and STEM resources.',
   noindex = false,
   fullPage = false,
 } = Astro.props;
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined;
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f6f3ed" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -31,12 +33,17 @@ const {
     />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    {canonical && <link rel="canonical" href={canonical} />}
     {noindex && <meta name="robots" content="noindex" />}
     <title>{title}</title>
   </head>
   <body class:list={{ 'full-page': fullPage }}>
+    <a class="skip-link" href="#main">Skip to content</a>
     <Header />
-    <main>
+    <main id="main">
       <slot />
     </main>
     <Footer />
@@ -45,3 +52,21 @@ const {
     </script>
   </body>
 </html>
+
+<style is:global>
+  .skip-link {
+    position: absolute;
+    top: -100px;
+    left: 1rem;
+    z-index: 100;
+    background: var(--pine);
+    color: #fff;
+    padding: 0.5rem 0.9rem;
+    border-radius: 0 0 var(--radius) var(--radius);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .skip-link:focus { top: 0; color: #fff; }
+</style>

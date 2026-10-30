@@ -4,7 +4,7 @@ import ResourceEmbed from '~/components/resources/ResourceEmbed.astro';
 import FullPageEmbed from '~/components/resources/FullPageEmbed.astro';
 import TypeBadge from '~/components/resources/TypeBadge.astro';
 import AddButton from '~/components/edit/AddButton.astro';
-import { getResources, embedSrc, fileHref } from '~/lib/collections';
+import { getResources, embedSrc, topicFor, topicSlug } from '~/lib/collections';
 import { TYPE_LABEL } from '~/lib/types';
 import { subjectFromSlug, slugForSubject } from '~/data/subjects';
 
@@ -26,6 +26,8 @@ const { Content } = await resource.render();
 const src = embedSrc(resource);
 const isExternal = Boolean(embedUrl);
 const subjectInfo = subjectFromSlug(slugForSubject(subject));
+const topic = topicFor(resource);
+const topicHref = topic ? `/resources/${subjectInfo?.slug}/${topicSlug(topic)}` : undefined;
 // Applets and quizzes open edge to edge (full page); videos keep the standard page.
 const fullPage = Boolean(src) && (type === 'applet' || type === 'quiz');
 const sourceLabel = isExternal ? new URL(src!, 'https://x').hostname.replace('x', '') : 'Download applet';
@@ -50,46 +52,50 @@ const sourceLabel = isExternal ? new URL(src!, 'https://x').hostname.replace('x'
       <h1 class="about-title">{title}</h1>
       {description && <p class="lede">{description}</p>}
       {tags.length > 0 && (
-        <ul class="tag-list">
-          {tags.map(t => <li>{t}</li>)}
+        <ul role="list" class="tag-list">
+          {tags.map(t => <li class="tag">{t}</li>)}
         </ul>
       )}
       <div class="prose">
         <Content />
       </div>
       <p class="meta">
-        <span class="label-mono">Source</span>
-        <a href={src} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined} class="source-link">
-          {sourceLabel}
+        {topicHref && <a href={topicHref}>← Back to {topic}</a>}
+        <a href={src} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined}>
+          Source: {sourceLabel}
         </a>
       </p>
     </div>
   </FullPageEmbed>
   ) : (
-  <article class="resource-page">
+  <article class="page">
     <div class="container">
-      <nav class="crumbs">
+      <nav class="crumbs" aria-label="Breadcrumb">
         <a href="/resources">Resources</a>
-        <span aria-hidden="true">·</span>
+        <span class="crumb-sep" aria-hidden="true">/</span>
         <a href={`/resources/${subjectInfo?.slug}`}>{subject}</a>
-        <span aria-hidden="true">·</span>
-        <span>{TYPE_LABEL[type]}</span>
+        {topicHref && (
+          <>
+            <span class="crumb-sep" aria-hidden="true">/</span>
+            <a href={topicHref}>{topic}</a>
+          </>
+        )}
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        <span class="crumb-current">{title}</span>
       </nav>
       <header class="page-head">
+        <div class="head-badges">
+          <TypeBadge type={type} format={format} />
+          <span class="eyebrow">{subject} · Yr {yearLevel.join(', ')}</span>
+        </div>
         <div class="head-row">
-          <div>
-            <div class="head-badges">
-              <TypeBadge type={type} format={format} />
-              <span class="eyebrow">{subject} · Yr {yearLevel.join(', ')}</span>
-            </div>
-            <h1>{title}</h1>
-            {description && <p class="lede">{description}</p>}
-          </div>
+          <h1>{title}</h1>
           <AddButton label={`Edit ${TYPE_LABEL[type].toLowerCase()}`} kind="applet" />
         </div>
+        {description && <p class="page-sub">{description}</p>}
         {tags.length > 0 && (
-          <ul class="tag-list">
-            {tags.map(t => <li>{t}</li>)}
+          <ul role="list" class="tag-list tags">
+            {tags.map(t => <li class="tag">{t}</li>)}
           </ul>
         )}
       </header>
@@ -97,15 +103,15 @@ const sourceLabel = isExternal ? new URL(src!, 'https://x').hostname.replace('x'
       {src ? (
         <ResourceEmbed src={src} title={title} />
       ) : (
-        <p class="no-embed">No embeddable source for this resource.</p>
+        <p class="empty">No embeddable source for this resource.</p>
       )}
 
       <footer class="resource-foot">
         <div class="meta">
           <span class="label-mono">Source</span>
           {src && (
-            <a href={src} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined} class="source-link">
-              {sourceLabel}
+            <a href={src} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined}>
+              {sourceLabel}{isExternal && ' ↗'}
             </a>
           )}
         </div>
@@ -119,59 +125,15 @@ const sourceLabel = isExternal ? new URL(src!, 'https://x').hostname.replace('x'
 </BaseLayout>
 
 <style>
-  .resource-page { padding: 2.5rem 0 3rem; }
-  .crumbs {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--ink-mute);
-    margin-bottom: 1rem;
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-  .crumbs a { color: var(--ink-mute); }
-  .crumbs a:hover { color: var(--pine); }
-  .head-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1.5rem;
-    margin-bottom: 1rem;
-  }
   .head-badges {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     flex-wrap: wrap;
+    margin-bottom: 0.3rem;
   }
-  .page-head h1 { margin: 0.4rem 0 0.6rem; max-width: 22ch; }
-  .lede { color: var(--ink-soft); margin: 0; max-width: 60ch; }
-  .tag-list {
-    list-style: none;
-    padding: 0;
-    margin: 1rem 0 1.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-  .tag-list li {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    background: var(--paper-warm);
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    color: var(--ink-mute);
-  }
-  .no-embed {
-    background: var(--paper-warm);
-    border-radius: var(--radius);
-    padding: 1.5rem;
-    color: var(--ink-mute);
-    text-align: center;
-    font-style: italic;
-  }
+  .page-head h1 { max-width: 24ch; }
+  .tags { margin-top: 1rem; }
   .resource-foot {
     margin-top: 1.5rem;
     display: grid;
@@ -187,28 +149,21 @@ const sourceLabel = isExternal ? new URL(src!, 'https://x').hostname.replace('x'
     font-size: 0.88rem;
     color: var(--ink-soft);
   }
-  .meta a { color: var(--pine); text-decoration: none; transition: color 0.15s; }
-  .meta a:hover { color: var(--pine-dark); text-decoration: underline; }
-  .prose :global(p) { line-height: 1.65; color: var(--ink-soft); }
+  .meta a:hover { text-decoration: underline; }
 
   /* About panel (full-page mode) */
-  .about .head-badges { margin-bottom: 0.2rem; }
   .about-title { font-size: 1.5rem; margin: 0.4rem 0 0.5rem; }
-  .about .lede { font-size: 0.95rem; }
-  .about .tag-list { margin: 0.9rem 0 0.6rem; }
+  .about .lede { font-size: 0.95rem; color: var(--ink-soft); margin: 0 0 0.8rem; }
   .about .prose :global(p) { font-size: 0.92rem; margin: 0.6rem 0; }
   .about .meta {
     flex-direction: row;
-    gap: 0.6rem;
-    align-items: baseline;
-    margin: 0.8rem 0 0;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+    margin: 0.9rem 0 0;
     padding-top: 0.8rem;
     border-top: 1px solid var(--line);
   }
-  .about .meta a { color: var(--pine); text-decoration: none; }
-  .about .meta a:hover { text-decoration: underline; }
   @media (max-width: 760px) {
     .resource-foot { grid-template-columns: 1fr; }
-    .head-row { flex-direction: column; }
   }
 </style>

@@ -2,6 +2,7 @@
 import TypeBadge from './TypeBadge.astro';
 import type { ResourceEntry } from '~/lib/collections';
 import { resourceHref, isExternalHref } from '~/lib/collections';
+import { SUBJECTS } from '~/data/subjects';
 
 interface Props {
   resource: ResourceEntry;
@@ -10,9 +11,11 @@ const { resource } = Astro.props;
 const { title, type, subject, yearLevel, tags, description, format } = resource.data;
 const href = resourceHref(resource);
 const external = isExternalHref(resource);
+const accent = SUBJECTS.find(s => s.name === subject)?.accent ?? 'var(--pine)';
 ---
 <article
-  class="resource-card"
+  class="resource-card card"
+  style={`--accent: ${accent}`}
   data-resource
   data-type={type}
   data-subject={subject}
@@ -30,14 +33,14 @@ const external = isExternalHref(resource);
       <TypeBadge type={type} format={format} />
       <span class="card-years">Yr {yearLevel.join(', ')}</span>
     </header>
-    <h3 class="card-title">{title}</h3>
+    <h3 class="card-title">{title}{external && <span class="ext" aria-hidden="true"> ↗</span>}</h3>
     {description && <p class="card-desc">{description}</p>}
     <footer class="card-foot">
       <span class="card-subject">{subject}</span>
       {tags.length > 0 && (
-        <div class="card-tags">
+        <span class="card-tags">
           {tags.slice(0, 3).map(t => <span class="tag">{t}</span>)}
-        </div>
+        </span>
       )}
     </footer>
   </a>
@@ -45,77 +48,74 @@ const external = isExternalHref(resource);
 
 <style>
   .resource-card {
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+  }
+  .resource-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--accent);
   }
   .resource-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-card);
-    border-color: var(--pine);
+    border-color: rgba(31, 93, 76, 0.35);
   }
   .card-inner {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    padding: 1.1rem 1.2rem 1rem;
+    flex: 1;
+    padding: 1rem 1.1rem 1rem 1.25rem;
     color: var(--ink);
   }
-  .card-inner:hover { color: var(--ink); }
   .card-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.5rem;
     margin-bottom: 0.7rem;
   }
   .card-years {
     font-family: var(--font-mono);
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
+    font-size: 0.64rem;
+    letter-spacing: 0.08em;
     color: var(--ink-mute);
   }
   .card-title {
-    font-family: var(--font-display);
-    font-size: 1.2rem;
-    font-weight: 400;
+    font-size: 1.15rem;
     margin: 0 0 0.4rem;
     line-height: 1.2;
-    color: var(--ink);
+    transition: color var(--ease);
   }
+  .resource-card:hover .card-title { color: var(--pine); }
+  .ext { font-family: var(--font-mono); font-size: 0.75em; color: var(--ink-mute); }
   .card-desc {
     font-size: 0.88rem;
-    color: var(--ink-soft);
     line-height: 1.5;
-    margin: 0 0 1rem;
-    flex: 1;
+    color: var(--ink-soft);
+    margin: 0 0 0.9rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .card-foot {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
     margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
   }
   .card-subject {
     font-family: var(--font-mono);
-    font-size: 0.68rem;
+    font-size: 0.64rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: var(--pine);
+    color: var(--accent);
   }
-  .card-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-  }
-  .tag {
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    text-transform: lowercase;
-    color: var(--ink-mute);
-    background: var(--paper-warm);
-    padding: 0.18rem 0.55rem;
-    border-radius: 999px;
-  }
+  .card-tags { display: flex; gap: 0.3rem; flex-wrap: wrap; min-width: 0; }
 </style>

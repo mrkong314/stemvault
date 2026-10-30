@@ -1,7 +1,7 @@
 ---
 import ResourceLayout from '~/layouts/ResourceLayout.astro';
 import { SUBJECTS, subjectFromSlug } from '~/data/subjects';
-import { getSubjectTopicTree, topicSlug } from '~/lib/collections';
+import { getResources, getSubjectTopicTree, topicSlug, topicFor } from '~/lib/collections';
 import AddButton from '~/components/edit/AddButton.astro';
 
 export async function getStaticPaths() {
@@ -11,31 +11,45 @@ export async function getStaticPaths() {
 const { subject } = Astro.props;
 const subjectInfo = subjectFromSlug(Astro.params.subject!);
 const tree = await getSubjectTopicTree();
-const topics = tree[subject] ?? [];
+const all = await getResources();
+const topics = (tree[subject] ?? []).map(t => ({
+  name: t,
+  slug: topicSlug(t),
+  count: all.filter(r => r.data.subject === subject && (
+    (topicFor(r) ?? '').toLowerCase() === t.toLowerCase() ||
+    r.data.tags.some(tag => tag.toLowerCase() === t.toLowerCase())
+  )).length,
+}));
+const total = all.filter(r => r.data.subject === subject).length;
 ---
 <ResourceLayout
   title={`${subject} · Resources · StemVault`}
   description={`Topics in ${subject}.`}
   activeSubject={subjectInfo?.slug}
 >
-  <header class="page-head">
-    <span class="eyebrow">Subject</span>
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="/resources">Resources</a>
+    <span class="crumb-sep" aria-hidden="true">/</span>
+    <span class="crumb-current">{subject}</span>
+  </nav>
+  <header class="page-head" style={`--accent: ${subjectInfo?.accent}`}>
+    <span class="eyebrow accent">Subject</span>
     <div class="head-row">
-      <h1 style={`color: ${subjectInfo?.accent}`}>{subject}</h1>
+      <h1 class="accent">{subject}</h1>
       <AddButton label="+ File" kind="file" />
     </div>
-    <p class="page-sub">Pick a topic to see the applets and files for {subject.toLowerCase()}.</p>
+    <p class="page-sub">{total} resource{total === 1 ? '' : 's'} across {topics.length} topic{topics.length === 1 ? '' : 's'}. Pick a topic to see what's in it.</p>
   </header>
 
   {topics.length === 0 ? (
-    <p class="empty">No topics yet for {subject}. Add a file under <code>src/content/files/</code> with this subject.</p>
+    <p class="empty">No topics yet for {subject}. Add a resource under <code>src/content/resources/</code> with this subject.</p>
   ) : (
-    <ul class="topic-list">
+    <ul role="list" class="topic-grid">
       {topics.map(t => (
         <li>
-          <a class="topic-link" href={`/resources/${subjectInfo?.slug}/${topicSlug(t)}`}>
-            <span class="topic-name">{t}</span>
-            <span class="topic-arrow" aria-hidden="true">→</span>
+          <a class="topic-link card" href={`/resources/${subjectInfo?.slug}/${t.slug}`} style={`--accent: ${subjectInfo?.accent}`}>
+            <span class="topic-name">{t.name}</span>
+            <span class="topic-count">{t.count}</span>
           </a>
         </li>
       ))}
@@ -44,50 +58,36 @@ const topics = tree[subject] ?? [];
 </ResourceLayout>
 
 <style>
-  .head-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-  .page-head h1 { margin: 0.4rem 0 0.6rem; }
-  .page-sub { color: var(--ink-soft); margin: 0 0 1rem; }
-  .empty {
-    color: var(--ink-mute);
-    background: var(--paper-warm);
-    padding: 1rem 1.2rem;
-    border-radius: var(--radius);
-  }
-  .empty code {
-    font-family: var(--font-mono);
-    background: rgba(0, 0, 0, 0.04);
-    padding: 0.05em 0.35em;
-    border-radius: 3px;
-  }
-  .topic-list {
-    list-style: none;
-    margin: 1.5rem 0 0;
-    padding: 0;
+  .accent { color: var(--accent); }
+  .topic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.75rem;
   }
   .topic-link {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: 1rem 1.2rem;
+    gap: 0.75rem;
+    padding: 0.9rem 1.1rem;
     color: var(--ink);
-    transition: border-color 0.15s, transform 0.15s;
+    height: 100%;
   }
-  .topic-list li + li { margin-top: 0.5rem; }
-  .topic-link:hover { border-color: var(--pine); transform: translateX(2px); color: var(--pine); }
+  .topic-link:hover { border-color: var(--accent); }
   .topic-name {
     font-family: var(--font-display);
-    font-size: 1.15rem;
-    font-weight: 400;
+    font-size: 1.1rem;
+    line-height: 1.2;
+    transition: color var(--ease);
   }
-  .topic-arrow { font-family: var(--font-mono); color: var(--ink-mute); }
-  .topic-link:hover .topic-arrow { color: var(--pine); }
+  .topic-link:hover .topic-name { color: var(--accent); }
+  .topic-count {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    color: var(--ink-mute);
+    background: var(--paper-warm);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
 </style>

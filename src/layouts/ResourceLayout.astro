@@ -22,14 +22,16 @@ const { title, description, activeSubject, activeTopic } = Astro.props;
 <style>
   .resources {
     display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 2rem;
-    padding-top: 2.5rem;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 2.5rem;
+    padding-top: 2rem;
     padding-bottom: 3rem;
     align-items: start;
   }
   .resources-main { min-width: 0; }
   @media (max-width: 880px) {
-    .resources { grid-template-columns: 1fr; }
+    .resources { grid-template-columns: 1fr; gap: 2rem; }
+    /* Content first on phones; the topic nav follows below it. */
+    .resources > :first-child { order: 2; padding-top: 1.5rem; border-top: 1px solid var(--line); }
   }
 </style>

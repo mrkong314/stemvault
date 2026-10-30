@@ -1,20 +1,24 @@
 @import '@fontsource/syne/400.css';
 @import '@fontsource/syne/500.css';
 @import '@fontsource/syne/600.css';
-@import '@fontsource/syne/700.css';
 @import '@fontsource/space-mono/400.css';
 @import '@fontsource/space-mono/700.css';
 
+/* ------------------------------------------------------------------ */
+/* Tokens                                                              */
+/* ------------------------------------------------------------------ */
 :root {
-  /* brand palette */
   --pine: #1f5d4c;
   --pine-deep: #164336;
   --pine-soft: #2d7460;
+  --pine-tint: rgba(31, 93, 76, 0.08);
   --amber: #c97a28;
   --amber-soft: #e09a4a;
+  --amber-tint: rgba(201, 122, 40, 0.1);
   --paper: #f6f3ed;
   --paper-warm: #efe9dc;
   --paper-deep: #e6dfce;
+  --surface: #fffdf9;
   --ink: #1a1a1a;
   --ink-soft: #3a3a3a;
   --ink-mute: #6a6a6a;
@@ -23,34 +27,45 @@
   --dark: #14201d;
   --dark-2: #0d1715;
 
-  /* type */
+  /* resource type colours */
+  --type-applet: #1f5d4c;
+  --type-quiz: #6b4fa3;
+  --type-video: #b3443d;
+  --type-file: #2d6a8f;
+
   --font-display: 'DM Serif Display', Georgia, 'Times New Roman', serif;
   --font-body: 'Syne', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'Space Mono', ui-monospace, 'Courier New', monospace;
 
-  /* layout */
   --container: 1200px;
   --container-wide: 1400px;
-  --radius: 6px;
-  --radius-lg: 12px;
-  --radius-xl: 18px;
+  --radius: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
 
   --shadow-soft: 0 1px 2px rgba(20, 32, 29, 0.04), 0 4px 16px rgba(20, 32, 29, 0.04);
-  --shadow-card: 0 1px 3px rgba(20, 32, 29, 0.06), 0 8px 24px rgba(20, 32, 29, 0.05);
+  --shadow-card: 0 1px 3px rgba(20, 32, 29, 0.06), 0 10px 28px rgba(20, 32, 29, 0.06);
+  --shadow-pop: 0 2px 6px rgba(20, 32, 29, 0.08), 0 16px 40px rgba(20, 32, 29, 0.12);
+
+  --ease: 160ms ease;
+  --header-h: 64px;
 }
 
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
 *,
 *::before,
-*::after {
-  box-sizing: border-box;
-}
+*::after { box-sizing: border-box; }
 
 html {
   font-family: var(--font-body);
   background: var(--paper);
   color: var(--ink);
+  color-scheme: light;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  scroll-padding-top: calc(var(--header-h) + 1rem);
 }
 
 body {
@@ -62,34 +77,28 @@ body {
   font-feature-settings: 'ss01', 'ss02';
 }
 
-main {
-  flex: 1;
-}
+main { flex: 1; }
 
-h1,
-h2,
-h3,
-h4,
-h5 {
+h1, h2, h3, h4, h5 {
   font-family: var(--font-display);
   font-weight: 400;
   letter-spacing: -0.01em;
   color: var(--ink);
-  margin: 0 0 0.5em 0;
+  margin: 0 0 0.5em;
   line-height: 1.1;
+  text-wrap: balance;
 }
+h1 { font-size: clamp(2.1rem, 4.2vw, 3.4rem); }
+h2 { font-size: clamp(1.6rem, 2.8vw, 2.25rem); }
+h3 { font-size: 1.3rem; }
+h4 { font-size: 1.1rem; }
 
-h1 { font-size: clamp(2.25rem, 4.5vw, 3.75rem); font-weight: 400; }
-h2 { font-size: clamp(1.75rem, 3vw, 2.5rem); }
-h3 { font-size: 1.4rem; }
-h4 { font-size: 1.15rem; }
-
-p { line-height: 1.6; margin: 0 0 1em 0; }
+p { line-height: 1.6; margin: 0 0 1em; }
 
 a {
   color: var(--pine);
   text-decoration: none;
-  transition: color 0.15s;
+  transition: color var(--ease);
 }
 a:hover { color: var(--amber); }
 
@@ -100,42 +109,39 @@ button {
 
 img { max-width: 100%; height: auto; display: block; }
 
-/* utilities */
-.container {
-  width: 100%;
-  max-width: var(--container);
-  margin: 0 auto;
-  padding: 0 1.5rem;
+ul[role="list"], ol[role="list"] { list-style: none; margin: 0; padding: 0; }
+
+:focus-visible {
+  outline: 2px solid var(--pine);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Layout utilities                                                    */
+/* ------------------------------------------------------------------ */
+.container,
 .container-wide {
   width: 100%;
-  max-width: var(--container-wide);
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 0 1.25rem;
+}
+.container { max-width: var(--container); }
+.container-wide { max-width: var(--container-wide); }
+@media (min-width: 720px) {
+  .container, .container-wide { padding: 0 2rem; }
 }
 
-.label-mono {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--ink-mute);
-}
+.page { padding: 2.5rem 0 4rem; }
 
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--pine);
-}
-
-/* edit mode visibility */
-body:not([data-edit="on"]) [data-edit-only] {
-  display: none !important;
-}
-
-/* hide-on-screen but visible to screen readers */
 .sr-only {
   position: absolute;
   width: 1px; height: 1px;
@@ -145,19 +151,178 @@ body:not([data-edit="on"]) [data-edit-only] {
   border: 0;
 }
 
-/* focus */
-:focus-visible {
-  outline: 2px solid var(--pine);
-  outline-offset: 2px;
-  border-radius: 4px;
+/* ------------------------------------------------------------------ */
+/* Typographic primitives                                              */
+/* ------------------------------------------------------------------ */
+.label-mono,
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  line-height: 1.4;
+}
+.label-mono { color: var(--ink-mute); }
+.eyebrow { color: var(--pine); display: inline-block; }
+
+.page-head { margin-bottom: 1.75rem; }
+.page-head h1 { margin: 0.45rem 0 0.5rem; }
+.page-sub {
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 60ch;
+  font-size: 1.02rem;
+}
+.head-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.head-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-mute);
+  min-width: 0;
+}
+.crumbs a { color: var(--ink-mute); }
+.crumbs a:hover { color: var(--pine); }
+.crumbs .crumb-sep { opacity: 0.5; }
+.crumbs .crumb-current {
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 40ch;
 }
 
-/* Full-page mode (BaseLayout fullPage): the main content fills the viewport
-   below the header, the page never scrolls, and the footer is hidden. Used by
-   applet/quiz resource pages so the embed opens edge to edge. */
-body.full-page {
+/* ------------------------------------------------------------------ */
+/* Components                                                          */
+/* ------------------------------------------------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.1rem;
+  background: var(--pine);
+  color: #fff;
+  border: 1px solid var(--pine);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background var(--ease), color var(--ease), border-color var(--ease);
+}
+.btn:hover { background: var(--pine-deep); border-color: var(--pine-deep); color: #fff; }
+.btn-ghost { background: transparent; color: var(--pine); }
+.btn-ghost:hover { background: var(--pine-tint); color: var(--pine); border-color: var(--pine); }
+.btn-quiet {
+  background: transparent;
+  color: var(--ink-soft);
+  border-color: var(--line);
+}
+.btn-quiet:hover { background: transparent; color: var(--pine); border-color: var(--pine); }
+.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.68rem; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease);
+}
+a.card:hover, .card.is-link:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+  border-color: rgba(31, 93, 76, 0.35);
+}
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  background: var(--paper-warm);
+  color: var(--ink-mute);
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tag-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  color: #fff;
+  background: var(--type-applet);
+  white-space: nowrap;
+}
+.type-badge.type-quiz { background: var(--type-quiz); }
+.type-badge.type-video { background: var(--type-video); }
+.type-badge.type-file,
+.type-badge.type-pdf,
+.type-badge.type-ppt,
+.type-badge.type-doc,
+.type-badge.type-link { background: var(--type-file); }
+.type-badge.type-link { background: var(--ink-mute); }
+
+.empty {
+  color: var(--ink-mute);
+  background: var(--paper-warm);
+  padding: 1rem 1.2rem;
+  border-radius: var(--radius);
+  margin: 0;
+}
+.empty code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.05em 0.35em;
+  border-radius: 3px;
+}
+
+.prose p { line-height: 1.65; color: var(--ink-soft); }
+.prose a { text-decoration: underline; text-underline-offset: 2px; }
+
+/* ------------------------------------------------------------------ */
+/* Edit mode                                                           */
+/* ------------------------------------------------------------------ */
+body:not([data-edit="on"]) [data-edit-only] { display: none !important; }
+
+/* ------------------------------------------------------------------ */
+/* Full-page mode (BaseLayout fullPage): content fills the viewport    */
+/* below the header, the page never scrolls, and the footer is hidden. */
+/* ------------------------------------------------------------------ */
+body.full-page {
   height: 100dvh;
   overflow: hidden;
 }

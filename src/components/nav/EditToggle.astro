@@ -104,80 +104,81 @@
   .edit-trigger {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.35rem;
+    height: 40px;
+    min-width: 40px;
     background: transparent;
     border: 1px solid var(--line);
     color: var(--ink-soft);
-    padding: 0.4rem 0.7rem;
+    padding: 0 0.8rem;
     border-radius: 999px;
-    font-size: 0.78rem;
+    font-size: 0.68rem;
     font-family: var(--font-mono);
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
+    transition: border-color var(--ease), color var(--ease), background var(--ease);
   }
   .edit-trigger:hover { border-color: var(--pine); color: var(--pine); }
   .edit-icon { width: 14px; height: 14px; }
   .edit-icon-unlocked { display: none; }
   .edit-trigger.is-unlocked .edit-icon-locked { display: none; }
   .edit-trigger.is-unlocked .edit-icon-unlocked { display: inline-block; }
-  .edit-trigger.is-unlocked { color: var(--pine); border-color: var(--pine); background: rgba(31, 93, 76, 0.06); }
+  .edit-trigger.is-unlocked { color: var(--pine); border-color: var(--pine); background: var(--pine-tint); }
   .edit-label { font-weight: 500; }
 
   .edit-popover {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    background: #fff;
+    background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius-lg);
     padding: 0.85rem;
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-pop);
     width: 230px;
     z-index: 60;
   }
-  .edit-row {
-    display: flex;
-    gap: 0.4rem;
-    margin-top: 0.3rem;
-  }
+  .edit-row { display: flex; gap: 0.4rem; margin-top: 0.3rem; }
   .edit-row input {
     flex: 1;
     min-width: 0;
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    padding: 0.4rem 0.55rem;
+    padding: 0.45rem 0.6rem;
     font: inherit;
     background: var(--paper);
   }
-  .edit-row input:focus { outline: none; border-color: var(--pine); }
+  .edit-row input:focus { outline: none; border-color: var(--pine); box-shadow: 0 0 0 3px var(--pine-tint); }
   .edit-submit {
     background: var(--pine);
     color: #fff;
     border: none;
     border-radius: var(--radius);
     padding: 0.4rem 0.7rem;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
   .edit-submit:hover { background: var(--pine-deep); }
-  .edit-msg {
-    font-size: 0.78rem;
-    margin-top: 0.5rem;
-    min-height: 1em;
-  }
+  .edit-msg { font-size: 0.78rem; margin-top: 0.5rem; min-height: 1em; }
   .edit-lock {
     margin-top: 0.5rem;
     background: transparent;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 0.3rem 0.6rem;
-    font-size: 0.75rem;
+    font-size: 0.68rem;
     color: var(--ink-mute);
     font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
   .edit-lock:hover { color: var(--amber); border-color: var(--amber); }
+
+  @media (max-width: 480px) {
+    .edit-label { display: none; }
+    .edit-trigger { padding: 0; }
+  }
 </style>

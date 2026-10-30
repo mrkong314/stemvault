@@ -16,26 +16,14 @@ const {
 <div class="resource-grid">
   {resources.map(r => <ResourceCard resource={r} />)}
 </div>
-<p class="grid-empty" data-empty-for={emptyFor} hidden={resources.length > 0}>
+<p class="empty" data-empty-for={emptyFor} hidden={resources.length > 0}>
   {emptyMessage}
 </p>
 
 <style>
   .resource-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.1rem;
-  }
-  @media (max-width: 960px) {
-    .resource-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 620px) {
-    .resource-grid { grid-template-columns: 1fr; }
-  }
-  .grid-empty {
-    text-align: center;
-    color: var(--ink-mute);
-    padding: 2rem 0;
-    font-style: italic;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.9rem;
   }
 </style>

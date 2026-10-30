@@ -16,11 +16,13 @@ const brandSwatches = [
   { name: 'Dark', value: '#14201d' },
 ];
 ---
-<BaseLayout title="Palette Picker · Tools · StemVault">
+<BaseLayout title="Palette Picker · Tools · StemVault" description="Sample any colour, check its contrast on paper, and browse the StemVault brand palette.">
   <section class="page">
     <div class="container">
-      <nav class="crumbs">
+      <nav class="crumbs" aria-label="Breadcrumb">
         <a href="/tools">Tools</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        <span class="crumb-current">Palette Picker</span>
       </nav>
       <header class="page-head">
         <span class="eyebrow">Tool</span>
@@ -111,19 +113,6 @@ const brandSwatches = [
 </script>
 
 <style>
-  .page { padding: 2.5rem 0 4rem; }
-  .crumbs {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--ink-mute);
-    margin-bottom: 1rem;
-  }
-  .crumbs a { color: var(--ink-mute); }
-  .crumbs a:hover { color: var(--pine); }
-  .page-head h1 { margin: 0.4rem 0 0.6rem; }
-  .page-sub { color: var(--ink-soft); margin: 0 0 1.5rem; max-width: 60ch; }
 
   .picker {
     background: #fff;

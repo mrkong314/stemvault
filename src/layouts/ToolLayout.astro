@@ -1,0 +1,62 @@
+---
+/**
+ * Page shell for the framed tools under /tools. Keeps the crumbs, heading,
+ * description, optional "open full screen" link and the iframe in one place.
+ */
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  /** iframe source, e.g. /tools/class-timer.html */
+  src: string;
+  /** Link to the standalone page (for phones / home-screen install). */
+  fullscreenHref?: string;
+  /** CSS height of the frame. */
+  height?: string;
+}
+const { title, description, src, fullscreenHref, height = 'min(88vh, 960px)' } = Astro.props;
+---
+<BaseLayout title={`${title} · Tools · StemVault`} description={description}>
+  <section class="page">
+    <div class="container">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/tools">Tools</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        <span class="crumb-current">{title}</span>
+      </nav>
+      <header class="page-head">
+        <span class="eyebrow">Tool</span>
+        <div class="head-row">
+          <h1>{title}</h1>
+          {fullscreenHref && (
+            <a class="btn btn-quiet btn-sm" href={fullscreenHref}>Open full screen ↗</a>
+          )}
+        </div>
+        <p class="page-sub">{description}</p>
+      </header>
+      <slot name="before" />
+      <iframe
+        src={src}
+        title={title}
+        class="tool-frame"
+        style={`height: ${height}`}
+        allow="fullscreen; clipboard-write"
+        allowfullscreen
+      ></iframe>
+      <slot />
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .tool-frame {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: #fff;
+    box-shadow: var(--shadow-soft);
+  }
+  .head-row { align-items: center; }
+</style>

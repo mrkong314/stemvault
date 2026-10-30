@@ -7,12 +7,12 @@ interface Props {
   resource: ResourceEntry;
 }
 const { resource } = Astro.props;
-const { title, type, subject, yearLevel, tags, format, sourceNote } = resource.data;
+const { title, type, subject, yearLevel, tags, format, sourceNote, description } = resource.data;
 const href = resourceHref(resource);
 const external = isExternalHref(resource);
 ---
 <a
-  class="resource-row"
+  class="resource-row card"
   href={href}
   target={external ? '_blank' : undefined}
   rel={external ? 'noopener noreferrer' : undefined}
@@ -24,76 +24,67 @@ const external = isExternalHref(resource);
   data-title={title}
 >
   <span class="badge-wrap"><TypeBadge type={type} format={format} /></span>
-  <div class="body">
-    <div class="row-title">{title}</div>
-    <div class="row-meta">
-      <span class="meta-year">Yr {yearLevel.join(', ')}</span>
-      {sourceNote && <span class="meta-source">· {sourceNote}</span>}
-    </div>
+  <span class="body">
+    <span class="row-title">{title}</span>
+    {description && <span class="row-desc">{description}</span>}
+    <span class="row-meta">
+      <span>Yr {yearLevel.join(', ')}</span>
+      {sourceNote && <span>· {sourceNote}</span>}
+    </span>
     {tags.length > 0 && (
-      <div class="row-tags">
-        {tags.slice(0, 5).map(t => <span class="t">{t}</span>)}
-      </div>
+      <span class="tag-list row-tags">
+        {tags.slice(0, 5).map(t => <span class="tag">{t}</span>)}
+      </span>
     )}
-  </div>
+  </span>
   <span class="row-arrow" aria-hidden="true">{external ? '↗' : '→'}</span>
 </a>
 
 <style>
   .resource-row {
     display: grid;
-    grid-template-columns: 110px 1fr auto;
-    gap: 1.2rem;
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
     align-items: start;
-    padding: 1rem 1.2rem;
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    color: var(--ink);
-    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
-  }
-  .resource-row + .resource-row { margin-top: 0.5rem; }
-  .resource-row:hover {
-    border-color: var(--pine);
-    transform: translateX(2px);
-    box-shadow: var(--shadow-soft);
+    padding: 1rem 1.1rem;
     color: var(--ink);
   }
-  .badge-wrap { padding-top: 2px; }
-  .body { min-width: 0; }
+  .badge-wrap { padding-top: 0.15rem; }
+  .body { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
   .row-title {
     font-family: var(--font-display);
-    font-size: 1.1rem;
-    font-weight: 400;
-    color: var(--ink);
-    margin-bottom: 0.25rem;
+    font-size: 1.15rem;
+    line-height: 1.2;
+    transition: color var(--ease);
+  }
+  .resource-row:hover .row-title { color: var(--pine); }
+  .row-desc {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .row-meta {
     font-family: var(--font-mono);
-    font-size: 0.72rem;
+    font-size: 0.64rem;
+    letter-spacing: 0.06em;
     color: var(--ink-mute);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.4rem;
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
   }
-  .meta-source { text-transform: none; letter-spacing: 0; }
-  .row-tags { display: flex; gap: 0.3rem; flex-wrap: wrap; }
-  .t {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    background: var(--paper-warm);
-    padding: 0.15rem 0.5rem;
-    border-radius: 999px;
-    color: var(--ink-mute);
-  }
+  .row-tags { margin-top: 0.2rem; }
   .row-arrow {
     font-family: var(--font-mono);
     color: var(--ink-mute);
-    align-self: center;
+    transition: color var(--ease), transform var(--ease);
   }
-  .resource-row:hover .row-arrow { color: var(--pine); }
-  @media (max-width: 620px) {
-    .resource-row { grid-template-columns: 80px 1fr; }
-    .row-arrow { display: none; }
+  .resource-row:hover .row-arrow { color: var(--pine); transform: translateX(2px); }
+  @media (max-width: 560px) {
+    .resource-row { grid-template-columns: 1fr auto; }
+    .badge-wrap { grid-column: 1 / -1; }
   }
 </style>

@@ -73,6 +73,7 @@ function wire(panel: HTMLElement) {
     panel.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(c => (c.checked = false));
     panel.querySelectorAll<HTMLInputElement>('input[type="search"]').forEach(s => {
       s.value = '';
+      s.dispatchEvent(new Event('input'));
     });
     apply();
   });

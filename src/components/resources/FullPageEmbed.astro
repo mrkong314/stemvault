@@ -75,112 +75,65 @@ const hasAbout = Astro.slots.has('about');
     min-height: 0;
     display: flex;
     flex-direction: column;
+    background: #fff;
   }
-
   .applet-bar {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.75rem 1rem;
-    padding: 0.5rem 1.1rem;
-    border-bottom: 1px solid var(--line);
+    gap: 1rem;
+    padding: 0.45rem 1rem;
     background: var(--paper);
+    border-bottom: 1px solid var(--line);
   }
-
-  .crumbs {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 0;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--ink-mute);
-  }
-  .crumbs a { color: var(--ink-mute); white-space: nowrap; }
-  .crumbs a:hover { color: var(--pine); }
-  .crumb-current {
-    color: var(--ink);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .bar-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex: 0 0 auto;
-  }
+  .applet-bar .crumbs { margin: 0; flex-wrap: nowrap; }
+  .bar-actions { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
   .bar-btn {
+    display: inline-flex;
+    align-items: center;
     font-family: var(--font-mono);
-    font-size: 0.72rem;
+    font-size: 0.66rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--ink-soft);
     background: transparent;
     border: 1px solid var(--line);
     border-radius: 999px;
-    padding: 0.35rem 0.85rem;
+    padding: 0.35rem 0.8rem;
+    line-height: 1;
     cursor: pointer;
-    text-decoration: none;
     white-space: nowrap;
-    transition: border-color 0.15s, color 0.15s;
+    transition: border-color var(--ease), color var(--ease), background var(--ease);
   }
-  .bar-btn:hover,
-  .bar-btn[aria-expanded="true"] {
-    border-color: var(--pine);
-    color: var(--pine);
-  }
+  .bar-btn:hover { border-color: var(--pine); color: var(--pine); }
+  .bar-btn[aria-expanded="true"] { background: var(--pine); border-color: var(--pine); color: #fff; }
 
-  /* The About panel overlays the frame so toggling it never resizes the applet. */
   .about-panel {
     position: absolute;
-    top: 3rem; /* overridden with the bar's real height on open */
-    right: 1.1rem;
-    z-index: 20;
-    width: min(32rem, calc(100% - 2.2rem));
+    left: 0; right: 0;
+    z-index: 5;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    box-shadow: var(--shadow-pop);
     max-height: 70vh;
-    overflow: auto;
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-card);
+    overflow-y: auto;
   }
-  .about-panel[hidden] { display: none; }
-  .about-inner { padding: 1.1rem 1.3rem 1.2rem; }
-
-  .frame-wrap {
-    position: relative;
-    flex: 1 1 auto;
-    min-height: 0;
-    background: #fff;
-  }
-  .applet-frame {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border: 0;
+  .about-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 1.25rem 1.25rem 1.5rem;
   }
 
-  /* Native fullscreen. */
+  .frame-wrap { flex: 1 1 auto; min-height: 0; background: #fff; }
+  .applet-frame { display: block; width: 100%; height: 100%; border: 0; }
+
   .applet-shell:fullscreen { background: #fff; }
-
-  /* Fallback when the Fullscreen API is refused: fill the window, covering the header. */
-  .applet-shell.faux-fs {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    background: #fff;
-  }
+  .applet-shell.faux-fs { position: fixed; inset: 0; z-index: 100; background: #fff; }
 
   @media (max-width: 600px) {
-    .applet-bar { flex-wrap: wrap; padding: 0.45rem 0.8rem; }
-    .crumbs { width: 100%; }
-    .bar-actions { width: 100%; justify-content: flex-end; }
-    .about-panel { right: 0.8rem; width: calc(100% - 1.6rem); }
+    .bar-btn { padding: 0.35rem 0.6rem; }
+    .applet-bar .crumbs :global(a:not(:last-of-type)) { display: none; }
   }
 </style>
 
