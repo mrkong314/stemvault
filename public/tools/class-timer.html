@@ -277,6 +277,13 @@
   .name-input:hover, .name-input:focus { border-color: var(--rule-strong); background: var(--surface); outline: none; }
   .name-input::placeholder { color: var(--ink-dim); font-weight: 500; }
   .timer .seg { flex-shrink: 0; }
+  /* Pencil beside the name: the name is already an input, this makes that visible on touch. */
+  .timer .rename {
+    flex: none; width: 32px; height: 32px; margin-left: -4px; padding: 0; border: 0; border-radius: 8px;
+    background: transparent; color: var(--ink-dim); display: inline-flex; align-items: center; justify-content: center;
+  }
+  .timer .rename svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .timer .rename:hover, .timer .head:focus-within .rename { color: var(--accent); }
   .timer .digits { font-size: clamp(3.4rem, 20vw, 5.4rem); margin: 4px 0 4px; }
   .timer .digits .tenths { font-size: 0.45em; color: var(--ink-dim); font-weight: 500; }
   .timer .digits.over { color: var(--danger); }
@@ -382,7 +389,7 @@
 
   /* Big display */
   body.big { padding-block: 10px calc(10px + env(safe-area-inset-bottom, 0px)); min-height: 100dvh; }
-  body.big header.topbar, body.big .strip, body.big .add-row, body.big .laps, body.big .presets, body.big .meta, body.big .remove-wrap, body.big .timer .seg { display: none; }
+  body.big header.topbar, body.big .strip, body.big .add-row, body.big .laps, body.big .presets, body.big .meta, body.big .remove-wrap, body.big .timer .seg, body.big .rename { display: none; }
   body.big .app { max-width: none; min-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px)); display: grid; grid-template-rows: 1fr auto; gap: 12px; padding-top: env(safe-area-inset-top, 0px); }
   body.big { height: auto; min-height: 100dvh; overflow: auto; display: block; }
   body.big .scroll { overflow: visible; margin: 0; padding: 0; }
@@ -788,6 +795,7 @@
     root.innerHTML =
       '<div class="head">' +
         '<input class="name-input" type="text" maxlength="40" autocomplete="off" aria-label="Timer name">' +
+        '<button type="button" class="rename" aria-label="Rename timer" title="Rename"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>' +
         '<div class="seg" role="tablist"><button type="button" data-mode="sw" role="tab">Stopwatch</button><button type="button" data-mode="cd" role="tab">Countdown</button></div>' +
       '</div>' +
       '<div class="digits num"></div>' +
@@ -800,7 +808,7 @@
       '<ol class="laps"></ol>' +
       '<div class="remove-wrap"><button type="button" class="remove">Remove timer</button></div>';
     const els = {
-      name: root.querySelector('.name-input'), seg: root.querySelector('.seg'), digits: root.querySelector('.digits'),
+      name: root.querySelector('.name-input'), rename: root.querySelector('.rename'), seg: root.querySelector('.seg'), digits: root.querySelector('.digits'),
       presets: root.querySelector('.presets'), custom: root.querySelector('.presets input'), start: root.querySelector('.start'),
       lap: root.querySelector('.lap'), laps: root.querySelector('.laps'), remove: root.querySelector('.remove')
     };
@@ -809,6 +817,8 @@
     els.name.placeholder = 'Timer ' + (index + 1);
     els.name.value = t.name || '';
     els.name.addEventListener('input', () => { t.name = els.name.value; save(); });
+    els.name.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); els.name.blur(); } });
+    els.rename.addEventListener('click', () => { els.name.focus(); els.name.select(); });
 
     els.seg.addEventListener('click', e => {
       const b = e.target.closest('button[data-mode]'); if (!b || b.dataset.mode === t.mode) return;
