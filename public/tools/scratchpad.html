@@ -3053,9 +3053,20 @@ document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ if(!setti
 /* ---------- backup and restore (JSON file of every note) ---------- */
 function backupNotes(){
   var payload={format:'pocket-scratchpad',version:2,exported:new Date().toISOString(),tabs:state.tabs,groups:state.groups,favourites:state.favourites,settings:state.settings};
-  var json=JSON.stringify(payload,null,1);
-  try{ var blob=new Blob([json],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='scratchpad-notes-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },2000); }catch(e){}
-  copyText(json,'Backup downloaded and copied to the clipboard');
+  var json=JSON.stringify(payload,null,1), name='scratchpad-notes-'+new Date().toISOString().slice(0,10)+'.json';
+  // inside the claude.ai viewer a page cannot download on its own: ask the host to save the file
+  var hostSave=function(){
+    if(!(window.claude && typeof window.claude.use==='function')) return Promise.resolve(false);
+    return window.claude.use('downloads').then(function(d){
+      if(!d) return false;
+      return d.save({filename:name,data:json}).then(function(){ toast('Backup saved'); return true; },function(err){ if(err && err.code==='declined'){ toast('Backup not saved'); return true; } return false; });
+    },function(){ return false; });
+  };
+  hostSave().then(function(done){
+    if(done) return;
+    try{ var blob=new Blob([json],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },2000); }catch(e){}
+    copyText(json,'Backup downloaded and copied to the clipboard');
+  });
 }
 document.getElementById('restoreFile').addEventListener('change',function(e){
   var f=e.target.files[0]; e.target.value=''; if(!f) return;
