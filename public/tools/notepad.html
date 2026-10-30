@@ -692,6 +692,11 @@ textarea.code:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent
 /* calculator and maths blocks: the Calculator's line cards */
 .calc,.mathblk{margin:8px 0;border-radius:18px;min-width:0;overflow:hidden;background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-edge)}
 .calc-lines{padding:0}
+.add-line-strip{display:block;width:100%;border:0;background:transparent;color:var(--accent);cursor:pointer;padding:0;margin:0;height:0;overflow:hidden;opacity:0;transition:height .15s ease,opacity .15s ease;border-top:1px solid transparent;-webkit-tap-highlight-color:transparent}
+.add-line-strip span{display:flex;align-items:center;justify-content:center;height:100%;font-size:1.1rem;line-height:1;font-weight:500}
+.calc:hover .add-line-strip,.mathblk:hover .add-line-strip,.block:focus-within .add-line-strip{height:1.7rem;opacity:.85;border-top:1px solid var(--glass-border)}
+.add-line-strip:hover{background:rgba(10,132,255,.08);opacity:1!important}
+@media (hover:none){ .calc:hover .add-line-strip,.mathblk:hover .add-line-strip{height:0;opacity:0} .block:focus-within .add-line-strip{height:1.9rem;opacity:.85;border-top:1px solid var(--glass-border)} }
 .cl{display:flex;flex-wrap:wrap;gap:.3rem .6rem;align-items:center;padding:.4rem 1rem;border-top:1px solid var(--glass-border);transition:background .12s}
 .cl:first-child{border-top:0}
 .cl:hover{background:var(--calc-row)}
@@ -1003,7 +1008,8 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
         <tr><td>Exact / Decimal</td><td>Exact shows fractions, surds and multiples of π. Set it, the angle, precision and first or all roots in Settings (gear, top right).</td></tr>
         <tr><td>* *, or ^ ^</td><td>Pressing * twice, or ^ twice, gives ×10^ with the cursor in the exponent. On the phone keypad, hold ×. A single * is a × sign.</td></tr>
         <tr><td>Prefix dropdown</td><td>With the cursor in an empty ×10^ exponent, a list of nano to giga appears. Type letters to filter, arrows and Enter to pick, or type digits straight in.</td></tr>
-        <tr><td>Enter / Backspace</td><td>Adds or removes a line. Backspace on an empty only line removes the section (Ctrl/Cmd+A then Backspace clears a line first).</td></tr>
+        <tr><td>Enter / Tab / +</td><td>Enter, Tab on the last line, or the + strip under the section adds a line. Backspace on an empty only line removes the section.</td></tr>
+        <tr><td>Up / Down</td><td>Move between lines and out of the section at either end. Inside a fraction or power, Down steps from top to bottom first.</td></tr>
         <tr><td>Maths block</td><td>/math or $$ gives the same typeset entry without results, for writing equations and working. \ and @ search work there too.</td></tr>
       </table>
       <h3>Inline</h3>
@@ -3219,6 +3225,15 @@ editor.addEventListener('keydown',function(e){
   var cl=e.target.closest?e.target.closest('.cl-in'):null; if(!cl||!cl._mq) return;
   if(bslState.open && bslState.mq){ if(bslKeyMq(e)){ e.preventDefault(); e.stopPropagation(); } return; }
   if(pfxState.open && pfxState.el===cl){ if(pfxKey(e)){ e.preventDefault(); e.stopPropagation(); return; } }
+  if((e.key==='ArrowDown'||e.key==='ArrowUp') && !e.shiftKey && !e.altKey && !e.metaKey && !e.ctrlKey){
+    var down=e.key==='ArrowDown', cur=cl.querySelector('.mq-cursor'), stay=false;
+    if(cur){ if(down){ stay=!!(cur.closest('.mq-numerator') || (cur.closest('.mq-sup') && cur.closest('.mq-supsub') && cur.closest('.mq-supsub').querySelector('.mq-sub'))); }
+             else { stay=!!(cur.closest('.mq-denominator') || (cur.closest('.mq-sub') && cur.closest('.mq-supsub') && cur.closest('.mq-supsub').querySelector('.mq-sup'))); } }
+    if(!stay){ e.preventDefault(); e.stopPropagation(); var blkA=cl.closest('.block'), bA=getBlock(blkA.dataset.id), iA=+cl.dataset.i;
+      if(down){ if(iA>=bA.lines.length-1){ if(!moveFocus(bA,1)) appendBlockAfter(bA,'p'); } else focusBlock(bA.id,Infinity,{i:iA+1}); }
+      else { if(iA===0) moveFocus(bA,-1); else focusBlock(bA.id,Infinity,{i:iA-1}); }
+      return; }
+  }
   var now=Date.now(), dbl=cl._dbl; cl._dbl=null;
   if(e.key==='*' && !e.ctrlKey && !e.metaKey && !e.altKey){ e.preventDefault(); e.stopPropagation(); var mqx=cl._mq;
     if(e.repeat){ if(cl._sciHeld) return; cl._sciHeld=true; mqx.keystroke('Backspace'); insertSciExp(mqx); return; }
@@ -3362,7 +3377,7 @@ function calcHTML(b){
     s+='<div class="cl"><span class="cl-in" data-i="'+i+'"></span>'+
        '<div class="cl-out'+(r.err&&!(r.undef&&r.undef.length)?' err':'')+(r.muted?' muted':'')+(r.undef&&r.undef.length?' undef':'')+'" data-i="'+i+'">'+calcOutHTML(r)+'</div></div>';
   });
-  s+='</div></div>';
+  s+='</div><button type="button" class="add-line-strip" title="Add line" aria-label="Add line"><span>+</span></button></div>';
   return s;
 }
 function calcOutHTML(r){ if(r.undef&&r.undef.length){ var h='<span class="undef-lbl">'+(r.undef.length===1?'Add variable:':'Add variables:')+'</span>'; if(r.undef.length>1) h+='<button type="button" class="addvar addall" data-all="1">Add all</button>'; h+=r.undef.map(function(v){ return '<button type="button" class="addvar vchip" data-var="'+esc(v)+'" title="Add a line defining '+esc(v)+'">'+(katexHTML(varLatex(v)+'=1')||esc(prettyName(v)+' = 1'))+'</button>'; }).join(''); return h; } if(r.err) return esc(r.err); var t=r.latex?katexHTML(r.latex):''; if(!t) t=esc(r.text||''); if(r.note) t+='<span class="cl-note">'+esc(r.note)+'</span>'; return t; }
@@ -3370,7 +3385,7 @@ function calcModesHTML(){ var S=state.settings; return '<button type="button" da
 function mathHTML(b){
   var s='<div class="mathblk"><div class="calc-lines">';
   b.lines.forEach(function(line,i){ s+='<div class="cl ml"><span class="cl-in" data-i="'+i+'"></span></div>'; });
-  s+='</div></div>';
+  s+='</div><button type="button" class="add-line-strip" title="Add line" aria-label="Add line"><span>+</span></button></div>';
   return s;
 }
 function blockHTML(b,num){
@@ -4272,6 +4287,7 @@ editor.addEventListener('click',function(e){
   if(e.target.closest('.tog')){ b.collapsed=!b.collapsed; render(); save(); return; }
   if(e.target.closest('.img-x')){ removeBoxBlock(b); return; }
   var tb=e.target.closest('.tbl-tools button'); if(tb){ var fc=blk._lastCell||{r:0,c:0}; tableAct(b,tb.dataset.act,fc.r,fc.c); return; }
+  if(e.target.closest('.add-line-strip') && (b.type==='calc'||b.type==='math')){ calcInsert(b,b.lines.length-1,''); return; }
   var vc=e.target.closest('.addvar'); if(vc && (b.type==='calc')){ var li=+vc.closest('.cl-out').dataset.i; if(vc.dataset.all){ var rr=evalCalc(b)[li]||{}; addVariables(b,li,rr.undef||[]); } else addVariables(b,li,[vc.dataset.var]); return; }
   var cb=e.target.closest('.calc-foot button'); if(cb){ if(cb.dataset.set){ setSetting(cb.dataset.set,cb.dataset.val); } else removeBoxBlock(b); return; }
   if(e.target.closest('.calc, .mathblk') && !e.target.closest('.cl-in')){ var ins=blk.querySelectorAll('.cl-in'); if(ins.length && !e.target.closest('.cl-out')) focusCalcField(ins[ins.length-1],Infinity); }
