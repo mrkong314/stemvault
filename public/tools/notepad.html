@@ -595,6 +595,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 html,body{height:100%}
 body{font-size:17px;line-height:1.5;min-height:100%}
+/* the ambient colour field stays, but faint: the page reads as a flat cool off-white like the Calculator */
+body::before{opacity:.28}
 #app{min-height:100%}
 .topbar{top:env(safe-area-inset-top,0px);padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
 .topbar .inner{max-width:none;flex-wrap:wrap;gap:8px 10px}
