@@ -57,7 +57,9 @@
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
 /* Ambient colour field behind the glass, so the blur has something to refract. */
-body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+/* Keep it faint: at 14% the blobs are barely perceptible, as on the Calculator and Notepad. A page that fills
+   the viewport with one big glass panel shows more of the field than the Calculator's dense layout does. */
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.14;
   background: radial-gradient(40rem 40rem at 12% 8%, var(--ambient-1), transparent 60%), radial-gradient(36rem 36rem at 88% 14%, var(--ambient-2), transparent 60%), radial-gradient(44rem 44rem at 70% 96%, var(--ambient-3), transparent 62%), var(--bg); }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; -webkit-user-select: none; user-select: none; }

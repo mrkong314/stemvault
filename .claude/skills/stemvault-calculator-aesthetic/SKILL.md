@@ -11,7 +11,7 @@ Produce a single self-contained `.html` file that looks native to StemVault: the
 
 ## The look, in one paragraph
 
-System font (`-apple-system … Roboto`), never a webfont. Headings are bold with tight tracking; labels are small, bold, uppercase, grey. Light mode is a cool off-white with three soft ambient colour blobs behind translucent white glass; dark mode is near-black (`#0a0a0c`) with the same blobs in deep blue, purple and green behind dark glass. One accent, system blue, for the primary action, selected state and links; green for on/success, amber for warnings, red for destructive. Panels are 18px-radius glass with a hairline border and an inner top highlight. Controls are iOS-shaped: 11px-radius buttons, a segmented control for modes, a switch for booleans, a stepper for small integers, pill-shaped chips for tags. Depth comes from the glass, not from heavy shadows or gradients on the content itself.
+System font (`-apple-system … Roboto`), never a webfont. Headings are bold with tight tracking; labels are small, bold, uppercase, grey. Light mode is a cool off-white with three very faint ambient colour blobs behind translucent white glass; dark mode is near-black (`#0a0a0c`) with the same blobs in deep blue, purple and green behind dark glass. The blobs are kept at 14% opacity (set in `tokens.css`) so the page reads as flat off-white or near-black at a glance; green or purple patches that are plainly visible mean the field is too strong. One accent, system blue, for the primary action, selected state and links; green for on/success, amber for warnings, red for destructive. Panels are 18px-radius glass with a hairline border and an inner top highlight. Controls are iOS-shaped: 11px-radius buttons, a segmented control for modes, a switch for booleans, a stepper for small integers, pill-shaped chips for tags. Depth comes from the glass, not from heavy shadows or gradients on the content itself.
 
 ## Rules
 
@@ -40,7 +40,7 @@ System font (`-apple-system … Roboto`), never a webfont. Headings are bold wit
 
 ## Checklist before finishing
 
-- Tokens pasted unchanged; no webfonts; no external requests.
+- Tokens pasted unchanged (ambient field at 14%); no webfonts; no external requests.
 - Topbar + settings popover with Appearance segment; theme persisted.
 - Light and dark both checked; canvas/SVG re-colours on theme change.
 - Primary action is a blue pill; destructive actions are armed, not `confirm()`ed.
