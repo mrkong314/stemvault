@@ -39,7 +39,7 @@ export const TOOLS: Tool[] = [
   {
     slug: 'scratchpad',
     title: 'Scratchpad',
-    description: 'A single blank note for quick ideas with checkboxes, lists, toggles, Markdown shortcuts and pasted images. Saved only in the browser, on the device. Installs to a phone home screen.',
+    description: 'Notes filed as tabs and groups, with checkboxes, lists, toggles, tables, inline calculator sections, Markdown shortcuts and pasted images. Saved only in the browser, on the device. Installs to a phone home screen.',
     href: '/tools/scratchpad',
   },
   {

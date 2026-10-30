@@ -1,7 +1,7 @@
 {
   "name": "Scratchpad",
   "short_name": "Scratchpad",
-  "description": "A single blank note for quick ideas with checkboxes, lists, toggles, Markdown and images. Saved only in this browser, on this device.",
+  "description": "Notes with grouped tabs, checkboxes, lists, toggles, tables, inline calculators, Markdown and images. Saved only in this browser, on this device.",
   "start_url": "/tools/scratchpad.html",
   "scope": "/tools/",
   "display": "standalone",
