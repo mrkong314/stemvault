@@ -79,7 +79,9 @@
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
 /* Ambient colour field behind the glass, so the blur has something to refract. */
-body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+/* Keep it faint: at 14% the blobs are barely perceptible, as on the Calculator and Notepad. A page that fills
+   the viewport with one big glass panel shows more of the field than the Calculator's dense layout does. */
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.14;
   background: radial-gradient(40rem 40rem at 12% 8%, var(--ambient-1), transparent 60%), radial-gradient(36rem 36rem at 88% 14%, var(--ambient-2), transparent 60%), radial-gradient(44rem 44rem at 70% 96%, var(--ambient-3), transparent 62%), var(--bg); }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; -webkit-user-select: none; user-select: none; }
@@ -595,8 +597,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 html,body{height:100%}
 body{font-size:1.0625rem;line-height:1.5;min-height:100%}
-/* the ambient colour field stays, but faint: the page reads as a flat cool off-white like the Calculator */
-body::before{opacity:.14}
 html{font-size:var(--zoom-px,16px)}
 #app{min-height:100vh;display:flex;flex-direction:column}
 .topbar{top:env(safe-area-inset-top,0px);padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
@@ -762,7 +762,11 @@ textarea.code:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent
 .tab.active{background:var(--glass-strong);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12),inset 0 1px 0 var(--glass-edge)}
 .tab.grouped{padding-left:22px}
 .tab.grouped::before{content:"";position:absolute;left:11px;top:50%;width:5px;height:5px;border-radius:50%;background:var(--group-color,var(--ink-dim));transform:translateY(-50%)}
-.tab .tname{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .ttext{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.tab .tname{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .snip{display:block;font-size:.74rem;font-weight:400;color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .snip .dim{font-style:italic}
+.tab .snip mark,mark.hit{background:rgba(255,214,10,.5);color:inherit;border-radius:3px;padding:0 1px}
 input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid var(--accent);border-radius:7px;background:var(--panel);color:var(--ink);min-width:0;outline:none}
 .tab button{flex:0 0 auto;width:26px;height:26px;border:0;background:transparent;color:var(--ink-dim);border-radius:7px;cursor:pointer;font-size:.85rem;padding:0;opacity:0;line-height:1}
 .tab:hover button,.tab.active button{opacity:.75}
@@ -836,7 +840,8 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
   #app:not(.dock-off){padding-left:290px}
   #app:not(.dock-off) #sidepanel{transform:none;transition:none}
   #app:not(.dock-off) #panelScrim{display:none}
-  #app:not(.dock-off) .topbar{padding-left:calc(290px + 16px)}
+  #app:not(.dock-off) .topbar{padding-left:16px}
+  #app:not(.dock-off) #panelToggle{color:var(--accent)}
 }
 /* touch: block toolbar and keypad under the top bar, larger targets */
 @media (pointer:coarse){
@@ -948,7 +953,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
         <tr><td>Groups</td><td>Coloured, collapsible headings. Click the dot or right-click the heading to rename, recolour, add a note, ungroup or delete.</td></tr>
         <tr><td>Drag</td><td>Drag notes to reorder them or drop one onto a group heading. Drag a heading to move the whole group.</td></tr>
         <tr><td>Star</td><td>Favourites are pinned at the top of the list.</td></tr>
-        <tr><td>Search</td><td>The box under New note filters notes by title and content. Enter opens the first match.</td></tr>
+        <tr><td>Search</td><td>The box under New note filters notes by title and content, shows the matching text under each note, and highlights it in the open note. Enter opens the first match.</td></tr>
         <tr><td>Back up</td><td>Settings has Back up all notes (a JSON file, also copied to the clipboard) and Restore from a backup file, which adds the notes in the file.</td></tr>
       </table>
       <h3>Line starts</h3>
@@ -3401,6 +3406,7 @@ function render(){
   editor.innerHTML=html;
   editor.querySelectorAll('textarea.code').forEach(autosize);
   initCalcFields();
+  highlightSearch();
 }
 /* place a popup just under an element, in .page coordinates (the popups are absolutely positioned inside .page) */
 function placePopup(pop,anchorEl,leftEl,width){
@@ -3415,6 +3421,16 @@ function placePopup(pop,anchorEl,leftEl,width){
 function repositionPopups(){ ['slash','bsl','tgrid','pfx'].forEach(function(id){ var pop=document.getElementById(id); if(pop && !pop.hidden && pop._anchor){ if(!pop._anchor.a.isConnected){ pop.hidden=true; return; } placePopup(pop,pop._anchor.a,pop._anchor.l,pop._anchor.w); } }); }
 window.addEventListener('scroll',repositionPopups,true); window.addEventListener('resize',repositionPopups);
 if(window.visualViewport){ window.visualViewport.addEventListener('resize',repositionPopups); window.visualViewport.addEventListener('scroll',repositionPopups); }
+function highlightSearch(){
+  editor.querySelectorAll('mark.hit').forEach(function(m){ var p=m.parentNode; p.replaceChild(document.createTextNode(m.textContent),m); p.normalize(); });
+  var q=(typeof tabFilter==='string')?tabFilter:''; if(!q) return;
+  editor.querySelectorAll('.content:not([data-mode="raw"]), .cell:not([data-mode="raw"]), .caption').forEach(function(el){
+    var walk=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,null), nodes=[], n; while((n=walk.nextNode())) nodes.push(n);
+    nodes.forEach(function(tn){ var txt=tn.nodeValue, lo=txt.toLowerCase(), i=lo.indexOf(q); if(i<0) return; var frag=document.createDocumentFragment(), pos=0;
+      while(i>=0){ frag.appendChild(document.createTextNode(txt.slice(pos,i))); var m=document.createElement('mark'); m.className='hit'; m.textContent=txt.slice(i,i+q.length); frag.appendChild(m); pos=i+q.length; i=lo.indexOf(q,pos); }
+      frag.appendChild(document.createTextNode(txt.slice(pos))); tn.parentNode.replaceChild(frag,tn); });
+  });
+}
 function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
 function blockEl(id){ return editor.querySelector('.block[data-id="'+id+'"]'); }
 function rerenderBlock(id){
@@ -3806,9 +3822,21 @@ function startTabRename(row,t,nameEl){
   var done=false; var commit=function(){ if(done) return; done=true; var v=inp.value.trim(); if(v!==(t.doc.title||'')){ t.doc.title=v; if(t.id===state.activeTabId) paintTitle(); } renderTabList(); save(); };
   inp.addEventListener('keydown',function(e){ if(e.key==='Enter') inp.blur(); else if(e.key==='Escape'){ inp.value=t.doc.title||''; inp.blur(); } });
   inp.addEventListener('blur',commit);
-  row.replaceChild(inp,nameEl); inp.focus(); inp.select();
+  nameEl.parentNode.replaceChild(inp,nameEl); inp.focus(); inp.select();
 }
 var tabFilter='';
+function matchHTML(text,q){ var i=text.toLowerCase().indexOf(q); if(i<0) return null; var s=Math.max(0,i-36), e=Math.min(text.length,i+q.length+60); return (s>0?'…':'')+esc(text.slice(s,i))+'<mark>'+esc(text.slice(i,i+q.length))+'</mark>'+esc(text.slice(i+q.length,e))+(e<text.length?'…':''); }
+function tabSnippet(t){
+  if(!tabFilter) return null; var q=tabFilter, d=t.doc, h=null;
+  d.blocks.some(function(b){
+    if(b.text && b.text.toLowerCase().indexOf(q)>=0){ h=matchHTML(b.text,q); return true; }
+    if(b.type==='table'){ return b.rows.some(function(r){ return r.some(function(c){ if(c.toLowerCase().indexOf(q)>=0){ h=matchHTML(c,q); return true; } return false; }); }); }
+    if(b.type==='calc'||b.type==='math'){ return b.lines.some(function(l){ var p=prettyPlain(latexToPlain(l)); if(l.toLowerCase().indexOf(q)>=0||p.toLowerCase().indexOf(q)>=0){ h=matchHTML(p.toLowerCase().indexOf(q)>=0?p:l,q); return true; } return false; }); }
+    return false;
+  });
+  if(!h && (d.title||'').toLowerCase().indexOf(q)>=0){ var f=null; d.blocks.some(function(b){ if(b.text&&b.text.trim()){ f=b.text; return true; } return false; }); h=f?esc(f.slice(0,90)):'<span class="dim">matches the name</span>'; }
+  return h;
+}
 function tabMatches(t){ if(!tabFilter) return true; var q=tabFilter; if(tabName(t).toLowerCase().indexOf(q)>=0) return true; var d=t.doc; if((d.title||'').toLowerCase().indexOf(q)>=0) return true; return d.blocks.some(function(b){ if(b.text && b.text.toLowerCase().indexOf(q)>=0) return true; if(b.type==='table') return b.rows.some(function(r){ return r.some(function(c){ return c.toLowerCase().indexOf(q)>=0; }); }); if(b.type==='calc'||b.type==='math') return b.lines.some(function(l){ return l.toLowerCase().indexOf(q)>=0; }); return false; }); }
 function renderTabList(){
   normalizeTabOrder();
@@ -3836,7 +3864,9 @@ function buildTabRow(t,g){
   var nm=document.createElement('span'); nm.className='tname'; nm.textContent=tabName(t); nm.title=nm.textContent;
   nm.addEventListener('click',function(e){ if(t.id===state.activeTabId && !row._dragged){ e.stopPropagation(); startTabRename(row,t,nm); } });
   nm.addEventListener('dblclick',function(e){ e.stopPropagation(); startTabRename(row,t,nm); });
-  row.appendChild(nm);
+  var tx=document.createElement('div'); tx.className='ttext'; tx.appendChild(nm);
+  var sn=tabSnippet(t); if(sn){ var se=document.createElement('span'); se.className='snip'; se.innerHTML=sn; tx.appendChild(se); }
+  row.appendChild(tx);
   var isFav=state.favourites.indexOf(t.id)>=0;
   var star=document.createElement('button'); star.type='button'; star.className='tstar'+(isFav?' on':''); star.textContent=isFav?'★':'☆'; star.title=isFav?'Remove from favourites':'Add to favourites';
   star.addEventListener('click',function(e){ e.stopPropagation(); toggleFavourite(t.id); }); star.addEventListener('pointerdown',function(e){ e.stopPropagation(); }); row.appendChild(star);
@@ -3981,8 +4011,8 @@ function openPanel(){ appEl.classList.add('panel-open'); document.getElementById
 function closePanel(){ appEl.classList.remove('panel-open'); document.getElementById('panelToggle').setAttribute('aria-expanded','false'); }
 document.getElementById('panelToggle').addEventListener('click',function(){ if(isDocked()){ state.settings.dockOff=!state.settings.dockOff; paintDock(); save(); return; } appEl.classList.contains('panel-open')?closePanel():openPanel(); });
 document.getElementById('panelScrim').addEventListener('click',closePanel);
-document.getElementById('noteSearch').addEventListener('input',function(e){ tabFilter=e.target.value.trim().toLowerCase(); renderTabList(); });
-document.getElementById('noteSearch').addEventListener('keydown',function(e){ if(e.key==='Escape'){ e.target.value=''; tabFilter=''; renderTabList(); e.target.blur(); } if(e.key==='Enter'){ var first=tabList.querySelector('.tab'); if(first) switchTab(first.dataset.tabId); } });
+document.getElementById('noteSearch').addEventListener('input',function(e){ tabFilter=e.target.value.trim().toLowerCase(); renderTabList(); highlightSearch(); });
+document.getElementById('noteSearch').addEventListener('keydown',function(e){ if(e.key==='Escape'){ e.target.value=''; tabFilter=''; renderTabList(); highlightSearch(); e.target.blur(); } if(e.key==='Enter'){ var first=tabList.querySelector('.tab'); if(first) switchTab(first.dataset.tabId); } });
 document.getElementById('newTab').addEventListener('click',function(){ newTab(); closePanel(); setTimeout(function(){ if(doc.blocks[0]) focusBlock(doc.blocks[0].id,0); },0); });
 
 /* ---------- settings and theme ---------- */
