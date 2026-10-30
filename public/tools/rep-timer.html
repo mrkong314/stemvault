@@ -170,6 +170,9 @@
   .bar > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 13px; transition: width 0.2s linear; }
   .bar.late > i { background: var(--warn); }
   .bar.done > i { background: var(--good); }
+  /* Final 10%: the fill pulses so the last stretch reads differently from the rest of the rep. */
+  .bar.final > i { animation: pulse 0.8s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.55; } }
   .bar .ticks { position: absolute; inset: 0; display: flex; justify-content: space-evenly; pointer-events: none; }
   .bar .ticks i { width: 2px; height: 100%; background: var(--bg); opacity: 0.6; }
   .times { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 10px; margin-top: 8px; }
@@ -186,6 +189,8 @@
   .gbtn.hold > span { position: relative; }
   .gbtn.hold small { position: relative; font-size: 0.68rem; font-weight: 500; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; }
   .gbtn.hold.holding { border-color: var(--accent); }
+  .gbtn.hold.small { min-height: 38px; padding: 0 12px; font-size: 0.85rem; border-radius: 999px; }
+  .gbtn.hold.small small { font-size: 0.6rem; }
 
   .presets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .presets button { border: 1px solid var(--glass-border); background: var(--glass-key); border-radius: 999px; padding: 8px 14px; font-size: 0.9rem; font-weight: 500; min-height: 38px; }
@@ -207,7 +212,7 @@
   body.big .controls { max-width: 420px; margin: 0 auto; width: 100%; }
   .exit-big { display: none; position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(10px + env(safe-area-inset-right, 0px)); z-index: 50; }
   body.big .exit-big { display: inline-flex; }
-  @media (prefers-reduced-motion: reduce) { .bar > i, .switch::after, .gbtn { transition: none; } body.flash { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .bar > i, .switch::after, .gbtn { transition: none; } body.flash, .bar.final > i { animation: none; } }
   @media (max-height: 640px) { .pct { font-size: clamp(4rem, 26vw, 8rem); } .controls .gbtn { min-height: 52px; } }
 </style>
 </head>
@@ -240,6 +245,19 @@
           <button class="switch" id="soundToggle" type="button" role="switch" aria-checked="true" aria-labelledby="soundLabel"></button>
         </div>
         <div class="row inline">
+          <span id="countLabel">Tick down the last three seconds</span>
+          <button class="switch" id="countToggle" type="button" role="switch" aria-checked="true" aria-labelledby="countLabel"></button>
+        </div>
+        <div class="row inline">
+          <span id="voiceLabel">Spoken cues</span>
+          <button class="switch" id="voiceToggle" type="button" role="switch" aria-checked="false" aria-labelledby="voiceLabel"></button>
+        </div>
+        <div class="row inline" id="vibeRow" hidden>
+          <span id="vibeLabel">Vibrate</span>
+          <button class="switch" id="vibeToggle" type="button" role="switch" aria-checked="true" aria-labelledby="vibeLabel"></button>
+        </div>
+        <div class="sep"></div>
+        <div class="row inline">
           <span id="autoLabel">Count reps, stop at the end</span>
           <button class="switch" id="autoToggle" type="button" role="switch" aria-checked="true" aria-labelledby="autoLabel"></button>
         </div>
@@ -271,7 +289,7 @@
   </div>
 
   <section class="glass panel settings">
-    <div class="row"><span class="label">Rep length</span><button type="button" class="hint" id="resetReps" style="border:0;background:transparent;padding:4px 0;color:var(--accent);font-weight:600">Back to rep 1</button></div>
+    <div class="row"><span class="label">Rep length</span><button type="button" class="gbtn hold small" id="resetReps" aria-label="New session, back to rep 1 (hold)"><span>New session</span><small>hold</small></button></div>
     <div class="presets" id="presets">
       <button type="button" data-s="30">30 s</button><button type="button" data-s="60">1 min</button><button type="button" data-s="120">2 min</button>
       <button type="button" data-s="180">3 min</button><button type="button" data-s="240">4 min</button><button type="button" data-s="300">5 min</button>
@@ -293,10 +311,13 @@
   const el = { sub: $('sub'), phase: $('phase'), rep: $('repLabel'), pct: $('pct'), bar: $('bar'), target: $('target'), remain: $('remain'), remainK: $('remainK'),
                start: $('startBtn'), reset: $('resetBtn'), skip: $('skipBtn'), resetReps: $('resetReps'), presets: $('presets'), custom: $('custom'),
                settings: $('settings'), settingsBtn: $('settingsBtn'), themeSeg: $('themeSeg'), sound: $('soundToggle'), auto: $('autoToggle'), wake: $('wakeStatus'),
+               count: $('countToggle'), voice: $('voiceToggle'), vibe: $('vibeToggle'), vibeRow: $('vibeRow'),
                big: $('bigBtn'), exitBig: $('exitBig') };
 
   // ---- State (persists so a running rep survives a reload or app switch) ----
-  let t = { theme: 'dark', target: 240000, running: false, startAt: 0, acc: 0, rep: 1, fired: false, auto: true, sound: true };
+  // q = last quarter cued, cd = last countdown second ticked, s30 = thirty-second cue spoken. Stored so a reload mid-rep does not refire them.
+  let t = { theme: 'dark', target: 240000, running: false, startAt: 0, acc: 0, rep: 1, fired: false, auto: true, sound: true,
+            count: true, voice: false, vibe: true, q: 0, cd: 0, s30: false };
   try { Object.assign(t, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
   function save() { try { localStorage.setItem(STORE, JSON.stringify(t)); } catch (e) {} }
   const elapsed = () => t.acc + (t.running ? Date.now() - t.startAt : 0);
@@ -307,15 +328,31 @@
   // ---- Audio ----
   let ctx = null;
   function unlock() { try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {} }
+  function tone(freq, at, dur, gain) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(gain || 0.5, at + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.connect(g).connect(ctx.destination); o.start(at); o.stop(at + dur + 0.04);
+  }
   function beep(n, freq) {
     if (!t.sound) return; unlock(); if (!ctx) return;
     const t0 = ctx.currentTime + 0.02;
-    for (let i = 0; i < n; i++) {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = 'sine'; o.frequency.value = freq || 880;
-      g.gain.setValueAtTime(0.0001, t0 + i * 0.3); g.gain.exponentialRampToValueAtTime(0.5, t0 + i * 0.3 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.3 + 0.22);
-      o.connect(g).connect(ctx.destination); o.start(t0 + i * 0.3); o.stop(t0 + i * 0.3 + 0.26);
-    }
+    for (let i = 0; i < n; i++) tone(freq || 880, t0 + i * 0.3, 0.22);
+  }
+  // Quarters rise in pitch (C5, E5, G5) so each one is distinguishable; the end is those three notes together.
+  const QUARTER_HZ = [0, 523, 659, 784];
+  function chord() {
+    if (!t.sound) return; unlock(); if (!ctx) return;
+    const t0 = ctx.currentTime + 0.02;
+    [523, 659, 784].forEach(f => tone(f, t0, 0.7, 0.3));
+    [523, 659, 784].forEach(f => tone(f, t0 + 0.4, 0.9, 0.3));
+  }
+  function tick() { if (!t.sound) return; unlock(); if (!ctx) return; tone(440, ctx.currentTime + 0.02, 0.1, 0.4); }
+  function buzz(pattern) { if (t.vibe && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} } }
+  const canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+  function say(text) {
+    if (!t.voice || !canSpeak) return;
+    try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.05; speechSynthesis.speak(u); } catch (e) {}
   }
   document.addEventListener('pointerdown', unlock, { passive: true });
 
@@ -331,82 +368,98 @@
   }
 
   // ---- Render ----
-  let lastQuarter = 0;
   function render() {
     const e = elapsed(), left = t.target - e, frac = Math.min(1, e / t.target);
     const pctNum = Math.min(100, Math.floor(frac * 100));
     const late = left < 0, done = left <= 0;
+    const final = t.running && !done && frac >= 0.9;
     el.pct.innerHTML = pctNum + '<span class="sym">%</span>';
     el.pct.classList.toggle('late', late); el.pct.classList.toggle('done', done && !late);
-    el.bar.classList.toggle('late', late); el.bar.classList.toggle('done', done && !late);
+    el.bar.classList.toggle('late', late); el.bar.classList.toggle('done', done && !late); el.bar.classList.toggle('final', final);
     el.bar.firstElementChild.style.width = (frac * 100).toFixed(2) + '%';
     el.remainK.textContent = late ? 'Over by' : 'Remaining';
     el.remain.textContent = fmt(Math.abs(left));
     el.remain.classList.toggle('late', late);
     el.target.textContent = 'of ' + fmtTarget(t.target);
-    el.phase.textContent = done ? (late ? 'Over' : 'Done') : t.running ? (frac >= 0.75 ? 'Push' : frac >= 0.5 ? 'Hold' : 'Go') : (e > 0 ? 'Paused' : 'Ready');
+    el.phase.textContent = done ? (late ? 'Over' : 'Done') : t.running ? (frac >= 0.9 ? 'Finish' : frac >= 0.75 ? 'Push' : frac >= 0.5 ? 'Hold' : 'Go') : (e > 0 ? 'Paused' : 'Ready');
     el.rep.textContent = 'Rep ' + t.rep;
     el.start.textContent = t.running ? 'Pause' : done ? 'Next rep' : e > 0 ? 'Resume' : 'Start';
     el.start.classList.toggle('stop', t.running); el.start.classList.toggle('go', !t.running);
     el.reset.disabled = !t.running && e === 0;
     const q = Math.floor(frac * 4);
-    if (t.running && q > lastQuarter && q < 4) { lastQuarter = q; beep(1, 660); }
+    if (t.running && q > t.q && q < 4) {
+      t.q = q; beep(1, QUARTER_HZ[q]); buzz(60);
+      say(q === 1 ? 'Quarter' : q === 2 ? 'Halfway' : 'Three quarters'); save();
+    }
+    const secLeft = Math.ceil(left / 1000);
+    if (t.running && !done && t.target >= 90000 && secLeft === 30 && !t.s30) { t.s30 = true; say('Thirty seconds'); save(); }
+    if (t.running && !done && secLeft >= 1 && secLeft <= 3 && secLeft !== t.cd) {
+      t.cd = secLeft; if (t.count) { tick(); buzz(40); } save();
+    }
     if (done && !t.fired && t.running) {
-      t.fired = true; beep(3, 880); document.body.classList.add('flash'); setTimeout(() => document.body.classList.remove('flash'), 1400);
+      t.fired = true; chord(); buzz([200, 80, 200]); say('Done. Rep ' + t.rep + ' complete');
+      document.body.classList.add('flash'); setTimeout(() => document.body.classList.remove('flash'), 1400);
       if (t.auto) { t.running = false; t.acc = t.target; }
       save();
     }
   }
-  function resetRep() { t.running = false; t.acc = 0; t.startAt = 0; t.fired = false; lastQuarter = 0; save(); render(); }
+  function clearCues() { t.fired = false; t.q = 0; t.cd = 0; t.s30 = false; }
+  function resetRep() { t.running = false; t.acc = 0; t.startAt = 0; clearCues(); save(); render(); }
 
   el.start.addEventListener('click', () => {
     unlock();
     if (t.running) { t.acc = elapsed(); t.running = false; }
     else {
-      if (t.target - t.acc <= 0) { t.acc = 0; t.fired = false; lastQuarter = 0; t.rep += 1; }
+      if (t.target - t.acc <= 0) { t.acc = 0; clearCues(); t.rep += 1; }
       t.startAt = Date.now(); t.running = true; holdWake();
+      if (t.acc === 0) say('Rep ' + t.rep + '. Go');
     }
     save(); render();
   });
   el.reset.addEventListener('click', resetRep);
-  el.resetReps.addEventListener('click', () => { t.rep = 1; resetRep(); });
 
-  // ---- Skip (hold to confirm) ----
-  // Moves straight to the next rep. A running timer keeps running from 0; a paused or ready one stays ready at 0.
+  // ---- Hold-to-confirm buttons ----
+  // The fill grows across the button while the pointer is down and the action fires when it reaches the edge.
   const HOLD_MS = 700;
-  let hold = null;
+  function attachHold(btn, onFire) {
+    let hold = null;
+    function start() {
+      if (hold) return;
+      unlock();
+      hold = { t0: performance.now(), raf: 0 };
+      btn.classList.add('holding');
+      const step = now => {
+        if (!hold) return;
+        const f = Math.min(1, (now - hold.t0) / HOLD_MS);
+        btn.style.setProperty('--hold', (f * 100).toFixed(1) + '%');
+        if (f >= 1) { end(); onFire(); return; }
+        hold.raf = requestAnimationFrame(step);
+      };
+      hold.raf = requestAnimationFrame(step);
+    }
+    function end() {
+      if (!hold) return;
+      cancelAnimationFrame(hold.raf); hold = null;
+      btn.classList.remove('holding'); btn.style.removeProperty('--hold');
+    }
+    btn.addEventListener('pointerdown', e => { if (e.button !== 0) return; try { btn.setPointerCapture(e.pointerId); } catch (err) {} start(); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => btn.addEventListener(ev, end));
+    btn.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); start(); } });
+    btn.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') end(); });
+    btn.addEventListener('blur', end);
+    btn.addEventListener('click', e => e.preventDefault());
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+  }
+  // Skip moves straight to the next rep. A running timer keeps running from 0; a paused or ready one stays ready at 0.
   function skipRep() {
     const wasRunning = t.running;
-    t.rep += 1; t.acc = 0; t.fired = false; lastQuarter = 0;
+    t.rep += 1; t.acc = 0; clearCues();
     t.startAt = wasRunning ? Date.now() : 0;
     beep(2, 520); save(); render();
   }
-  function holdStart() {
-    if (hold) return;
-    unlock();
-    hold = { t0: performance.now(), raf: 0 };
-    el.skip.classList.add('holding');
-    const tick = now => {
-      if (!hold) return;
-      const f = Math.min(1, (now - hold.t0) / HOLD_MS);
-      el.skip.style.setProperty('--hold', (f * 100).toFixed(1) + '%');
-      if (f >= 1) { holdEnd(); skipRep(); return; }
-      hold.raf = requestAnimationFrame(tick);
-    };
-    hold.raf = requestAnimationFrame(tick);
-  }
-  function holdEnd() {
-    if (!hold) return;
-    cancelAnimationFrame(hold.raf); hold = null;
-    el.skip.classList.remove('holding'); el.skip.style.removeProperty('--hold');
-  }
-  el.skip.addEventListener('pointerdown', e => { if (e.button !== 0) return; try { el.skip.setPointerCapture(e.pointerId); } catch (err) {} holdStart(); });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => el.skip.addEventListener(ev, holdEnd));
-  el.skip.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); holdStart(); } });
-  el.skip.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') holdEnd(); });
-  el.skip.addEventListener('blur', holdEnd);
-  el.skip.addEventListener('click', e => e.preventDefault());
-  el.skip.addEventListener('contextmenu', e => e.preventDefault());
+  attachHold(el.skip, skipRep);
+  // New session goes back to rep 1 with the timer ready at 0.
+  attachHold(el.resetReps, () => { t.rep = 1; resetRep(); beep(2, 392); buzz(60); });
   el.presets.addEventListener('click', e => {
     const b = e.target.closest('button[data-s]'); if (!b) return;
     t.target = (+b.dataset.s) * 1000; syncPresets(); resetRep();
@@ -434,10 +487,18 @@
   function syncSettings() {
     el.sound.setAttribute('aria-checked', String(!!t.sound));
     el.auto.setAttribute('aria-checked', String(!!t.auto));
+    el.count.setAttribute('aria-checked', String(!!t.count));
+    el.voice.setAttribute('aria-checked', String(!!t.voice));
+    el.vibe.setAttribute('aria-checked', String(!!t.vibe));
+    el.vibeRow.hidden = !navigator.vibrate;
+    el.voice.disabled = !canSpeak;
   }
   el.themeSeg.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (!b) return; t.theme = b.dataset.v; save(); applyTheme(); });
   el.sound.addEventListener('click', () => { t.sound = !t.sound; save(); syncSettings(); if (t.sound) beep(1); });
   el.auto.addEventListener('click', () => { t.auto = !t.auto; save(); syncSettings(); });
+  el.count.addEventListener('click', () => { t.count = !t.count; save(); syncSettings(); if (t.count) tick(); });
+  el.voice.addEventListener('click', () => { t.voice = !t.voice; save(); syncSettings(); if (t.voice) say('Spoken cues on'); });
+  el.vibe.addEventListener('click', () => { t.vibe = !t.vibe; save(); syncSettings(); if (t.vibe) buzz(60); });
 
   // ---- Big display ----
   function setBig(on) {

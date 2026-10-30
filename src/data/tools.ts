@@ -21,7 +21,7 @@ export const TOOLS: Tool[] = [
   {
     slug: 'rep-timer',
     title: 'Rep Timer',
-    description: 'One countdown shown as a large percentage with a progress bar, rep counter, quarter beeps and a big display mode. Installs to a phone home screen.',
+    description: 'One countdown shown as a large percentage with a progress bar, rep counter, quarter beeps, countdown ticks, spoken cues and a big display mode. Installs to a phone home screen.',
     href: '/tools/rep-timer',
   },
   {
