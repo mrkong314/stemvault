@@ -122,6 +122,28 @@
     body { height: auto; min-height: 100dvh; overflow: auto; display: block; }
     .scroll { overflow: visible; flex: none; }
   }
+  /* Landscape on a laptop or tablet: two columns. The period clock, the full bell list and
+     cold call sit pinned on the left; the timer stack scrolls on the right. Portrait keeps
+     the single phone column above. Big display has its own landscape grid further down. */
+  @media (min-width: 900px) and (orientation: landscape) {
+    body:not(.big) header.topbar .inner, body:not(.big) .app { max-width: 1180px; }
+    body:not(.big) .app {
+      display: grid; grid-template-columns: minmax(360px, 5fr) minmax(0, 6fr); grid-template-rows: auto auto 1fr;
+      column-gap: 24px; row-gap: 12px; align-items: start; overflow-y: auto;
+    }
+    body:not(.big) .period { grid-column: 1; grid-row: 1; }
+    body:not(.big) .strip { grid-column: 1; grid-row: 2; flex-wrap: wrap; overflow: visible; }
+    body:not(.big) .scroll { display: contents; }
+    body:not(.big) .stack {
+      grid-column: 2; grid-row: 1 / -1; align-self: stretch; min-height: 0; overflow-y: auto;
+      -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none;
+      padding: 2px 2px calc(28px + env(safe-area-inset-bottom, 0px));
+    }
+    body:not(.big) .stack::-webkit-scrollbar { display: none; }
+    body:not(.big) .scroll > .coldcall { grid-column: 1; grid-row: 3; margin-bottom: 0; }
+    body:not(.big) .digits { font-size: clamp(5rem, 9vw, 8rem); }
+    body:not(.big) .timer .digits { font-size: clamp(3.4rem, 6vw, 5.4rem); }
+  }
 
   /* Glass primitives */
   .glass {
