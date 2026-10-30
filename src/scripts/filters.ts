@@ -96,3 +96,6 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
+// Module scope: keeps these helpers out of the global script namespace.
+export {};

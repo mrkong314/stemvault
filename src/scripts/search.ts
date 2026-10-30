@@ -13,23 +13,93 @@ type Row = {
 
 const TYPES: ResourceType[] = ['applet', 'file', 'video', 'quiz'];
 
-let cache: Row[] | null = null;
-let inFlight: Promise<Row[]> | null = null;
+let cache: Indexed[] | null = null;
+let inFlight: Promise<Indexed[]> | null = null;
 
-async function loadIndex(): Promise<Row[]> {
+async function loadIndex(): Promise<Indexed[]> {
   if (cache) return cache;
   if (inFlight) return inFlight;
   inFlight = fetch('/search-index.json')
     .then(r => r.ok ? r.json() : [])
-    .then((rows: Row[]) => { cache = rows; return rows; })
+    .then((rows: Row[]) => { cache = rows.map(index); return cache; })
     .catch(() => []);
   return inFlight;
 }
 
-function match(row: Row, q: string): boolean {
-  const needle = q.toLowerCase();
-  if (row.title.toLowerCase().includes(needle)) return true;
-  return row.tags.some(t => t.toLowerCase().includes(needle));
+/* ---- Fuzzy matching ----
+ * Every word of the query must match the row somehow; rows are ranked by how well.
+ * A word matches by (best first): whole query as a phrase in the title, substring of
+ * the title, substring of a tag or the subject, a small edit distance from any word
+ * (typos such as "kinmatics" or "photoelctric"), or its letters appearing in order
+ * inside a word ("pte" for "periodic table" is not enough, but "phtoelec" is).
+ */
+const WORD_RE = /[^a-z0-9]+/;
+
+function norm(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/** Damerau-Levenshtein distance, capped at `max + 1` for speed. */
+function editDistance(a: string, b: string, max: number): number {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  const prev2: number[] = []; let prev: number[] = []; let cur: number[] = [];
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    cur = [i]; let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1);
+      cur[j] = v; if (v < rowMin) rowMin = v;
+    }
+    if (rowMin > max) return max + 1;
+    prev2.splice(0, prev2.length, ...prev); prev = cur;
+  }
+  return prev[b.length];
+}
+
+function isSubsequence(needle: string, hay: string): boolean {
+  let i = 0;
+  for (let j = 0; j < hay.length && i < needle.length; j++) if (hay[j] === needle[i]) i++;
+  return i === needle.length;
+}
+
+type Indexed = Row & { _title: string; _words: string[]; _tagText: string };
+
+function index(row: Row): Indexed {
+  const title = norm(row.title);
+  const tagText = norm([...row.tags, row.subject].join(' '));
+  const words = [...new Set([...title.split(WORD_RE), ...tagText.split(WORD_RE)].filter(Boolean))];
+  return { ...row, _title: title, _words: words, _tagText: tagText };
+}
+
+function tokenScore(row: Indexed, t: string): number {
+  if (row._title.includes(t)) return row._title.startsWith(t) || row._title.includes(' ' + t) ? 12 : 10;
+  if (row._tagText.includes(t)) return 6;
+  const allow = t.length >= 6 ? 2 : t.length >= 4 ? 1 : 0;
+  let best = 0;
+  for (const w of row._words) {
+    if (allow && w.length >= 3) {
+      const d = editDistance(t, w, allow);
+      if (d <= allow) best = Math.max(best, 5 - d);
+      else if (w.length > t.length && editDistance(t, w.slice(0, t.length), allow) <= allow) best = Math.max(best, 3);
+    }
+    if (t.length >= 4 && w.length >= t.length && isSubsequence(t, w)) best = Math.max(best, 2);
+  }
+  return best;
+}
+
+function score(row: Indexed, q: string): number {
+  const query = norm(q).trim();
+  if (!query) return 0;
+  const tokens = query.split(WORD_RE).filter(Boolean);
+  let total = row._title.includes(query) ? 8 : 0;
+  for (const t of tokens) {
+    const s = tokenScore(row, t);
+    if (s === 0) return 0;
+    total += s;
+  }
+  return total;
 }
 
 function escapeHTML(s: string): string {
@@ -38,7 +108,7 @@ function escapeHTML(s: string): string {
   }[c]!));
 }
 
-function render(rows: Row[], q: string) {
+function render(rows: Indexed[], q: string) {
   const dropdown = document.getElementById('svault-search-results');
   if (!dropdown) return;
   const empty = dropdown.querySelector('[data-empty]') as HTMLElement;
@@ -51,8 +121,12 @@ function render(rows: Row[], q: string) {
     return;
   }
 
-  const filtered = rows.filter(r => match(r, q));
-  const byType: Record<ResourceType, Row[]> = { applet: [], file: [], video: [], quiz: [] };
+  const filtered = rows
+    .map(r => ({ r, s: score(r, q) }))
+    .filter(x => x.s > 0)
+    .sort((a, b) => b.s - a.s || a.r.title.localeCompare(b.r.title))
+    .map(x => x.r);
+  const byType: Record<ResourceType, Indexed[]> = { applet: [], file: [], video: [], quiz: [] };
   for (const r of filtered) (byType[r.type] ??= []).push(r);
 
   if (filtered.length === 0) {
@@ -121,3 +195,6 @@ if (document.readyState === 'loading') {
 } else {
   wire();
 }
+
+// Module scope: keeps these helpers out of the global script namespace.
+export {};
