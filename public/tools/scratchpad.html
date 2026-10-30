@@ -538,8 +538,6 @@ textarea.code{display:block;width:100%;font-family:var(--mono);font-size:.86rem;
 .fig{margin:6px 0 2px;position:relative;min-width:0}
 .fig img{display:block;max-width:100%;height:auto;border-radius:6px;cursor:default}
 .selected .fig img{outline:2px solid var(--fg);outline-offset:2px}
-.img-x{position:absolute;top:8px;right:8px;font:inherit;font-size:.76rem;padding:4px 9px;border:0;border-radius:4px;background:rgba(0,0,0,.6);color:#fff;cursor:pointer;opacity:0;transition:opacity .15s}
-.fig:hover .img-x,.selected .img-x,.img-x:focus-visible{opacity:1}
 .caption{font-size:.88rem;color:var(--muted);padding:4px 2px;min-height:1.4em;white-space:pre-wrap}
 .caption:empty::before{content:attr(data-ph);color:var(--muted);opacity:.6}
 .content code,.cell code,.help code{font-family:var(--mono);font-size:.84em;background:var(--code-bg);padding:1px 5px;border-radius:4px}
@@ -572,15 +570,20 @@ textarea.code{display:block;width:100%;font-family:var(--mono);font-size:.86rem;
 .cl-in.mq-math-mode .mq-selection{background:var(--accent-soft)}
 .cl-out{font-family:var(--mono);font-size:.92rem;color:var(--fg);text-align:right;white-space:nowrap;max-width:50%;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .cl-out.err{color:var(--muted);font-size:.78rem;font-family:var(--font);white-space:nowrap;max-width:45%;min-width:7em;overflow:hidden;text-overflow:ellipsis}
-.calc-foot{display:none;justify-content:space-between;align-items:center;padding:4px 14px 6px;font-size:.74rem;color:var(--muted);border-top:1px solid var(--line)}
-.block:hover .calc-foot,.block:focus-within .calc-foot,.block.selected .calc-foot{display:flex}
-.calc-foot button{font:inherit;font-size:.74rem;border:0;background:transparent;color:var(--muted);cursor:pointer;padding:0}
-.calc-foot button:hover{color:var(--fg)}
+
 
 #bsl{position:fixed;z-index:9;width:280px;max-width:calc(100% - 8px);max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px}
 #bsl .item{display:flex;justify-content:space-between;gap:12px;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:.9rem;font-family:var(--mono)}
 #bsl .item .hint{color:var(--muted);font-family:var(--font);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
 #bsl .item.active{background:var(--accent-soft)}
+#pfx{position:fixed;z-index:9;width:240px;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px;font-size:.88rem}
+#pfx .pfx-search{padding:4px 10px 6px;font-size:.76rem;color:var(--fg);border-bottom:1px solid var(--line);margin-bottom:3px}
+#pfx .pfx-search.empty{color:var(--muted);font-style:italic}
+#pfx .item{display:flex;align-items:baseline;gap:10px;padding:5px 10px;border-radius:5px;cursor:pointer}
+#pfx .item.active{background:var(--accent-soft)}
+#pfx .pfx-name{flex:1 1 auto}
+#pfx .pfx-sym{flex:0 0 1.2em;text-align:center;font-weight:600}
+#pfx .pfx-pow{flex:0 0 auto;color:var(--muted);font-size:.85em}
 #tgrid{position:fixed;z-index:9;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:10px}
 .tg-label{font-size:.8rem;color:var(--fg);margin-bottom:6px;font-variant-numeric:tabular-nums}
 .tg-cells{display:grid;grid-template-columns:repeat(8,22px);gap:3px}
@@ -800,6 +803,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
     <div id="slash" role="listbox" hidden></div>
     <div id="bsl" class="picker" role="listbox" hidden></div>
     <div id="tgrid" hidden></div>
+    <div id="pfx" role="listbox" hidden></div>
     <div class="help" id="help" hidden>
       <h3>About</h3>
       <p style="margin-top:0;color:var(--fg)">Notes for quick ideas. Open the menu at the top left to switch notes, make new ones, and file them into groups. Click below the title and start typing. Type <code>/</code> at the start of a line for the block menu. A line shows its Markdown while you edit it and renders when you click away. Everything is saved as you type, only in this browser on this device, and nothing is sent anywhere.</p>
@@ -834,7 +838,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
         <tr><td>Size picker</td><td>Choosing Table from the menu asks for rows and columns first.</td></tr>
         <tr><td>Tab / Shift+Tab</td><td>Next or previous cell. Tab in the last cell adds a row; Shift+Tab in the last column adds a column.</td></tr>
         <tr><td>Enter</td><td>Moves down a row, adding one at the bottom.</td></tr>
-        <tr><td>Tools</td><td>Buttons under a table add or remove rows and columns, toggle the header row, or delete the table.</td></tr>
+        <tr><td>Tools</td><td>Buttons under a table add or remove rows and columns, toggle the header row, or delete the table. Tables are the only block with tools; other blocks are deleted with Backspace and set up from Settings.</td></tr>
         <tr><td>Backspace</td><td>In an empty last row removes it. In an empty table removes the table.</td></tr>
       </table>
       <h3>Calculator</h3>
@@ -851,8 +855,10 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:0 4px;border:1px solid va
         <tr><td>nCr, nPr, normCDF, invNorm</td><td>Plus binomPDF, binomCDF, mean, median, stdev, zscore, polar, rect, Re, Im, Arg and the math.js library.</td></tr>
         <tr><td>c, g, G, k, h_J, m_e</td><td>VCE physics constants are predefined. Assign to override.</td></tr>
         <tr><td>Typeset as you type</td><td>Calculator lines are maths fields like the Calculator tool: / makes a fraction, ^ a power, sqrt a root, and names like sin or pi become symbols. Results are typeset too.</td></tr>
-        <tr><td>Exact / Decimal</td><td>Exact shows fractions, surds and multiples of π. Set it, the angle, precision and first or all roots in Settings or from the words under any calculator, which appear on hover.</td></tr>
-        <tr><td>Enter / Backspace</td><td>Adds or removes a line. Backspace on the only line clears it; Delete calculator (under the section) removes it.</td></tr>
+        <tr><td>Exact / Decimal</td><td>Exact shows fractions, surds and multiples of π. Set it, the angle, precision and first or all roots in Settings (gear, top right).</td></tr>
+        <tr><td>* *, or ^ ^</td><td>Pressing * twice, or ^ twice, gives ×10^ with the cursor in the exponent. On the phone keypad, hold ×. A single * is a × sign.</td></tr>
+        <tr><td>Prefix dropdown</td><td>With the cursor in an empty ×10^ exponent, a list of nano to giga appears. Type letters to filter, arrows and Enter to pick, or type digits straight in.</td></tr>
+        <tr><td>Enter / Backspace</td><td>Adds or removes a line. Backspace on an empty only line removes the section (Ctrl/Cmd+A then Backspace clears a line first).</td></tr>
         <tr><td>Maths block</td><td>/math or $$ gives the same typeset entry without results, for writing equations and working. \ and @ search work there too.</td></tr>
       </table>
       <h3>Inline</h3>
@@ -2942,7 +2948,7 @@ function textToLatex(t){
       i=j; continue;
     }
     if(ch==='('){ var cl=matchParen(t,i); if(cl<0) cl=n; out+='\\left('+textToLatex(t.slice(i+1,cl))+'\\right)'; i=cl+1; continue; }
-    if(ch==='*'){ out+='\\cdot '; i++; continue; }
+    if(ch==='*'){ out+='\\times '; i++; continue; }
     out+=ch; i++;
   }
   return out;
@@ -2957,16 +2963,69 @@ function initCalcFields(){
       spaceBehavesLikeTab:false, typingSlashWritesDivisionSymbol:false, charsThatBreakOutOfSupSub:'+-*/=',
       autoCommands:'pi sqrt sum nthroot int '+GREEK_AUTOCOMMANDS, autoOperatorNames:MQ_OPERATORS,
       handlers:{
-        edit:function(){ if(el._quiet) return; calcLine(b,i,mq.latex()); },
+        edit:function(){ if(el._quiet) return; expandArrowShortcut(mq); expandSciShortcut(mq,el); calcLine(b,i,mq.latex()); pfxCheck(el); },
         enter:function(){ calcInsert(b,i,''); },
         upOutOf:function(){ if(i===0) moveFocus(b,-1); else focusBlock(b.id,Infinity,{i:i-1}); },
         downOutOf:function(){ if(i===b.lines.length-1){ if(!moveFocus(b,1)) appendBlockAfter(b,'p'); } else focusBlock(b.id,0,{i:i+1}); },
-        deleteOutOf:function(dir){ if(dir===MQ.L){ if(!(mq.latex()||'').trim()){ if(b.lines.length>1) calcRemove(b,i); } else if(i>0) focusBlock(b.id,Infinity,{i:i-1}); } },
+        deleteOutOf:function(dir){ if(dir===MQ.L){ if(!(mq.latex()||'').trim()) calcRemove(b,i); else if(i>0) focusBlock(b.id,Infinity,{i:i-1}); } },
         moveOutOf:function(dir){ if(dir===MQ.L){ if(i>0) focusBlock(b.id,Infinity,{i:i-1}); } else if(i<b.lines.length-1) focusBlock(b.id,0,{i:i+1}); }
       }
     });
     el._quiet=true; try{ mq.latex(b.lines[i]||''); }catch(e){} el._quiet=false; el._mq=mq;
+    el.addEventListener('keyup',function(){ pfxCheck(el); }); el.addEventListener('mouseup',function(){ pfxCheck(el); });
   });
+}
+/* ---------- scientific notation: ** or ^^ gives ×10^, with a metric-prefix dropdown for the empty exponent ---------- */
+function insertSciExp(mq){ mq.cmd('\\times'); mq.typedText('10'); mq.cmd('^'); }
+/* a times sign typed inside a filled exponent lands after the exponent, as in the Calculator */
+function typeTimes(el){ var mq=el._mq; if(!mq) return; var cur=el.querySelector('.mq-cursor'); var sup=cur&&cur.closest('.mq-sup'); if(sup){ var filled=Array.prototype.some.call(sup.querySelectorAll('*'),function(x){ return !x.classList.contains('mq-cursor') && x.textContent.replace(/[\u200b\s]/g,'')!==''; }); if(filled) mq.keystroke('Right'); } mq.cmd('\\times'); }
+function expandArrowShortcut(mq){ var latex; try{ latex=mq.latex(); }catch(e){ return; } if(latex.indexOf('=>')===-1) return; try{ mq.latex(latex.replace(/=>/g,'\\Rightarrow ')); mq.moveToRightEnd(); }catch(e){} }
+function expandSciShortcut(mq,el){
+  if(el._sciExpanding) return; var latex; try{ latex=mq.latex(); }catch(e){ return; }
+  if(latex.indexOf('^{^')===-1) return;
+  el._sciExpanding=true;
+  setTimeout(function(){
+    try{
+      var cur=mq.latex(); var s=cur.indexOf('^{^'); if(s===-1) return; var o=s+1, d=0, c=-1;
+      for(var k=o;k<cur.length;k++){ if(cur[k]==='{') d++; else if(cur[k]==='}'){ d--; if(d===0){ c=k; break; } } }
+      if(c===-1) return;
+      var inner=cur.slice(o+1,c), rest='';
+      if(inner[0]==='^'){ var r=inner.slice(1); if(r[0]==='{'&&r[r.length-1]==='}') r=r.slice(1,-1); rest=r.trim(); }
+      mq.latex(cur.slice(0,s)+'\\times10^{'+rest+'}'+cur.slice(c+1)); mq.moveToRightEnd(); if(cur.slice(c+1).length===0) mq.keystroke('Left');
+    }catch(e){} finally{ el._sciExpanding=false; }
+  },0);
+}
+var SCI_PREFIXES=[{name:'nano',sym:'n',exp:'-9'},{name:'micro',sym:'µ',exp:'-6'},{name:'milli',sym:'m',exp:'-3'},{name:'centi',sym:'c',exp:'-2'},{name:'kilo',sym:'k',exp:'3'},{name:'mega',sym:'M',exp:'6'},{name:'giga',sym:'G',exp:'9'}];
+function sciPrefixContext(fieldEl){
+  var cur=fieldEl.querySelector('.mq-cursor'); if(!cur) return false;
+  var sup=cur.closest('.mq-sup'); if(!sup) return false;
+  var has=Array.prototype.some.call(sup.querySelectorAll('*'),function(x){ return !x.classList.contains('mq-cursor') && x.textContent.replace(/[\u200b\s]/g,'')!==''; }); if(has) return false;
+  var supsub=sup.closest('.mq-supsub'); if(!supsub) return false;
+  var p0=supsub.previousElementSibling, p1=p0&&p0.previousElementSibling, px=p1&&p1.previousElementSibling;
+  return !!(p0&&p0.textContent==='0'&&p1&&p1.textContent==='1'&&px&&px.textContent==='×');
+}
+var pfx=document.getElementById('pfx'), pfxState={open:false,el:null,mq:null,idx:-1,search:'',items:[]};
+function pfxCheck(el){ if(!el||!el._mq||document.activeElement.closest('.cl-in')!==el){ if(pfxState.open&&pfxState.el===el) closePfx(); return; } if(sciPrefixContext(el)){ if(!pfxState.open||pfxState.el!==el) pfxState={open:true,el:el,mq:el._mq,idx:-1,search:'',items:[]}; paintPfx(); } else if(pfxState.open) closePfx(); }
+function paintPfx(){
+  var s=pfxState.search; var items=s?SCI_PREFIXES.filter(function(p){ return p.name.indexOf(s)===0; }):SCI_PREFIXES.slice(); pfxState.items=items;
+  if(s) pfxState.idx=Math.min(Math.max(pfxState.idx,0),Math.max(items.length-1,0)); else if(pfxState.idx>=items.length) pfxState.idx=-1;
+  var h='<div class="pfx-search'+(s?'':' empty')+'">'+(s?esc(s):'type a prefix name, or digits')+'</div>';
+  if(!items.length) h+='<div class="item"><span class="hint">no match</span></div>';
+  items.forEach(function(p,i){ h+='<div class="item pfx-row'+(i===pfxState.idx?' active':'')+'" data-i="'+i+'"><span class="pfx-name">'+p.name+'</span><span class="pfx-sym">'+p.sym+'</span><span class="pfx-pow">'+(katexHTML('\\times10^{'+p.exp+'}')||('×10^'+p.exp))+'</span></div>'; });
+  pfx.innerHTML=h; pfx.hidden=false; placePopup(pfx,pfxState.el.closest('.block'),pfxState.el,240);
+}
+function closePfx(){ pfxState.open=false; pfx.hidden=true; }
+function pickPrefix(p){ var mq=pfxState.mq; closePfx(); if(!mq||!p) return; try{ mq.focus(); mq.typedText(p.exp); mq.keystroke('Right'); }catch(e){} }
+pfx.addEventListener('mousedown',function(e){ e.preventDefault(); var row=e.target.closest('.pfx-row'); if(row) pickPrefix(pfxState.items[+row.dataset.i]); });
+pfx.addEventListener('touchend',function(e){ var row=e.target.closest('.pfx-row'); if(row){ e.preventDefault(); pickPrefix(pfxState.items[+row.dataset.i]); } },{passive:false});
+function pfxKey(e){
+  var n=pfxState.items.length;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ if(!n) return true; pfxState.idx=pfxState.idx===-1?(e.key==='ArrowDown'?0:n-1):(pfxState.idx+(e.key==='ArrowDown'?1:-1)+n)%n; paintPfx(); return true; }
+  if(e.key==='Enter'||e.key==='Tab'){ if(pfxState.idx<0||!pfxState.items[pfxState.idx]) return false; pickPrefix(pfxState.items[pfxState.idx]); return true; }
+  if(e.key==='Escape'){ closePfx(); return true; }
+  if(e.key==='Backspace'){ if(!pfxState.search) return false; pfxState.search=pfxState.search.slice(0,-1); paintPfx(); return true; }
+  if(e.key.length===1 && /[a-z]/i.test(e.key) && !e.ctrlKey && !e.metaKey){ pfxState.search+=e.key.toLowerCase(); paintPfx(); return true; }
+  return false;
 }
 function focusCalcField(el,off){ var mq=el._mq; if(!mq){ el.focus(); return; } mq.focus(); if(off===0) mq.moveToLeftEnd(); else mq.moveToRightEnd(); }
 function openBslMq(cl,kind){
@@ -3006,6 +3065,9 @@ function bslKeyMq(e){
 editor.addEventListener('keydown',function(e){
   var cl=e.target.closest?e.target.closest('.cl-in'):null; if(!cl||!cl._mq) return;
   if(bslState.open && bslState.mq){ if(bslKeyMq(e)){ e.preventDefault(); e.stopPropagation(); } return; }
+  if(pfxState.open && pfxState.el===cl){ if(pfxKey(e)){ e.preventDefault(); e.stopPropagation(); return; } }
+  var now=Date.now(), dbl=cl._dbl; cl._dbl=null;
+  if(e.key==='*' && !e.ctrlKey && !e.metaKey && !e.altKey){ e.preventDefault(); e.stopPropagation(); var mqx=cl._mq; if(dbl && dbl.key==='*' && now-dbl.t<500){ mqx.keystroke('Backspace'); insertSciExp(mqx); } else { typeTimes(cl); cl._dbl={key:'*',t:now}; } return; }
   if(e.key==='\\'){ e.preventDefault(); e.stopPropagation(); openBslMq(cl,'calc'); }
   else if(e.key==='@'){ e.preventDefault(); e.stopPropagation(); openBslMq(cl,'at'); }
 },true);
@@ -3058,6 +3120,7 @@ function bslCheck(el,kind){
 }
 function paintBsl(){ bsl.innerHTML=bslState.items.map(function(it,i){ var label=it.tex?(katexHTML(it.tex)||esc(it.name)):esc(it.name); return '<div class="item'+(i===bslState.index?' active':'')+(it.tex?' formula':'')+'" data-i="'+i+'"><span>'+label+'</span><span class="hint">'+esc(it.hint||'')+'</span></div>'; }).join(''); var a=bsl.querySelector('.active'); if(a&&a.scrollIntoView) a.scrollIntoView({block:'nearest'}); }
 function closeBsl(){ bslState.open=false; bslState.mq=null; bsl.hidden=true; }
+
 function applyBsl(i){
   var st=bslState, it=st.items[i]; closeBsl(); if(!it||!st.el||!st.el.isConnected) return;
   var el=st.el, text=el.textContent, nt=text.slice(0,st.start)+it.insert+(it.after||'')+text.slice(st.end);
@@ -3140,7 +3203,7 @@ function calcHTML(b){
     s+='<div class="cl"><span class="cl-in" data-i="'+i+'"></span>'+
        '<div class="cl-out'+(r.err?' err':'')+(r.muted?' muted':'')+'" data-i="'+i+'">'+calcOutHTML(r)+'</div></div>';
   });
-  s+='</div><div class="calc-foot"><span class="calc-modes">'+calcModesHTML()+'</span><button type="button" data-act="del">Delete calculator</button></div></div>';
+  s+='</div></div>';
   return s;
 }
 function calcOutHTML(r){ if(r.undef&&r.undef.length) return '<span class="needs">needs</span> '+r.undef.map(function(v){ return '<button type="button" class="vchip" data-var="'+esc(v)+'" title="Add a line defining '+esc(v)+'">+ '+esc(prettyName(v))+'</button>'; }).join(' '); if(r.err) return esc(r.err); var t=r.latex?katexHTML(r.latex):''; if(!t) t=esc(r.text||''); if(r.note) t+='<span class="cl-note">'+esc(r.note)+'</span>'; return t; }
@@ -3148,7 +3211,7 @@ function calcModesHTML(){ var S=state.settings; return '<button type="button" da
 function mathHTML(b){
   var s='<div class="mathblk"><div class="calc-lines">';
   b.lines.forEach(function(line,i){ s+='<div class="cl ml"><span class="cl-in" data-i="'+i+'"></span></div>'; });
-  s+='</div><div class="calc-foot"><span>maths, not evaluated</span><button type="button" data-act="del">Delete maths block</button></div></div>';
+  s+='</div></div>';
   return s;
 }
 function blockHTML(b,num){
@@ -3161,7 +3224,7 @@ function blockHTML(b,num){
   else if(b.type==='toggle') s+='<button class="tog" type="button" aria-label="'+(b.collapsed?'Expand':'Collapse')+'" aria-expanded="'+(b.collapsed?'false':'true')+'"></button>';
   s+='</div>';
   if(b.type==='image'){
-    s+='<figure class="fig"><img src="'+esc(b.src||'')+'" alt="'+esc(b.text||'')+'" draggable="false"><button class="img-x" type="button">Remove</button><div class="caption" contenteditable="true" spellcheck="true" data-ph="Add a caption">'+esc(b.text||'')+'</div></figure>';
+    s+='<figure class="fig"><img src="'+esc(b.src||'')+'" alt="'+esc(b.text||'')+'" draggable="false"><div class="caption" contenteditable="true" spellcheck="true" data-ph="Add a caption">'+esc(b.text||'')+'</div></figure>';
   } else if(b.type==='divider'){
     s+='<div class="rule" tabindex="0" role="separator"><hr></div>';
   } else if(b.type==='code'){
@@ -3202,7 +3265,7 @@ function placePopup(pop,anchorEl,leftEl,width){
   if(top+pop.offsetHeight>vb && ar.top-pop.offsetHeight-4>0) top=ar.top-pop.offsetHeight-4;
   pop.style.top=top+'px'; pop.style.left=left+'px';
 }
-function repositionPopups(){ ['slash','bsl','tgrid'].forEach(function(id){ var pop=document.getElementById(id); if(pop && !pop.hidden && pop._anchor){ if(!pop._anchor.a.isConnected){ pop.hidden=true; return; } placePopup(pop,pop._anchor.a,pop._anchor.l,pop._anchor.w); } }); }
+function repositionPopups(){ ['slash','bsl','tgrid','pfx'].forEach(function(id){ var pop=document.getElementById(id); if(pop && !pop.hidden && pop._anchor){ if(!pop._anchor.a.isConnected){ pop.hidden=true; return; } placePopup(pop,pop._anchor.a,pop._anchor.l,pop._anchor.w); } }); }
 window.addEventListener('scroll',repositionPopups,true); window.addEventListener('resize',repositionPopups);
 if(window.visualViewport){ window.visualViewport.addEventListener('resize',repositionPopups); window.visualViewport.addEventListener('scroll',repositionPopups); }
 function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
@@ -3357,7 +3420,7 @@ var calcTimer=null;
 function calcLine(b,i,text){ b.lines[i]=text; clearTimeout(calcTimer); calcTimer=setTimeout(function(){ calcRefresh(b); },120); save(); }
 function calcInsert(b,i,text){ b.lines.splice(i+1,0,text||''); render(); focusBlock(b.id,0,{i:i+1}); save(); }
 function calcRemove(b,i){
-  if(b.lines.length<=1){ b.lines=['']; render(); focusBlock(b.id,0,{i:0}); save(); return; }
+  if(b.lines.length<=1){ var p=newBlock('p',{indent:b.indent}); doc.blocks.splice(idx(b.id),1,p); render(); focusBlock(p.id,0); save(); return; }
   b.lines.splice(i,1); render(); focusBlock(b.id,Infinity,{i:Math.max(0,i-1)}); save();
 }
 
@@ -3875,7 +3938,7 @@ editor.addEventListener('click',function(e){
   var tb=e.target.closest('.tbl-tools button'); if(tb){ var fc=blk._lastCell||{r:0,c:0}; tableAct(b,tb.dataset.act,fc.r,fc.c); return; }
   var vc=e.target.closest('.vchip'); if(vc && (b.type==='calc')){ var li=+vc.closest('.cl-out').dataset.i; var vn=vc.dataset.var; var lat=varLatex(vn)+'='; b.lines.splice(li,0,lat); render(); focusBlock(b.id,Infinity,{i:li}); save(); return; }
   var cb=e.target.closest('.calc-foot button'); if(cb){ if(cb.dataset.set){ setSetting(cb.dataset.set,cb.dataset.val); } else removeBoxBlock(b); return; }
-  if(e.target.closest('.calc') && !e.target.closest('.cl-in')){ var ins=blk.querySelectorAll('.cl-in'); if(ins.length && !e.target.closest('.cl-out')) focusPlain(ins[ins.length-1],Infinity); }
+  if(e.target.closest('.calc, .mathblk') && !e.target.closest('.cl-in')){ var ins=blk.querySelectorAll('.cl-in'); if(ins.length && !e.target.closest('.cl-out')) focusCalcField(ins[ins.length-1],Infinity); }
 });
 editor.addEventListener('focusin',function(e){
   var c=e.target.closest('.content'); if(c){ if(c.dataset.mode!=='raw') enterRaw(c); if(selectedId) select(null); return; }
@@ -3885,7 +3948,7 @@ editor.addEventListener('focusin',function(e){
 });
 editor.addEventListener('focusout',function(e){
   var c=e.target.closest('.content'); if(c){ leaveRaw(c); if(slashState.open||bslState.open) setTimeout(function(){ if(!editor.contains(document.activeElement)){ closeSlash(); closeBsl(); } },0); return; }
-  var cl=e.target.closest('.cl-in'); if(cl){ if(bslState.open) setTimeout(function(){ if(!editor.contains(document.activeElement)) closeBsl(); },0); }
+  var cl=e.target.closest('.cl-in'); if(cl){ setTimeout(function(){ if(!editor.contains(document.activeElement)){ closeBsl(); closePfx(); } else pfxCheck(cl); },0); }
   var cell=e.target.closest('.cell'); if(cell) leaveRawCell(cell);
 });
 editor.addEventListener('beforeinput',function(e){
@@ -3999,7 +4062,7 @@ document.addEventListener('keydown',function(e){
   if(e.key==='ArrowDown'||e.key==='Enter'){ e.preventDefault(); if(!moveFocus(b,1)) appendBlockAfter(b,'p'); return; }
   if(e.key==='Escape'){ select(null); }
 });
-document.addEventListener('mousedown',function(e){ if(selectedId && !editor.contains(e.target)) select(null); if(slashState.open && !slash.contains(e.target) && !editor.contains(e.target)) closeSlash();  if(bslState.open && !bsl.contains(e.target)) closeBsl(); if(tgridState.open && !tgrid.contains(e.target)) closeTableGrid(); });
+document.addEventListener('mousedown',function(e){ if(selectedId && !editor.contains(e.target)) select(null); if(slashState.open && !slash.contains(e.target) && !editor.contains(e.target)) closeSlash();  if(bslState.open && !bsl.contains(e.target)) closeBsl(); if(tgridState.open && !tgrid.contains(e.target)) closeTableGrid(); if(pfxState.open && !pfx.contains(e.target)) closePfx(); });
 editor.addEventListener('paste',function(e){
   var cd=e.clipboardData; if(!cd) return;
   var files=Array.prototype.filter.call(cd.files||[],function(f){ return /^image\//.test(f.type); });
@@ -4042,11 +4105,16 @@ function insertAtCaret(el,text,back){
   var off=caretOffset(el), cur=el.textContent; el.textContent=cur.slice(0,off)+text+cur.slice(off); setCaret(el,off+text.length-(back||0));
   el.dispatchEvent(new Event('input',{bubbles:true}));
 }
-var CALCPAD={lp:function(m){ m.typedText('('); },rp:function(m){ m.typedText(')'); },pow:function(m){ m.typedText('^'); },sq:function(m){ m.typedText('^2'); m.keystroke('Right'); },sqrt:function(m){ m.cmd('\\sqrt'); },pi:function(m){ m.cmd('\\pi'); },div:function(m){ m.typedText('/'); },mul:function(m){ m.cmd('\\times'); },sub:function(m){ m.typedText('-'); },add:function(m){ m.typedText('+'); },eq:function(m){ m.typedText('='); },arrow:function(m){ m.write('\\Rightarrow '); },comma:function(m){ m.typedText(','); },ans:function(m){ m.typedText('ans'); },e:function(m){ m.typedText('e'); },abs:function(m){ m.typedText('|'); },left:function(m){ m.keystroke('Left'); },right:function(m){ m.keystroke('Right'); },bsl:null};
+var CALCPAD={lp:function(m){ m.typedText('('); },rp:function(m){ m.typedText(')'); },pow:function(m){ m.typedText('^'); },sq:function(m){ m.typedText('^2'); m.keystroke('Right'); },sqrt:function(m){ m.cmd('\\sqrt'); },pi:function(m){ m.cmd('\\pi'); },div:function(m){ m.typedText('/'); },mul:function(m,cl){ typeTimes(cl); },sub:function(m){ m.typedText('-'); },add:function(m){ m.typedText('+'); },eq:function(m){ m.typedText('='); },arrow:function(m){ m.write('\\Rightarrow '); },comma:function(m){ m.typedText(','); },ans:function(m){ m.typedText('ans'); },e:function(m){ m.typedText('e'); },abs:function(m){ m.typedText('|'); },left:function(m){ m.keystroke('Left'); },right:function(m){ m.keystroke('Right'); },bsl:null};
 ['sin','cos','tan','asin','acos','atan','ln','log','solve','nCr'].forEach(function(f){ CALCPAD[f]=function(m){ m.typedText(f+'('); }; });
-function calcpadAct(bt){ var el=document.activeElement; var cl=el&&el.closest?el.closest('.cl-in'):null; if(!cl||!cl._mq) return; var k=bt.dataset.k; if(k==='bsl'){ openBslMq(cl); return; } var fn=CALCPAD[k]; if(fn){ fn(cl._mq); cl._mq.focus(); } }
+function calcpadAct(bt){ var el=document.activeElement; var cl=el&&el.closest?el.closest('.cl-in'):null; if(!cl||!cl._mq) return; var k=bt.dataset.k; if(k==='bsl'){ openBslMq(cl); return; } var fn=CALCPAD[k]; if(fn){ fn(cl._mq,cl); cl._mq.focus(); } }
 calcpad.addEventListener('mousedown',function(e){ e.preventDefault(); });
-calcpad.addEventListener('touchstart',function(e){ var bt=e.target.closest('button'); if(bt){ e.preventDefault(); calcpadAct(bt); } },{passive:false});
+var padHold=null, padHeld=false;
+calcpad.addEventListener('touchstart',function(e){ var bt=e.target.closest('button'); if(!bt) return; e.preventDefault(); padHeld=false; clearTimeout(padHold);
+  if(bt.dataset.k==='mul'){ padHold=setTimeout(function(){ padHeld=true; var el=document.activeElement, cl=el&&el.closest?el.closest('.cl-in'):null; if(cl&&cl._mq){ insertSciExp(cl._mq); cl._mq.focus(); pfxCheck(cl); } },450); return; }
+  calcpadAct(bt); },{passive:false});
+calcpad.addEventListener('touchend',function(e){ var bt=e.target.closest('button'); if(!bt||bt.dataset.k!=='mul') return; e.preventDefault(); clearTimeout(padHold); if(!padHeld) calcpadAct(bt); padHeld=false; },{passive:false});
+calcpad.addEventListener('touchcancel',function(){ clearTimeout(padHold); padHeld=false; });
 calcpad.addEventListener('click',function(e){ var bt=e.target.closest('button'); if(bt && !('ontouchstart' in window)) calcpadAct(bt); });
 function paintBlockbar(blk){ var b=blk?getBlock(blk.dataset.id):null; blockbar.querySelectorAll('button').forEach(function(bt){ var k=bt.dataset.bb; bt.classList.toggle('on', !!b && (k===b.type || (k==='heading' && /^h[123]$/.test(b.type)))); }); }
 blockbar.addEventListener('mousedown',function(e){ e.preventDefault(); });
