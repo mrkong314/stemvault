@@ -27,8 +27,9 @@ Same light palette, fonts and control shapes as `stemvault-calculator-aesthetic`
 4. Modes as a full-width `.seg` directly under the top bar. Booleans as `.switch` with `aria-checked`. Counts as `.stepper`. Destructive actions are armed (`.remove.armed`, "Tap again", auto-disarm after 3 s), never `confirm()`.
 5. The page itself should not scroll when the tool is a live readout (timer, picker): pin header and stage, scroll only the list region. Lists of many items (timers, names) scroll inside their own container.
 6. A "big display" or fullscreen mode is expected for anything projected: drop the chrome, scale the readout to the viewport, `Esc` or a corner button exits.
-7. Text inputs 16px on touch, `touch-action: manipulation`, no horizontal scroll at 375px, landscape checked on a tablet width.
-8. Accessibility: real buttons, `aria-live="polite"` on the readout, `role="switch"`/`"tab"` where used, visible focus rings, reduced motion respected.
+7. Text inputs 16px on touch, `touch-action: manipulation`, no horizontal scroll at 375px.
+8. **Layout by input device, never by orientation.** The base styles are the phone layout and apply to phones in both orientations. A wider layout (two columns, side-by-side readout and list) is added only under `@media (pointer: fine) and (min-width: 900px), (pointer: none) and (min-width: 900px), (min-width: 1000px)`: a mouse or trackpad at 900px+ in any window shape, or a tablet in landscape. The one exception is a big display mode, which may use `(min-width: 760px) and (orientation: landscape)` because it describes the screen being projected to, not the device in hand. Short viewports use `max-height` queries only.
+9. Accessibility: real buttons, `aria-live="polite"` on the readout, `role="switch"`/`"tab"` where used, visible focus rings, reduced motion respected.
 
 ## Procedure
 
@@ -43,7 +44,7 @@ Same light palette, fonts and control shapes as `stemvault-calculator-aesthetic`
    Put the PNGs in `public/tools/`, embed the SVG base64 as the favicon, and remove the loose SVG.
 4. Write `public/tools/<slug>.webmanifest` copying `class-timer.webmanifest` with the new name, description, `start_url` and icons (`display: standalone`, `scope: /tools/`, black background and theme colour).
 5. Register it: add an entry to `src/data/tools.ts` and either a `src/pages/tools/<slug>.astro` using `ToolLayout` (framed, with `fullscreenHref` to the raw file) or a redirect page like `scratchpad.astro` if it should only ever open full page.
-6. Check light and dark, 375px portrait, tablet landscape and the installed-app inset (open with the mobile viewport and confirm the title clears the top). Run `npm run build`, then commit and push from the repo.
+6. Check light and dark and the installed-app inset (open with the mobile viewport and confirm the title clears the top). Then check the layout by device, not by window shape: phone portrait (402×874, touch), phone landscape (874×402, touch), tablet landscape (1180×820, touch), laptop wide (1300×800, mouse), laptop tall window (800×1100, mouse), laptop narrow window (600×900, mouse). Phones must keep the single column in both orientations; the laptop wide and tablet landscape cases get the wider layout if the tool has one. Run `npm run build`, then commit and push from the repo.
 
 ## Checklist before finishing
 
@@ -53,4 +54,5 @@ Same light palette, fonts and control shapes as `stemvault-calculator-aesthetic`
 - State persisted under a versioned key; nothing sent anywhere.
 - Sound behind a switch, Web Audio only; wake lock while running.
 - Armed destructive buttons; 44px targets; no horizontal scroll at 375px.
+- Layout chosen by `pointer:` queries; no `orientation:` outside big display; phones single-column both ways.
 - Icons (180/192/512) and webmanifest in `public/tools/`; entry in `tools.ts`; page route exists.
