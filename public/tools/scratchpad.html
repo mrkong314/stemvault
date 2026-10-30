@@ -40,7 +40,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:17px
 *{box-sizing:border-box}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 #app{min-height:100%}
-.page{max-width:76ch;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding-block:14px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.page{position:relative;max-width:76ch;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding-block:14px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .topbar{display:flex;align-items:center;gap:10px;margin-bottom:26px}
 .topbar .status{margin-left:auto;font-size:.78rem;color:var(--muted);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar .status.bad{color:var(--fg)}
@@ -122,11 +122,11 @@ textarea.code{display:block;width:100%;font-family:var(--mono);font-size:.86rem;
 .calc-foot button{font:inherit;font-size:.74rem;border:0;background:transparent;color:var(--muted);cursor:pointer;padding:0}
 .calc-foot button:hover{color:var(--fg)}
 
-#bsl{position:absolute;z-index:5;width:280px;max-width:calc(100% - 8px);max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px}
+#bsl{position:absolute;z-index:9;width:280px;max-width:calc(100% - 8px);max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px}
 #bsl .item{display:flex;justify-content:space-between;gap:12px;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:.9rem;font-family:var(--mono)}
 #bsl .item .hint{color:var(--muted);font-family:var(--font);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
 #bsl .item.active{background:var(--accent-soft)}
-#tgrid{position:absolute;z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:10px}
+#tgrid{position:absolute;z-index:9;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:10px}
 .tg-label{font-size:.8rem;color:var(--fg);margin-bottom:6px;font-variant-numeric:tabular-nums}
 .tg-cells{display:grid;grid-template-columns:repeat(8,22px);gap:3px}
 .tg-cell{width:22px;height:22px;border:1px solid var(--line);border-radius:3px;background:var(--bg);cursor:pointer}
@@ -140,7 +140,7 @@ textarea.code{display:block;width:100%;font-family:var(--mono);font-size:.86rem;
 .cl-in[data-mode="tex"]:empty::before{content:"";}
 .calc-modes button{font:inherit;font-size:.74rem;border:0;background:transparent;color:var(--muted);cursor:pointer;padding:0 6px 0 0;opacity:1}
 .calc-modes button:hover{color:var(--fg);text-decoration:underline;text-underline-offset:2px}
-#slash{position:absolute;z-index:5;width:260px;max-width:calc(100% - 8px);max-height:300px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px}
+#slash{position:absolute;z-index:9;width:260px;max-width:calc(100% - 8px);max-height:300px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px}
 #slash .item{display:flex;justify-content:space-between;gap:12px;padding:6px 10px;border-radius:5px;cursor:pointer;font-size:.92rem}
 #slash .item .hint{color:var(--muted);font-family:var(--mono);font-size:.74rem;white-space:nowrap}
 #slash .item.active{background:var(--accent-soft)}
@@ -2337,8 +2337,7 @@ function bslCheck(el,kind){
   items.sort(function(a,b){ var sa=a.name.toLowerCase().indexOf(q)===0?0:1, sb=b.name.toLowerCase().indexOf(q)===0?0:1; return sa-sb; });
   if(!items.length){ if(bslState.open) closeBsl(); return; }
   bslState={open:true,el:el,items:items.slice(0,40),index:0,start:off-m[0].length,end:off,kind:kind};
-  var blk=el.closest('.block'); var top=blk.offsetTop+blk.offsetHeight+4; var left=Math.min(el.getBoundingClientRect().left-editor.getBoundingClientRect().left, Math.max(0,editor.clientWidth-280));
-  bsl.style.top=top+'px'; bsl.style.left=Math.max(0,left)+'px'; bsl.hidden=false; paintBsl();
+  var blk=el.closest('.block'); bsl.hidden=false; placePopup(bsl,blk,el,280); paintBsl();
 }
 function paintBsl(){ bsl.innerHTML=bslState.items.map(function(it,i){ return '<div class="item'+(i===bslState.index?' active':'')+'" data-i="'+i+'"><span>'+esc(it.name)+'</span><span class="hint">'+esc(it.hint||'')+'</span></div>'; }).join(''); var a=bsl.querySelector('.active'); if(a&&a.scrollIntoView) a.scrollIntoView({block:'nearest'}); }
 function closeBsl(){ bslState.open=false; bsl.hidden=true; }
@@ -2365,8 +2364,7 @@ function openTableGrid(b){
   var el=blockEl(b.id); if(!el) return;
   var cells=''; for(var r=1;r<=8;r++) for(var c=1;c<=8;c++) cells+='<span class="tg-cell" data-r="'+r+'" data-c="'+c+'"></span>';
   tgrid.innerHTML='<div class="tg-label"></div><div class="tg-cells">'+cells+'</div><div class="tg-foot">Click a size, or use the arrow keys and Enter</div>';
-  tgrid.style.top=(el.offsetTop+el.offsetHeight+4)+'px'; tgrid.style.left=Math.min(el.querySelector('.content')?el.querySelector('.content').offsetLeft:0, Math.max(0,editor.clientWidth-240))+'px';
-  tgrid.hidden=false; paintTableGrid();
+  tgrid.hidden=false; placePopup(tgrid,el,el.querySelector('.content')||el,230); paintTableGrid();
 }
 function paintTableGrid(){ tgrid.querySelectorAll('.tg-cell').forEach(function(x){ x.classList.toggle('on', +x.dataset.r<=tgridState.r && +x.dataset.c<=tgridState.c); }); tgrid.querySelector('.tg-label').textContent=tgridState.r+' rows × '+tgridState.c+' columns'; }
 function closeTableGrid(){ tgridState.open=false; tgrid.hidden=true; }
@@ -2464,6 +2462,14 @@ function render(){
   });
   editor.innerHTML=html;
   editor.querySelectorAll('textarea.code').forEach(autosize);
+}
+/* place a popup just under an element, in .page coordinates (the popups are absolutely positioned inside .page) */
+function placePopup(pop,anchorEl,leftEl,width){
+  var page=document.querySelector('.page'), pr=page.getBoundingClientRect(), ar=anchorEl.getBoundingClientRect(), lr=(leftEl||anchorEl).getBoundingClientRect();
+  var left=Math.max(0, Math.min(lr.left-pr.left, page.clientWidth-width-8));
+  pop.style.top=(ar.bottom-pr.top+4)+'px'; pop.style.left=left+'px';
+  var vb=window.visualViewport?window.visualViewport.height:window.innerHeight;
+  if(ar.bottom+4+pop.offsetHeight>vb && ar.top-pop.offsetHeight-4>0) pop.style.top=(ar.top-pr.top-pop.offsetHeight-4)+'px';
 }
 function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
 function blockEl(id){ return editor.querySelector('.block[data-id="'+id+'"]'); }
@@ -2620,16 +2626,15 @@ function calcRemove(b,i){
 }
 
 /* ---------- slash menu ---------- */
+var SLASH_ALIASES={p:'text paragraph plain',h1:'heading title big',h2:'heading subheading',h3:'heading small',bullet:'list bullets dot',number:'list numbered ordered',todo:'checkbox task tick check',toggle:'collapse fold dropdown',quote:'blockquote',code:'monospace snippet',table:'grid cells columns rows',calc:'calculator maths math sum equation solve',image:'photo picture upload',divider:'rule line separator hr'};
 function openSlash(b,query){
   var q=query.toLowerCase();
-  slashState.items=SLASH_ORDER.filter(function(t){ return !q || TYPE_INFO[t].label.toLowerCase().indexOf(q)>=0 || t.indexOf(q)>=0; });
+  slashState.items=SLASH_ORDER.filter(function(t){ return !q || TYPE_INFO[t].label.toLowerCase().indexOf(q)>=0 || t.indexOf(q)>=0 || (SLASH_ALIASES[t]||'').indexOf(q)>=0; });
   if(!slashState.items.length){ closeSlash(); return; }
   slashState.open=true; slashState.blockId=b.id; slashState.index=0;
   var el=blockEl(b.id); if(!el){ closeSlash(); return; }
   var c=el.querySelector('.content');
-  slash.style.top=(el.offsetTop+el.offsetHeight+4)+'px';
-  slash.style.left=Math.min(c.offsetLeft, Math.max(0, editor.clientWidth-280))+'px';
-  slash.hidden=false;
+  slash.hidden=false; placePopup(slash,el,c,260);
   paintSlash();
 }
 function paintSlash(){
