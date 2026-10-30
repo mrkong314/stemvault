@@ -1,7 +1,7 @@
 // Lightweight client-side search.
 // Lazy-loads /search-index.json on first focus, then substring-matches title + tags.
 
-type ResourceType = 'applet' | 'file' | 'video' | 'quiz';
+type ResourceType = 'applet' | 'file' | 'video' | 'quiz' | 'tool';
 
 type Row = {
   title: string;
@@ -11,7 +11,7 @@ type Row = {
   url: string;
 };
 
-const TYPES: ResourceType[] = ['applet', 'file', 'video', 'quiz'];
+const TYPES: ResourceType[] = ['applet', 'quiz', 'file', 'video', 'tool'];
 
 let cache: Indexed[] | null = null;
 let inFlight: Promise<Indexed[]> | null = null;
@@ -126,7 +126,7 @@ function render(rows: Indexed[], q: string) {
     .filter(x => x.s > 0)
     .sort((a, b) => b.s - a.s || a.r.title.localeCompare(b.r.title))
     .map(x => x.r);
-  const byType: Record<ResourceType, Indexed[]> = { applet: [], file: [], video: [], quiz: [] };
+  const byType: Record<ResourceType, Indexed[]> = { applet: [], file: [], video: [], quiz: [], tool: [] };
   for (const r of filtered) (byType[r.type] ??= []).push(r);
 
   if (filtered.length === 0) {
