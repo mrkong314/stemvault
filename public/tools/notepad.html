@@ -701,6 +701,8 @@ body.blk-drag iframe{pointer-events:none}
 .gedit .gchk{flex-direction:row;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:.85rem;font-weight:500;color:var(--ink)}
 .gedit .gchk input{accent-color:var(--accent)}
 .gedit .ghint{font-size:.76rem;color:var(--ink-dim)}
+.gedit .grow2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:8px;align-items:end}
+.gedit .seg{text-transform:none;letter-spacing:0;font-weight:500;margin-top:3px}
 .g-lines{display:flex;flex-direction:column;gap:4px;text-transform:none;letter-spacing:0}
 .g-line{display:flex;align-items:center;gap:8px;padding:2px 6px 2px 8px;border-radius:8px;background:var(--panel);border:1px solid var(--rule)}
 .g-line:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint)}
@@ -1083,8 +1085,8 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
     </table>
     <h3>Graph</h3>
     <table>
-      <tr><td>/graph</td><td>Axes you set, with equations in x typed in live maths fields like a calculator line (<code>x^2 - 4</code>, <code>2x + 1</code>, <code>sin(x)</code>; a leading <code>y =</code> is fine). Enter adds a line, Backspace on an empty line removes it; \ and @ search as in the calculator. Points go one per line as <code>x, y</code>. Edit opens the settings under the graph; Done or Esc closes them.</td></tr>
-      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations follows Settings › Angle. Gridlines can be switched off.</td></tr>
+      <tr><td>/graph</td><td>Axes you set, with equations in x typed in live maths fields like a calculator line (<code>x^2 - 4</code>, <code>2x + 1</code>, <code>sin(x)</code>; a leading <code>y =</code> is fine). Enter adds a line, Backspace on an empty line removes it; \ and @ search as in the calculator. Points go one per line as <code>x, y</code>. The settings show when a graph is created and hide once you click elsewhere; select the graph and press Edit settings to bring them back (Done or Esc also closes them).</td></tr>
+      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Gridlines can be switched off.</td></tr>
       <tr><td>Copy PNG</td><td>Copies the graph as an image on a white background, ready to paste into Word or a slide. Save PNG downloads the same image.</td></tr>
       <tr><td>Delete</td><td>Click the graph’s margin to select the block, then Backspace. On a phone, a selected block shows Duplicate and Delete buttons.</td></tr>
     </table>
@@ -1276,7 +1278,7 @@ var slashState={open:false,blockId:null,items:[],index:0};
 
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='graph'){ var GD={eqs:[''],pts:'',xmin:-10,xmax:10,ymin:-10,ymax:10,xstep:1,ystep:1,xlabel:'x',ylabel:'y',title:'',grid:true,h:320}; for(var gk in GD){ if(b[gk]===undefined||b[gk]===null) b[gk]=GD[gk]; } if(typeof b.eqs==='string'){ b.eqs=b.eqs.split('\n').filter(function(l){ return l.trim(); }).map(function(l){ return (typeof textToLatex==='function')?textToLatex(l.replace(/^\s*y\s*=\s*/i,'')):l; }); } if(!Array.isArray(b.eqs)||!b.eqs.length) b.eqs=['']; } if(b.type==='embed'){ if(b.url==null) b.url=''; if(b.url&&!b.src){ var em=resolveEmbed(b.url); if(em){ b.src=em.src; b.kind=em.kind; } } } return b; }
+function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='graph'){ var GD={eqs:[''],pts:'',xmin:-10,xmax:10,ymin:-10,ymax:10,xstep:1,ystep:1,xlabel:'x',ylabel:'y',title:'',grid:true,angle:'rad',h:320}; for(var gk in GD){ if(b[gk]===undefined||b[gk]===null) b[gk]=GD[gk]; } if(typeof b.eqs==='string'){ b.eqs=b.eqs.split('\n').filter(function(l){ return l.trim(); }).map(function(l){ return (typeof textToLatex==='function')?textToLatex(l.replace(/^\s*y\s*=\s*/i,'')):l; }); } if(!Array.isArray(b.eqs)||!b.eqs.length) b.eqs=['']; } if(b.type==='embed'){ if(b.url==null) b.url=''; if(b.url&&!b.src){ var em=resolveEmbed(b.url); if(em){ b.src=em.src; b.kind=em.kind; } } } return b; }
 function getBlock(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return doc.blocks[i]; return null; }
 function idx(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return i; return -1; }
 function isText(b){ return TEXT_TYPES.indexOf(b.type)>=0; }
@@ -3697,7 +3699,7 @@ function blockHTML(b,num){
   } else if(b.type==='embed'){
     s+=embedHTML(b);
   } else if(b.type==='graph'){
-    s+='<div class="graphblk" style="height:'+(b.h||320)+'px"><canvas class="graph" aria-label="Graph"></canvas><div class="draw-tools etools"><span class="ekind">Graph</span><button type="button" data-gact="edit">'+(graphEdit[b.id]?'Done':'Edit')+'</button><button type="button" data-gact="copy">Copy PNG</button><button type="button" data-gact="save">Save PNG</button></div><div class="draw-resize" title="Drag to change height"></div></div>'+(graphEdit[b.id]?graphEditorHTML(b):'');
+    s+='<div class="graphblk" style="height:'+(b.h||320)+'px"><canvas class="graph" aria-label="Graph"></canvas><div class="draw-tools etools"><span class="ekind">Graph</span><button type="button" data-gact="edit">'+(graphEdit[b.id]?'Done':'Edit settings')+'</button><button type="button" data-gact="copy">Copy PNG</button><button type="button" data-gact="save">Save PNG</button></div><div class="draw-resize" title="Drag to change height"></div></div>'+(graphEdit[b.id]?graphEditorHTML(b):'');
   } else {
     s+='<div class="content" contenteditable="true" spellcheck="true" data-ph="'+esc(PLACEHOLDER[b.type]||'')+'">'+contentHTML(b)+'</div>';
   }
@@ -3729,8 +3731,9 @@ function graphEditorHTML(b){
     '<div class="grow">'+num('xmin','x min')+num('xmax','x max')+num('xstep','x step')+'</div>'+
     '<div class="grow">'+num('ymin','y min')+num('ymax','y max')+num('ystep','y step')+'</div>'+
     '<div class="grow">'+rich('xlabel','x axis title','x')+rich('ylabel','y axis title','y')+rich('title','Graph title','')+'</div>'+
-    '<div class="ghint">Titles: ^2^ for superscript, ~n~ for subscript, ‘ or ` for inline maths. Trig follows Settings › Angle.</div>'+
-    '<label class="gchk"><input type="checkbox" data-g="grid"'+(b.grid!==false?' checked':'')+'> Show gridlines</label>'+
+    '<div class="ghint">Titles: ^2^ for superscript, ~n~ for subscript, ‘ or ` for inline maths.</div>'+
+    '<div class="grow2"><label>Angle for trig<div class="seg full" data-gseg="angle"><button type="button" data-val="rad" class="'+(b.angle==='deg'?'':'on')+'">Radians</button><button type="button" data-val="deg" class="'+(b.angle==='deg'?'on':'')+'">Degrees</button></div></label>'+
+    '<label class="gchk"><input type="checkbox" data-g="grid"'+(b.grid!==false?' checked':'')+'> Show gridlines</label></div>'+
     '</div>';
 }
 function render(){
@@ -4743,12 +4746,13 @@ function initEmbedBlocks(){
 /* ---------- graph blocks: equations in x (MathQuill lines) and points on axes you set, drawn on a canvas ---------- */
 var GRAPH_COLORS=['#0a84ff','#ff3b30','#34c759','#ff9f0a','#af52de','#5ac8fa','#ff2d55'];
 var GRAPH_FONT="'Times New Roman', Times, 'STIX Two Math', serif";
-function graphCompile(latex){
+function graphAngleScope(deg){ if(!deg) return {}; var D=Math.PI/180; return {sin:function(x){ return Math.sin(x*D); },cos:function(x){ return Math.cos(x*D); },tan:function(x){ return Math.tan(x*D); },sec:function(x){ return 1/Math.cos(x*D); },csc:function(x){ return 1/Math.sin(x*D); },cot:function(x){ return 1/Math.tan(x*D); },arcsin:function(x){ return Math.asin(x)/D; },arccos:function(x){ return Math.acos(x)/D; },arctan:function(x){ return Math.atan(x)/D; },asin:function(x){ return Math.asin(x)/D; },acos:function(x){ return Math.acos(x)/D; },atan:function(x){ return Math.atan(x)/D; }}; }
+function graphCompile(latex,b){
   var src=String(latex||'').trim(); if(!src) return null;
   var expr; try{ expr=prepareExpr(src); }catch(e){ return null; }
   expr=String(expr||'').replace(/^\s*y\s*=\s*/i,'').replace(/^\s*f\s*\(\s*x\s*\)\s*=\s*/i,'').replace(/^\s*f_fn\s*\(\s*x\s*\)\s*=\s*/i,'');
   if(!expr.trim() || /=/.test(expr.replace(/[<>!=]=/g,''))) return null;
-  var scope=Object.assign({},angleScope(),physConstants(),CALC_FUNCS);
+  var scope=Object.assign({},graphAngleScope(b&&b.angle==='deg'),physConstants(),CALC_FUNCS);
   try{ var code=math.compile(expr); var f=function(x){ scope.x=x; var v=code.evaluate(scope); if(v && typeof v==='object'){ if('re' in v) return Math.abs(v.im)<1e-9?v.re:NaN; if(typeof v.toNumber==='function') return v.toNumber(); return NaN; } return (typeof v==='number')?v:NaN; }; f(1); return f; }catch(e){ return null; }
 }
 function graphParsePoints(text){
@@ -4846,7 +4850,7 @@ function graphPaint(cv,b,o){
   if(hasT) drawRich(ctx,b.title,ML+pw/2,MT-8,'center',px+3,C.ink);
   ctx.save(); ctx.beginPath(); ctx.rect(ML,MT,pw,ph); ctx.clip();
   var eqs=Array.isArray(b.eqs)?b.eqs:[], legend=[];
-  eqs.forEach(function(line,ci){ if(!String(line||'').trim()) return; var f=graphCompile(line); var col=GRAPH_COLORS[ci%GRAPH_COLORS.length]; legend.push({runs:latexRuns(line,0,[]),c:col,bad:!f}); if(!f) return;
+  eqs.forEach(function(line,ci){ if(!String(line||'').trim()) return; var f=graphCompile(line,b); var col=GRAPH_COLORS[ci%GRAPH_COLORS.length]; legend.push({runs:latexRuns(line,0,[]),c:col,bad:!f}); if(!f) return;
     ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.beginPath(); var pen=false, prevY=null;
     for(var ppx=0; ppx<=pw; ppx+=1){ var x=xmin+ppx/pw*(xmax-xmin), y; try{ y=f(x); }catch(e){ y=NaN; }
       if(!isFinite(y)){ pen=false; prevY=null; continue; }
@@ -4860,7 +4864,7 @@ function graphPaint(cv,b,o){
     ctx.fillStyle=C.bg; ctx.globalAlpha=.85; ctx.fillRect(bx,by,bw,bh); ctx.globalAlpha=1; ctx.strokeStyle=C.grid; ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);
     legend.forEach(function(l,i){ var yy=by+4+i*lh+lh*0.72; ctx.strokeStyle=l.c; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(bx+8,yy-lpx*0.3); ctx.lineTo(bx+22,yy-lpx*0.3); ctx.stroke(); drawRich(ctx,l.runs,bx+28,yy,'left',lpx,l.bad?'#ff3b30':C.ink); }); }
 }
-function graphErrors(b){ var bad=[]; (Array.isArray(b.eqs)?b.eqs:[]).forEach(function(l,i){ if(String(l||'').trim() && !graphCompile(l)) bad.push(i+1); }); return bad; }
+function graphErrors(b){ var bad=[]; (Array.isArray(b.eqs)?b.eqs:[]).forEach(function(l,i){ if(String(l||'').trim() && !graphCompile(l,b)) bad.push(i+1); }); return bad; }
 function graphPNG(b){
   var el=blockEl(b.id), box=el&&el.querySelector('.graphblk'); var bw=(box&&box.clientWidth)||800, bh=(box&&box.clientHeight)||(b.h||320);
   var W=960, H=Math.round(W*bh/bw); if(!(H>120)) H=480;
@@ -4926,6 +4930,9 @@ function initGraphBlocks(){
     });
     ge.addEventListener('input',function(e){ e.stopPropagation(); var inp=e.target.closest('[data-g]'); if(!inp) return; graphApplyInput(b,inp); graphPaint(cv,b); paintErr(); later(); });
     ge.addEventListener('change',function(e){ e.stopPropagation(); });
+    ge.addEventListener('click',function(e){ var sb=e.target.closest('[data-gseg] button'); if(!sb) return; var seg=sb.closest('[data-gseg]'); b[seg.dataset.gseg]=sb.dataset.val; seg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on',x===sb); }); graphPaint(cv,b); paintErr(); later(); });
+    /* the settings close themselves once focus has left them (a picker or the inline maths field counts as still inside) */
+    ge.addEventListener('focusout',function(){ setTimeout(function(){ if(!graphEdit[b.id] || !ge.isConnected) return; var a=document.activeElement; if(ge.contains(a)) return; if(imqState.open && imqState.el && ge.contains(imqState.el)) return; if(bslState.open || (typeof pfxState!=='undefined' && pfxState.open)) return; delete graphEdit[b.id]; rerenderBlock(b.id); },150); });
     ge.addEventListener('pointerdown',function(){ if(selectedId) select(null); });
     ge.addEventListener('keydown',function(e){ if(e.key==='Escape' && !imqState.open){ delete graphEdit[b.id]; rerenderBlock(b.id); select(b.id); } });
     paintErr();
