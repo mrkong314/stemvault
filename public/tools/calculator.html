@@ -1270,19 +1270,38 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .sys-result.err { color: var(--ink-dim); font-weight: 400; font-size: 0.85rem; }
   .sys-result .katex { font-size: 1.05rem; }
 
-  /* ---- graph line: equations in x plotted on a canvas (ported from the Notepad's graph block) ---- */
+  /* ---- graph line: equations in x and points plotted on a canvas (ported from the Notepad's graph block) ---- */
   .line.is-graph .body { min-width: 0; }
   .graph-wrap { display: flex; align-items: stretch; gap: 0.7rem; padding: 0.25rem 0; min-width: 0; }
-  .graph-eqs { flex: 0 1 34%; min-width: 11rem; display: flex; flex-direction: column; gap: 0.15rem; }
+  .graph-left { flex: 0 1 36%; min-width: 12rem; display: flex; flex-direction: column; gap: 0.4rem; }
+  .graph-eqs, .graph-pts { display: flex; flex-direction: column; gap: 0.15rem; }
   .graph-eq { display: flex; align-items: center; gap: 0.35rem; padding: 0.1rem 0.3rem; border-radius: 8px; }
   .graph-eq.err { box-shadow: inset 2px 0 0 #ff3b30; }
-  .graph-eq .g-sw { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; }
   .graph-eq .mq-field { flex: 1 1 auto; min-width: 0; }
-  .graph-eq .sys-del {
+  .g-sw {
+    flex: 0 0 auto; width: 14px; height: 14px; padding: 0; border-radius: 50%; cursor: pointer;
+    border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--rule); background: var(--ink);
+  }
+  .g-sw:hover { box-shadow: 0 0 0 2px var(--accent); }
+  .graph-eq .sys-del, .graph-ptrow .sys-del {
     flex: 0 0 auto; border: none; background: transparent; color: var(--ink-dim);
     cursor: pointer; font-size: 1rem; line-height: 1; padding: 0.1rem 0.25rem; opacity: 0.5;
   }
-  .graph-eq .sys-del:hover { opacity: 1; color: var(--accent); }
+  .graph-eq .sys-del:hover, .graph-ptrow .sys-del:hover { opacity: 1; color: var(--accent); }
+  .graph-pt { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.1rem 0.3rem; border-radius: 8px; }
+  .graph-ptrow { display: flex; align-items: center; gap: 0.35rem; }
+  .graph-pt .g-pc, .graph-pt .g-ptxt {
+    flex: 1 1 auto; min-width: 0; font: inherit; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--rule); border-radius: 7px; padding: 0.22rem 0.45rem; outline: none;
+  }
+  .graph-pt .g-pc { font-family: ui-monospace, Menlo, monospace; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  .graph-pt .g-ptxt { font-family: 'Times New Roman', Times, serif; font-size: 0.9rem; margin-left: 1.55rem; }
+  .graph-pt .g-pc:focus, .graph-pt .g-ptxt:focus { border-color: var(--accent); }
+  .graph-pt .g-lab {
+    flex: 0 0 auto; font: inherit; font-size: 0.7rem; font-weight: 600; color: var(--ink-dim); background: transparent;
+    border: 1px solid var(--rule); border-radius: 999px; padding: 0.1rem 0.5rem; cursor: pointer;
+  }
+  .graph-pt .g-lab.on { color: var(--accent); border-color: var(--accent); background: rgba(10,132,255,0.08); }
   .graph-box {
     flex: 1 1 auto; position: relative; min-width: 0; border-radius: 14px;
     background: var(--panel); border: 1px solid var(--rule); overflow: hidden; height: 300px;
@@ -1304,29 +1323,55 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
     display: flex; flex-direction: column; gap: 2px; color: var(--ink-dim); font-size: 0.68rem;
     font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; min-width: 0;
   }
-  .graph-settings input[type=text], .graph-settings input[type=number], .graph-settings textarea {
-    font: inherit; font-size: 0.85rem; text-transform: none; letter-spacing: 0; color: var(--ink);
+  .graph-settings input[type=text] {
+    font: inherit; font-size: 0.95rem; text-transform: none; letter-spacing: 0; color: var(--ink);
     background: var(--panel); border: 1px solid var(--rule); border-radius: 7px; padding: 0.25rem 0.4rem;
-    outline: none; box-sizing: border-box;
+    outline: none; box-sizing: border-box; width: 9rem; font-family: 'Times New Roman', Times, serif;
   }
-  .graph-settings input:focus, .graph-settings textarea:focus { border-color: var(--accent); }
-  .graph-settings input[type=number] { width: 4.6rem; font-variant-numeric: tabular-nums; }
-  .graph-settings input[type=text] { width: 9rem; font-family: 'Times New Roman', Times, serif; font-size: 0.95rem; }
-  .graph-settings textarea { width: 100%; min-height: 2.4rem; resize: vertical; font-family: ui-monospace, Menlo, monospace; font-size: 0.8rem; }
+  .graph-settings input[type=text]:focus { border-color: var(--accent); }
+  .graph-settings .g-num {
+    display: block; width: 5.2rem; min-height: 1.9rem; padding: 0.1rem 0.4rem; border-radius: 7px; box-sizing: border-box;
+    border: 1px solid var(--rule) !important; background: var(--panel); color: var(--ink); font-size: 0.95rem;
+    text-transform: none; letter-spacing: 0; font-weight: 400; box-shadow: none !important;
+  }
+  .graph-settings .g-num.mq-focused { border-color: var(--accent) !important; }
+  .graph-settings .g-num .mq-root-block { padding: 2px 0; min-width: 1em; white-space: nowrap; display: block; overflow: hidden; }
+  .graph-settings .gs-axis.auto .g-num { color: var(--ink-dim); }
   .graph-settings .gs-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-end; width: 100%; }
-  .graph-settings .gs-pts { flex: 1 1 14rem; }
   .graph-settings .seg { text-transform: none; letter-spacing: 0; font-weight: 500; }
   .graph-settings .gs-chk {
     flex-direction: row; align-items: center; gap: 0.35rem; text-transform: none; letter-spacing: 0;
-    font-size: 0.82rem; font-weight: 500; color: var(--ink); padding-bottom: 0.3rem;
+    font-size: 0.82rem; font-weight: 500; color: var(--ink); padding-bottom: 0.3rem; white-space: nowrap;
   }
   .graph-settings .gs-chk input { accent-color: var(--accent); }
   .graph-settings .gs-hint { width: 100%; font-size: 0.72rem; color: var(--ink-dim); }
+  .graph-settings .gs-quad { align-self: flex-start; }
+  .gquad { display: block; width: 84px; height: 84px; margin-top: 4px; cursor: pointer; }
+  .gquad .gq { fill: var(--control); stroke: var(--rule); stroke-width: 1.5; transition: fill 0.12s; }
+  .gquad .gq.on { fill: rgba(10,132,255,0.18); stroke: var(--accent); }
+  .gquad .gq:hover { stroke: var(--accent); }
+  .gquad .gq-ax { fill: none; stroke: var(--ink); stroke-width: 2.5; pointer-events: none; }
+  .gquad .gq-ar { fill: var(--ink); pointer-events: none; }
   .line.is-graph.gs-open .actbtn.graph-gear { color: var(--accent); opacity: 1; }
   .line .actbtn.graph-png svg, .line .actbtn.graph-gear svg { display: block; }
+  #gpal {
+    position: fixed; z-index: 10005; width: 256px; display: flex; flex-direction: column; gap: 10px; padding: 12px;
+    border-radius: 14px; background: var(--glass-strong); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); color: var(--ink);
+  }
+  #gpal .gp-title { font-size: 0.72rem; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+  #gpal .gp-sw { display: grid; grid-template-columns: repeat(6, 28px); gap: 8px; justify-content: space-between; }
+  #gpal .gp-sw button { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--rule); cursor: pointer; padding: 0; }
+  #gpal .gp-sw button.on { box-shadow: 0 0 0 2px var(--accent); }
+  #gpal .gp-row { display: grid; grid-template-columns: 62px 1fr 38px; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--ink); }
+  #gpal .gp-row output { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-dim); font-size: 0.78rem; }
+  #gpal input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
+  #gpal .gp-mk { display: flex; gap: 4px; grid-column: 2 / 4; }
+  #gpal .gp-mk button { flex: 1; min-width: 0; height: 28px; border-radius: 7px; border: 1px solid var(--rule); background: transparent; color: var(--ink); font-size: 0.95rem; cursor: pointer; padding: 0; }
+  #gpal .gp-mk button.on { background: rgba(10,132,255,0.12); border-color: var(--accent); color: var(--accent); }
   @media (max-width: 640px) {
     .graph-wrap { flex-direction: column; }
-    .graph-eqs { flex: 0 0 auto; min-width: 0; }
+    .graph-left { flex: 0 0 auto; min-width: 0; }
     .graph-box { height: 240px; }
   }
   #calcToast {
@@ -6914,17 +6959,18 @@ function createSystemLine(folder, afterLine = null, initialEqs = null) {
 
 
 /* ---------------------------------------------------------------------------
-   Graph line. Equations in x (one MathQuill field each) are plotted on a
-   canvas with points, axis bounds, titles and a legend. Ported from the
-   Notepad's graph block; here each equation compiles against the SECTION's
-   scope, so defined variables, sliders and user functions drive the curves
-   live. A graph line carries isSystem so every "not a plain line" guard in
-   the calculator treats it like a system block (no value, no note, equation
-   fields instead of a single .mq); isGraph picks out the graph-specific paths.
+   Graph line. Equations in x (one MathQuill field each) and point entries are
+   plotted on a canvas with fitted or typed axes, titles, labels and a legend.
+   Ported from the Notepad's graph block; here each equation compiles against
+   the SECTION's scope, so defined variables, sliders and user functions drive
+   the curves live. A graph line carries isSystem so every "not a plain line"
+   guard in the calculator treats it like a system block (no value, no note,
+   equation fields instead of a single .mq); isGraph picks out the graph paths.
 --------------------------------------------------------------------------- */
-const GRAPH_COLORS = ['#0a84ff','#ff3b30','#34c759','#ff9f0a','#af52de','#5ac8fa','#ff2d55'];
 const GRAPH_FONT = "'Times New Roman', Times, 'STIX Two Math', serif";
-const TEX_SYMBOLS = {times:'×',cdot:'·',div:'÷',pm:'±',mp:'∓',le:'≤',leq:'≤',ge:'≥',geq:'≥',ne:'≠',neq:'≠',approx:'≈',equiv:'≡',propto:'∝',Rightarrow:'⇒',rightarrow:'→',to:'→',leftarrow:'←',infty:'∞',degree:'°',circ:'°',prime:'′',cdots:'⋯',ldots:'…',dots:'…',partial:'∂',nabla:'∇',int:'∫',sum:'Σ',angle:'∠',perp:'⊥',parallel:'∥',ast:'∗',star:'⋆',bullet:'•',hbar:'ℏ',ell:'ℓ',Re:'Re',Im:'Im'};
+const GRAPH_PALETTE = [['ink','Black'],['#0a84ff','Blue'],['#ff3b30','Red'],['#34c759','Green'],['#ff9f0a','Orange'],['#af52de','Purple'],['#5ac8fa','Sky'],['#ff2d55','Pink'],['#8e8e93','Grey'],['#a2845e','Brown'],['#ffd60a','Yellow'],['#30d158','Mint']];
+const GRAPH_MARKERS = [['dot','●','Filled circle'],['ring','○','Hollow circle'],['x','×','Cross'],['plus','+','Plus'],['square','■','Square'],['tri','▲','Triangle'],['diamond','◆','Diamond']];
+const TEX_SYMBOLS = {pi:'π',cdot:'·',div:'÷',pm:'±',mp:'∓',le:'≤',leq:'≤',ge:'≥',geq:'≥',ne:'≠',neq:'≠',approx:'≈',equiv:'≡',propto:'∝',Rightarrow:'⇒',rightarrow:'→',to:'→',leftarrow:'←',infty:'∞',degree:'°',circ:'°',prime:'′',cdots:'⋯',ldots:'…',dots:'…',partial:'∂',nabla:'∇',int:'∫',sum:'Σ',angle:'∠',perp:'⊥',parallel:'∥',ast:'∗',star:'⋆',bullet:'•',hbar:'ℏ',ell:'ℓ',Re:'Re',Im:'Im'};
 const GRAPH_MQ_OPTS = {
   spaceBehavesLikeTab: false,
   typingSlashWritesDivisionSymbol: false,
@@ -6933,9 +6979,12 @@ const GRAPH_MQ_OPTS = {
   autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ln log exp abs floor ceil sign deg Re Im Arg conj'
 };
 function graphDefaults() {
-  return { xmin: -10, xmax: 10, xstep: 0, ymin: -10, ymax: 10, ystep: 0, xlabel: 'x', ylabel: 'y', title: '',
-           pts: '', quad: 'all', angle: 'auto', grid: true, arrows: true, h: 300 };
+  return { xmin: -10, xmax: 10, xstep: 1, ymin: -10, ymax: 10, ystep: 1, autoX: true, autoY: true, rangeTex: {},
+           xlabel: '`x`', ylabel: '`y`', title: '', quads: { q1: true, q2: true, q3: true, q4: true },
+           angle: 'auto', grid: true, arrows: true, legend: false, h: 300, eqStyles: [], points: [] };
 }
+/* the angle mode this graph actually uses: its own, or the calculator's */
+function graphAngleEff(g) { return (g && (g.angle === 'deg' || g.angle === 'rad')) ? g.angle : angleMode; }
 /* trig for one graph: 'auto' follows the calculator's angle setting (already in
    the section scope); 'deg' or 'rad' override it for this graph only */
 function graphTrigScope(mode) {
@@ -6946,6 +6995,14 @@ function graphTrigScope(mode) {
   };
   return {};
 }
+function graphToNum(v) {
+  if (v && typeof v === 'object') {
+    if ('re' in v) return Math.abs(v.im) < 1e-9 ? v.re : NaN;
+    if (typeof v.toNumber === 'function') { try { return v.toNumber(); } catch (e) { return NaN; } }
+    return NaN;
+  }
+  return (typeof v === 'number') ? v : NaN;
+}
 /* LaTeX for one equation -> f(x), or null when it cannot be read. `base` is the
    section scope (variables, user functions, constants, calculator trig). */
 function graphCompile(latex, g, base) {
@@ -6955,28 +7012,109 @@ function graphCompile(latex, g, base) {
   if (!expr.trim() || /=/.test(expr.replace(/[<>!=]=/g, ''))) return null;
   const scope = Object.assign({}, base || {}, graphTrigScope(g && g.angle));
   let code; try { code = math.compile(expr); } catch (e) { return null; }
-  const toNum = v => {
-    if (v && typeof v === 'object') {
-      if ('re' in v) return Math.abs(v.im) < 1e-9 ? v.re : NaN;
-      if (typeof v.toNumber === 'function') { try { return v.toNumber(); } catch (e) { return NaN; } }
-      return NaN;
-    }
-    return (typeof v === 'number') ? v : NaN;
-  };
   // an undefined symbol or a malformed call throws here and marks the line
   try { scope.x = 1; code.evaluate(scope); } catch (e) { return null; }
-  return x => { scope.x = x; try { return toNum(code.evaluate(scope)); } catch (e) { return NaN; } };
+  return x => { scope.x = x; try { return graphToNum(code.evaluate(scope)); } catch (e) { return NaN; } };
 }
-function graphParsePoints(text) {
-  const out = [];
-  String(text || '').split(/\n|;/).forEach(l => {
-    const m = l.replace(/[()\[\]]/g, ' ').trim().split(/[,\s]+/).filter(Boolean);
-    if (m.length >= 2) { const x = parseFloat(m[0]), y = parseFloat(m[1]); if (isFinite(x) && isFinite(y)) out.push({ x, y }); }
-  });
-  return out;
+/* a range box: LaTeX in, number out, through the calculator engine and the
+   section's scope (so pi/6, 2pi or 3a all work) */
+function graphNum(latex, base) {
+  const s = String(latex || '').trim(); if (!s) return NaN;
+  let expr; try { expr = prepareExpr(s); } catch (e) { return NaN; }
+  try { const v = graphToNum(math.evaluate(expr, Object.assign({}, base || {}, physConstants(), CALC_FUNCS))); return isFinite(v) ? v : NaN; } catch (e) { return NaN; }
+}
+/* One point entry: "(1, 2)", "1, 2", or a bracketed list "[(0,0),(1,3)]" drawn as a connected line. */
+function graphPointEntry(e) {
+  const t = String((e && e.c) || '').replace(/−/g, '-'); const pts = [];
+  const re = /(-?\d*\.?\d+(?:e[-+]?\d+)?)\s*[,;]\s*(-?\d*\.?\d+(?:e[-+]?\d+)?)/gi; let m;
+  while ((m = re.exec(t))) { const x = parseFloat(m[1]), y = parseFloat(m[2]); if (isFinite(x) && isFinite(y)) pts.push({ x, y }); }
+  return { pts, connected: /^\s*\[/.test(t) && pts.length > 1 };
+}
+function graphAllPoints(g) { const out = []; (g.points || []).forEach(e => { out.push(...graphPointEntry(e).pts); }); return out; }
+function graphEqStyle(g, i) { if (!Array.isArray(g.eqStyles)) g.eqStyles = []; let st = g.eqStyles[i]; if (!st || typeof st !== 'object') st = g.eqStyles[i] = {}; return st; }
+function graphEqColor(g, i) { const st = (g.eqStyles && g.eqStyles[i]) || {}; return st.col || 'ink'; }
+function graphPointColor(g, i) { const pe = (g.points || [])[i]; return (pe && pe.col) || 'ink'; }
+function graphCssColor(c) { return c === 'ink' ? 'var(--ink)' : c; }
+/* point markers */
+function drawMarker(ctx, x, y, mk, s, col, bg) {
+  ctx.save(); ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = Math.max(1.5, s * 0.35); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  switch (mk) {
+    case 'ring': ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fillStyle = bg; ctx.fill(); ctx.stroke(); break;
+    case 'x': ctx.beginPath(); ctx.moveTo(x - s, y - s); ctx.lineTo(x + s, y + s); ctx.moveTo(x + s, y - s); ctx.lineTo(x - s, y + s); ctx.stroke(); break;
+    case 'plus': ctx.beginPath(); ctx.moveTo(x - s, y); ctx.lineTo(x + s, y); ctx.moveTo(x, y - s); ctx.lineTo(x, y + s); ctx.stroke(); break;
+    case 'square': ctx.fillRect(x - s, y - s, 2 * s, 2 * s); ctx.lineWidth = 1.5; ctx.strokeStyle = bg; ctx.strokeRect(x - s, y - s, 2 * s, 2 * s); break;
+    case 'tri': ctx.beginPath(); ctx.moveTo(x, y - s * 1.15); ctx.lineTo(x + s * 1.1, y + s * 0.8); ctx.lineTo(x - s * 1.1, y + s * 0.8); ctx.closePath(); ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = bg; ctx.stroke(); break;
+    case 'diamond': ctx.beginPath(); ctx.moveTo(x, y - s * 1.2); ctx.lineTo(x + s * 1.2, y); ctx.lineTo(x, y + s * 1.2); ctx.lineTo(x - s * 1.2, y); ctx.closePath(); ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = bg; ctx.stroke(); break;
+    default: ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = bg; ctx.stroke();
+  }
+  ctx.restore();
+}
+function fmtCoord(v) { return (+v.toPrecision(6)).toString(); }
+function gfmt(v) { if (typeof v !== 'number' || !isFinite(v)) return ''; return (+v.toPrecision(6)).toString(); }
+/* x axis in multiples of pi: automatic for trig in radians */
+function graphUsesTrig(eqs) { return (eqs || []).some(l => /\\?(sin|cos|tan|sec|csc|cot)\b/.test(String(l || ''))); }
+function graphUsesPi(line) { return graphAngleEff(line.g) !== 'deg' && line.g.autoX !== false && graphUsesTrig(line._gEqs); }
+const PI_DENS = [1, 2, 3, 4, 6, 8, 12, 16, 24];
+function isPiStep(step) { if (!(step > 0)) return false; const su = step / Math.PI; return PI_DENS.some(d => Math.abs(su * d - Math.round(su * d)) < 1e-6); }
+const PI_STEPS = [1 / 12, 1 / 6, 1 / 4, 1 / 3, 1 / 2, 1, 2, 4, 8, 16];
+function piNiceStep(range) { const r = range / Math.PI; for (const s of PI_STEPS) { if (r / s <= 10) return s * Math.PI; } return PI_STEPS[PI_STEPS.length - 1] * Math.PI; }
+function gcdInt2(a, c) { return c ? gcdInt2(c, a % c) : Math.abs(a); }
+function fmtPiTick(v, step) {
+  const su = step / Math.PI; let den = 1;
+  for (const d of PI_DENS) { if (Math.abs(su * d - Math.round(su * d)) < 1e-6) { den = d; break; } }
+  let n = Math.round(v / Math.PI * den); if (n === 0) return '0';
+  const d = gcdInt2(n, den); n /= d; const dd = den / d;
+  const s = (n === 1 ? '' : n === -1 ? '−' : (n < 0 ? '−' + (-n) : String(n))) + 'π';
+  return dd === 1 ? s : s + '/' + dd;
+}
+function fmtPiTex(v) {
+  for (const den of PI_DENS) {
+    let n = v / Math.PI * den;
+    if (Math.abs(n - Math.round(n)) < 1e-6) {
+      n = Math.round(n); if (n === 0) return '0';
+      const d = gcdInt2(n, den); n /= d; const dd = den / d; const sign = n < 0 ? '-' : ''; n = Math.abs(n);
+      const num = (n === 1 ? '' : n) + '\\pi';
+      return dd === 1 ? sign + num : sign + '\\frac{' + num + '}{' + dd + '}';
+    }
+  }
+  return gfmt(v);
 }
 function niceStep(range) { const raw = range / 8, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
 function fmtTick(v, step) { const d = Math.max(0, Math.min(6, -Math.floor(Math.log10(step)))); let s = v.toFixed(d); if (d > 0) s = s.replace(/\.?0+$/, ''); return s === '-0' ? '0' : s; }
+/* Ranges and steps actually drawn: automatic ones are fitted to the curves and
+   points, then everything is clamped to the quadrants shown. */
+function graphRanges(line) {
+  const g = line.g, qs = g.quads || { q1: true, q2: true, q3: true, q4: true };
+  const negX = !!(qs.q2 || qs.q3), posX = !!(qs.q1 || qs.q4), posY = !!(qs.q1 || qs.q2), negY = !!(qs.q3 || qs.q4);
+  const usePi = graphUsesPi(line);
+  let xmin = +g.xmin, xmax = +g.xmax; if (!isFinite(xmin) || !isFinite(xmax) || xmax <= xmin) { xmin = -10; xmax = 10; }
+  const pts = graphAllPoints(g);
+  if (usePi && g.autoX !== false && !pts.length) { xmin = -2 * Math.PI; xmax = 2 * Math.PI; }
+  if (g.autoX !== false && pts.length) {
+    const pxs = pts.map(p => p.x); let lo = Math.min(...pxs), hi = Math.max(...pxs); if (hi - lo < 1e-9) { lo -= 1; hi += 1; }
+    const padx = (hi - lo) * 0.1; lo -= padx; hi += padx; const st0 = usePi ? piNiceStep(hi - lo) : niceStep(hi - lo);
+    xmin = Math.floor(lo / st0) * st0; xmax = Math.ceil(hi / st0) * st0; if (lo >= 0 && xmin < 0) xmin = 0;
+  }
+  if (!negX) xmin = Math.max(0, xmin); if (!posX) xmax = Math.min(0, xmax); if (xmax <= xmin) { if (!negX) xmax = xmin + 10; else xmin = xmax - 10; }
+  let xs = (g.autoX === false && +g.xstep > 0) ? +g.xstep : (usePi ? piNiceStep(xmax - xmin) : niceStep(xmax - xmin));
+  if ((xmax - xmin) / xs > 400) xs = usePi ? piNiceStep(xmax - xmin) : niceStep(xmax - xmin);
+  let ymin = +g.ymin, ymax = +g.ymax; if (!isFinite(ymin) || !isFinite(ymax) || ymax <= ymin) { ymin = -10; ymax = 10; }
+  if (g.autoY !== false) {
+    const vals = [];
+    (line._gFns || []).forEach(f => { if (!f) return; for (let i = 0; i <= 200; i++) { let y; try { y = f(xmin + (xmax - xmin) * i / 200); } catch (e) { y = NaN; } if (isFinite(y)) vals.push(y); } });
+    pts.forEach(p => vals.push(p.y));
+    if (vals.length) {
+      vals.sort((a, c) => a - c);
+      let lo2 = vals[Math.floor((vals.length - 1) * 0.02)], hi2 = vals[Math.ceil((vals.length - 1) * 0.98)]; if (hi2 - lo2 < 1e-9) { lo2 -= 1; hi2 += 1; }
+      const pady = (hi2 - lo2) * 0.08; lo2 -= pady; hi2 += pady; const st1 = niceStep(hi2 - lo2);
+      ymin = Math.floor(lo2 / st1) * st1; ymax = Math.ceil(hi2 / st1) * st1;
+      if (vals[0] >= 0 && ymin < 0) ymin = 0; if (vals[vals.length - 1] <= 0 && ymax > 0) ymax = 0;
+    }
+  }
+  if (!negY) ymin = Math.max(0, ymin); if (!posY) ymax = Math.min(0, ymax); if (ymax <= ymin) { if (!negY) ymax = ymin + 10; else ymin = ymax - 10; }
+  let ys = (g.autoY === false && +g.ystep > 0) ? +g.ystep : niceStep(ymax - ymin); if ((ymax - ymin) / ys > 400) ys = niceStep(ymax - ymin);
+  return { xmin, xmax, ymin, ymax, xs, ys, pi: isPiStep(xs) };
+}
 function graphColors(light) {
   if (light) return { ink: '#1d1d1f', dim: '#6e6e73', rule: '#d1d1d6', grid: '#e8e8ec', bg: '#ffffff' };
   const cs = getComputedStyle(document.documentElement); const g = (n, f) => (cs.getPropertyValue(n) || f).trim();
@@ -7002,6 +7140,13 @@ function latexRuns(tex, level, out) {
         if (ar.length > 1) push('('); out.push(...ar); if (ar.length > 1) push(')'); push('/');
         if (br.length > 1) push('('); out.push(...br); if (br.length > 1) push(')'); continue;
       }
+      if (name === 'sqrt') {
+        let idx = null; while (s[i] === ' ') i++;
+        if (s[i] === '[') { const k = s.indexOf(']', i); idx = s.slice(i + 1, k); i = k + 1; }
+        while (s[i] === ' ') i++; const body = readGroup();
+        if (idx) out.push(...latexRuns(idx, level + 1, []));
+        push('√'); const rr = latexRuns(body, level, []); if (rr.length > 1) push('('); out.push(...rr); if (rr.length > 1) push(')'); continue;
+      }
       if (name === 'operatorname' || name === 'text' || name === 'mathrm' || name === 'textrm') { while (s[i] === ' ') i++; push(readGroup(), false); continue; }
       if (name === 'mathit') { while (s[i] === ' ') i++; push(readGroup(), true); continue; }
       if (name === ',' || name === ';' || name === ' ' || name === 'quad' || name === 'qquad') { push(' '); continue; }
@@ -7010,7 +7155,7 @@ function latexRuns(tex, level, out) {
       if (TEX_SYMBOLS[name] !== undefined) { push(TEX_SYMBOLS[name]); continue; }
       push(name); continue;
     }
-    if (ch === '^' || ch === '_') { i++; while (s[i] === ' ') i++; const g = readGroup(); let lv = ch === '^' ? Math.min(1, level + 1) : Math.max(-1, level - 1); if (level !== 0) lv = level; latexRuns(g, lv, out); continue; }
+    if (ch === '^' || ch === '_') { i++; while (s[i] === ' ') i++; const grp = readGroup(); let lv = ch === '^' ? Math.min(1, level + 1) : Math.max(-1, level - 1); if (level !== 0) lv = level; latexRuns(grp, lv, out); continue; }
     if (ch === '{') { const inner = readGroup(); latexRuns(inner, level, out); continue; }
     if (ch === '}') { i++; continue; }
     if (/[a-zA-Z]/.test(ch)) { push(ch, true); i++; continue; }
@@ -7036,11 +7181,12 @@ function richRuns(raw) {
   push(); return out;
 }
 function richMeasure(ctx, runs, px) { let w = 0; runs.forEach(r => { ctx.font = (r.italic ? 'italic ' : '') + (r.level ? Math.round(px * 0.72) : px) + 'px ' + GRAPH_FONT; r.w = ctx.measureText(r.t).width; w += r.w; }); return w; }
-function drawRich(ctx, raw, x, y, align, px, color) {
+function drawRich(ctx, raw, x, y, align, px, color, halo) {
   const runs = typeof raw === 'string' ? richRuns(raw) : raw; if (!runs.length) return 0;
   const w = richMeasure(ctx, runs, px); let cx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
   ctx.save(); ctx.fillStyle = color; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  runs.forEach(r => { ctx.font = (r.italic ? 'italic ' : '') + (r.level ? Math.round(px * 0.72) : px) + 'px ' + GRAPH_FONT; const dy = r.level > 0 ? -px * 0.4 : r.level < 0 ? px * 0.22 : 0; ctx.fillText(r.t, cx, y + dy); cx += r.w; });
+  if (halo) { ctx.strokeStyle = halo; ctx.lineWidth = 3; ctx.lineJoin = 'round'; }
+  runs.forEach(r => { ctx.font = (r.italic ? 'italic ' : '') + (r.level ? Math.round(px * 0.72) : px) + 'px ' + GRAPH_FONT; const dy = r.level > 0 ? -px * 0.4 : r.level < 0 ? px * 0.22 : 0; if (halo) ctx.strokeText(r.t, cx, y + dy); ctx.fillText(r.t, cx, y + dy); cx += r.w; });
   ctx.restore(); return w;
 }
 /* Paint a graph line onto canvas cv from its compiled functions (line._gFns).
@@ -7051,14 +7197,7 @@ function graphPaint(cv, line, o) {
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
   const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
   const C = graphColors(!!o.light); if (o.bg) { ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H); }
-  let xmin = +g.xmin, xmax = +g.xmax, ymin = +g.ymin, ymax = +g.ymax;
-  if (!isFinite(xmin) || !isFinite(xmax) || xmax <= xmin) { xmin = -10; xmax = 10; }
-  if (!isFinite(ymin) || !isFinite(ymax) || ymax <= ymin) { ymin = -10; ymax = 10; }
-  const quad = g.quad || 'all';
-  if (quad === 'px' || quad === 'q1') { xmin = Math.max(0, xmin); if (xmax <= xmin) xmax = xmin + (Math.abs(+g.xmax) || 10); }
-  if (quad === 'py' || quad === 'q1') { ymin = Math.max(0, ymin); if (ymax <= ymin) ymax = ymin + (Math.abs(+g.ymax) || 10); }
-  let xs = +g.xstep > 0 ? +g.xstep : niceStep(xmax - xmin), ys = +g.ystep > 0 ? +g.ystep : niceStep(ymax - ymin);
-  if ((xmax - xmin) / xs > 400) xs = niceStep(xmax - xmin); if ((ymax - ymin) / ys > 400) ys = niceStep(ymax - ymin);
+  const R = graphRanges(line); const xmin = R.xmin, xmax = R.xmax, ymin = R.ymin, ymax = R.ymax, xs = R.xs, ys = R.ys;
   const px = o.light ? 14 : 13, tickFont = px + 'px ' + GRAPH_FONT;
   ctx.font = tickFont;
   let ylabW = 0; for (let v = Math.ceil(ymin / ys) * ys; v <= ymax + 1e-9; v += ys) ylabW = Math.max(ylabW, ctx.measureText(fmtTick(v, ys)).width);
@@ -7068,7 +7207,7 @@ function graphPaint(cv, line, o) {
   const sx = x => ML + (x - xmin) / (xmax - xmin) * pw, sy = y => MT + (ymax - y) / (ymax - ymin) * ph;
   if (g.grid !== false) {
     ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.beginPath();
-    for (let gx = Math.ceil(xmin / xs) * xs; gx <= xmax + 1e-9; gx += xs) { const gpx = Math.round(sx(gx)) + .5; ctx.moveTo(gpx, MT); ctx.lineTo(gpx, MT + ph); }
+    for (let gx = Math.ceil(xmin / xs - 1e-9) * xs; gx <= xmax + 1e-9; gx += xs) { const gpx = Math.round(sx(gx)) + .5; ctx.moveTo(gpx, MT); ctx.lineTo(gpx, MT + ph); }
     for (let gy = Math.ceil(ymin / ys) * ys; gy <= ymax + 1e-9; gy += ys) { const gpy = Math.round(sy(gy)) + .5; ctx.moveTo(ML, gpy); ctx.lineTo(ML + pw, gpy); }
     ctx.stroke();
   }
@@ -7083,7 +7222,8 @@ function graphPaint(cv, line, o) {
     ctx.beginPath(); ctx.moveTo(ayr, MT - 1); ctx.lineTo(ayr - AW, MT - 1 + AH); ctx.lineTo(ayr + AW, MT - 1 + AH); ctx.closePath(); ctx.fill();
   }
   ctx.font = tickFont; ctx.fillStyle = C.dim; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-  let lastX = -1e9; for (let tx = Math.ceil(xmin / xs) * xs; tx <= xmax + 1e-9; tx += xs) { const t = fmtTick(tx, xs), tw = ctx.measureText(t).width, cx = sx(tx); if (cx - tw / 2 > lastX + 6) { ctx.fillText(t, cx, MT + ph + 4); lastX = cx + tw / 2; } }
+  let lastX = -1e9;
+  for (let tx = Math.ceil(xmin / xs - 1e-9) * xs; tx <= xmax + 1e-9; tx += xs) { const t = R.pi ? fmtPiTick(tx, xs) : fmtTick(tx, xs), tw = ctx.measureText(t).width, cx = sx(tx); if (cx - tw / 2 > lastX + 6) { ctx.fillText(t, cx, MT + ph + 4); lastX = cx + tw / 2; } }
   ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
   for (let ty = Math.ceil(ymin / ys) * ys; ty <= ymax + 1e-9; ty += ys) ctx.fillText(fmtTick(ty, ys), ML - 6, sy(ty));
   if (hasX) drawRich(ctx, g.xlabel, ML + pw / 2, H - 6, 'center', px + 1, C.ink);
@@ -7093,9 +7233,10 @@ function graphPaint(cv, line, o) {
   const eqs = line._gEqs || [], fns = line._gFns || [], legend = [];
   eqs.forEach((lx, ci) => {
     if (!String(lx || '').trim()) return;
-    const f = fns[ci], col = GRAPH_COLORS[ci % GRAPH_COLORS.length];
-    legend.push({ runs: latexRuns(lx, 0, []), c: col, bad: !f }); if (!f) return;
-    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.beginPath(); let pen = false, prevY = null;
+    const f = fns[ci]; let col = graphEqColor(g, ci); if (col === 'ink') col = C.ink;
+    const est = (g.eqStyles && g.eqStyles[ci]) || {};
+    legend.push({ runs: latexRuns(lx, 0, []), c: col, w: est.w, bad: !f }); if (!f) return;
+    ctx.save(); ctx.globalAlpha = est.op == null ? 1 : est.op; ctx.strokeStyle = col; ctx.lineWidth = est.w || 2; ctx.lineJoin = 'round'; ctx.beginPath(); let pen = false, prevY = null;
     for (let ppx = 0; ppx <= pw; ppx += 1) {
       const x = xmin + ppx / pw * (xmax - xmin); let y; try { y = f(x); } catch (e) { y = NaN; }
       if (!isFinite(y)) { pen = false; prevY = null; continue; }
@@ -7103,19 +7244,32 @@ function graphPaint(cv, line, o) {
       if (pen && prevY !== null && Math.abs(cy - prevY) > ph * 0.9) pen = false;
       if (!pen) { ctx.moveTo(ML + ppx, cy); pen = true; } else ctx.lineTo(ML + ppx, cy); prevY = cy;
     }
-    ctx.stroke();
+    ctx.stroke(); ctx.restore();
   });
-  graphParsePoints(g.pts).forEach(p => { ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 4.5, 0, Math.PI * 2); ctx.fillStyle = C.ink; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = C.bg; ctx.stroke(); });
+  const labels = [];
+  (g.points || []).forEach((e, i) => {
+    const pe = graphPointEntry(e); if (!pe.pts.length) return; let col = graphPointColor(g, i); if (col === 'ink') col = C.ink;
+    ctx.save(); ctx.globalAlpha = e.op == null ? 1 : e.op;
+    if (pe.connected) { ctx.strokeStyle = col; ctx.lineWidth = e.w || 2; ctx.lineJoin = 'round'; ctx.beginPath(); pe.pts.forEach((p, j) => { const cx = sx(p.x), cy = sy(p.y); if (j) ctx.lineTo(cx, cy); else ctx.moveTo(cx, cy); }); ctx.stroke(); }
+    pe.pts.forEach(p => drawMarker(ctx, sx(p.x), sy(p.y), e.mk || 'dot', e.sz || 5, col, C.bg));
+    ctx.restore();
+    if (e.lab !== false) {
+      const custom = String(e.txt || '').trim();
+      if (custom) { const lp = pe.pts[pe.pts.length - 1]; labels.push({ x: sx(lp.x), y: sy(lp.y), runs: richRuns(custom) }); }
+      else pe.pts.forEach(p => labels.push({ x: sx(p.x), y: sy(p.y), runs: latexRuns('(' + fmtCoord(p.x) + ',\\,' + fmtCoord(p.y) + ')', 0, []) }));
+    }
+  });
+  labels.forEach(l => { const lpx = px - 1; const w = richMeasure(ctx, l.runs, lpx); let lx = l.x + 7, ly = l.y - 7; if (lx + w > ML + pw - 2) lx = l.x - 7 - w; if (ly - lpx < MT + 2) ly = l.y + lpx + 6; drawRich(ctx, l.runs, lx, ly, 'left', lpx, C.ink, C.bg); });
   ctx.restore();
-  if (legend.length) {
+  if (legend.length && g.legend !== false) {
     const lpx = px - 1; let lw = 0; legend.forEach(l => { lw = Math.max(lw, richMeasure(ctx, l.runs, lpx)); });
     const bw = lw + 34, lh = lpx + 7, bh = legend.length * lh + 8, bx = ML + pw - bw - 8, by = MT + 8;
     ctx.fillStyle = C.bg; ctx.globalAlpha = .85; ctx.fillRect(bx, by, bw, bh); ctx.globalAlpha = 1; ctx.strokeStyle = C.grid; ctx.strokeRect(bx + .5, by + .5, bw - 1, bh - 1);
-    legend.forEach((l, i) => { const yy = by + 4 + i * lh + lh * 0.72; ctx.strokeStyle = l.c; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(bx + 8, yy - lpx * 0.3); ctx.lineTo(bx + 22, yy - lpx * 0.3); ctx.stroke(); drawRich(ctx, l.runs, bx + 28, yy, 'left', lpx, l.bad ? '#ff3b30' : C.ink); });
+    legend.forEach((l, i) => { const yy = by + 4 + i * lh + lh * 0.72; ctx.strokeStyle = l.c; ctx.lineWidth = Math.min(5, l.w || 2.5); ctx.beginPath(); ctx.moveTo(bx + 8, yy - lpx * 0.3); ctx.lineTo(bx + 22, yy - lpx * 0.3); ctx.stroke(); drawRich(ctx, l.runs, bx + 28, yy, 'left', lpx, l.bad ? '#ff3b30' : C.ink); });
   }
 }
 /* Called from recompute once the section's scope is complete: compile every
-   equation against it, flag the unreadable ones, repaint. */
+   equation against it, flag the unreadable ones, repaint, refresh the boxes. */
 function renderGraph(line, scope) {
   line._gScope = scope;
   const bad = [];
@@ -7125,9 +7279,10 @@ function renderGraph(line, scope) {
   line.errEl.textContent = bad.length ? ('Could not plot equation' + (bad.length > 1 ? 's ' : ' ') + bad.map(i => i + 1).join(', ')) : '';
   line.errEl.hidden = !bad.length;
   graphPaint(line.canvas, line);
+  syncRangeInputs(line);
   if (line._presentPaint) line._presentPaint();
 }
-function repaintGraph(line) { if (line && line.isGraph && line.canvas) graphPaint(line.canvas, line); }
+function repaintGraph(line) { if (line && line.isGraph && line.canvas) { graphPaint(line.canvas, line); syncRangeInputs(line); if (line._presentPaint) line._presentPaint(); } }
 function allGraphLines() { const out = []; folders.forEach(f => f.lines.forEach(l => { if (l.isGraph) out.push(l); })); return out; }
 new MutationObserver(() => allGraphLines().forEach(repaintGraph)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
@@ -7160,30 +7315,76 @@ function graphCopyPNG(line) {
           () => blobP.then(bl => navigator.clipboard.write([new ClipboardItem({ 'image/png': bl })])).then(() => calcToast('Graph copied as an image'), () => graphSavePNG(line)));
 }
 
+/* ---- style popover for a curve or point entry: colour, opacity, thickness, marker ---- */
+let gpal = null, gpalState = null;
+function openGraphPalette(line, kind, i, anchor) {
+  if (!gpal) {
+    gpal = document.createElement('div'); gpal.id = 'gpal'; gpal.hidden = true; document.body.appendChild(gpal);
+    gpal.addEventListener('mousedown', e => { if (!e.target.closest('input')) e.preventDefault(); });
+    const apply = fn => {
+      const st = gpalState; if (!st) return;
+      const tgt = st.kind === 'eq' ? graphEqStyle(st.line.g, st.i) : ((st.line.g.points || [])[st.i] || {});
+      fn(tgt);
+      graphColorRows(st.line); repaintGraph(st.line); scheduleSave();
+    };
+    gpal.addEventListener('click', e => {
+      const sw = e.target.closest('[data-col]'); if (sw) { apply(t => { t.col = sw.dataset.col; }); gpal.querySelectorAll('[data-col]').forEach(x => x.classList.toggle('on', x === sw)); return; }
+      const mk = e.target.closest('[data-mk]'); if (mk) { apply(t => { t.mk = mk.dataset.mk; }); gpal.querySelectorAll('[data-mk]').forEach(x => x.classList.toggle('on', x === mk)); return; }
+    });
+    gpal.addEventListener('input', e => {
+      const r = e.target.closest('input[type=range]'); if (!r) return; const k = r.dataset.k, v = +r.value;
+      const out = gpal.querySelector('[data-out="' + k + '"]'); if (out) out.textContent = k === 'op' ? v + '%' : v;
+      apply(t => { t[k] = k === 'op' ? v / 100 : v; });
+    });
+    document.addEventListener('mousedown', e => { if (gpal && !gpal.hidden && !gpal.contains(e.target) && !(e.target.closest && e.target.closest('.g-sw'))) closeGraphPalette(); }, true);
+    window.addEventListener('scroll', () => { if (gpal && !gpal.hidden) placeGraphPalette(); }, { passive: true, capture: true });
+  }
+  gpalState = { line, kind, i, anchor };
+  const st = kind === 'eq' ? graphEqStyle(line.g, i) : ((line.g.points || [])[i] || {});
+  const cur = kind === 'eq' ? graphEqColor(line.g, i) : graphPointColor(line.g, i);
+  const op = Math.round((st.op == null ? 1 : st.op) * 100), w = st.w || 2, sz = st.sz || 5, mk = st.mk || 'dot';
+  let h = '<div class="gp-title">' + (kind === 'eq' ? 'Curve style' : 'Point style') + '</div>';
+  h += '<div class="gp-sw">' + GRAPH_PALETTE.map(c => '<button type="button" data-col="' + c[0] + '" class="' + (c[0] === cur ? 'on' : '') + '" title="' + c[1] + '" aria-label="' + c[1] + '" style="background:' + graphCssColor(c[0]) + '"></button>').join('') + '</div>';
+  h += '<label class="gp-row"><span>Opacity</span><input type="range" min="10" max="100" step="5" value="' + op + '" data-k="op"><output data-out="op">' + op + '%</output></label>';
+  h += '<label class="gp-row"><span>' + (kind === 'eq' ? 'Thickness' : 'Line') + '</span><input type="range" min="1" max="8" step="0.5" value="' + w + '" data-k="w"><output data-out="w">' + w + '</output></label>';
+  if (kind === 'pt') {
+    h += '<label class="gp-row"><span>Size</span><input type="range" min="2" max="12" step="1" value="' + sz + '" data-k="sz"><output data-out="sz">' + sz + '</output></label>';
+    h += '<div class="gp-row"><span>Marker</span><div class="gp-mk">' + GRAPH_MARKERS.map(m => '<button type="button" data-mk="' + m[0] + '" class="' + (m[0] === mk ? 'on' : '') + '" title="' + m[2] + '" aria-label="' + m[2] + '">' + m[1] + '</button>').join('') + '</div></div>';
+  }
+  gpal.innerHTML = h; gpal.hidden = false; placeGraphPalette();
+}
+function placeGraphPalette() {
+  if (!gpal || gpal.hidden || !gpalState || !gpalState.anchor || !gpalState.anchor.isConnected) { closeGraphPalette(); return; }
+  const r = gpalState.anchor.getBoundingClientRect(); const pw = gpal.offsetWidth || 240, ph = gpal.offsetHeight || 160;
+  const left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8)); let top = r.bottom + 6; if (top + ph > window.innerHeight - 8) top = r.top - ph - 6; if (top < 8) top = 8;
+  gpal.style.left = left + 'px'; gpal.style.top = top + 'px';
+}
+function closeGraphPalette() { if (gpal) gpal.hidden = true; gpalState = null; }
+
 /* ---- the line itself ---- */
-function graphColorRows(lineObj) { lineObj.eqFields.forEach((ef, i) => { ef.sw.style.background = GRAPH_COLORS[i % GRAPH_COLORS.length]; }); }
-function addGraphRow(lineObj, initialLatex = '', focusIt = true) {
+function graphColorRows(lineObj) {
+  lineObj.eqFields.forEach((ef, i) => { ef.sw.style.background = graphCssColor(graphEqColor(lineObj.g, i)); });
+  (lineObj.ptRows || []).forEach((pr, i) => { pr.sw.style.background = graphCssColor(graphPointColor(lineObj.g, i)); });
+}
+function addGraphRow(lineObj, initialLatex = '', focusIt = true, at = null) {
   const row = document.createElement('div'); row.className = 'graph-eq';
-  const sw = document.createElement('span'); sw.className = 'g-sw';
+  const sw = document.createElement('button'); sw.type = 'button'; sw.className = 'g-sw'; sw.title = 'Curve style';
   const fEl = document.createElement('div'); fEl.className = 'mq-field';
   const del = document.createElement('button'); del.className = 'sys-del'; del.innerHTML = '&times;'; del.title = 'Remove equation';
   row.appendChild(sw); row.appendChild(fEl); row.appendChild(del);
-  lineObj.eqsEl.insertBefore(row, lineObj.addRowBtn);
   const entry = { row, sw, mq: null };
+  if (at != null && lineObj.eqFields[at]) { lineObj.eqFields[at].row.before(row); lineObj.eqFields.splice(at, 0, entry); if (Array.isArray(lineObj.g.eqStyles)) lineObj.g.eqStyles.splice(at, 0, null); }
+  else { lineObj.eqsEl.insertBefore(row, lineObj.addRowBtn); lineObj.eqFields.push(entry); }
   const mq = MQ.MathField(fEl, Object.assign({}, GRAPH_MQ_OPTS, {
     handlers: {
       edit: () => { expandSciShortcut(mq, entry); recompute(lineObj.folder); },
-      enter: () => {
-        const i = lineObj.eqFields.indexOf(entry), next = lineObj.eqFields[i + 1];
-        if (next) next.mq.focus(); else addGraphRow(lineObj);
-      },
+      enter: () => { const i = lineObj.eqFields.indexOf(entry); addGraphRow(lineObj, '', true, i + 1); },
       upOutOf: () => { const i = lineObj.eqFields.indexOf(entry), prev = lineObj.eqFields[i - 1]; if (prev) { prev.mq.focus(); prev.mq.moveToRightEnd(); } else navigateLine(lineObj, -1); },
-      downOutOf: () => { const i = lineObj.eqFields.indexOf(entry), next = lineObj.eqFields[i + 1]; if (next) { next.mq.focus(); next.mq.moveToLeftEnd(); } else navigateLine(lineObj, +1); }
+      downOutOf: () => { const i = lineObj.eqFields.indexOf(entry), next = lineObj.eqFields[i + 1]; if (next) { next.mq.focus(); next.mq.moveToLeftEnd(); } else if (lineObj.ptRows && lineObj.ptRows[0]) lineObj.ptRows[0].inp.focus(); else navigateLine(lineObj, +1); }
     }
   }));
   entry.mq = mq;
   if (IS_TOUCH) suppressOSKeyboard(fEl);
-  lineObj.eqFields.push(entry);
   fEl.addEventListener('focusin', () => { focusLine(lineObj); beginEditCapture(lineObj); });
   fEl.addEventListener('focusout', () => { commitEditCapture(lineObj); });
   fEl.addEventListener('keydown', (e) => {
@@ -7195,6 +7396,7 @@ function addGraphRow(lineObj, initialLatex = '', focusIt = true) {
       if (prev) { prev.mq.focus(); prev.mq.moveToRightEnd(); }
     }
   }, true);
+  sw.addEventListener('click', (e) => { e.stopPropagation(); openGraphPalette(lineObj, 'eq', lineObj.eqFields.indexOf(entry), sw); });
   del.addEventListener('click', () => {
     if (lineObj.eqFields.length > 1) removeGraphRow(lineObj, entry);
     else { mq.latex(''); recompute(lineObj.folder); }
@@ -7208,59 +7410,151 @@ function addGraphRow(lineObj, initialLatex = '', focusIt = true) {
 function removeGraphRow(lineObj, entry) {
   const i = lineObj.eqFields.indexOf(entry); if (i === -1) return;
   entry.row.remove(); lineObj.eqFields.splice(i, 1);
+  if (Array.isArray(lineObj.g.eqStyles)) lineObj.g.eqStyles.splice(i, 1);
   graphColorRows(lineObj);
   recompute(lineObj.folder);
 }
-/* settings panel under the plot: bounds, steps, titles, points, axes, trig, grid */
+/* point entries: "(x, y)" or a bracketed list, each with an optional label */
+function graphPointRows(lineObj) {
+  const g = lineObj.g; if (!Array.isArray(g.points)) g.points = [];
+  const host = lineObj.ptsEl; host.querySelectorAll('.graph-pt').forEach(r => r.remove());
+  lineObj.ptRows = g.points.map((pe, i) => {
+    const wrap = document.createElement('div'); wrap.className = 'graph-pt';
+    const row = document.createElement('div'); row.className = 'graph-ptrow';
+    const sw = document.createElement('button'); sw.type = 'button'; sw.className = 'g-sw'; sw.title = 'Point style';
+    const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'g-pc'; inp.value = pe.c || ''; inp.placeholder = '(1, 2)   or   [(0,0),(1,3)]'; inp.spellcheck = false; inp.autocapitalize = 'off';
+    const lab = document.createElement('button'); lab.type = 'button'; lab.className = 'g-lab' + (pe.lab !== false ? ' on' : ''); lab.textContent = 'Label'; lab.title = 'Show a label at the point';
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'sys-del'; del.innerHTML = '&times;'; del.title = 'Remove this point';
+    row.appendChild(sw); row.appendChild(inp); row.appendChild(lab); row.appendChild(del); wrap.appendChild(row);
+    let txt = null;
+    if (pe.lab !== false) {
+      txt = document.createElement('input'); txt.type = 'text'; txt.className = 'g-ptxt'; txt.value = pe.txt || ''; txt.spellcheck = false;
+      txt.placeholder = 'Label text (optional; coordinates if blank; `maths`)';
+      txt.addEventListener('input', () => { pe.txt = txt.value; repaintGraph(lineObj); scheduleSave(); });
+      wrap.appendChild(txt);
+    }
+    [inp, txt].forEach(el => { if (!el) return; el.addEventListener('focusin', () => { focusLine(lineObj); beginEditCapture(lineObj); }); el.addEventListener('focusout', () => commitEditCapture(lineObj)); });
+    inp.addEventListener('input', () => { pe.c = inp.value; repaintGraph(lineObj); scheduleSave(); });
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); graphInsertPoint(lineObj, i); }
+      else if (e.key === 'Backspace' && inp.value === '') { e.preventDefault(); graphRemovePoint(lineObj, i); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); const prev = lineObj.ptRows[i - 1]; if (prev) prev.inp.focus(); else { const le = lineObj.eqFields[lineObj.eqFields.length - 1]; if (le) le.mq.focus(); } }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); const next = lineObj.ptRows[i + 1]; if (next) next.inp.focus(); else navigateLine(lineObj, +1); }
+      e.stopPropagation();
+    });
+    sw.addEventListener('click', (e) => { e.stopPropagation(); openGraphPalette(lineObj, 'pt', i, sw); });
+    lab.addEventListener('click', (e) => { e.stopPropagation(); pe.lab = pe.lab === false; graphPointRows(lineObj); repaintGraph(lineObj); scheduleSave(); });
+    del.addEventListener('click', (e) => { e.stopPropagation(); graphRemovePoint(lineObj, i); });
+    host.insertBefore(wrap, lineObj.addPtBtn);
+    return { wrap, sw, inp, txt };
+  });
+  graphColorRows(lineObj);
+}
+function graphInsertPoint(lineObj, i) {
+  const g = lineObj.g; if (!Array.isArray(g.points)) g.points = [];
+  g.points.splice(i + 1, 0, { c: '', lab: true, txt: '' });
+  graphPointRows(lineObj); const r = lineObj.ptRows[i + 1]; if (r) r.inp.focus(); scheduleSave();
+}
+function graphRemovePoint(lineObj, i) {
+  const g = lineObj.g; if (!Array.isArray(g.points) || !g.points[i]) return;
+  g.points.splice(i, 1); graphPointRows(lineObj);
+  const r = lineObj.ptRows[Math.max(0, Math.min(i, lineObj.ptRows.length - 1))];
+  if (r) r.inp.focus(); else { const le = lineObj.eqFields[lineObj.eqFields.length - 1]; if (le) le.mq.focus(); }
+  repaintGraph(lineObj); scheduleSave();
+}
+/* the range boxes show the fitted values while an axis is automatic; the first
+   manual edit freezes what is shown, then applies the typed value */
+function graphSetNum(el, tex) { if (!el || !el._mq) return; if (el._mq.latex() === tex) return; el._quiet = true; try { el._mq.latex(tex); } catch (e) {} el._quiet = false; }
+function syncRangeInputs(line) {
+  const g = line.g, panel = line.settingsEl; if (!panel) return;
+  const R = graphRanges(line); const map = { xmin: R.xmin, xmax: R.xmax, xstep: R.xs, ymin: R.ymin, ymax: R.ymax, ystep: R.ys };
+  for (const k in map) {
+    const inp = panel.querySelector('.g-num[data-g="' + k + '"]'); if (!inp) continue;
+    const auto = (k[0] === 'x') ? g.autoX !== false : g.autoY !== false;
+    if (inp.contains(document.activeElement)) continue;
+    let tex;
+    if (auto) tex = (k[0] === 'x' && R.pi) ? fmtPiTex(map[k]) : gfmt(map[k]);
+    else tex = (g.rangeTex && g.rangeTex[k] != null) ? g.rangeTex[k] : gfmt(map[k]);
+    graphSetNum(inp, tex);
+  }
+  panel.querySelectorAll('.gs-axis').forEach(row => { const auto = row.dataset.axis === 'x' ? g.autoX !== false : g.autoY !== false; row.classList.toggle('auto', auto); const cb = row.querySelector('input[type=checkbox]'); if (cb) cb.checked = auto; });
+}
+function graphApplyRange(line, k, tex) {
+  const g = line.g;
+  if ((k === 'xmin' || k === 'xmax' || k === 'xstep') && g.autoX !== false) {
+    const RX = graphRanges(line); if (!g.rangeTex) g.rangeTex = {}; const fx = v => RX.pi ? fmtPiTex(v) : gfmt(v);
+    g.rangeTex.xmin = fx(RX.xmin); g.rangeTex.xmax = fx(RX.xmax); g.rangeTex.xstep = fx(RX.xs);
+    g.xmin = RX.xmin; g.xmax = RX.xmax; g.xstep = RX.xs; g.autoX = false;
+  }
+  if ((k === 'ymin' || k === 'ymax' || k === 'ystep') && g.autoY !== false) {
+    const RY = graphRanges(line); if (!g.rangeTex) g.rangeTex = {};
+    g.rangeTex.ymin = gfmt(RY.ymin); g.rangeTex.ymax = gfmt(RY.ymax); g.rangeTex.ystep = gfmt(RY.ys);
+    g.ymin = RY.ymin; g.ymax = RY.ymax; g.ystep = RY.ys; g.autoY = false;
+  }
+  if (!g.rangeTex) g.rangeTex = {}; g.rangeTex[k] = tex;
+  const nv = graphNum(tex, line._gScope); if (isFinite(nv)) g[k] = nv; else if (!tex.trim() && (k === 'xstep' || k === 'ystep')) g[k] = 0;
+}
+/* settings panel under the plot: ranges, titles, quadrants, trig, grid, legend */
 function buildGraphSettings(lineObj) {
   const g = lineObj.g;
   const panel = document.createElement('div'); panel.className = 'graph-settings';
-  const stop = e => e.stopPropagation();
-  ['keydown', 'keyup', 'keypress', 'paste'].forEach(t => panel.addEventListener(t, stop));
+  ['keydown', 'keyup', 'keypress', 'paste'].forEach(t => panel.addEventListener(t, e => e.stopPropagation()));
+  const field = (label, el, cls) => { const lab = document.createElement('label'); if (cls) lab.className = cls; lab.appendChild(document.createTextNode(label)); lab.appendChild(el); lab.addEventListener('click', e => { if (e.target === lab) { e.preventDefault(); } }); return lab; };
   const num = (k, label) => {
-    const lab = document.createElement('label'); lab.textContent = label;
-    const inp = document.createElement('input'); inp.type = 'number'; inp.step = 'any'; inp.inputMode = 'decimal'; inp.value = g[k];
-    if (k === 'xstep' || k === 'ystep') inp.placeholder = 'auto';
-    if (k === 'xstep' || k === 'ystep') inp.value = g[k] > 0 ? g[k] : '';
-    inp.addEventListener('input', () => { const v = parseFloat(inp.value); g[k] = isFinite(v) ? v : ((k === 'xstep' || k === 'ystep') ? 0 : g[k]); repaintGraph(lineObj); scheduleSave(); });
-    lab.appendChild(inp); return lab;
+    const el = document.createElement('span'); el.className = 'g-num'; el.dataset.g = k;
+    const mq = MQ.MathField(el, { spaceBehavesLikeTab: false, typingSlashWritesDivisionSymbol: false, charsThatBreakOutOfSupSub: '+-*/=', autoCommands: 'pi sqrt ' + GREEK_AUTOCOMMANDS, autoOperatorNames: 'sin cos tan ln log exp abs',
+      handlers: { edit: () => { if (el._quiet) return; graphApplyRange(lineObj, k, mq.latex()); repaintGraph(lineObj); scheduleSave(); }, enter: () => mq.blur(), upOutOf: () => {}, downOutOf: () => {} } });
+    el._mq = mq; if (IS_TOUCH) suppressOSKeyboard(el);
+    el.addEventListener('focusin', () => focusLine(lineObj));
+    el.addEventListener('focusout', () => syncRangeInputs(lineObj));
+    const lab = field(label, el); return lab;
   };
   const txt = (k, label, ph) => {
-    const lab = document.createElement('label'); lab.textContent = label;
     const inp = document.createElement('input'); inp.type = 'text'; inp.spellcheck = false; inp.placeholder = ph || ''; inp.value = g[k] || '';
     inp.addEventListener('input', () => { g[k] = inp.value; repaintGraph(lineObj); scheduleSave(); });
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
-    lab.appendChild(inp); return lab;
+    return field(label, inp);
   };
   const seg = (k, label, opts, recompile) => {
-    const lab = document.createElement('label'); lab.textContent = label;
     const s = document.createElement('div'); s.className = 'seg';
     opts.forEach(([v, t]) => {
       const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.classList.toggle('on', (g[k] || opts[0][0]) === v);
-      b.addEventListener('click', () => { g[k] = v; s.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); if (recompile) recompute(lineObj.folder); else repaintGraph(lineObj); scheduleSave(); });
+      b.addEventListener('click', (e) => { e.preventDefault(); g[k] = v; s.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); if (recompile) recompute(lineObj.folder); else repaintGraph(lineObj); scheduleSave(); });
       s.appendChild(b);
     });
-    lab.appendChild(s); return lab;
+    return field(label, s);
   };
-  const chk = (k, label) => {
+  const chk = (k, label, onChange) => {
     const lab = document.createElement('label'); lab.className = 'gs-chk';
     const inp = document.createElement('input'); inp.type = 'checkbox'; inp.checked = g[k] !== false;
-    inp.addEventListener('change', () => { g[k] = inp.checked; repaintGraph(lineObj); scheduleSave(); });
+    inp.addEventListener('change', () => { g[k] = inp.checked; if (onChange) onChange(); repaintGraph(lineObj); scheduleSave(); });
     lab.appendChild(inp); lab.appendChild(document.createTextNode(label)); return lab;
   };
-  const row = (...els) => { const r = document.createElement('div'); r.className = 'gs-row'; els.forEach(e => r.appendChild(e)); return r; };
-  const ptsLab = document.createElement('label'); ptsLab.className = 'gs-pts'; ptsLab.textContent = 'Points, one per line as x, y';
-  const pts = document.createElement('textarea'); pts.rows = 2; pts.spellcheck = false; pts.placeholder = '1, 2\n(3, 4.5)'; pts.value = g.pts || '';
-  pts.addEventListener('input', () => { g.pts = pts.value; repaintGraph(lineObj); scheduleSave(); });
-  ptsLab.appendChild(pts);
-  panel.appendChild(row(num('xmin', 'x min'), num('xmax', 'x max'), num('xstep', 'x step'), num('ymin', 'y min'), num('ymax', 'y max'), num('ystep', 'y step')));
-  panel.appendChild(row(txt('xlabel', 'x axis title', 'x'), txt('ylabel', 'y axis title', 'y'), txt('title', 'Graph title', '')));
-  const hint = document.createElement('div'); hint.className = 'gs-hint'; hint.textContent = 'Titles: ^2^ for superscript, ~n~ for subscript, `LaTeX` for maths.';
+  const row = (cls, ...els) => { const r = document.createElement('div'); r.className = 'gs-row' + (cls ? ' ' + cls : ''); els.forEach(e => r.appendChild(e)); return r; };
+  const axisRow = (axis) => {
+    const r = row('gs-axis', num(axis + 'min', axis + ' min'), num(axis + 'max', axis + ' max'), num(axis + 'step', axis + ' step'),
+      chk(axis === 'x' ? 'autoX' : 'autoY', 'Auto'));
+    r.dataset.axis = axis; r.classList.toggle('auto', (axis === 'x' ? g.autoX : g.autoY) !== false);
+    return r;
+  };
+  // quadrant picker: an axes picture whose quadrants toggle on click
+  const qs = g.quads || (g.quads = { q1: true, q2: true, q3: true, q4: true });
+  const quad = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); quad.setAttribute('viewBox', '0 0 100 100'); quad.setAttribute('class', 'gquad');
+  quad.innerHTML = [['q2', 2, 2], ['q1', 52, 2], ['q3', 2, 52], ['q4', 52, 52]].map(q => '<rect class="gq' + (qs[q[0]] ? ' on' : '') + '" data-q="' + q[0] + '" x="' + q[1] + '" y="' + q[2] + '" width="46" height="46" rx="6"><title>' + q[0].toUpperCase() + '</title></rect>').join('') + '<path class="gq-ax" d="M4 50H96M50 4V96"/><path class="gq-ar" d="M96 50l-7-4v8zM50 4l-4 7h8z"/>';
+  quad.addEventListener('click', (e) => {
+    const q = e.target.closest('.gq'); if (!q) return;
+    const on = Object.keys(qs).filter(k => qs[k]); if (qs[q.dataset.q] && on.length <= 1) return;
+    qs[q.dataset.q] = !qs[q.dataset.q]; q.classList.toggle('on', !!qs[q.dataset.q]); repaintGraph(lineObj); scheduleSave();
+  });
+  panel.appendChild(axisRow('x'));
+  panel.appendChild(axisRow('y'));
+  panel.appendChild(row('', txt('xlabel', 'x axis title', '`x`'), txt('ylabel', 'y axis title', '`y`'), txt('title', 'Graph title', '')));
+  const hint = document.createElement('div'); hint.className = 'gs-hint';
+  hint.textContent = 'Titles: ^2^ for superscript, ~n~ for subscript, `LaTeX` for maths. Auto fits an axis to the curves and points; typing a value makes that axis manual. Range boxes take maths such as pi/6 or 2a.';
   panel.appendChild(hint);
-  panel.appendChild(row(seg('quad', 'Axes shown', [['all', 'All'], ['px', 'Positive x'], ['q1', 'First quadrant'], ['py', 'Positive y']]),
+  panel.appendChild(row('', field('Quadrants shown (click to show or hide)', quad, 'gs-quad'),
                         seg('angle', 'Angle for trig', [['auto', 'Calculator'], ['rad', 'Radians'], ['deg', 'Degrees']], true),
-                        chk('grid', 'Gridlines'), chk('arrows', 'Axis arrows')));
-  panel.appendChild(row(ptsLab));
+                        chk('legend', 'Equation labels'), chk('grid', 'Gridlines'), chk('arrows', 'Axis arrows')));
   return panel;
 }
 function createGraphLine(folder, afterLine = null, data = null) {
@@ -7273,19 +7567,27 @@ function createGraphLine(folder, afterLine = null, data = null) {
   const bodyEl = document.createElement('div'); bodyEl.className = 'body';
 
   const wrap = document.createElement('div'); wrap.className = 'graph-wrap';
+  const left = document.createElement('div'); left.className = 'graph-left';
   const eqsEl = document.createElement('div'); eqsEl.className = 'graph-eqs';
   const addRowBtn = document.createElement('button'); addRowBtn.className = 'sys-addrow'; addRowBtn.textContent = '+ equation';
   eqsEl.appendChild(addRowBtn);
   const errEl = document.createElement('div'); errEl.className = 'graph-err'; errEl.hidden = true;
   eqsEl.appendChild(errEl);
+  const ptsEl = document.createElement('div'); ptsEl.className = 'graph-pts';
+  const addPtBtn = document.createElement('button'); addPtBtn.className = 'sys-addrow'; addPtBtn.textContent = '+ point';
+  ptsEl.appendChild(addPtBtn);
+  left.appendChild(eqsEl); left.appendChild(ptsEl);
   const box = document.createElement('div'); box.className = 'graph-box';
   const canvas = document.createElement('canvas'); canvas.setAttribute('aria-label', 'Graph');
   const rz = document.createElement('div'); rz.className = 'graph-resize'; rz.title = 'Drag to change height';
   box.appendChild(canvas); box.appendChild(rz);
-  wrap.appendChild(eqsEl); wrap.appendChild(box);
+  wrap.appendChild(left); wrap.appendChild(box);
   bodyEl.appendChild(wrap);
 
   const g = Object.assign(graphDefaults(), (data && data.g) || {});
+  if (!g.quads || typeof g.quads !== 'object') g.quads = { q1: true, q2: true, q3: true, q4: true };
+  if (!Array.isArray(g.points)) g.points = [];
+  if (!Array.isArray(g.eqStyles)) g.eqStyles = [];
   box.style.height = g.h + 'px';
 
   const actions = document.createElement('div'); actions.className = 'actions';
@@ -7306,7 +7608,7 @@ function createGraphLine(folder, afterLine = null, data = null) {
 
   const lineObj = {
     id, folder, lineEl, idxEl, resultEl: errEl,
-    isSystem: true, isGraph: true, eqsEl, addRowBtn, eqFields: [],
+    isSystem: true, isGraph: true, eqsEl, addRowBtn, eqFields: [], ptsEl, addPtBtn, ptRows: [],
     canvas, box, errEl, g, _gFns: [], _gEqs: [],
     lastValue: undefined
   };
@@ -7314,10 +7616,11 @@ function createGraphLine(folder, afterLine = null, data = null) {
   bodyEl.appendChild(settings);
   lineObj.settingsEl = settings;
 
-  gearBtn.addEventListener('click', (e) => { e.stopPropagation(); lineEl.classList.toggle('gs-open'); focusLine(lineObj); });
+  gearBtn.addEventListener('click', (e) => { e.stopPropagation(); lineEl.classList.toggle('gs-open'); focusLine(lineObj); if (lineEl.classList.contains('gs-open')) syncRangeInputs(lineObj); });
   pngBtn.addEventListener('click', (e) => { e.stopPropagation(); if (e.shiftKey) graphSavePNG(lineObj); else graphCopyPNG(lineObj); });
   presBtn.addEventListener('click', (e) => { e.stopPropagation(); openPresentGraph(lineObj); });
   addRowBtn.addEventListener('click', () => addGraphRow(lineObj));
+  addPtBtn.addEventListener('click', () => graphInsertPoint(lineObj, (lineObj.g.points || []).length - 1));
   delBtn.addEventListener('click', () => { pushUndo(); removeLine(lineObj); });
   attachDrag(handle, lineObj, 'line');
   box.addEventListener('pointerdown', () => focusLine(lineObj));
@@ -7337,9 +7640,12 @@ function createGraphLine(folder, afterLine = null, data = null) {
 
   const seeds = (data && data.eqs && data.eqs.length) ? data.eqs : [''];
   seeds.forEach(eq => addGraphRow(lineObj, eq, false));
+  graphPointRows(lineObj);
   renumber();
   return lineObj;
 }
+/* a saved copy of a graph line's settings (for snapshots and duplicates) */
+function graphData(l) { return { graph: true, eqs: l.eqFields.map(ef => ef.mq.latex()), g: JSON.parse(JSON.stringify(l.g)) }; }
 /* Convert an existing (empty) normal line into a graph in place. */
 function convertToGraph(lineObj) {
   const folder = lineObj.folder;
@@ -7383,7 +7689,7 @@ function openPresentGraph(line) {
     eqs.innerHTML = '';
     (line._gEqs || []).forEach((lx, i) => {
       if (!String(lx || '').trim()) return;
-      const s = document.createElement('span'); const sw = document.createElement('i'); sw.style.background = GRAPH_COLORS[i % GRAPH_COLORS.length];
+      const s = document.createElement('span'); const sw = document.createElement('i'); sw.style.background = graphCssColor(graphEqColor(line.g, i));
       const k = document.createElement('span'); try { katex.render(lx, k, { throwOnError: false }); } catch (e) { k.textContent = lx; }
       s.appendChild(sw); s.appendChild(k); eqs.appendChild(s);
     });
@@ -7497,7 +7803,7 @@ function duplicateFolder(src) {
   if (src.userNamed) nf.nameEl.value = copyName;
   src.lines.forEach(srcLine => {
     if (srcLine.isGraph) {
-      createGraphLine(nf, nf.lines[nf.lines.length - 1] || null, { eqs: srcLine.eqFields.map(f => f.mq.latex()), g: Object.assign({}, srcLine.g) });
+      createGraphLine(nf, nf.lines[nf.lines.length - 1] || null, graphData(srcLine));
       return;
     }
     if (srcLine.isSystem) {
@@ -9519,7 +9825,7 @@ function duplicateRows(rows) {
   if (!list.length) return;
   pushUndo();
   list.reverse().forEach(l => {
-    if (l.isGraph) createGraphLine(l.folder, l, { eqs: l.eqFields.map(e => e.mq.latex()), g: Object.assign({}, l.g) });
+    if (l.isGraph) createGraphLine(l.folder, l, graphData(l));
     else if (l.isSystem) createSystemLine(l.folder, l, l.eqFields.map(e => e.mq.latex()));
     else createLine(l.folder, l, l.mq.latex());
   });
@@ -9925,9 +10231,7 @@ function snapshotActive() {
       userNamed: f.userNamed,
       collapsed: f.collapsed,
       lines: f.lines.map(l => {
-        if (l.isGraph) {
-          return { graph: true, eqs: l.eqFields.map(ef => ef.mq.latex()), g: Object.assign({}, l.g) };
-        }
+        if (l.isGraph) return graphData(l);
         if (l.isSystem) {
           return { system: true, equations: l.eqFields.map(ef => ef.mq.latex()) };
         }
