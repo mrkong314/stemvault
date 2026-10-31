@@ -883,8 +883,8 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
 .settings-act:active{transform:translateY(1px)}
 .settings-act[data-act="clear"]{color:var(--danger)}
 
-/* block toolbar and calculator keypad (touch): glass keys in the top bar */
-#blockbar,#calcpad{display:none}
+/* calculator keypad (touch): the Calculator tool's paged pad, docked at the bottom */
+#calcpad{display:none}
 .help{border-radius:18px;padding:16px 20px;font-size:.88rem;color:var(--ink)}
 .help h3{margin:14px 0 6px;font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-dim)}
 .help h3:first-child{margin-top:0}
@@ -906,23 +906,40 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
   #app:not(.dock-off) .topbar{padding-left:16px}
   #app:not(.dock-off) #panelToggle{color:var(--accent)}
 }
-/* touch: block toolbar and keypad under the top bar, larger targets */
+/* touch: larger targets, and the paged calculator keypad while a maths field is active */
 @media (pointer:coarse){
   input.tname-edit,.tgroup-name,#noteSearch{font-size:16px}
   .tab button{opacity:.6;width:30px;height:30px}
   .page{padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))}
-  #blockbar,#calcpad{flex-basis:100%;gap:4px;padding:2px 0 0}
-  #blockbar{display:none;overflow-x:auto;scrollbar-width:none}
-  #blockbar::-webkit-scrollbar{display:none}
-  body.editing #blockbar{display:flex}
-  #calcpad{flex-direction:column}
-  body.calcing #calcpad{display:flex}
-  body.calcing #blockbar{display:none}
-  .cp-row{display:flex;flex-wrap:wrap;gap:3px}
-  #blockbar button,.cp-row button{flex:1 0 auto;height:36px;min-width:36px;padding:0 9px;border:1px solid var(--glass-border);border-radius:9px;background:var(--glass-key);color:var(--ink);font:inherit;font-size:.88rem;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;box-shadow:inset 0 1px 0 var(--glass-edge)}
-  #blockbar button{flex:0 0 auto;min-width:42px}
-  #blockbar button.on{background:var(--accent);color:#fff;border-color:transparent}
-  #blockbar button .k{font-family:var(--mono);font-size:.82rem}
+  body.calcing .page{padding-bottom:calc(var(--padh,330px) + 28px)}
+  #calcpad{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:8px 8px calc(12px + env(safe-area-inset-bottom,0px));background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-top:1px solid var(--glass-border);box-shadow:inset 0 1px 0 var(--glass-edge)}
+  body.calcing #calcpad:not([hidden]){display:block}
+  #calcpad button{color:var(--ink);border:1px solid var(--glass-border);height:2.6rem;padding:0;display:flex;align-items:center;justify-content:center;font:inherit;font-size:1rem;font-weight:400;border-radius:11px;cursor:pointer;background:var(--glass-key);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:0 1px 4px rgba(31,45,80,0.1),inset 0 1px 0 var(--glass-edge);transition:transform .05s,box-shadow .1s,background .1s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  #calcpad button:active{transform:scale(.95);box-shadow:0 1px 2px rgba(31,45,80,.12)}
+  #calcpad button.fn{font-size:.9rem}
+  #calcpad button.act{color:var(--ink-dim);font-size:.85rem}
+  #calcpad button.arrowkey{color:var(--accent)}
+  #calcpad button.capskey.on{color:#fff;background:var(--accent);border-color:transparent;box-shadow:0 2px 8px rgba(10,132,255,.45),inset 0 1px 0 rgba(255,255,255,.5)}
+  #calcpad button.varkey{font-size:1rem;font-style:italic;font-family:'KaTeX_Math','Cambria Math',serif}
+  #calcpad button.greekkey{font-style:normal}
+  #calcpad button .katex,#calcpad button .katex *{color:inherit!important;font-weight:400}
+  #calcpad button .katex{font-size:1.05em}
+  .pad-tabs{display:flex;gap:6px;margin-bottom:8px}
+  #calcpad .pad-tab{flex:1;height:auto;color:var(--ink-dim);font-size:.85rem;font-weight:600;padding:.45rem 0;border-radius:10px;opacity:.6;transition:background .15s,color .15s,opacity .15s,box-shadow .15s,transform .05s}
+  #calcpad .pad-tab.on{color:#fff;background:var(--accent);opacity:1;font-weight:700;border-color:transparent;box-shadow:0 3px 12px rgba(10,132,255,.5),inset 0 1px 0 rgba(255,255,255,.5);transform:translateY(-1px)}
+  #calcpad .pad-tab .katex .mord,#calcpad .pad-tab .katex .mopen,#calcpad .pad-tab .katex .mclose{font-weight:700}
+  .pad-page{display:none;gap:7px;grid-auto-rows:2.6rem}
+  .pad-page.on{display:grid}
+  .page-vars button{padding-left:0;padding-right:0}
+  #calcpad .page-vars .lyr-greek{display:none}
+  #calcpad .page-vars.greek-on .lyr-greek{display:flex}
+  #calcpad .page-vars.greek-on .lyr-latin{display:none}
+  .pad-nav{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-top:7px}
+  #calcpad .pad-nav button{font-size:1.05rem}
+  .frac-glyph{display:inline-flex;flex-direction:column;align-items:center;line-height:1;font-size:.92rem;gap:2px}
+  .frac-glyph .fg-n,.frac-glyph .fg-d{font-size:.85em;opacity:.95}
+  .frac-glyph .fg-bar{width:1.4em;height:2px;background:currentColor;border-radius:1px;margin:1px 0}
+}
 }
 @media (max-width:520px){
   body{font-size:16px}
@@ -970,30 +987,6 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
           <button type="button" class="settings-act" data-act="clear">Clear this note</button>
         </div>
       </div>
-      <div id="blockbar" role="toolbar" aria-label="Block tools">
-        <button type="button" data-bb="outdent" aria-label="Outdent">⇤</button>
-        <button type="button" data-bb="indent" aria-label="Indent">⇥</button>
-        <button type="button" data-bb="bullet" aria-label="Bulleted list">•</button>
-        <button type="button" data-bb="number" aria-label="Numbered list"><span class="k">1.</span></button>
-        <button type="button" data-bb="todo" aria-label="To-do">☐</button>
-        <button type="button" data-bb="toggle" aria-label="Toggle">▸</button>
-        <button type="button" data-bb="heading" aria-label="Heading"><span class="k">H</span></button>
-        <button type="button" data-bb="quote" aria-label="Quote">“</button>
-        <button type="button" data-bb="table" aria-label="Table">⊞</button>
-        <button type="button" data-bb="calc" aria-label="Calculator"><span class="k">=</span></button>
-        <button type="button" data-bb="math" aria-label="Maths"><span class="k">∑</span></button>
-        <button type="button" data-bb="draw" aria-label="Drawing">✎</button>
-        <button type="button" data-bb="image" aria-label="Image">▣</button>
-        <button type="button" data-bb="embed" aria-label="Embed">▶</button>
-      </div>
-      <div id="calcpad" role="toolbar" aria-label="Calculator keys">
-        <div class="cp-row">
-          <button type="button" data-k="lp">(</button><button type="button" data-k="rp">)</button><button type="button" data-k="pow">^</button><button type="button" data-k="sq">x²</button><button type="button" data-k="sqrt">√</button><button type="button" data-k="pi">π</button><button type="button" data-k="div">÷</button><button type="button" data-k="mul">×</button><button type="button" data-k="sub">−</button><button type="button" data-k="add">+</button><button type="button" data-k="eq">=</button><button type="button" data-k="arrow">⇒</button><button type="button" data-k="comma">,</button><button type="button" data-k="ans">ans</button><button type="button" data-k="left" aria-label="Move left">◀</button><button type="button" data-k="right" aria-label="Move right">▶</button>
-        </div>
-        <div class="cp-row">
-          <button type="button" data-k="sin">sin</button><button type="button" data-k="cos">cos</button><button type="button" data-k="tan">tan</button><button type="button" data-k="asin">sin⁻¹</button><button type="button" data-k="acos">cos⁻¹</button><button type="button" data-k="atan">tan⁻¹</button><button type="button" data-k="ln">ln</button><button type="button" data-k="log">log</button><button type="button" data-k="e">e</button><button type="button" data-k="abs">|x|</button><button type="button" data-k="solve">solve</button><button type="button" data-k="nCr">nCr</button><button type="button" data-k="bsl">\ search</button>
-        </div>
-      </div>
     </div>
   </header>
   <div class="page">
@@ -1002,6 +995,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
       <h1 id="title" contenteditable="true" spellcheck="true" data-ph="Untitled"></h1>
       <div id="editor" aria-label="Note"></div>
     </div>
+    <div id="calcpad" role="toolbar" aria-label="Calculator keys" hidden></div>
     <div id="slash" role="listbox" hidden></div>
     <div id="bsl" class="picker" role="listbox" hidden></div>
     <div id="tgrid" hidden></div>
@@ -1080,6 +1074,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
         <tr><td>Typeset as you type</td><td>Calculator lines are maths fields like the Calculator tool: / makes a fraction, ^ a power, sqrt a root, and names like sin or pi become symbols. Results are typeset too.</td></tr>
         <tr><td>Exact / Decimal</td><td>Exact shows fractions, surds and multiples of π. Set it, the angle, precision and first or all roots in Settings (gear, top right).</td></tr>
         <tr><td>* *, or ^ ^</td><td>Pressing * twice, or ^ twice, gives ×10^ with the cursor in the exponent. On the phone keypad, hold ×. A single * is a × sign.</td></tr>
+        <tr><td>Phone keypad</td><td>On a phone or tablet a maths field brings up the Calculator keypad instead of the system keyboard: 123, abc (hold a letter for a subscript, αβγ for Greek) and f(x) pages, with a caret row underneath. \ and @ open the searches.</td></tr>
         <tr><td>Prefix dropdown</td><td>With the cursor in an empty ×10^ exponent, a list of nano to giga appears. Type letters to filter, arrows and Enter to pick, or type digits straight in.</td></tr>
         <tr><td>Enter / Tab / +</td><td>Enter, Tab on the last line, or the + strip under the section adds a line. Backspace on an empty only line removes the section.</td></tr>
         <tr><td>Up / Down</td><td>Move between lines and out of the section at either end. Inside a fraction or power, Down steps from top to bottom first.</td></tr>
@@ -1182,6 +1177,10 @@ var GROUP_COLORS=['#5b7fa6','#5f9e7a','#b98a4a','#b4635f','#8a6fb0','#5a9aa8','#
 
 var state=null, doc=null, saveTimer=null, selectedId=null, storage='idb', pendingImageTarget=null;
 var drawOn={}, embedEdit={};
+var IS_TOUCH=!!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+/* On touch devices the on-screen keypad does the typing: inputmode=none keeps the OS keyboard
+   away from MathQuill's hidden textarea while taps still focus the field and place the caret. */
+function suppressOSKeyboard(fieldEl){ if(!IS_TOUCH) return; fieldEl.querySelectorAll('textarea').forEach(function(ta){ ta.setAttribute('inputmode','none'); ta.setAttribute('autocomplete','off'); ta.setAttribute('autocorrect','off'); ta.setAttribute('autocapitalize','off'); }); }
 /* Desmos graphing calculator API. The key below is Desmos's published demo key; request a free production key at desmos.com/api and replace it. */
 var DESMOS_SRC='https://www.desmos.com/api/v1.10/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0dda6';
 /* Turn a pasted link into something that can sit in an iframe. */
@@ -3281,7 +3280,7 @@ function initCalcFields(){
         moveOutOf:function(dir){ if(dir===MQ.L){ if(i>0) focusBlock(b.id,Infinity,{i:i-1}); } else if(i<b.lines.length-1) focusBlock(b.id,0,{i:i+1}); }
       }
     });
-    el._quiet=true; try{ mq.latex(b.lines[i]||''); }catch(e){} el._quiet=false; el._mq=mq;
+    el._quiet=true; try{ mq.latex(b.lines[i]||''); }catch(e){} el._quiet=false; el._mq=mq; suppressOSKeyboard(el);
     el.addEventListener('keyup',function(e){ if(e.key==='*') el._sciHeld=false; if(e.key==='^') el._supHeld=false; pfxCheck(el); }); el.addEventListener('mouseup',function(){ pfxCheck(el); });
   });
 }
@@ -3418,6 +3417,7 @@ function imqMq(){
   if(imqState.mq) return imqState.mq;
   imqState.mq=MQ.MathField(imqField,{spaceBehavesLikeTab:false,typingSlashWritesDivisionSymbol:false,charsThatBreakOutOfSupSub:'+-*/=',autoCommands:'pi sqrt sum nthroot int '+GREEK_AUTOCOMMANDS,autoOperatorNames:MQ_OPERATORS,
     handlers:{edit:imqEdit,enter:function(){ closeInlineMath(true); },moveOutOf:function(dir){ closeInlineMath(dir===MQ.R); },deleteOutOf:function(dir){ if(dir===MQ.L && !(imqState.mq.latex()||'').trim()) closeInlineMath(false); }}});
+  imqField._mq=imqState.mq; suppressOSKeyboard(imqField);
   return imqState.mq;
 }
 function textNodeAt(el,off){ var walk=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,null), n, count=0; while((n=walk.nextNode())){ var len=n.nodeValue.length; if(count+len>off) return {node:n,off:off-count}; count+=len; } return null; }
@@ -4845,41 +4845,144 @@ var wideQ=window.matchMedia('(min-width:1024px) and (orientation:landscape)');
 function isDocked(){ return wideQ.matches; }
 function paintDock(){ appEl.classList.toggle('dock-off', !!(state&&state.settings.dockOff)); if(isDocked()) closePanel(); }
 try{ wideQ.addEventListener('change',paintDock); }catch(e){}
-var blockbar=document.getElementById('blockbar'), editingTimer=null;
-editor.addEventListener('focusin',function(e){ clearTimeout(editingTimer); var on=!!e.target.closest('.content'); var calc=!!e.target.closest('.cl-in'); document.body.classList.toggle('editing',on); document.body.classList.toggle('calcing',calc); if(on) paintBlockbar(e.target.closest('.block')); });
-editor.addEventListener('focusout',function(){ clearTimeout(editingTimer); editingTimer=setTimeout(function(){ if(!editor.contains(document.activeElement)){ document.body.classList.remove('editing'); document.body.classList.remove('calcing'); } },150); });
-/* calculator keypad (touch): inserts at the caret of the focused calculator line */
+var editingTimer=null;
+function setCalcing(on){ document.body.classList.toggle('calcing',on); if(on && IS_TOUCH){ calcpad.hidden=false; requestAnimationFrame(padFit); } }
+function padFieldFocusOut(){ clearTimeout(editingTimer); editingTimer=setTimeout(function(){ var a=document.activeElement; if(!editor.contains(a) && !imq.contains(a)) setCalcing(false); },150); }
+editor.addEventListener('focusin',function(e){ clearTimeout(editingTimer); setCalcing(!!e.target.closest('.cl-in')); });
+editor.addEventListener('focusout',padFieldFocusOut);
+imq.addEventListener('focusin',function(){ clearTimeout(editingTimer); setCalcing(true); });
+imq.addEventListener('focusout',padFieldFocusOut);
+
+/* ---------- calculator keypad (touch): the Calculator tool's paged pad ----------
+   Three pages (123, abc, f(x)) and a caret row, docked at the bottom while a maths field has
+   focus. Keys drive the focused MathQuill field, so everything lands typeset at the caret. */
 var calcpad=document.getElementById('calcpad');
-function insertAtCaret(el,text,back){
-  var off=caretOffset(el), cur=el.textContent; el.textContent=cur.slice(0,off)+text+cur.slice(off); setCaret(el,off+text.length-(back||0));
-  el.dispatchEvent(new Event('input',{bubbles:true}));
+var capsOn=false, letterButtons=[];
+var GREEK_CAPS={alpha:'A',beta:'B',gamma:'\\Gamma',delta:'\\Delta',epsilon:'E',zeta:'Z',eta:'H',theta:'\\Theta',iota:'I',kappa:'K',lambda:'\\Lambda',mu:'M',nu:'N',xi:'\\Xi',pi:'\\Pi',rho:'P',sigma:'\\Sigma',tau:'T',upsilon:'\\Upsilon',phi:'\\Phi',chi:'X',psi:'\\Psi',omega:'\\Omega',varphi:'\\Phi',vartheta:'\\Theta',varepsilon:'E'};
+var GREEK_ORDER=['alpha','beta','gamma','delta','epsilon','zeta','eta','theta','iota','kappa','lambda','mu','nu','xi','pi','rho','sigma','tau','upsilon','phi','chi','psi','omega','varphi','vartheta','varepsilon'];
+var GREEK_GLYPH={varphi:'ϕ',vartheta:'ϑ',varepsilon:'ϵ',pi:'π'};
+var GREEK_UP={Gamma:'Γ',Delta:'Δ',Theta:'Θ',Lambda:'Λ',Xi:'Ξ',Pi:'Π',Sigma:'Σ',Upsilon:'Υ',Phi:'Φ',Psi:'Ψ',Omega:'Ω'};
+function latinKey(ch){ return {l:ch,t:'var',v:ch,c:'varkey lyr-latin',letter:true}; }
+function greekKey(name){ var capV=GREEK_CAPS[name]; var capL=capV.charAt(0)==='\\'?(GREEK_UP[capV.slice(1)]||capV.slice(1)):capV; var glyph=GREEK_GLYPH[name]||GREEK[name]||name; return {l:glyph,t:'greek',v:'\\'+name,c:'varkey greekkey lyr-greek',capV:capV,capL:capL,nolp:name==='pi'}; }
+var PAD_CALC=[
+  {l:'(',t:'type',v:'('},{l:')',t:'type',v:')'},{l:'xʸ',t:'pow',v:'',c:'op',katex:'x^{y}'},{l:'√',t:'cmd',v:'\\sqrt',c:'op',katex:'\\sqrt{\\phantom{x}}'},{l:'⇒',t:'cmd',v:'\\Rightarrow',c:'op arrowkey'},
+  {l:'7',t:'write',v:'7'},{l:'8',t:'write',v:'8'},{l:'9',t:'write',v:'9'},{l:'frac',t:'type',v:'/',c:'op',frac:true},{l:'×10ⁿ',t:'exp10',v:'',c:'op',katex:'\\times 10^{n}'},
+  {l:'4',t:'write',v:'4'},{l:'5',t:'write',v:'5'},{l:'6',t:'write',v:'6'},{l:'×',t:'cmd',v:'\\times',c:'op'},{l:'x²',t:'sq',v:'',c:'op',katex:'x^{2}'},
+  {l:'1',t:'write',v:'1'},{l:'2',t:'write',v:'2'},{l:'3',t:'write',v:'3'},{l:'−',t:'type',v:'-',c:'op'},{l:'π',t:'cmd',v:'\\pi',c:'op',katex:'\\pi'},
+  {l:'0',t:'write',v:'0'},{l:'.',t:'write',v:'.'},{l:'=',t:'write',v:'=',c:'op'},{l:'+',t:'type',v:'+',c:'op'},{l:'ans',t:'write',v:'ans',c:'act'},
+  {l:'\\',t:'act',v:'symbol',c:'act'},{l:'x',t:'var',v:'x',c:'varkey',letter:true},{l:'x□',t:'subscript',v:'',c:'op',katex:'x_{n}'},{l:'@',t:'act',v:'formula',c:'act'},{l:',',t:'write',v:',',c:'op'}
+];
+var PAD_VARS='abcdefghijklmnopqrstuvwxyz'.split('').map(latinKey).concat([
+  {l:'x□',t:'subscript',v:'',c:'op lyr-latin',katex:'x_{n}'},{l:',',t:'write',v:',',c:'op lyr-latin'}
+],GREEK_ORDER.map(greekKey),[
+  {l:'x□',t:'subscript',v:'',c:'op lyr-greek',katex:'x_{n}'},{l:',',t:'write',v:',',c:'op lyr-greek'},
+  {l:'⇧',t:'caps',v:'',c:'act'},{l:'αβγ',t:'layer',v:'',c:'act layerkey'},{l:'Δ',t:'greek',v:'\\Delta',c:'varkey',nolp:true},{l:'\\',t:'act',v:'symbol',c:'act'},
+  {l:'(',t:'type',v:'('},{l:')',t:'type',v:')'},{l:'=',t:'write',v:'=',c:'op'}
+]);
+var PAD_FNS=[
+  {l:'sin',t:'fn',v:'sin',c:'fn'},{l:'cos',t:'fn',v:'cos',c:'fn'},{l:'tan',t:'fn',v:'tan',c:'fn'},{l:'ln',t:'fn',v:'ln',c:'fn'},{l:'log',t:'fn',v:'log',c:'fn'},
+  {l:'arcsin',t:'fn',v:'arcsin',c:'fn'},{l:'arccos',t:'fn',v:'arccos',c:'fn'},{l:'arctan',t:'fn',v:'arctan',c:'fn'},{l:'eˣ',t:'exp',v:'',c:'fn',katex:'e^{x}'},{l:'logₙ',t:'logbase',v:'',c:'fn',katex:'\\log_{\\square}'},
+  {l:'√',t:'cmd',v:'\\sqrt',c:'fn',katex:'\\sqrt{\\phantom{x}}'},{l:'nrt',t:'nthroot',v:'',c:'fn',katex:'\\sqrt[n]{\\phantom{x}}'},{l:'frac',t:'type',v:'/',c:'op',frac:true},{l:'|x|',t:'abs',v:'',c:'fn',katex:'|x|'},{l:'∫',t:'int',v:'',c:'fn',katex:'\\int'},
+  {l:'xʸ',t:'pow',v:'',c:'op',katex:'x^{y}'},{l:'x²',t:'sq',v:'',c:'op',katex:'x^{2}'},{l:'π',t:'cmd',v:'\\pi',c:'op',katex:'\\pi'},{l:'(',t:'type',v:'('},{l:')',t:'type',v:')'},
+  {l:'n!',t:'type',v:'!',c:'fn'},{l:'nCr',t:'fn',v:'nCr',c:'fn'},{l:'nPr',t:'fn',v:'nPr',c:'fn'},{l:'Σ',t:'sumkey',v:'',c:'fn',katex:'\\sum'},{l:'add',t:'fn',v:'add',c:'fn'},
+  {l:'normCDF',t:'fn',v:'normCDF',c:'fn'},{l:'invNorm',t:'fn',v:'invNorm',c:'fn'},{l:'binPDF',t:'fn',v:'binomPDF',c:'fn'},{l:'binCDF',t:'fn',v:'binomCDF',c:'fn'},{l:'mean',t:'fn',v:'mean',c:'fn'},
+  {l:'i',t:'write',v:'i',c:'fn'},{l:'Re',t:'fn',v:'Re',c:'fn'},{l:'Im',t:'fn',v:'Im',c:'fn'},{l:'Arg',t:'fn',v:'Arg',c:'fn'},{l:'cSolve',t:'fn',v:'cSolve',c:'fn'},
+  {l:'→polar',t:'fn',v:'polar',c:'fn'},{l:'→rect',t:'fn',v:'rect',c:'fn'},{l:'e',t:'write',v:'e',c:'fn'},{l:'solve',t:'solve',v:'',c:'fn'},{l:',',t:'write',v:',',c:'op'}
+];
+function activePadField(){ var a=document.activeElement; if(!a||!a.closest) return null; var cl=a.closest('.cl-in'); if(cl&&cl._mq) return {el:cl,mq:cl._mq,kind:'line'}; if(imqState.open && imq.contains(a) && imqState.mq) return {el:imqField,mq:imqState.mq,kind:'imq'}; return null; }
+function applyCaps(){ letterButtons.forEach(function(x){ x.btn.textContent=capsOn?x.up:x.lo; }); calcpad.querySelectorAll('.capskey').forEach(function(x){ x.classList.toggle('on',capsOn); }); }
+function padLongPress(btn,fire){
+  var t=null, fired=false;
+  btn.addEventListener('touchstart',function(e){ e.preventDefault(); fired=false; clearTimeout(t); t=setTimeout(function(){ t=null; fired=true; fire(); },450); },{passive:false});
+  btn.addEventListener('touchend',function(e){ e.preventDefault(); clearTimeout(t); if(!fired) padPress(btn._key,btn); fired=false; },{passive:false});
+  btn.addEventListener('touchcancel',function(){ clearTimeout(t); fired=false; });
+  btn._lp=true;
 }
-var CALCPAD={lp:function(m){ m.typedText('('); },rp:function(m){ m.typedText(')'); },pow:function(m,cl){ if(inEmptySup(cl)) return; m.typedText('^'); },sq:function(m,cl){ if(inEmptySup(cl)) return; m.typedText('^2'); m.keystroke('Right'); },sqrt:function(m){ m.cmd('\\sqrt'); },pi:function(m){ m.cmd('\\pi'); },div:function(m){ m.typedText('/'); },mul:function(m,cl){ typeTimes(cl); },sub:function(m){ m.typedText('-'); },add:function(m){ m.typedText('+'); },eq:function(m){ m.typedText('='); },arrow:function(m){ m.write('\\Rightarrow '); },comma:function(m){ m.typedText(','); },ans:function(m){ m.typedText('ans'); },e:function(m){ m.typedText('e'); },abs:function(m){ m.typedText('|'); },left:function(m){ m.keystroke('Left'); },right:function(m){ m.keystroke('Right'); },bsl:null};
-['sin','cos','tan','asin','acos','atan','ln','log','solve','nCr'].forEach(function(f){ CALCPAD[f]=function(m){ m.typedText(f+'('); }; });
-function calcpadAct(bt){ var el=document.activeElement; var cl=el&&el.closest?el.closest('.cl-in'):null; if(!cl||!cl._mq) return; var k=bt.dataset.k; if(k==='bsl'){ openBslMq(cl); return; } var fn=CALCPAD[k]; if(fn){ fn(cl._mq,cl); cl._mq.focus(); } }
+function padKey(k){
+  var b=document.createElement('button'); b.type='button'; b._key=k;
+  if(k.frac){ b.innerHTML='<span class="frac-glyph"><span class="fg-n">□</span><span class="fg-bar"></span><span class="fg-d">□</span></span>'; }
+  else if(k.katex && window.katex){ var sp=document.createElement('span'); try{ katex.render(k.katex,sp,{throwOnError:false}); b.appendChild(sp); }catch(e){ b.textContent=k.l; } }
+  else b.textContent=k.l;
+  if(k.c) k.c.split(' ').forEach(function(c){ b.classList.add(c); });
+  if(k.letter) letterButtons.push({btn:b,lo:k.v,up:k.v.toUpperCase()});
+  if(k.t==='greek' && k.capL) letterButtons.push({btn:b,lo:k.l,up:k.capL});
+  if(k.t==='caps') b.classList.add('capskey');
+  b.setAttribute('aria-label',k.l);
+  if(k.t==='cmd' && k.v==='\\times'){ padLongPress(b,function(){ var f=activePadField(); if(!f) return; f.mq.focus(); insertSciExp(f.mq); if(f.kind==='line') pfxCheck(f.el); }); }
+  else if(((k.t==='var'&&k.letter)||k.t==='greek') && !k.nolp){ padLongPress(b,function(){ var f=activePadField(); if(!f) return; f.mq.focus(); padInsertLetter(f.mq,k); f.mq.cmd('_'); }); }
+  return b;
+}
+function padInsertLetter(mq,k){
+  if(k.t==='greek'){ if(capsOn && k.capV){ if(k.capV.charAt(0)==='\\') mq.cmd(k.capV); else mq.typedText(k.capV); capsOn=false; applyCaps(); } else mq.cmd(k.v); return; }
+  var ch=capsOn && k.letter ? k.v.toUpperCase() : k.v; mq.typedText(ch); if(capsOn && k.letter){ capsOn=false; applyCaps(); }
+}
+function padPress(k,btn){
+  if(k.t==='layer'){ var pg=btn.closest('.pad-page'); if(pg){ var on=pg.classList.toggle('greek-on'); btn.textContent=on?'abc':'αβγ'; } return; }
+  if(k.t==='caps'){ capsOn=!capsOn; applyCaps(); return; }
+  var f=activePadField(); if(!f) return; var mq=f.mq, el=f.el; mq.focus();
+  switch(k.t){
+    case 'write': mq.write(k.v); break;
+    case 'cmd': if(k.v==='\\times') typeTimes(el); else mq.cmd(k.v); break;
+    case 'type': mq.typedText(k.v); break;
+    case 'keystroke': mq.keystroke(k.v); break;
+    case 'var': case 'greek': padInsertLetter(mq,k); break;
+    case 'subscript': mq.cmd('_'); break;
+    case 'fn': mq.typedText(k.v); mq.typedText('('); break;
+    case 'sumkey': mq.write('\\sum_{n=1}^{ }\\left(\\right)'); break;
+    case 'logbase': mq.typedText('log'); mq.cmd('_'); mq.keystroke('Right'); mq.typedText('('); mq.keystroke('Left'); mq.keystroke('Left'); break;
+    case 'solve': mq.typedText('solve'); mq.typedText('('); break;
+    case 'nthroot': mq.typedText('nthroot'); break;
+    case 'pow': if(inEmptySup(el)) break; mq.typedText('^'); break;
+    case 'sq': if(inEmptySup(el)) break; mq.typedText('^2'); mq.keystroke('Right'); break;
+    case 'exp10': insertSciExp(mq); if(f.kind==='line') pfxCheck(el); break;
+    case 'exp': mq.typedText('e'); mq.cmd('^'); break;
+    case 'abs': mq.cmd('|'); break;
+    case 'int': mq.typedText('int'); break;
+    case 'act':
+      if(f.kind!=='line') break;
+      if(k.v==='symbol') openBslMq(el); else if(k.v==='formula') openBslMq(el,'at');
+      break;
+  }
+  mq.focus();
+}
+function padEnter(){ var f=activePadField(); if(!f) return; if(f.kind==='imq'){ closeInlineMath(true); return; } var blk=f.el.closest('.block'), b=blk&&getBlock(blk.dataset.id), i=+f.el.dataset.i; if(!b) return; var r=(b.type==='calc')?(evalCalc(b)[i]||{}):{}; if(r.undef&&r.undef.length){ addVariables(b,i,r.undef); return; } calcInsert(b,i,''); }
+function buildCalcpad(){
+  calcpad.innerHTML=''; letterButtons=[];
+  var tabs=document.createElement('div'); tabs.className='pad-tabs'; var pages=document.createElement('div'); pages.className='pad-pages';
+  var PAGES=[{name:'123',math:'123',cls:'page-calc',keys:PAD_CALC,cols:5},{name:'abc',math:'abc',cls:'page-vars',keys:PAD_VARS,cols:7},{name:'f(x)',math:'f(x)',cls:'page-fns',keys:PAD_FNS,cols:5}];
+  var els=[];
+  PAGES.forEach(function(pg,i){
+    var tab=document.createElement('button'); tab.type='button'; tab.className='pad-tab'+(i===0?' on':''); tab.setAttribute('aria-label',pg.name);
+    if(window.katex){ try{ katex.render(pg.math,tab,{throwOnError:false}); }catch(e){ tab.textContent=pg.name; } } else tab.textContent=pg.name;
+    tab.addEventListener('click',function(){ els.forEach(function(p,j){ p.tab.classList.toggle('on',j===i); p.page.classList.toggle('on',j===i); }); requestAnimationFrame(padFit); });
+    tabs.appendChild(tab);
+    var page=document.createElement('div'); page.className='pad-page '+pg.cls+(i===0?' on':''); page.style.gridTemplateColumns='repeat('+pg.cols+', 1fr)';
+    pg.keys.forEach(function(k){ page.appendChild(padKey(k)); });
+    pages.appendChild(page); els.push({tab:tab,page:page});
+  });
+  calcpad.appendChild(tabs); calcpad.appendChild(pages);
+  var nav=document.createElement('div'); nav.className='pad-nav';
+  var navKey=function(label,fire,opts){ opts=opts||{}; var b=document.createElement('button'); b.type='button'; b.className='navkey'+(opts.c?' '+opts.c:''); b.textContent=label; b.setAttribute('aria-label',opts.label||label); b._nav=true;
+    var dT=null, rT=null; var stop=function(){ clearTimeout(dT); clearInterval(rT); dT=rT=null; };
+    var start=function(e){ e.preventDefault(); fire(); if(opts.repeat) dT=setTimeout(function(){ rT=setInterval(fire,90); },420); };
+    b.addEventListener('touchstart',start,{passive:false}); b.addEventListener('touchend',function(e){ e.preventDefault(); stop(); },{passive:false}); b.addEventListener('touchcancel',stop);
+    b.addEventListener('mousedown',function(e){ e.preventDefault(); if(!IS_TOUCH) start(e); }); b.addEventListener('mouseup',stop); b.addEventListener('mouseleave',stop);
+    nav.appendChild(b); return b; };
+  var stroke=function(ks){ return function(){ var f=activePadField(); if(f){ f.mq.focus(); f.mq.keystroke(ks); } }; };
+  navKey('←',stroke('Left'),{repeat:true,label:'Move left'}); navKey('↓',stroke('Down'),{repeat:true,label:'Move down'}); navKey('↑',stroke('Up'),{repeat:true,label:'Move up'}); navKey('→',stroke('Right'),{repeat:true,label:'Move right'});
+  navKey('⌫',stroke('Backspace'),{repeat:true,c:'act',label:'Backspace'}); navKey('↵',padEnter,{c:'act',label:'New line'});
+  calcpad.appendChild(nav);
+}
+buildCalcpad();
+function padFit(){
+  if(!IS_TOUCH || !document.body.classList.contains('calcing')) return;
+  var h=calcpad.offsetHeight||0; document.documentElement.style.setProperty('--padh',h+'px');
+  var f=activePadField(); if(!f) return; var r=f.el.getBoundingClientRect(), lim=window.innerHeight-h-16;
+  if(r.bottom>lim) window.scrollBy({top:r.bottom-lim+32,behavior:'smooth'});
+}
 calcpad.addEventListener('mousedown',function(e){ e.preventDefault(); });
-var padHold=null, padHeld=false;
-calcpad.addEventListener('touchstart',function(e){ var bt=e.target.closest('button'); if(!bt) return; e.preventDefault(); padHeld=false; clearTimeout(padHold);
-  if(bt.dataset.k==='mul'){ padHold=setTimeout(function(){ padHeld=true; var el=document.activeElement, cl=el&&el.closest?el.closest('.cl-in'):null; if(cl&&cl._mq){ insertSciExp(cl._mq); cl._mq.focus(); pfxCheck(cl); } },450); return; }
-  calcpadAct(bt); },{passive:false});
-calcpad.addEventListener('touchend',function(e){ var bt=e.target.closest('button'); if(!bt||bt.dataset.k!=='mul') return; e.preventDefault(); clearTimeout(padHold); if(!padHeld) calcpadAct(bt); padHeld=false; },{passive:false});
-calcpad.addEventListener('touchcancel',function(){ clearTimeout(padHold); padHeld=false; });
-calcpad.addEventListener('click',function(e){ var bt=e.target.closest('button'); if(bt && !('ontouchstart' in window)) calcpadAct(bt); });
-function paintBlockbar(blk){ var b=blk?getBlock(blk.dataset.id):null; blockbar.querySelectorAll('button').forEach(function(bt){ var k=bt.dataset.bb; bt.classList.toggle('on', !!b && (k===b.type || (k==='heading' && /^h[123]$/.test(b.type)))); }); }
-blockbar.addEventListener('mousedown',function(e){ e.preventDefault(); });
-blockbar.addEventListener('touchstart',function(e){ e.preventDefault(); var bt=e.target.closest('button'); if(bt) blockbarAct(bt.dataset.bb); },{passive:false});
-blockbar.addEventListener('click',function(e){ var bt=e.target.closest('button'); if(bt && !('ontouchstart' in window)) blockbarAct(bt.dataset.bb); });
-function blockbarAct(k){
-  var c=document.activeElement; if(!c||!c.closest||!c.closest('.content')) return;
-  var b=getBlock(c.closest('.block').dataset.id); if(!b) return; var off=caretOffset(c);
-  if(k==='indent'||k==='outdent'){ if(setIndent(b,k==='indent'?1:-1)){ render(); focusBlock(b.id,off); save(); } return; }
-  if(k==='image'){ pendingImageTarget=b.id; document.getElementById('file').click(); return; }
-  if(k==='table'||k==='calc'||k==='math'||k==='draw'||k==='embed'){ convertTo(b,k); return; }
-  if(k==='heading'){ b.type=b.type==='h1'?'h2':b.type==='h2'?'h3':b.type==='h3'?'p':'h1'; }
-  else b.type=(b.type===k?'p':k);
-  if(b.type==='toggle') b.collapsed=false;
-  render(); focusBlock(b.id,off); save(); paintBlockbar(blockEl(b.id));
-}
+calcpad.addEventListener('touchstart',function(e){ var bt=e.target.closest('button'); if(!bt||bt._lp||bt._nav||bt.classList.contains('pad-tab')) return; e.preventDefault(); if(bt._key) padPress(bt._key,bt); },{passive:false});
+calcpad.addEventListener('click',function(e){ var bt=e.target.closest('button'); if(!bt||!bt._key||bt._nav) return; if(IS_TOUCH) return; padPress(bt._key,bt); });
 
 /* ---------- boot ---------- */
 function freshState(){ return {version:2,tabs:[],groups:[],activeTabId:null,favourites:[],tabSeq:0,groupSeq:0,settings:{theme:'auto',angle:'deg',sigfigs:'auto',exact:'decimal',solve:'first'}}; }
