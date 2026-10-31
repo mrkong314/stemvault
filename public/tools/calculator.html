@@ -7353,9 +7353,17 @@ function openGraphPalette(line, kind, i, anchor) {
       const out = gpal.querySelector('[data-out="' + k + '"]'); if (out) out.textContent = k === 'op' ? v + '%' : v;
       apply(t => { t[k] = k === 'op' ? v / 100 : v; });
     });
-    document.addEventListener('mousedown', e => { if (gpal && !gpal.hidden && !gpal.contains(e.target) && !(e.target.closest && e.target.closest('.g-sw'))) closeGraphPalette(); }, true);
+    // close on a tap or click outside (pointerdown covers touch), on Escape, or when focus lands elsewhere
+    const outside = e => gpal && !gpal.hidden && !gpal.contains(e.target) && !(e.target.closest && e.target.closest('.g-sw'));
+    document.addEventListener('pointerdown', e => { if (outside(e)) closeGraphPalette(); }, true);
+    document.addEventListener('mousedown', e => { if (outside(e)) closeGraphPalette(); }, true);
+    document.addEventListener('touchstart', e => { if (outside(e)) closeGraphPalette(); }, { capture: true, passive: true });
+    document.addEventListener('focusin', e => { if (outside(e)) closeGraphPalette(); }, true);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && gpal && !gpal.hidden) { e.stopPropagation(); closeGraphPalette(); } }, true);
     window.addEventListener('scroll', () => { if (gpal && !gpal.hidden) placeGraphPalette(); }, { passive: true, capture: true });
   }
+  // the same dot again closes it
+  if (gpalState && !gpal.hidden && gpalState.anchor === anchor) { closeGraphPalette(); return; }
   gpalState = { line, kind, i, anchor };
   const st = kind === 'eq' ? graphEqStyle(line.g, i) : ((line.g.points || [])[i] || {});
   const cur = kind === 'eq' ? graphEqColor(line.g, i) : graphPointColor(line.g, i);
