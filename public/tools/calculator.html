@@ -6483,7 +6483,10 @@ function createLine(folder, afterLine = null, initialLatex = '') {
     autoOperatorNames: 'sin cos tan sec csc cot sinh cosh tanh arcsin arccos arctan ' +
                        'ln log exp abs floor ceil sign deg ans solve Re Im Arg cSolve conj polar rect',
     handlers: {
-      edit: () => { expandSciShortcut(mq, lineObj); expandArrowShortcut(mq); recompute(lineObj.folder); if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(lineObj)); },
+      edit: () => {
+        // the word "graph" on its own turns the line into a graph (deferred: the field is torn down)
+        if (/^\s*graph\s*$/i.test(mq.latex())) { setTimeout(() => { if (lineObj.lineEl.isConnected && /^\s*graph\s*$/i.test(mq.latex())) convertToGraph(lineObj); }, 0); return; }
+        expandSciShortcut(mq, lineObj); expandArrowShortcut(mq); recompute(lineObj.folder); if (typeof updateFnHint === 'function') requestAnimationFrame(() => updateFnHint(lineObj)); },
       enter: () => { insertAdjacentLine(lineObj, 'after'); },
       // up/down at the top/bottom of a field (i.e. NOT navigating inside a
       // fraction/superscript/subscript) move between lines instead.
