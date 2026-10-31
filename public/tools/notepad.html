@@ -1200,7 +1200,10 @@ function inlineMathHTML(inner){
    setRawHTML writes text into the line; the caret helpers count a widget as its raw length. */
 function isWidget(n){ return n && n.nodeType===1 && n.dataset && n.dataset.tex!==undefined; }
 function widgetLen(n){ return n.dataset.tex.length+2; }
-function rawOf(el){ var s=''; (function walk(n){ for(var i=0;i<n.childNodes.length;i++){ var c=n.childNodes[i]; if(c.nodeType===3) s+=c.nodeValue; else if(isWidget(c)) s+='`'+c.dataset.tex+'`'; else if(c.nodeType===1 && c.tagName!=='BR') walk(c); } })(el); return s; }
+var ZW='\u200b';
+function rawOf(el){ var s=''; (function walk(n){ for(var i=0;i<n.childNodes.length;i++){ var c=n.childNodes[i]; if(c.nodeType===3) s+=c.nodeValue; else if(isWidget(c)) s+='`'+c.dataset.tex+'`'; else if(c.nodeType===1 && c.tagName!=='BR') walk(c); } })(el); return s.split(ZW).join(''); }
+function visLen(v){ return v.split(ZW).join('').length; }
+function domOff(v,rawOff){ var k=0, seen=0; while(k<v.length && seen<rawOff){ if(v[k]!==ZW) seen++; k++; } while(k<v.length && v[k]===ZW) k++; return k; }
 function setRawHTML(el,text){
   el.textContent='';
   var re=/`([^`\n]+)`/g, pos=0, m;
@@ -1208,6 +1211,9 @@ function setRawHTML(el,text){
     if(m.index>pos) el.appendChild(document.createTextNode(text.slice(pos,m.index)));
     var w=document.createElement('span'); w.className='imath'; w.setAttribute('contenteditable','false'); w.dataset.tex=inner; w.innerHTML=kh.html; el.appendChild(w); pos=m.index+m[0].length; }
   if(pos<text.length) el.appendChild(document.createTextNode(text.slice(pos)));
+  /* a caret cannot sit after a trailing non-editable span in every browser: give it a text node to live in */
+  if(el.lastChild && isWidget(el.lastChild)) el.appendChild(document.createTextNode(ZW));
+  if(el.firstChild && isWidget(el.firstChild)) el.insertBefore(document.createTextNode(ZW),el.firstChild);
 }
 /* ---------- caret helpers ---------- */
 function renderedOffset(el,node,off){
@@ -1218,9 +1224,9 @@ function renderedOffset(el,node,off){
   var count=0, found=null;
   function walk(n){
     if(found!==null) return;
-    if(n===target){ found=count+(n.nodeType===3?targetOff:(isWidget(n)&&targetOff?widgetLen(n):0)); return; }
+    if(n===target){ found=count+(n.nodeType===3?visLen(n.nodeValue.slice(0,targetOff)):(isWidget(n)&&targetOff?widgetLen(n):0)); return; }
     if(atEnd && node!==el && n.nodeType===1 && !node.contains(n) && (node.compareDocumentPosition(n)&Node.DOCUMENT_POSITION_FOLLOWING)){ found=count; return; }
-    if(n.nodeType===3){ count+=n.nodeValue.length; return; }
+    if(n.nodeType===3){ count+=visLen(n.nodeValue); return; }
     if(n.nodeType===1){ if(isWidget(n)){ count+=widgetLen(n); return; } if(n.tagName==='BR'){ count+=1; return; } for(var i=0;i<n.childNodes.length;i++){ walk(n.childNodes[i]); if(found!==null) return; } }
   }
   for(var i=0;i<el.childNodes.length;i++){ walk(el.childNodes[i]); if(found!==null) return found; }
@@ -1234,9 +1240,9 @@ function setCaret(el,off){
   var count=0, done=false, last=null;
   function walk(n){
     if(done) return;
-    if(n.nodeType===3){ var len=n.nodeValue.length; if(count+len>=off){ r.setStart(n,Math.max(0,off-count)); done=true; return; } count+=len; last=n; return; }
+    if(n.nodeType===3){ var len=visLen(n.nodeValue); if(count+len>=off){ r.setStart(n,domOff(n.nodeValue,Math.max(0,off-count))); done=true; return; } count+=len; last=n; return; }
     if(n.nodeType===1){
-      if(isWidget(n)){ var wl=widgetLen(n); if(off<=count){ r.setStartBefore(n); done=true; return; } if(off<=count+wl){ if(off<count+wl) r.setStartBefore(n); else r.setStartAfter(n); done=true; return; } count+=wl; last=n; return; }
+      if(isWidget(n)){ var wl=widgetLen(n); if(off<=count){ r.setStartBefore(n); done=true; return; } if(off<count+wl){ r.setStartBefore(n); done=true; return; } if(off===count+wl){ var nx=n.nextSibling; if(nx&&nx.nodeType===3){ r.setStart(nx,domOff(nx.nodeValue,0)); } else r.setStartAfter(n); done=true; return; } count+=wl; last=n; return; }
       if(n.tagName==='BR'){ count+=1; last=n; return; }
       for(var i=0;i<n.childNodes.length;i++){ walk(n.childNodes[i]); if(done) return; }
     }
