@@ -723,9 +723,17 @@ body.blk-drag iframe{pointer-events:none}
 .g-line.err{border-color:var(--danger)}
 .g-sw{flex:0 0 auto;width:14px;height:14px;padding:0;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--rule);cursor:pointer}
 .g-sw:hover{box-shadow:0 0 0 2px var(--accent)}
-.gpal{position:fixed;top:0;right:auto;width:auto;display:grid;grid-template-columns:repeat(6,28px);gap:8px;padding:10px;z-index:70}
-.gpal button{width:28px;height:28px;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--rule);cursor:pointer;padding:0}
-.gpal button.on{box-shadow:0 0 0 2px var(--accent)}
+.gpal{position:fixed;top:0;right:auto;width:256px;display:flex;flex-direction:column;gap:10px;padding:12px;z-index:70}
+.gpal .gp-title{font-size:.72rem;font-weight:600;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.04em}
+.gpal .gp-sw{display:grid;grid-template-columns:repeat(6,28px);gap:8px;justify-content:space-between}
+.gpal .gp-sw button{width:28px;height:28px;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--rule);cursor:pointer;padding:0}
+.gpal .gp-sw button.on{box-shadow:0 0 0 2px var(--accent)}
+.gpal .gp-row{display:grid;grid-template-columns:62px 1fr 38px;align-items:center;gap:8px;font-size:.82rem;color:var(--ink)}
+.gpal .gp-row output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-dim);font-size:.78rem}
+.gpal input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+.gpal .gp-mk{display:flex;gap:4px;grid-column:2/4}
+.gpal .gp-mk button{flex:1;min-width:0;height:28px;border-radius:7px;border:1px solid var(--rule);background:transparent;color:var(--ink);font-size:.95rem;cursor:pointer;padding:0}
+.gpal .gp-mk button.on{background:var(--accent-tint);border-color:var(--accent);color:var(--accent)}
 .g-in{display:block;flex:1 1 auto;min-width:0;font-size:1.05rem;line-height:normal;min-height:1.6rem;color:var(--ink);outline:none;font-weight:400;text-transform:none;letter-spacing:0}
 .g-in.mq-editable-field{border:0!important;box-shadow:none!important;background:transparent;padding:2px 0;border-radius:0}
 .g-in .mq-cursor{border-left-color:currentColor!important}
@@ -1114,7 +1122,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
     <table>
       <tr><td>/graph</td><td>Axes you set, with equations in x typed in live maths fields like a calculator line (<code>x^2 - 4</code>, <code>2x + 1</code>, <code>sin(x)</code>; a leading <code>y =</code> is fine). Enter adds a line, Backspace on an empty line removes it; \ and @ search as in the calculator. Points go one per line as <code>x, y</code>. The settings show when a graph is created and hide once you click elsewhere; select the graph and press Edit settings to bring them back (Hide settings or Esc also closes them).</td></tr>
       <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Click the quadrants in the small axes picture to show or hide them; the ranges clamp at zero on the hidden sides without changing your stored values. With Auto ticked, an axis fits its range and step to the curves and points; typing a min, max or step switches that axis to manual. Gridlines and the axis arrowheads can be switched off.</td></tr>
-      <tr><td>Points</td><td>One entry per line: <code>(1, 2)</code> or <code>1, 2</code> for a point, or a bracketed list such as <code>[(0,0),(1,3),(2,4)]</code> for points joined by a line. Enter adds an entry, Backspace on an empty one removes it. Click a colour dot beside an equation or point to pick its colour (black included). Label shows the coordinates beside each point in maths formatting; type your own label text instead, with ‘ for a maths run, and it sits by the last point. Equation labels switches the legend on or off.</td></tr>
+      <tr><td>Points</td><td>One entry per line: <code>(1, 2)</code> or <code>1, 2</code> for a point, or a bracketed list such as <code>[(0,0),(1,3),(2,4)]</code> for points joined by a line. Enter adds an entry, Backspace on an empty one removes it. Click the colour dot beside an equation or point to set its colour (black included), opacity and thickness; for points also the marker (filled or hollow circle, cross, plus, square, triangle, diamond) and its size. Label shows the coordinates beside each point in maths formatting; type your own label text instead, with ‘ for a maths run, and it sits by the last point. Equation labels switches the legend on or off.</td></tr>
       <tr><td>Copy PNG</td><td>Copies the graph as an image on a white background, ready to paste into Word or a slide. Save PNG downloads the same image.</td></tr>
       <tr><td>Delete</td><td>Click the graph’s margin to select the block, then Backspace. On a phone, a selected block shows Duplicate and Delete buttons.</td></tr>
     </table>
@@ -4817,21 +4825,54 @@ function graphPointEntry(e){
 function graphAllPoints(b){ var out=[]; (Array.isArray(b.points)?b.points:[]).forEach(function(e){ Array.prototype.push.apply(out,graphPointEntry(e).pts); }); return out; }
 function graphParsePoints(text){ return graphPointEntry({c:text}).pts; }
 function graphPointColor(b,i){ var pe=(b.points||[])[i]; if(pe && pe.col) return pe.col; var nEq=(Array.isArray(b.eqs)?b.eqs:[]).filter(function(l){ return String(l||'').trim(); }).length; return GRAPH_COLORS[(nEq+i)%GRAPH_COLORS.length]; }
-function graphEqColor(b,i){ return (b.eqColors&&b.eqColors[i])||GRAPH_COLORS[i%GRAPH_COLORS.length]; }
+function graphEqColor(b,i){ var st=(b.eqStyles&&b.eqStyles[i])||{}; return st.col||(b.eqColors&&b.eqColors[i])||GRAPH_COLORS[i%GRAPH_COLORS.length]; }
 function graphCssColor(c){ return c==='ink'?'var(--ink)':c; }
 /* colour palette for a curve or point entry: click (or hold) the swatch */
 var GRAPH_PALETTE=[['ink','Black'],['#0a84ff','Blue'],['#ff3b30','Red'],['#34c759','Green'],['#ff9f0a','Orange'],['#af52de','Purple'],['#5ac8fa','Sky'],['#ff2d55','Pink'],['#8e8e93','Grey'],['#a2845e','Brown'],['#ffd60a','Yellow'],['#30d158','Mint']];
 var gpal=null, gpalState=null;
+var GRAPH_MARKERS=[['dot','●','Filled circle'],['ring','○','Hollow circle'],['x','×','Cross'],['plus','+','Plus'],['square','■','Square'],['tri','▲','Triangle'],['diamond','◆','Diamond']];
+function graphEqStyle(b,i){ if(!Array.isArray(b.eqStyles)) b.eqStyles=[]; var st=b.eqStyles[i]; if(!st||typeof st!=='object'){ st=b.eqStyles[i]={}; } if(st.col===undefined && b.eqColors && b.eqColors[i]) st.col=b.eqColors[i]; return st; }
+function graphPtStyle(b,i){ var pe=(b.points||[])[i]; return pe||{}; }
+/* style popover for a curve or point entry: colour, opacity, thickness and, for points, the marker */
 function openGraphPalette(b,kind,i,anchor){
-  if(!gpal){ gpal=document.createElement('div'); gpal.id='gpal'; gpal.className='popover gpal'; gpal.hidden=true; document.body.appendChild(gpal); gpal.addEventListener('mousedown',function(e){ e.preventDefault(); }); gpal.addEventListener('click',function(e){ var sw=e.target.closest('[data-col]'); if(!sw||!gpalState) return; var st=gpalState; if(st.kind==='eq'){ if(!Array.isArray(st.b.eqColors)) st.b.eqColors=[]; st.b.eqColors[st.i]=sw.dataset.col; } else { var pe=(st.b.points||[])[st.i]; if(pe) pe.col=sw.dataset.col; } closeGraphPalette(); var el=blockEl(st.b.id); if(el){ var swEl=el.querySelector('.g-sw[data-sw="'+st.kind+'"][data-si="'+st.i+'"]'); if(swEl) swEl.style.background=graphCssColor(st.kind==='eq'?graphEqColor(st.b,st.i):graphPointColor(st.b,st.i)); } graphRepaint(st.b); save(); }); }
-  gpalState={b:b,kind:kind,i:i}; var cur=kind==='eq'?graphEqColor(b,i):graphPointColor(b,i);
-  gpal.innerHTML=GRAPH_PALETTE.map(function(c){ return '<button type="button" data-col="'+c[0]+'" class="'+(c[0]===cur?'on':'')+'" title="'+c[1]+'" aria-label="'+c[1]+'" style="background:'+graphCssColor(c[0])+'"></button>'; }).join('');
-  gpal.hidden=false; var r=anchor.getBoundingClientRect(); var w=gpal.offsetWidth||200, h=gpal.offsetHeight||80;
-  var left=Math.max(8,Math.min(r.left,window.innerWidth-w-8)), top=r.bottom+6; if(top+h>window.innerHeight-8) top=r.top-h-6; gpal.style.left=left+'px'; gpal.style.top=top+'px';
+  if(!gpal){ gpal=document.createElement('div'); gpal.id='gpal'; gpal.className='popover gpal'; gpal.hidden=true; document.body.appendChild(gpal);
+    gpal.addEventListener('mousedown',function(e){ if(!e.target.closest('input')) e.preventDefault(); });
+    var apply=function(fn){ var st=gpalState; if(!st) return; var tgt=st.kind==='eq'?graphEqStyle(st.b,st.i):graphPtStyle(st.b,st.i); fn(tgt); var el=blockEl(st.b.id); if(el){ var swEl=el.querySelector('.g-sw[data-sw="'+st.kind+'"][data-si="'+st.i+'"]'); if(swEl) swEl.style.background=graphCssColor(st.kind==='eq'?graphEqColor(st.b,st.i):graphPointColor(st.b,st.i)); } graphRepaint(st.b); clearTimeout(gpal._t); gpal._t=setTimeout(function(){ save(); },300); };
+    gpal.addEventListener('click',function(e){ var sw=e.target.closest('[data-col]'); if(sw){ apply(function(t){ t.col=sw.dataset.col; }); gpal.querySelectorAll('[data-col]').forEach(function(x){ x.classList.toggle('on',x===sw); }); return; }
+      var mk=e.target.closest('[data-mk]'); if(mk){ apply(function(t){ t.mk=mk.dataset.mk; }); gpal.querySelectorAll('[data-mk]').forEach(function(x){ x.classList.toggle('on',x===mk); }); return; } });
+    gpal.addEventListener('input',function(e){ var r=e.target.closest('input[type=range]'); if(!r) return; var k=r.dataset.k, v=+r.value; var out=gpal.querySelector('[data-out="'+k+'"]'); if(out) out.textContent=k==='op'?v+'%':v; apply(function(t){ t[k]=k==='op'?v/100:v; }); });
+  }
+  gpalState={b:b,kind:kind,i:i,anchor:anchor}; var st=kind==='eq'?graphEqStyle(b,i):graphPtStyle(b,i); var cur=kind==='eq'?graphEqColor(b,i):graphPointColor(b,i);
+  var op=Math.round((st.op==null?1:st.op)*100), w=st.w||2, sz=st.sz||5, mk=st.mk||'dot';
+  var h='<div class="gp-title">'+(kind==='eq'?'Curve style':'Point style')+'</div>';
+  h+='<div class="gp-sw">'+GRAPH_PALETTE.map(function(c){ return '<button type="button" data-col="'+c[0]+'" class="'+(c[0]===cur?'on':'')+'" title="'+c[1]+'" aria-label="'+c[1]+'" style="background:'+graphCssColor(c[0])+'"></button>'; }).join('')+'</div>';
+  h+='<label class="gp-row"><span>Opacity</span><input type="range" min="10" max="100" step="5" value="'+op+'" data-k="op"><output data-out="op">'+op+'%</output></label>';
+  h+='<label class="gp-row"><span>'+(kind==='eq'?'Thickness':'Line')+'</span><input type="range" min="1" max="8" step="0.5" value="'+w+'" data-k="w"><output data-out="w">'+w+'</output></label>';
+  if(kind==='pt'){ h+='<label class="gp-row"><span>Size</span><input type="range" min="2" max="12" step="1" value="'+sz+'" data-k="sz"><output data-out="sz">'+sz+'</output></label>';
+    h+='<div class="gp-row"><span>Marker</span><div class="gp-mk">'+GRAPH_MARKERS.map(function(m){ return '<button type="button" data-mk="'+m[0]+'" class="'+(m[0]===mk?'on':'')+'" title="'+m[2]+'" aria-label="'+m[2]+'">'+m[1]+'</button>'; }).join('')+'</div></div>'; }
+  gpal.innerHTML=h;
+  gpal.hidden=false; placeGraphPalette();
 }
+function placeGraphPalette(){ if(!gpal||gpal.hidden||!gpalState||!gpalState.anchor||!gpalState.anchor.isConnected){ closeGraphPalette(); return; } var r=gpalState.anchor.getBoundingClientRect(); var pw=gpal.offsetWidth||240, ph=gpal.offsetHeight||160;
+  var left=Math.max(8,Math.min(r.left,window.innerWidth-pw-8)), top=r.bottom+6; if(top+ph>window.innerHeight-8) top=r.top-ph-6; if(top<8) top=8; gpal.style.left=left+'px'; gpal.style.top=top+'px'; }
 function closeGraphPalette(){ if(gpal){ gpal.hidden=true; } gpalState=null; }
 document.addEventListener('mousedown',function(e){ if(gpal && !gpal.hidden && !gpal.contains(e.target) && !(e.target.closest&&e.target.closest('.g-sw'))) closeGraphPalette(); },true);
-window.addEventListener('scroll',function(){ if(gpal && !gpal.hidden) closeGraphPalette(); },{passive:true});
+window.addEventListener('scroll',function(){ if(gpal && !gpal.hidden) placeGraphPalette(); },{passive:true});
+/* point markers */
+function drawMarker(ctx,x,y,mk,s,col,bg){
+  ctx.save(); ctx.fillStyle=col; ctx.strokeStyle=col; ctx.lineWidth=Math.max(1.5,s*0.35); ctx.lineJoin='round'; ctx.lineCap='round';
+  switch(mk){
+    case 'ring': ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fillStyle=bg; ctx.fill(); ctx.stroke(); break;
+    case 'x': ctx.beginPath(); ctx.moveTo(x-s,y-s); ctx.lineTo(x+s,y+s); ctx.moveTo(x+s,y-s); ctx.lineTo(x-s,y+s); ctx.stroke(); break;
+    case 'plus': ctx.beginPath(); ctx.moveTo(x-s,y); ctx.lineTo(x+s,y); ctx.moveTo(x,y-s); ctx.lineTo(x,y+s); ctx.stroke(); break;
+    case 'square': ctx.fillRect(x-s,y-s,2*s,2*s); ctx.lineWidth=1.5; ctx.strokeStyle=bg; ctx.strokeRect(x-s,y-s,2*s,2*s); break;
+    case 'tri': ctx.beginPath(); ctx.moveTo(x,y-s*1.15); ctx.lineTo(x+s*1.1,y+s*0.8); ctx.lineTo(x-s*1.1,y+s*0.8); ctx.closePath(); ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle=bg; ctx.stroke(); break;
+    case 'diamond': ctx.beginPath(); ctx.moveTo(x,y-s*1.2); ctx.lineTo(x+s*1.2,y); ctx.lineTo(x,y+s*1.2); ctx.lineTo(x-s*1.2,y); ctx.closePath(); ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle=bg; ctx.stroke(); break;
+    default: ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle=bg; ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function fmtCoord(v){ var s=(+v.toPrecision(6)).toString(); return s; }
 function gfmt(v){ if(typeof v!=='number'||!isFinite(v)) return ''; return (+v.toPrecision(6)).toString(); }
 /* Ranges and steps actually drawn: automatic ones are fitted to the curves and points, then everything is clamped to the quadrants shown. */
@@ -4939,18 +4980,20 @@ function graphPaint(cv,b,o){
   if(hasT) drawRich(ctx,b.title,ML+pw/2,MT-8,'center',px+3,C.ink);
   ctx.save(); ctx.beginPath(); ctx.rect(ML,MT,pw,ph); ctx.clip();
   var eqs=Array.isArray(b.eqs)?b.eqs:[], legend=[];
-  eqs.forEach(function(line,ci){ if(!String(line||'').trim()) return; var f=graphCompile(line,b); var col=graphEqColor(b,ci); if(col==='ink') col=C.ink; legend.push({runs:latexRuns(line,0,[]),c:col,bad:!f}); if(!f) return;
-    ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.beginPath(); var pen=false, prevY=null;
+  eqs.forEach(function(line,ci){ if(!String(line||'').trim()) return; var f=graphCompile(line,b); var col=graphEqColor(b,ci); if(col==='ink') col=C.ink; legend.push({runs:latexRuns(line,0,[]),c:col,w:((b.eqStyles&&b.eqStyles[ci])||{}).w,bad:!f}); if(!f) return;
+    var est=(b.eqStyles&&b.eqStyles[ci])||{}; ctx.save(); ctx.globalAlpha=est.op==null?1:est.op; ctx.strokeStyle=col; ctx.lineWidth=est.w||2; ctx.lineJoin='round'; ctx.beginPath(); var pen=false, prevY=null;
     for(var ppx=0; ppx<=pw; ppx+=1){ var x=xmin+ppx/pw*(xmax-xmin), y; try{ y=f(x); }catch(e){ y=NaN; }
       if(!isFinite(y)){ pen=false; prevY=null; continue; }
       var cy=sy(y); if(cy<MT-ph*4||cy>MT+ph*5){ pen=false; prevY=null; continue; }
       if(pen && prevY!==null && Math.abs(cy-prevY)>ph*0.9){ pen=false; }
       if(!pen){ ctx.moveTo(ML+ppx,cy); pen=true; } else ctx.lineTo(ML+ppx,cy); prevY=cy; }
-    ctx.stroke(); });
+    ctx.stroke(); ctx.restore(); });
   var labels=[];
   (Array.isArray(b.points)?b.points:[]).forEach(function(e,i){ var pe=graphPointEntry(e); if(!pe.pts.length) return; var col=graphPointColor(b,i); if(col==='ink') col=C.ink;
-    if(pe.connected){ ctx.strokeStyle=col; ctx.lineWidth=1.8; ctx.lineJoin='round'; ctx.beginPath(); pe.pts.forEach(function(p,j){ var cx=sx(p.x), cy=sy(p.y); if(j) ctx.lineTo(cx,cy); else ctx.moveTo(cx,cy); }); ctx.stroke(); }
-    pe.pts.forEach(function(p){ var pcx=sx(p.x), pcy=sy(p.y); ctx.beginPath(); ctx.arc(pcx,pcy,4.5,0,Math.PI*2); ctx.fillStyle=col; ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle=C.bg; ctx.stroke(); });
+    ctx.save(); ctx.globalAlpha=e.op==null?1:e.op;
+    if(pe.connected){ ctx.strokeStyle=col; ctx.lineWidth=e.w||2; ctx.lineJoin='round'; ctx.beginPath(); pe.pts.forEach(function(p,j){ var cx=sx(p.x), cy=sy(p.y); if(j) ctx.lineTo(cx,cy); else ctx.moveTo(cx,cy); }); ctx.stroke(); }
+    pe.pts.forEach(function(p){ drawMarker(ctx,sx(p.x),sy(p.y),e.mk||'dot',e.sz||5,col,C.bg); });
+    ctx.restore();
     if(e.lab!==false){ var custom=String(e.txt||'').trim();
       if(custom){ var lp=pe.pts[pe.pts.length-1]; labels.push({x:sx(lp.x),y:sy(lp.y),runs:richRuns(custom)}); }
       else pe.pts.forEach(function(p){ labels.push({x:sx(p.x),y:sy(p.y),runs:latexRuns('('+fmtCoord(p.x)+',\\,'+fmtCoord(p.y)+')',0,[])}); }); }
@@ -4959,7 +5002,7 @@ function graphPaint(cv,b,o){
   ctx.restore();
   if(legend.length && b.legend!==false){ var lpx=px-1; var lw=0; legend.forEach(function(l){ lw=Math.max(lw,richMeasure(ctx,l.runs,lpx)); }); var bw=lw+34, lh=lpx+7, bh=legend.length*lh+8, bx=ML+pw-bw-8, by=MT+8;
     ctx.fillStyle=C.bg; ctx.globalAlpha=.85; ctx.fillRect(bx,by,bw,bh); ctx.globalAlpha=1; ctx.strokeStyle=C.grid; ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);
-    legend.forEach(function(l,i){ var yy=by+4+i*lh+lh*0.72; ctx.strokeStyle=l.c; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(bx+8,yy-lpx*0.3); ctx.lineTo(bx+22,yy-lpx*0.3); ctx.stroke(); drawRich(ctx,l.runs,bx+28,yy,'left',lpx,l.bad?'#ff3b30':C.ink); }); }
+    legend.forEach(function(l,i){ var yy=by+4+i*lh+lh*0.72; ctx.strokeStyle=l.c; ctx.lineWidth=Math.min(5,l.w||2.5); ctx.beginPath(); ctx.moveTo(bx+8,yy-lpx*0.3); ctx.lineTo(bx+22,yy-lpx*0.3); ctx.stroke(); drawRich(ctx,l.runs,bx+28,yy,'left',lpx,l.bad?'#ff3b30':C.ink); }); }
 }
 function graphErrors(b){ var bad=[]; (Array.isArray(b.eqs)?b.eqs:[]).forEach(function(l,i){ if(String(l||'').trim() && !graphCompile(l,b)) bad.push(i+1); }); return bad; }
 function graphPNG(b){
@@ -4992,8 +5035,8 @@ function graphFocusLine(bid,i,end){ var el=blockEl(bid); if(!el) return; var f=e
 function graphFocusPoint(bid,i){ var el=blockEl(bid); var f=el&&el.querySelector('.g-pc[data-pi="'+i+'"]'); if(f) f.focus(); }
 function graphInsertPoint(b,i){ if(!Array.isArray(b.points)) b.points=[]; b.points.splice(i+1,0,{c:'',lab:true,txt:''}); rerenderBlock(b.id); graphFocusPoint(b.id,i+1); save(); }
 function graphRemovePoint(b,i){ b.points.splice(i,1); rerenderBlock(b.id); graphFocusPoint(b.id,Math.max(0,Math.min(i,b.points.length-1))); graphRepaint(b); save(); }
-function graphInsertLine(b,i){ b.eqs.splice(i+1,0,''); if(Array.isArray(b.eqColors)) b.eqColors.splice(i+1,0,null); rerenderBlock(b.id); graphFocusLine(b.id,i+1,false); save(); }
-function graphRemoveLine(b,i){ if(b.eqs.length<=1){ b.eqs=['']; b.eqColors=[]; } else { b.eqs.splice(i,1); if(Array.isArray(b.eqColors)) b.eqColors.splice(i,1); } rerenderBlock(b.id); graphFocusLine(b.id,Math.max(0,Math.min(i,b.eqs.length-1)),true); graphRepaint(b); save(); }
+function graphInsertLine(b,i){ b.eqs.splice(i+1,0,''); if(Array.isArray(b.eqColors)) b.eqColors.splice(i+1,0,null); if(Array.isArray(b.eqStyles)) b.eqStyles.splice(i+1,0,null); rerenderBlock(b.id); graphFocusLine(b.id,i+1,false); save(); }
+function graphRemoveLine(b,i){ if(b.eqs.length<=1){ b.eqs=['']; b.eqColors=[]; b.eqStyles=[]; } else { b.eqs.splice(i,1); if(Array.isArray(b.eqColors)) b.eqColors.splice(i,1); if(Array.isArray(b.eqStyles)) b.eqStyles.splice(i,1); } rerenderBlock(b.id); graphFocusLine(b.id,Math.max(0,Math.min(i,b.eqs.length-1)),true); graphRepaint(b); save(); }
 function graphMoveLine(b,i,dir){ var j=i+dir; if(j<0||j>=b.eqs.length) return; graphFocusLine(b.id,j,dir<0); }
 function initGraphBlocks(){
   if(!MQ) return;
