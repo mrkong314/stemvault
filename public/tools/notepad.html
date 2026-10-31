@@ -625,9 +625,12 @@ body.resizing{cursor:col-resize;user-select:none;-webkit-user-select:none}
 
 /* blocks */
 .block{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);align-items:start;padding-left:calc(var(--i,0)*24px);border-radius:8px;transition:background .12s}
-.block.selected,.block:focus-within{background:var(--accent-tint);box-shadow:-8px 0 0 var(--accent-tint),8px 0 0 var(--accent-tint)}
+.block:focus-within{background:var(--accent-tint);box-shadow:-8px 0 0 var(--accent-tint),8px 0 0 var(--accent-tint)}
+/* a whole block selected (Ctrl/Cmd+A, a click on its margin): a solid ring, so it reads differently from a block being edited */
+.block.selected{background:var(--accent-tint);box-shadow:-8px 0 0 var(--accent-tint),8px 0 0 var(--accent-tint);outline:2px solid var(--accent);outline-offset:6px}
 .block.t-calc:focus-within:not(.selected),.block.t-math:focus-within:not(.selected){background:transparent;box-shadow:none}
-#editor.all-selected .block,.block.msel{background:var(--accent-tint);box-shadow:-8px 0 0 var(--accent-tint),8px 0 0 var(--accent-tint)}
+#editor.all-selected .block,.block.msel{background:var(--accent-tint);box-shadow:-8px 0 0 var(--accent-tint),8px 0 0 var(--accent-tint);outline:2px solid var(--accent);outline-offset:6px}
+#editor.all-selected .block,.block.msel{outline-offset:1px}
 .block.msel .calc,.block.msel .mathblk{box-shadow:0 0 0 2px var(--accent)}
 #marquee{position:fixed;z-index:50;border:1px solid var(--accent);background:var(--accent-tint);border-radius:4px;pointer-events:none}
 body.marquee-on{user-select:none;-webkit-user-select:none;cursor:crosshair}
