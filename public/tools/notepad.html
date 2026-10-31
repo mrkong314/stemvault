@@ -686,6 +686,14 @@ textarea.code:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent
 .draw-tools .ekind{font-size:.74rem;font-weight:600;color:var(--ink-dim);padding:0 6px}
 .draw-tools a{font-size:.74rem;font-weight:600;min-height:26px;padding:0 7px;border-radius:7px;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center}
 body.blk-drag iframe{pointer-events:none}
+/* Desmos block */
+.desmosblk{position:relative;margin:6px 0;border-radius:14px;background:var(--panel);border:1px solid var(--rule);overflow:hidden;min-width:0;height:420px}
+.desmos-host{position:absolute;left:0;top:0;right:0;bottom:0}
+.desmos-host iframe{display:block;width:100%;height:100%;border:0}
+.desmos-wait{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;color:var(--ink-dim);font-size:.9rem}
+.desmos-note{position:absolute;left:8px;bottom:14px;font-size:.72rem;color:var(--ink-dim);background:var(--glass-strong);padding:3px 8px;border-radius:8px;pointer-events:none}
+.selected .desmosblk{box-shadow:0 0 0 2px var(--accent)}
+.desmosblk .draw-tools{z-index:3}
 .caption{font-size:.88rem;color:var(--ink-dim);padding:4px 2px;min-height:1.4em;white-space:pre-wrap}
 .caption:empty::before{content:attr(data-ph);color:var(--ink-dim);opacity:.6}
 .content code,.cell code,.help code{font-family:var(--mono);font-size:.84em;background:var(--control);padding:1px 5px;border-radius:5px}
@@ -1027,7 +1035,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
         <tr><td>=</td><td>Calculator section</td></tr>
         <tr><td>$$</td><td>Maths block: typeset equations, not evaluated</td></tr>
         <tr><td>---</td><td>Divider</td></tr>
-        <tr><td>/</td><td>Block menu, including Table, Calculator, Maths, Drawing, Image and Embed</td></tr>
+        <tr><td>/</td><td>Block menu, including Table, Calculator, Maths, Drawing, Desmos graph, Image and Embed</td></tr>
       </table>
       <h3>Drawing</h3>
     <table>
@@ -1035,6 +1043,12 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
       <tr><td>Height</td><td>Drag the bar at the bottom edge to make the area taller. Strokes are kept as lines, so the drawing stays sharp at any size and in both themes.</td></tr>
       <tr><td>Delete</td><td>Click the drawing’s margin to select the block, then Backspace.</td></tr>
       <tr><td>Over an image</td><td>Hover or tap an image and press Draw to annotate it with the same pens and eraser; Done leaves drawing mode. Marks scale with the image.</td></tr>
+    </table>
+    <h3>Desmos graph</h3>
+    <table>
+      <tr><td>/desmos</td><td>A blank Desmos graphing calculator inside the note. Everything you type into it is saved with the note on this device and comes back on reload, in both themes.</td></tr>
+      <tr><td>Tools</td><td>Hover or select the block for Clear graph. Drag the bar at the bottom edge to change height. Click the block’s margin to select it; Backspace deletes it.</td></tr>
+      <tr><td>Offline</td><td>If Desmos cannot be reached, a plain Desmos page is shown instead and edits in it are not saved.</td></tr>
     </table>
     <h3>Embeds</h3>
     <table>
@@ -1140,7 +1154,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
 var KEY='pocket-scratchpad-v2', OLD_KEY='pocket-scratchpad-v1', THEME_KEY='pocket-scratchpad-theme';
 var TEXT_TYPES=['p','h1','h2','h3','bullet','number','todo','toggle','quote','code'];
 var LIST_TYPES=['bullet','number','todo'];
-var BOX_TYPES=['image','divider','table','calc','math','draw','embed'];
+var BOX_TYPES=['image','divider','table','calc','math','draw','embed','desmos'];
 var TYPE_INFO={
   p:{label:'Text',hint:'Plain paragraph'},
   h1:{label:'Heading 1',hint:'# '},
@@ -1157,16 +1171,19 @@ var TYPE_INFO={
   math:{label:'Maths',hint:'$$ '},
   draw:{label:'Drawing',hint:'Sketch with pen, mouse or finger'},
   image:{label:'Image',hint:'Choose a file, or paste one'},
+  desmos:{label:'Desmos graph',hint:'A blank graph to work in, saved with the note'},
   embed:{label:'Embed',hint:'YouTube, Desmos, GeoGebra or PhET link'},
   divider:{label:'Divider',hint:'---'}
 };
-var SLASH_ORDER=['p','h1','h2','h3','bullet','number','todo','toggle','quote','code','table','calc','math','draw','image','embed','divider'];
+var SLASH_ORDER=['p','h1','h2','h3','bullet','number','todo','toggle','quote','code','table','calc','math','draw','desmos','image','embed','divider'];
 var PLACEHOLDER={p:'',h1:'Heading 1',h2:'Heading 2',h3:'Heading 3',bullet:'',number:'',todo:'',toggle:'',quote:'',code:'Code'};
 var PREFIX_SHORTCUTS=[['### ','h3'],['## ','h2'],['# ','h1'],['- ','bullet'],['* ','bullet'],['+ ','toggle'],['1. ','number'],['[] ','todo'],['[ ] ','todo'],['> ','toggle'],['" ','quote'],['= ','calc'],['$$ ','math']];
 var GROUP_COLORS=['#5b7fa6','#5f9e7a','#b98a4a','#b4635f','#8a6fb0','#5a9aa8','#a89b4a','#9a7a8a'];
 
 var state=null, doc=null, saveTimer=null, selectedId=null, storage='idb', pendingImageTarget=null;
 var drawOn={}, embedEdit={};
+/* Desmos graphing calculator API. The key below is Desmos's published demo key; request a free production key at desmos.com/api and replace it. */
+var DESMOS_SRC='https://www.desmos.com/api/v1.10/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0dda6';
 /* Turn a pasted link into something that can sit in an iframe. */
 var EMBED_KINDS={youtube:'YouTube',desmos:'Desmos',geogebra:'GeoGebra',phet:'PhET',web:'Web page'};
 function resolveEmbed(url){
@@ -1189,7 +1206,7 @@ var slashState={open:false,blockId:null,items:[],index:0};
 
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='embed'){ if(b.url==null) b.url=''; if(b.url&&!b.src){ var em=resolveEmbed(b.url); if(em){ b.src=em.src; b.kind=em.kind; } } } return b; }
+function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='desmos'){ if(b.state===undefined) b.state=null; if(!b.h) b.h=420; } if(b.type==='embed'){ if(b.url==null) b.url=''; if(b.url&&!b.src){ var em=resolveEmbed(b.url); if(em){ b.src=em.src; b.kind=em.kind; } } } return b; }
 function getBlock(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return doc.blocks[i]; return null; }
 function idx(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return i; return -1; }
 function isText(b){ return TEXT_TYPES.indexOf(b.type)>=0; }
@@ -3596,6 +3613,8 @@ function blockHTML(b,num){
     s+='<figure class="fig"><div class="imgwrap'+(drawOn[b.id]?' drawing':'')+'"><img src="'+esc(b.src||'')+'" alt="'+esc(b.text||'')+'" draggable="false"><canvas class="draw" tabindex="0" aria-label="Drawing over the image"></canvas>'+drawToolsHTML(true,!drawOn[b.id])+'</div><div class="caption" contenteditable="true" spellcheck="true" data-ph="Add a caption">'+esc(b.text||'')+'</div></figure>';
   } else if(b.type==='embed'){
     s+=embedHTML(b);
+  } else if(b.type==='desmos'){
+    s+='<div class="desmosblk" style="height:'+(b.h||420)+'px"><div class="desmos-host"><div class="desmos-wait">Loading Desmos…</div></div><div class="draw-tools etools"><span class="ekind">Desmos</span><button type="button" data-dact="dreset">Clear graph</button></div><div class="draw-resize" title="Drag to change height"></div></div>';
   } else if(b.type==='divider'){
     s+='<div class="rule" tabindex="0" role="separator"><hr></div>';
   } else if(b.type==='code'){
@@ -3628,6 +3647,7 @@ function embedHTML(b){
     '<div class="draw-tools etools"><span class="ekind">'+esc(kind)+'</span><a href="'+esc(b.url)+'" target="_blank" rel="noopener">Open</a><button type="button" data-eact="link">Change link</button></div><div class="draw-resize" title="Drag to change height"></div></div>';
 }
 function render(){
+  flushDesmosStates();
   editor.querySelectorAll('.content[data-mode="raw"], .cl-in[data-mode="raw"]').forEach(function(a){ a.dataset.mode='dead'; });
   if(!doc.blocks.length) doc.blocks.push(newBlock('p'));
   var vis=visibleList(), counters={}, html='';
@@ -3643,6 +3663,7 @@ function render(){
   initCalcFields();
   initDrawBlocks();
   initEmbedBlocks();
+  initDesmosBlocks();
   highlightSearch();
 }
 /* place a popup just under an element, in .page coordinates (the popups are absolutely positioned inside .page) */
@@ -3680,7 +3701,7 @@ function focusBlock(id,off,extra){
   var el=blockEl(id); if(!el) return;
   var b=getBlock(id);
   if(b.type==='embed' && !b.src){ var ei=el.querySelector('.embed-url'); if(ei){ ei.focus(); return; } }
-  if(b.type==='image' || b.type==='divider' || b.type==='draw' || b.type==='embed'){ select(id); return; }
+  if(b.type==='image' || b.type==='divider' || b.type==='draw' || b.type==='embed' || b.type==='desmos'){ select(id); return; }
   if(b.type==='code'){ var t=el.querySelector('textarea'); t.focus(); var p=off==null||off===Infinity?t.value.length:off; t.setSelectionRange(p,p); return; }
   if(b.type==='table'){ var cells=el.querySelectorAll('.cell'); if(!cells.length) return; var r=extra&&extra.r!=null?extra.r:(off===Infinity?b.rows.length-1:0); var cI=extra&&extra.c!=null?extra.c:0; var cell=el.querySelector('.cell[data-r="'+r+'"][data-c="'+cI+'"]')||cells[0]; cell._pendingCaret=off; cell.focus(); if(document.activeElement===cell) enterRawCell(cell); return; }
   if(b.type==='calc'||b.type==='math'){ var ins=el.querySelectorAll('.cl-in'); if(!ins.length) return; var li=extra&&extra.i!=null?extra.i:(off===Infinity?ins.length-1:0); li=Math.max(0,Math.min(li,ins.length-1)); focusCalcField(ins[li],off); return; }
@@ -3833,7 +3854,7 @@ function calcRemove(b,i){
 }
 
 /* ---------- slash menu ---------- */
-var SLASH_ALIASES={p:'text paragraph plain',h1:'heading title big',h2:'heading subheading',h3:'heading small',bullet:'list bullets dot',number:'list numbered ordered',todo:'checkbox task tick check',toggle:'collapse fold dropdown',quote:'blockquote',code:'monospace snippet',table:'grid cells columns rows',calc:'calculator calc sum solve evaluate',math:'maths math equation formula latex typeset display',draw:'drawing sketch pen scratch whiteboard canvas doodle diagram',embed:'embed youtube video desmos graph geogebra phet simulation iframe link web',image:'photo picture upload',divider:'rule line separator hr'};
+var SLASH_ALIASES={p:'text paragraph plain',h1:'heading title big',h2:'heading subheading',h3:'heading small',bullet:'list bullets dot',number:'list numbered ordered',todo:'checkbox task tick check',toggle:'collapse fold dropdown',quote:'blockquote',code:'monospace snippet',table:'grid cells columns rows',calc:'calculator calc sum solve evaluate',math:'maths math equation formula latex typeset display',draw:'drawing sketch pen scratch whiteboard canvas doodle diagram',embed:'embed youtube video geogebra phet simulation iframe link web',desmos:'desmos graph graphing calculator plot function axes',image:'photo picture upload',divider:'rule line separator hr'};
 function openSlash(b,query){
   var q=query.toLowerCase();
   slashState.items=SLASH_ORDER.filter(function(t){ return !q || TYPE_INFO[t].label.toLowerCase().indexOf(q)>=0 || t.indexOf(q)>=0 || (SLASH_ALIASES[t]||'').indexOf(q)>=0; });
@@ -3854,6 +3875,7 @@ function convertTo(b,type){
   if(type==='image'){ b.text=''; pendingImageTarget=b.id; render(); document.getElementById('file').click(); return; }
   if(type==='divider'){ b.type='divider'; b.text=''; var nb=newBlock('p',{indent:b.indent}); insertAfter(b.id,nb); render(); focusBlock(nb.id,0); save(); return; }
   if(type==='table'){ b.text=''; render(); focusBlock(b.id,0); openTableGrid(b); return; }
+  if(type==='desmos'){ b.type='desmos'; b.text=''; b.state=null; b.h=420; var nx=newBlock('p',{indent:b.indent}); insertAfter(b.id,nx); render(); select(b.id); save(); return; }
   if(type==='embed'){ b.type='embed'; b.text=''; b.url=''; b.src=''; var ne=newBlock('p',{indent:b.indent}); insertAfter(b.id,ne); render(); focusBlock(b.id,0); save(); return; }
   if(type==='draw'){ b.type='draw'; b.text=''; b.strokes=[]; b.h=260; var nd=newBlock('p',{indent:b.indent}); insertAfter(b.id,nd); render(); select(b.id); save(); return; }
   if(type==='calc'||type==='math'){ b.type=type; b.lines=[textToLatex(b.text||'')]; b.tex=true; b.text=''; render(); focusBlock(b.id,Infinity,{i:0}); save(); return; }
@@ -3968,6 +3990,7 @@ function toMarkdown(d){
       case 'math': b.lines.forEach(function(l){ lines.push(ind+'$$'+l+'$$'); }); break;
       case 'image': lines.push(ind+'!['+(b.text||'image')+'](image stored on this device)'); break;
       case 'embed': lines.push(ind+'[embed]('+(b.url||'')+')'); break;
+      case 'desmos': lines.push(ind+'[desmos graph]('+(b.state?'graph stored on this device':'empty graph')+')'); break;
       case 'draw': lines.push(ind+'![drawing]('+(b.strokes&&b.strokes.length?'drawing stored on this device':'empty drawing')+')'); break;
       case 'table':
         b.rows.forEach(function(row,r){ lines.push(ind+'| '+row.map(function(c){ return c.replace(/\|/g,'\\|'); }).join(' | ')+' |'); if(r===0 && b.header) lines.push(ind+'|'+row.map(function(){ return ' --- |'; }).join('')); });
@@ -4003,7 +4026,7 @@ function confirmDialog(message,okLabel){
     setTimeout(function(){ ov.querySelector('.ok').focus(); },0);
   });
 }
-function docIsEmpty(d){ if(d.title&&d.title.trim()) return false; return d.blocks.every(function(b){ if(b.type==='image'||b.type==='table') return false; if(b.type==='draw') return !(b.strokes&&b.strokes.length); if(b.type==='embed') return !b.url; if(b.type==='calc'||b.type==='math') return b.lines.every(function(l){ return !l.trim(); }); if(b.type==='divider') return true; return !(b.text&&b.text.trim()); }); }
+function docIsEmpty(d){ if(d.title&&d.title.trim()) return false; return d.blocks.every(function(b){ if(b.type==='image'||b.type==='table') return false; if(b.type==='draw') return !(b.strokes&&b.strokes.length); if(b.type==='embed') return !b.url; if(b.type==='desmos') return !b.state; if(b.type==='calc'||b.type==='math') return b.lines.every(function(l){ return !l.trim(); }); if(b.type==='divider') return true; return !(b.text&&b.text.trim()); }); }
 function confirmIfNotEmpty(empty,msg,ok){ return empty?Promise.resolve(true):confirmDialog(msg,ok); }
 
 /* ---------- tabs and groups ---------- */
@@ -4352,6 +4375,7 @@ var allSelected=false;
 function selectAllBlocks(){ allSelected=true; select(null); editor.classList.add('all-selected'); if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); }
 function clearAllSelected(){ if(!allSelected) return; allSelected=false; editor.classList.remove('all-selected'); }
 document.addEventListener('keydown',function(e){
+  if(e.target.closest && e.target.closest('.desmos-host')) return;   /* keys inside a Desmos graph belong to Desmos */
   if((e.metaKey||e.ctrlKey) && (e.key==='a'||e.key==='A')){
     var blk=e.target.closest?e.target.closest('.block'):null;
     if(!blk && !selectedId && !allSelected) return;
@@ -4419,7 +4443,7 @@ function moveRange(dir){
   Array.prototype.splice.apply(doc.blocks,[at,0].concat(chunk)); render(); rangeAnchor=at; rangeFocus=at+chunk.length-1; setRange(at,rangeFocus); save();
 }
 document.addEventListener('keydown',function(e){
-  var inField=e.target.closest && (e.target.closest('#sidepanel')||e.target.closest('#tabMenu')||e.target.closest('#confirm')||e.target.closest('#settingsPopover')||e.target.id==='title');
+  var inField=e.target.closest && (e.target.closest('#sidepanel')||e.target.closest('#tabMenu')||e.target.closest('#confirm')||e.target.closest('#settingsPopover')||e.target.closest('.desmos-host')||e.target.id==='title');
   if(inField) return;
   var blk=e.target.closest?e.target.closest('.block'):null;
   if(e.shiftKey && (e.key==='ArrowDown'||e.key==='ArrowUp') && !e.altKey && !e.metaKey && !e.ctrlKey){
@@ -4442,7 +4466,7 @@ document.addEventListener('keydown',function(e){
 var marquee=document.getElementById('marquee'), marqueeMoved=false;
 document.querySelector('.note').addEventListener('pointerdown',function(e){
   if(e.button!==0) return;
-  if(e.target.closest('.content, .cell, .cl-in, textarea, button, a, .drag, .caption, .rule, img, canvas, iframe, .embed-url, .draw-resize, #title, .tbl-tools, .cl-out')) return;
+  if(e.target.closest('.content, .cell, .cl-in, textarea, button, a, .drag, .caption, .rule, img, canvas, iframe, .embed-url, .draw-resize, .desmos-host, #title, .tbl-tools, .cl-out')) return;
   var blk=e.target.closest('.block');
   if(e.shiftKey && blk){ e.preventDefault(); var bi=idx(blk.dataset.id); var from=rangeSel?rangeAnchor:(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.block')?idx(document.activeElement.closest('.block').dataset.id):(selectedId?idx(selectedId):bi)); rangeAnchor=from; rangeFocus=bi; setRange(from,bi); return; }
   var sx=e.clientX, sy=e.clientY, pid=e.pointerId; marqueeMoved=false;
@@ -4543,6 +4567,56 @@ function initEmbedBlocks(){
   });
 }
 
+/* ---------- Desmos blocks: a live graphing calculator whose state is kept in the note ---------- */
+var desmosCache={}, desmosLoad=null;
+function appIsDark(){ var t=document.documentElement.getAttribute('data-theme'); return t==='dark' || (t!=='light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); }
+function loadDesmos(){
+  if(window.Desmos && window.Desmos.GraphingCalculator) return Promise.resolve(window.Desmos);
+  if(desmosLoad) return desmosLoad;
+  desmosLoad=new Promise(function(res,rej){
+    var s=document.createElement('script'); s.src=DESMOS_SRC; s.async=true;
+    var t=setTimeout(function(){ rej(new Error('timeout')); },12000);
+    s.onload=function(){ clearTimeout(t); if(window.Desmos && window.Desmos.GraphingCalculator) res(window.Desmos); else rej(new Error('no api')); };
+    s.onerror=function(){ clearTimeout(t); rej(new Error('load failed')); };
+    document.head.appendChild(s);
+  });
+  desmosLoad.catch(function(){ desmosLoad=null; });
+  return desmosLoad;
+}
+/* Before the editor is rebuilt, copy each live graph's state into its block so nothing is lost. */
+function flushDesmosStates(){ for(var id in desmosCache){ var en=desmosCache[id], b=getBlock(id); if(en.calc && b && b.type==='desmos'){ try{ b.state=en.calc.getState(); }catch(e){} } } }
+function desmosFallback(host){
+  host.innerHTML='<iframe src="https://www.desmos.com/calculator?embed" title="Desmos" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe><div class="desmos-note">Desmos could not be loaded here, so this graph is not saved with the note.</div>';
+}
+function initDesmosBlocks(){
+  var seen={};
+  editor.querySelectorAll('.block.t-desmos').forEach(function(blk){
+    var id=blk.dataset.id, b=getBlock(id), host=blk.querySelector('.desmos-host'); if(!b||!host) return; seen[id]=true;
+    var en=desmosCache[id];
+    if(en){ host.parentNode.replaceChild(en.host,host); if(en.calc) requestAnimationFrame(function(){ try{ en.calc.resize(); }catch(e){} }); bindDesmosBox(blk,id); return; }
+    en=desmosCache[id]={host:host,calc:null,timer:null};
+    ['keydown','keyup','keypress','beforeinput','input','paste','copy','cut'].forEach(function(t){ host.addEventListener(t,function(e){ e.stopPropagation(); }); });
+    host.addEventListener('pointerdown',function(){ if(selectedId) select(null); });
+    loadDesmos().then(function(D){
+      if(desmosCache[id]!==en) return;
+      host.innerHTML='';
+      var calc=D.GraphingCalculator(host,{expressions:true,settingsMenu:true,zoomButtons:true,expressionsTopbar:true,keypad:true,border:false,invertedColors:appIsDark()});
+      en.calc=calc;
+      var cur=getBlock(id); if(cur && cur.state){ try{ calc.setState(cur.state); }catch(e){} }
+      calc.observeEvent('change',function(){ clearTimeout(en.timer); en.timer=setTimeout(function(){ var bb=getBlock(id); if(!bb||bb.type!=='desmos') return; try{ bb.state=calc.getState(); }catch(e){ return; } save(); },400); });
+    }).catch(function(){ if(desmosCache[id]===en) desmosFallback(host); });
+    bindDesmosBox(blk,id);
+  });
+  for(var id in desmosCache){ if(!seen[id]){ var en=desmosCache[id]; clearTimeout(en.timer); if(en.calc){ try{ en.calc.destroy(); }catch(e){} } delete desmosCache[id]; } }
+}
+function bindDesmosBox(blk,id){
+  var rz=blk.querySelector('.draw-resize'), box=blk.querySelector('.desmosblk'), b=getBlock(id); if(!rz||rz._init||!b) return; rz._init=true;
+  bindHeightDrag(rz,box,b,function(){ var en=desmosCache[id]; if(en&&en.calc){ try{ en.calc.resize(); }catch(e){} } });
+}
+function desmosTheme(){ var dark=appIsDark(); for(var id in desmosCache){ var en=desmosCache[id]; if(en.calc){ try{ en.calc.updateSettings({invertedColors:dark}); }catch(e){} } } }
+new MutationObserver(desmosTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(window.matchMedia){ try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',desmosTheme); }catch(e){} }
+
 /* ---------- undo and redo of note changes ---------- */
 function snapshotNow(){ return JSON.stringify({tab:state.activeTabId,doc:doc}); }
 function pushHistory(){ if(!doc) return; var s=snapshotNow(); if(hist.stack[hist.index]===s) return; hist.stack=hist.stack.slice(0,hist.index+1); hist.stack.push(s); if(hist.stack.length>hist.max) hist.stack.shift(); hist.index=hist.stack.length-1; }
@@ -4595,6 +4669,8 @@ editor.addEventListener('click',function(e){
   if(e.target.closest('.img-x')){ removeBoxBlock(b); return; }
   var et=e.target.closest('.etools button'); if(et && b.type==='embed'){ if(et.dataset.eact==='link'){ embedEdit[b.id]=true; render(); var ei=blockEl(b.id).querySelector('.embed-url'); if(ei){ ei.focus(); ei.select(); } } return; }
   if(b.type==='embed' && !e.target.closest('iframe, .draw-tools, .draw-resize, .embed-url')){ select(b.id); return; }
+  var dr=e.target.closest('.etools [data-dact="dreset"]'); if(dr && b.type==='desmos'){ confirmIfNotEmpty(!b.state,'Clear everything in this graph?','Clear').then(function(ok){ if(!ok) return; checkpoint(); var en=desmosCache[b.id]; if(en&&en.calc) en.calc.setBlank(); b.state=null; save(); }); return; }
+  if(b.type==='desmos' && !e.target.closest('.desmos-host, .draw-tools, .draw-resize')){ select(b.id); return; }
   var dt=e.target.closest('.draw-tools button'); if(dt && (b.type==='draw'||b.type==='image')){ var cv=blk.querySelector('canvas.draw');
     if(dt.dataset.dact==='pen'){ var on=!drawOn[b.id]; if(on) drawOn[b.id]=true; else delete drawOn[b.id]; paintDrawTools(blk); if(on){ select(b.id); cv.focus(); } else select(b.id); return; }
     if(dt.dataset.color){ drawTool.color=dt.dataset.color; drawTool.erase=false; } else if(dt.dataset.dw){ drawTool.w=+dt.dataset.dw; } else if(dt.dataset.dact==='erase'){ drawTool.erase=!drawTool.erase; } else if(dt.dataset.dact==='undo'){ if(b.strokes.length){ b.strokes.pop(); drawPaint(cv,b); save(); } } else if(dt.dataset.dact==='clear'){ if(b.strokes.length){ checkpoint(); b.strokes=[]; drawPaint(cv,b); save(); } }
