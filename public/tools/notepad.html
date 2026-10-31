@@ -701,6 +701,10 @@ body.blk-drag iframe{pointer-events:none}
 .gedit .gchk{flex-direction:row;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:.85rem;font-weight:500;color:var(--ink)}
 .gedit .gchk input{accent-color:var(--accent)}
 .gedit .ghint{font-size:.76rem;color:var(--ink-dim)}
+.gedit .gchks{display:flex;flex-direction:column;gap:6px;justify-content:end}
+#calcpad .pk-y{display:none}
+#calcpad.for-graph .pk-y{display:flex}
+#calcpad.for-graph .pk-at{display:none}
 .gedit .grow2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:8px;align-items:end}
 .gedit .seg{text-transform:none;letter-spacing:0;font-weight:500;margin-top:3px}
 .g-lines{display:flex;flex-direction:column;gap:4px;text-transform:none;letter-spacing:0}
@@ -1087,8 +1091,8 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
     </table>
     <h3>Graph</h3>
     <table>
-      <tr><td>/graph</td><td>Axes you set, with equations in x typed in live maths fields like a calculator line (<code>x^2 - 4</code>, <code>2x + 1</code>, <code>sin(x)</code>; a leading <code>y =</code> is fine). Enter adds a line, Backspace on an empty line removes it; \ and @ search as in the calculator. Points go one per line as <code>x, y</code>. The settings show when a graph is created and hide once you click elsewhere; select the graph and press Edit settings to bring them back (Done or Esc also closes them).</td></tr>
-      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Gridlines can be switched off.</td></tr>
+      <tr><td>/graph</td><td>Axes you set, with equations in x typed in live maths fields like a calculator line (<code>x^2 - 4</code>, <code>2x + 1</code>, <code>sin(x)</code>; a leading <code>y =</code> is fine). Enter adds a line, Backspace on an empty line removes it; \ and @ search as in the calculator. Points go one per line as <code>x, y</code>. The settings show when a graph is created and hide once you click elsewhere; select the graph and press Edit settings to bring them back (Hide settings or Esc also closes them).</td></tr>
+      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Gridlines and the axis arrowheads can be switched off.</td></tr>
       <tr><td>Copy PNG</td><td>Copies the graph as an image on a white background, ready to paste into Word or a slide. Save PNG downloads the same image.</td></tr>
       <tr><td>Delete</td><td>Click the graph’s margin to select the block, then Backspace. On a phone, a selected block shows Duplicate and Delete buttons.</td></tr>
     </table>
@@ -1122,7 +1126,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
         <tr><td>Typeset as you type</td><td>Calculator lines are maths fields like the Calculator tool: / makes a fraction, ^ a power, sqrt a root, and names like sin or pi become symbols. Results are typeset too.</td></tr>
         <tr><td>Exact / Decimal</td><td>Exact shows fractions, surds and multiples of π. Set it, the angle, precision and first or all roots in Settings (gear, top right).</td></tr>
         <tr><td>* *, or ^ ^</td><td>Pressing * twice, or ^ twice, gives ×10^ with the cursor in the exponent. On the phone keypad, hold ×. A single * is a × sign.</td></tr>
-        <tr><td>Phone keypad</td><td>On a phone or tablet a maths field brings up the Calculator keypad instead of the system keyboard: 123, abc (hold a letter for a subscript, αβγ for Greek) and f(x) pages, with a caret row underneath. \ and @ open the searches.</td></tr>
+        <tr><td>Phone keypad</td><td>On a phone or tablet a maths field brings up the Calculator keypad instead of the system keyboard: 123, abc (hold a letter for a subscript, αβγ for Greek) and f(x) pages, with a caret row underneath. ? searches every function, constant and Greek letter (the same as typing \ on a keyboard); @ opens the formula sheet, and becomes a y key in a graph.</td></tr>
         <tr><td>Prefix dropdown</td><td>With the cursor in an empty ×10^ exponent, a list of nano to giga appears. Type letters to filter, arrows and Enter to pick, or type digits straight in.</td></tr>
         <tr><td>Enter / Tab / +</td><td>Enter, Tab on the last line, or the + strip under the section adds a line. Backspace on an empty only line removes the section.</td></tr>
         <tr><td>Up / Down</td><td>Move between lines and out of the section at either end. Inside a fraction or power, Down steps from top to bottom first.</td></tr>
@@ -1254,6 +1258,13 @@ function saveTextFile(name,text,mime,label){
 function safeFileName(s){ return (String(s||'note').replace(/[\\/:*?"<>|\u0000-\u001f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,60)||'note'); }
 /* A note from a file or link: fresh ids and every block filled out with its defaults. */
 function normaliseDoc(d){ var out={title:typeof d.title==='string'?d.title:'',blocks:[]}; (Array.isArray(d.blocks)?d.blocks:[]).forEach(function(b){ if(!b||typeof b!=='object') return; if(b.type==='desmos') b={type:'graph',indent:b.indent,h:b.h}; var nb=newBlock(TYPE_INFO[b.type]?b.type:'p',b); nb.id=uid(); if(typeof nb.indent!=='number') nb.indent=0; if(typeof nb.text!=='string') nb.text=''; out.blocks.push(nb); }); if(!out.blocks.length) out.blocks=[newBlock('p')]; return out; }
+/* Touch popups: act on a tap, never on the touch that scrolled the list. */
+function onTap(el,sel,fn){
+  var sx=0, sy=0, moved=true;
+  el.addEventListener('touchstart',function(e){ if(e.touches.length!==1){ moved=true; return; } sx=e.touches[0].clientX; sy=e.touches[0].clientY; moved=false; },{passive:true});
+  el.addEventListener('touchmove',function(e){ var t=e.touches[0]; if(!t || Math.abs(t.clientX-sx)>8 || Math.abs(t.clientY-sy)>8) moved=true; },{passive:true});
+  el.addEventListener('touchend',function(e){ if(moved) return; moved=true; var it=e.target.closest?e.target.closest(sel):null; if(it){ e.preventDefault(); fn(it,e); } },{passive:false});
+}
 var IS_TOUCH=!!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
 /* On touch devices the on-screen keypad does the typing: inputmode=none keeps the OS keyboard
    away from MathQuill's hidden textarea while taps still focus the field and place the caret. */
@@ -1280,7 +1291,7 @@ var slashState={open:false,blockId:null,items:[],index:0};
 
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='graph'){ var GD={eqs:[''],pts:'',xmin:-10,xmax:10,ymin:-10,ymax:10,xstep:1,ystep:1,xlabel:'x',ylabel:'y',title:'',grid:true,angle:'rad',h:320}; for(var gk in GD){ if(b[gk]===undefined||b[gk]===null) b[gk]=GD[gk]; } if(typeof b.eqs==='string'){ b.eqs=b.eqs.split('\n').filter(function(l){ return l.trim(); }).map(function(l){ return (typeof textToLatex==='function')?textToLatex(l.replace(/^\s*y\s*=\s*/i,'')):l; }); } if(!Array.isArray(b.eqs)||!b.eqs.length) b.eqs=['']; } if(b.type==='embed'){ if(b.url==null) b.url=''; if(b.url&&!b.src){ var em=resolveEmbed(b.url); if(em){ b.src=em.src; b.kind=em.kind; } } } return b; }
+function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='graph'){ var GD={eqs:[''],pts:'',xmin:-10,xmax:10,ymin:-10,ymax:10,xstep:1,ystep:1,xlabel:'x',ylabel:'y',title:'',grid:true,arrows:true,angle:'rad',h:320}; for(var gk in GD){ if(b[gk]===undefined||b[gk]===null) b[gk]=GD[gk]; } if(typeof b.eqs==='string'){ b.eqs=b.eqs.split('\n').filter(function(l){ return l.trim(); }).map(function(l){ return (typeof textToLatex==='function')?textToLatex(l.replace(/^\s*y\s*=\s*/i,'')):l; }); } if(!Array.isArray(b.eqs)||!b.eqs.length) b.eqs=['']; } if(b.type==='embed'){ if(b.url==null) b.url=''; if(b.url&&!b.src){ var em=resolveEmbed(b.url); if(em){ b.src=em.src; b.kind=em.kind; } } } return b; }
 function getBlock(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return doc.blocks[i]; return null; }
 function idx(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return i; return -1; }
 function isText(b){ return TEXT_TYPES.indexOf(b.type)>=0; }
@@ -3402,7 +3413,7 @@ function paintPfx(){
 function closePfx(){ pfxState.open=false; pfx.hidden=true; }
 function pickPrefix(p){ var mq=pfxState.mq; closePfx(); if(!mq||!p) return; try{ mq.focus(); mq.typedText(p.exp); mq.keystroke('Right'); }catch(e){} }
 pfx.addEventListener('mousedown',function(e){ e.preventDefault(); var row=e.target.closest('.pfx-row'); if(row) pickPrefix(pfxState.items[+row.dataset.i]); });
-pfx.addEventListener('touchend',function(e){ var row=e.target.closest('.pfx-row'); if(row){ e.preventDefault(); pickPrefix(pfxState.items[+row.dataset.i]); } },{passive:false});
+onTap(pfx,'.pfx-row',function(row){ pickPrefix(pfxState.items[+row.dataset.i]); });
 function pfxKey(e){
   var n=pfxState.items.length;
   if(e.key==='ArrowDown'||e.key==='ArrowUp'){ if(!n) return true; pfxState.idx=pfxState.idx===-1?(e.key==='ArrowDown'?0:n-1):(pfxState.idx+(e.key==='ArrowDown'?1:-1)+n)%n; paintPfx(); return true; }
@@ -3601,7 +3612,7 @@ function applyBsl(i){
 }
 function pickBsl(i){ if(bslState.mq) applyBslMq(i); else applyBsl(i); }
 bsl.addEventListener('mousedown',function(e){ e.preventDefault(); var it=e.target.closest('.item'); if(it) pickBsl(+it.dataset.i); });
-bsl.addEventListener('touchend',function(e){ var it=e.target.closest('.item'); if(it){ e.preventDefault(); pickBsl(+it.dataset.i); } },{passive:false});
+onTap(bsl,'.item',function(it){ pickBsl(+it.dataset.i); });
 function bslKey(e){
   if(!bslState.open) return false;
   if(e.key==='ArrowDown'){ e.preventDefault(); bslState.index=(bslState.index+1)%bslState.items.length; paintBsl(); return true; }
@@ -3629,7 +3640,7 @@ function applyTableGrid(){
 }
 tgrid.addEventListener('mousemove',function(e){ var cell=e.target.closest('.tg-cell'); if(cell){ tgridState.r=+cell.dataset.r; tgridState.c=+cell.dataset.c; paintTableGrid(); } });
 tgrid.addEventListener('mousedown',function(e){ e.preventDefault(); var cell=e.target.closest('.tg-cell'); if(cell){ tgridState.r=+cell.dataset.r; tgridState.c=+cell.dataset.c; applyTableGrid(); } });
-tgrid.addEventListener('touchend',function(e){ var cell=e.target.closest('.tg-cell'); if(cell){ e.preventDefault(); tgridState.r=+cell.dataset.r; tgridState.c=+cell.dataset.c; applyTableGrid(); } },{passive:false});
+onTap(tgrid,'.tg-cell',function(cell){ tgridState.r=+cell.dataset.r; tgridState.c=+cell.dataset.c; applyTableGrid(); });
 function tgridKey(e){
   if(!tgridState.open) return false;
   if(e.key==='ArrowDown'){ e.preventDefault(); tgridState.r=Math.min(8,tgridState.r+1); paintTableGrid(); return true; }
@@ -3700,10 +3711,20 @@ function blockHTML(b,num){
     s+='<figure class="fig"><div class="imgwrap'+(drawOn[b.id]?' drawing':'')+'"><img src="'+esc(b.src||'')+'" alt="'+esc(b.text||'')+'" draggable="false"><canvas class="draw" tabindex="0" aria-label="Drawing over the image"></canvas>'+drawToolsHTML(true,!drawOn[b.id])+'</div><div class="caption" contenteditable="true" spellcheck="true" data-ph="Add a caption">'+esc(b.text||'')+'</div></figure>';
   } else if(b.type==='embed'){
     s+=embedHTML(b);
+  } else if(b.type==='divider'){
+    s+='<div class="rule" tabindex="0" role="separator"><hr></div>';
+  } else if(b.type==='code'){
+    s+='<textarea class="code" spellcheck="false" placeholder="Code" rows="1">'+esc(b.text)+'</textarea>';
+  } else if(b.type==='table'){
+    s+=tableHTML(b);
+  } else if(b.type==='calc'){
+    s+=calcHTML(b);
+  } else if(b.type==='math'){
+    s+=mathHTML(b);
   } else if(b.type==='draw'){
     s+='<div class="drawblk" style="height:'+(b.h||260)+'px"><canvas class="draw" tabindex="0" aria-label="Drawing"></canvas>'+drawToolsHTML(false,false)+'<div class="draw-resize" title="Drag to change height"></div></div>';
   } else if(b.type==='graph'){
-    s+='<div class="graphblk" style="height:'+(b.h||320)+'px"><canvas class="graph" aria-label="Graph"></canvas><div class="draw-tools etools"><span class="ekind">Graph</span><button type="button" data-gact="edit">'+(graphEdit[b.id]?'Done':'Edit settings')+'</button><button type="button" data-gact="copy">Copy PNG</button><button type="button" data-gact="save">Save PNG</button><span class="dsep"></span><button type="button" data-dact="delete" class="tdel" aria-label="Delete this graph">Delete</button></div><div class="draw-resize" title="Drag to change height"></div></div>'+(graphEdit[b.id]?graphEditorHTML(b):'');
+    s+='<div class="graphblk" style="height:'+(b.h||320)+'px"><canvas class="graph" aria-label="Graph"></canvas><div class="draw-tools etools"><span class="ekind">Graph</span><button type="button" data-gact="edit">'+(graphEdit[b.id]?'Hide settings':'Edit settings')+'</button><button type="button" data-gact="copy">Copy PNG</button><button type="button" data-gact="save">Save PNG</button><span class="dsep"></span><button type="button" data-dact="delete" class="tdel" aria-label="Delete this graph">Delete</button></div><div class="draw-resize" title="Drag to change height"></div></div>'+(graphEdit[b.id]?graphEditorHTML(b):'');
   } else {
     s+='<div class="content" contenteditable="true" spellcheck="true" data-ph="'+esc(PLACEHOLDER[b.type]||'')+'">'+contentHTML(b)+'</div>';
   }
@@ -3737,7 +3758,7 @@ function graphEditorHTML(b){
     '<div class="grow">'+rich('xlabel','x axis title','x')+rich('ylabel','y axis title','y')+rich('title','Graph title','')+'</div>'+
     '<div class="ghint">Titles: ^2^ for superscript, ~n~ for subscript, ‘ or ` for inline maths.</div>'+
     '<div class="grow2"><label>Angle for trig<div class="seg full" data-gseg="angle"><button type="button" data-val="rad" class="'+(b.angle==='deg'?'':'on')+'">Radians</button><button type="button" data-val="deg" class="'+(b.angle==='deg'?'on':'')+'">Degrees</button></div></label>'+
-    '<label class="gchk"><input type="checkbox" data-g="grid"'+(b.grid!==false?' checked':'')+'> Show gridlines</label></div>'+
+    '<div class="gchks"><label class="gchk"><input type="checkbox" data-g="grid"'+(b.grid!==false?' checked':'')+'> Show gridlines</label><label class="gchk"><input type="checkbox" data-g="arrows"'+(b.arrows!==false?' checked':'')+'> Axis arrows</label></div></div>'+
     '</div>';
 }
 function render(){
@@ -3979,7 +4000,7 @@ function convertTo(b,type){
 }
 function applySlash(type){ var b=getBlock(slashState.blockId); closeSlash(); if(!b) return; b.text=''; var el=blockEl(b.id); var c=el&&el.querySelector('.content'); if(c&&c.dataset.mode==='raw') c.textContent=''; convertTo(b,type); }
 slash.addEventListener('mousedown',function(e){ e.preventDefault(); var it=e.target.closest('.item'); if(it) applySlash(it.dataset.type); });
-slash.addEventListener('touchend',function(e){ var it=e.target.closest('.item'); if(it){ e.preventDefault(); applySlash(it.dataset.type); } },{passive:false});
+onTap(slash,'.item',function(it){ applySlash(it.dataset.type); });
 
 /* ---------- images ---------- */
 function fileToDataURL(file){ return new Promise(function(res,rej){ var fr=new FileReader(); fr.onload=function(){ res(fr.result); }; fr.onerror=function(){ rej(fr.error); }; fr.readAsDataURL(file); }); }
@@ -4845,6 +4866,7 @@ function graphPaint(cv,b,o){
   var ax=(ymin<=0&&ymax>=0)?sy(0):(ymin>0?sy(ymin):sy(ymax)); ctx.moveTo(ML,Math.round(ax)+.5); ctx.lineTo(ML+pw,Math.round(ax)+.5);
   var ay=(xmin<=0&&xmax>=0)?sx(0):(xmin>0?sx(xmin):sx(xmax)); ctx.moveTo(Math.round(ay)+.5,MT); ctx.lineTo(Math.round(ay)+.5,MT+ph);
   ctx.stroke();
+  if(b.arrows!==false){ var AH=8, AW=4.5, axr=Math.round(ax)+.5, ayr=Math.round(ay)+.5; ctx.fillStyle=C.ink; ctx.beginPath(); ctx.moveTo(ML+pw+1,axr); ctx.lineTo(ML+pw+1-AH,axr-AW); ctx.lineTo(ML+pw+1-AH,axr+AW); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(ayr,MT-1); ctx.lineTo(ayr-AW,MT-1+AH); ctx.lineTo(ayr+AW,MT-1+AH); ctx.closePath(); ctx.fill(); }
   ctx.font=tickFont; ctx.fillStyle=C.dim; ctx.textAlign='center'; ctx.textBaseline='top';
   var lastX=-1e9; for(var tx=Math.ceil(xmin/xs)*xs; tx<=xmax+1e-9; tx+=xs){ var t=fmtTick(tx,xs), tw=ctx.measureText(t).width, cx=sx(tx); if(cx-tw/2>lastX+6){ ctx.fillText(t,cx,MT+ph+4); lastX=cx+tw/2; } }
   ctx.textAlign='right'; ctx.textBaseline='middle';
@@ -5180,9 +5202,16 @@ function isDocked(){ return wideQ.matches; }
 function paintDock(){ appEl.classList.toggle('dock-off', !!(state&&state.settings.dockOff)); if(isDocked()) closePanel(); }
 try{ wideQ.addEventListener('change',paintDock); }catch(e){}
 var editingTimer=null;
-function setCalcing(on){ document.body.classList.toggle('calcing',on); if(on && IS_TOUCH){ calcpad.hidden=false; requestAnimationFrame(padFit); } }
-function padFieldFocusOut(){ clearTimeout(editingTimer); editingTimer=setTimeout(function(){ var a=document.activeElement; if(!editor.contains(a) && !imq.contains(a)) setCalcing(false); },150); }
-editor.addEventListener('focusin',function(e){ clearTimeout(editingTimer); setCalcing(!!e.target.closest('.cl-in, .g-in')); });
+var calcOffTimer=null;
+/* Turning the keypad off is deferred a moment so a tap that moved focus out of a maths field lands where the finger went down, before the layout shifts. */
+function setCalcing(on,forGraph){
+  clearTimeout(calcOffTimer); calcOffTimer=null;
+  if(on){ document.body.classList.add('calcing'); calcpad.classList.toggle('for-graph',!!forGraph); if(IS_TOUCH){ calcpad.hidden=false; requestAnimationFrame(padFit); } return; }
+  if(!document.body.classList.contains('calcing')) return;
+  calcOffTimer=setTimeout(function(){ calcOffTimer=null; document.body.classList.remove('calcing'); calcpad.classList.remove('for-graph'); },IS_TOUCH?260:0);
+}
+function padFieldFocusOut(){ setCalcing(false); }   /* deferred inside setCalcing; a maths field taking focus cancels it */
+editor.addEventListener('focusin',function(e){ clearTimeout(editingTimer); setCalcing(!!e.target.closest('.cl-in, .g-in'),!!e.target.closest('.g-in')); });
 editor.addEventListener('focusout',padFieldFocusOut);
 imq.addEventListener('focusin',function(){ clearTimeout(editingTimer); setCalcing(true); });
 imq.addEventListener('focusout',padFieldFocusOut);
@@ -5204,13 +5233,13 @@ var PAD_CALC=[
   {l:'4',t:'write',v:'4'},{l:'5',t:'write',v:'5'},{l:'6',t:'write',v:'6'},{l:'×',t:'cmd',v:'\\times',c:'op'},{l:'x²',t:'sq',v:'',c:'op',katex:'x^{2}'},
   {l:'1',t:'write',v:'1'},{l:'2',t:'write',v:'2'},{l:'3',t:'write',v:'3'},{l:'−',t:'type',v:'-',c:'op'},{l:'π',t:'cmd',v:'\\pi',c:'op',katex:'\\pi'},
   {l:'0',t:'write',v:'0'},{l:'.',t:'write',v:'.'},{l:'=',t:'write',v:'=',c:'op'},{l:'+',t:'type',v:'+',c:'op'},{l:'ans',t:'write',v:'ans',c:'act'},
-  {l:'\\',t:'act',v:'symbol',c:'act'},{l:'x',t:'var',v:'x',c:'varkey',letter:true},{l:'x□',t:'subscript',v:'',c:'op',katex:'x_{n}'},{l:'@',t:'act',v:'formula',c:'act'},{l:',',t:'write',v:',',c:'op'}
+  {l:'?',t:'act',v:'symbol',c:'act',label:'Search functions and symbols'},{l:'x',t:'var',v:'x',c:'varkey',letter:true},{l:'x□',t:'subscript',v:'',c:'op',katex:'x_{n}'},{l:'@',t:'act',v:'formula',c:'act pk-at',label:'Formula sheet'},{l:'y',t:'var',v:'y',c:'varkey pk-y',letter:true},{l:',',t:'write',v:',',c:'op'}
 ];
 var PAD_VARS='abcdefghijklmnopqrstuvwxyz'.split('').map(latinKey).concat([
   {l:'x□',t:'subscript',v:'',c:'op lyr-latin',katex:'x_{n}'},{l:',',t:'write',v:',',c:'op lyr-latin'}
 ],GREEK_ORDER.map(greekKey),[
   {l:'x□',t:'subscript',v:'',c:'op lyr-greek',katex:'x_{n}'},{l:',',t:'write',v:',',c:'op lyr-greek'},
-  {l:'⇧',t:'caps',v:'',c:'act'},{l:'αβγ',t:'layer',v:'',c:'act layerkey'},{l:'Δ',t:'greek',v:'\\Delta',c:'varkey',nolp:true},{l:'\\',t:'act',v:'symbol',c:'act'},
+  {l:'⇧',t:'caps',v:'',c:'act'},{l:'αβγ',t:'layer',v:'',c:'act layerkey'},{l:'Δ',t:'greek',v:'\\Delta',c:'varkey',nolp:true},{l:'?',t:'act',v:'symbol',c:'act',label:'Search functions and symbols'},
   {l:'(',t:'type',v:'('},{l:')',t:'type',v:')'},{l:'=',t:'write',v:'=',c:'op'}
 ]);
 var PAD_FNS=[
@@ -5241,7 +5270,7 @@ function padKey(k){
   if(k.letter) letterButtons.push({btn:b,lo:k.v,up:k.v.toUpperCase()});
   if(k.t==='greek' && k.capL) letterButtons.push({btn:b,lo:k.l,up:k.capL});
   if(k.t==='caps') b.classList.add('capskey');
-  b.setAttribute('aria-label',k.l);
+  b.setAttribute('aria-label',k.label||k.l);
   if(k.t==='cmd' && k.v==='\\times'){ padLongPress(b,function(){ var f=activePadField(); if(!f) return; f.mq.focus(); insertSciExp(f.mq); if(f.kind!=='imq') pfxCheck(f.el); }); }
   else if(((k.t==='var'&&k.letter)||k.t==='greek') && !k.nolp){ padLongPress(b,function(){ var f=activePadField(); if(!f) return; f.mq.focus(); padInsertLetter(f.mq,k); f.mq.cmd('_'); }); }
   return b;
