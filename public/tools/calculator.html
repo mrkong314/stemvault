@@ -6981,7 +6981,7 @@ const GRAPH_MQ_OPTS = {
 function graphDefaults() {
   return { xmin: -10, xmax: 10, xstep: 1, ymin: -10, ymax: 10, ystep: 1, autoX: true, autoY: true, rangeTex: {},
            xlabel: '`x`', ylabel: '`y`', title: '', quads: { q1: true, q2: true, q3: true, q4: true },
-           angle: 'auto', grid: true, arrows: true, legend: false, h: 300, eqStyles: [], points: [] };
+           angle: 'rad', grid: true, arrows: true, legend: false, h: 300, eqStyles: [], points: [] };
 }
 /* the angle mode this graph actually uses: its own, or the calculator's */
 function graphAngleEff(g) { return (g && (g.angle === 'deg' || g.angle === 'rad')) ? g.angle : angleMode; }
@@ -7553,7 +7553,7 @@ function buildGraphSettings(lineObj) {
   hint.textContent = 'Titles: ^2^ for superscript, ~n~ for subscript, `LaTeX` for maths. Auto fits an axis to the curves and points; typing a value makes that axis manual. Range boxes take maths such as pi/6 or 2a.';
   panel.appendChild(hint);
   panel.appendChild(row('', field('Quadrants shown (click to show or hide)', quad, 'gs-quad'),
-                        seg('angle', 'Angle for trig', [['auto', 'Calculator'], ['rad', 'Radians'], ['deg', 'Degrees']], true),
+                        seg('angle', 'Angle for trig', [['rad', 'Radians'], ['deg', 'Degrees'], ['auto', 'Calculator']], true),
                         chk('legend', 'Equation labels'), chk('grid', 'Gridlines'), chk('arrows', 'Axis arrows')));
   return panel;
 }
