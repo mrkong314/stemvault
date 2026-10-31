@@ -4,3 +4,6 @@
 /tools/scratchpad-icon-180.png /tools/notepad-icon-180.png 301
 /tools/scratchpad-icon-192.png /tools/notepad-icon-192.png 301
 /tools/scratchpad-icon-512.png /tools/notepad-icon-512.png 301
+
+# Short link to the Calculator app.
+/c /tools/calculator.html 301
