@@ -676,7 +676,13 @@ textarea.code:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent
 .content a:hover,.cell a:hover{text-decoration:underline}
 .content s{color:var(--ink-dim)}
 .content .imath .katex{font-size:1.05em}
-.content .imath{padding:0 1px}
+.content .imath{padding:0 1px;border-radius:4px}
+.content .imath:hover{background:var(--accent-tint)}
+#imq{position:fixed;z-index:60;display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:12px;background:var(--panel);border:1px solid var(--glass-border);box-shadow:0 12px 34px rgba(0,0,0,.22),inset 0 1px 0 var(--glass-edge)}
+#imq .imq-field{min-width:6ch;font-size:1.15rem;color:var(--ink)}
+#imq .imq-field.mq-editable-field{border:0!important;box-shadow:none!important;background:transparent;padding:2px 4px}
+#imq .imq-field .mq-cursor{border-left-color:currentColor!important}
+#imq .imq-hint{font-size:.72rem;color:var(--ink-dim);white-space:nowrap}
 
 /* tables */
 .tbl-wrap{margin:6px 0;min-width:0}
@@ -956,6 +962,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
     <div id="tgrid" hidden></div>
     <div id="pfx" role="listbox" hidden></div>
     <div id="marquee" hidden></div>
+    <div id="imq" hidden><span class="imq-field"></span><span class="imq-hint">$ or Esc to finish</span></div>
     <div class="help glass" id="help" hidden>
       <h3>About</h3>
       <p style="margin-top:0;color:var(--fg)">Notes for quick ideas. Open the menu at the top left to switch notes, make new ones, and file them into groups. Click the note and start typing. Type <code>/</code> at the start of a line for the block menu. A line shows its Markdown while you edit it and renders when you click away. Everything is saved as you type, only in this browser on this device, and nothing is sent anywhere.</p>
@@ -1021,7 +1028,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
         <tr><td>`code`</td><td>Inline code (Ctrl/Cmd+E)</td></tr>
         <tr><td>~~struck~~</td><td>Strikethrough (Ctrl/Cmd+Shift+X)</td></tr>
         <tr><td>==text==</td><td>Highlight</td></tr>
-        <tr><td>$2*10^3$</td><td>Inline maths inside a text line, typeset when you click away: calculator syntax ($sqrt(2)/2$, $pi/4$, $E=mc^2$) or LaTeX ($\frac{1}{2}$). No space just inside the dollars.</td></tr>
+        <tr><td>$</td><td>Inline maths in a text line: press $ to open a live maths field at the cursor, type as in a calculator line, then $ or Esc to finish and keep typing text. Click a typeset formula to edit it. Press $ twice for a plain dollar sign.</td></tr>
         <tr><td>[text](url)</td><td>Link. Bare https links also become clickable.</td></tr>
       </table>
       <h3>Keys</h3>
@@ -3271,6 +3278,60 @@ function leaveRawCalc(cl){
   cl.innerHTML=calcInHTML(b.lines[i]||'');
 }
 
+/* ---------- inline maths in text lines: $ opens a live field at the caret, $ or Esc closes it ---------- */
+var imq=document.getElementById('imq'), imqField=imq.querySelector('.imq-field'), imqState={open:false,el:null,b:null,start:0,end:0,mq:null};
+function imqMq(){
+  if(imqState.mq) return imqState.mq;
+  imqState.mq=MQ.MathField(imqField,{spaceBehavesLikeTab:false,typingSlashWritesDivisionSymbol:false,charsThatBreakOutOfSupSub:'+-*/=',autoCommands:'pi sqrt sum nthroot int '+GREEK_AUTOCOMMANDS,autoOperatorNames:MQ_OPERATORS,
+    handlers:{edit:imqEdit,enter:function(){ closeInlineMath(true); },moveOutOf:function(dir){ closeInlineMath(dir===MQ.R); },deleteOutOf:function(dir){ if(dir===MQ.L && !(imqState.mq.latex()||'').trim()) closeInlineMath(false); }}});
+  return imqState.mq;
+}
+function textNodeAt(el,off){ var walk=document.createTreeWalker(el,NodeFilter.SHOW_TEXT,null), n, count=0; while((n=walk.nextNode())){ var len=n.nodeValue.length; if(count+len>off) return {node:n,off:off-count}; count+=len; } return null; }
+function placeImq(){
+  var st=imqState; if(!st.el) return; var pos=textNodeAt(st.el,st.start); var r=null;
+  if(pos){ var range=document.createRange(); range.setStart(pos.node,pos.off); range.setEnd(pos.node,Math.min(pos.node.nodeValue.length,pos.off+1)); r=range.getBoundingClientRect(); }
+  if(!r||!r.height) r=st.el.getBoundingClientRect();
+  var left=Math.max(8,Math.min(r.left,window.innerWidth-imq.offsetWidth-8)); var top=r.bottom+6; if(top+imq.offsetHeight>window.innerHeight-8) top=r.top-imq.offsetHeight-6;
+  imq.style.left=left+'px'; imq.style.top=top+'px';
+}
+function openInlineMath(el,b,start,end,latex){
+  if(!MQ) return; var mq=imqMq(); imqState.open=true; imqState.el=el; imqState.b=b; imqState.start=start; imqState.end=end;
+  imqField._quiet=true; try{ mq.latex(latex||''); }catch(e){} imqField._quiet=false;
+  imq.hidden=false; placeImq(); mq.focus(); mq.moveToRightEnd();
+}
+function imqEdit(){ if(imqField._quiet||!imqState.open) return; var st=imqState, lat=st.mq.latex(); var t=st.el.textContent; var nt=t.slice(0,st.start)+'$'+lat+'$'+t.slice(st.end); st.end=st.start+lat.length+2; st.el.textContent=nt; st.b.text=nt; save(); placeImq(); }
+function closeInlineMath(after,literal){
+  var st=imqState; if(!st.open) return; st.open=false; imq.hidden=true;
+  var lat=(st.mq.latex()||'').trim(); var t=st.el.textContent, caret;
+  if(!lat){ t=t.slice(0,st.start)+(literal?'$':'')+t.slice(st.end); caret=st.start+(literal?1:0); st.el.textContent=t; st.b.text=t; save(); }
+  else caret=after?st.end:st.start;
+  if(st.el.isConnected){ st.el.focus(); setCaret(st.el,caret); }
+}
+/* the $...$ pair around a caret offset in raw text, or null */
+function inlineSpanAt(text,off){
+  var i=-1, s=-1; while((i=text.indexOf('$',i+1))>=0){ var j=text.indexOf('$',i+1); if(j<0) break; if(j>i+1 && !/\s/.test(text[i+1]) && !/\s/.test(text[j-1])){ if(off>=i && off<=j+1) return {start:i,end:j+1,latex:text.slice(i+1,j)}; i=j; } }
+  return null;
+}
+function startInlineMath(c,b){
+  var off=caretOffset(c), t=c.textContent, sp=inlineSpanAt(t,off);
+  if(sp){ var lat=sp.latex.indexOf('\\')>=0?sp.latex:textToLatex(sp.latex); openInlineMath(c,b,sp.start,sp.end,lat); return; }
+  var nt=t.slice(0,off)+'$$'+t.slice(off); c.textContent=nt; b.text=nt; save(); openInlineMath(c,b,off,off+2,'');
+}
+imq.addEventListener('keydown',function(e){
+  if(e.key==='$'){ e.preventDefault(); e.stopPropagation(); var empty=!(imqState.mq.latex()||'').trim(); closeInlineMath(true,empty); return; }
+  if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); closeInlineMath(true); return; }
+  if(e.key==='*' && !e.ctrlKey && !e.metaKey && !e.altKey){ e.preventDefault(); e.stopPropagation(); imqState.mq.cmd('\\times'); return; }
+  if(e.key==='Tab'){ e.preventDefault(); e.stopPropagation(); closeInlineMath(!e.shiftKey); return; }
+},true);
+imq.addEventListener('mousedown',function(e){ if(!e.target.closest('.imq-field')) e.preventDefault(); });
+window.addEventListener('scroll',function(){ if(imqState.open) placeImq(); },true);
+document.addEventListener('mousedown',function(e){ if(imqState.open && !imq.contains(e.target)) closeInlineMath(true); },true);
+editor.addEventListener('keydown',function(e){
+  var c=e.target.closest?e.target.closest('.content'):null; if(!c) return;
+  var blk=c.closest('.block'); var b=blk?getBlock(blk.dataset.id):null; if(!b) return;
+  if((e.key==='$' && !e.ctrlKey && !e.metaKey && !e.altKey) || ((e.ctrlKey||e.metaKey) && !e.shiftKey && (e.key==='m'||e.key==='M'))){ e.preventDefault(); e.stopPropagation(); startInlineMath(c,b); }
+},true);
+
 /* ---------- backslash picker: functions, constants and symbols ---------- */
 var FN_DOCS={sin:'sine',cos:'cosine',tan:'tangent',sec:'secant',csc:'cosecant',cot:'cotangent',sinh:'hyperbolic sine',cosh:'hyperbolic cosine',tanh:'hyperbolic tangent',arcsin:'inverse sine',arccos:'inverse cosine',arctan:'inverse tangent',asin:'inverse sine',acos:'inverse cosine',atan:'inverse tangent',ln:'natural log',log:'natural log, or log(x, base)',exp:'e to the power',sqrt:'square root',nthRoot:'nthRoot(x, n)',abs:'absolute value',floor:'round down',ceil:'round up',round:'round(x, dp)',sign:'sign of x',mod:'mod(a, b)',min:'smallest of a list',max:'largest of a list',gcd:'greatest common divisor',lcm:'lowest common multiple',factorial:'n!',nCr:'combinations',nPr:'permutations',normCDF:'normCDF(mean, std, lower, upper)',invNorm:'invNorm(area, mean, std)',binomPDF:'binomPDF(n, p, k)',binomCDF:'binomCDF(n, p, lower, upper)',sumlist:'add up a list',add:'add up a list',zscore:'zscore(x, mean, std)',stdev:'sample standard deviation',mean:'mean of a list',median:'median of a list',solve:'solve(equation, variable)',cSolve:'all complex roots',integrate:'integrate(f, x, a, b)',summation:'summation(body, n, lo, hi)',Re:'real part',Im:'imaginary part',Arg:'argument of z',conj:'conjugate',polar:'polar(z) gives [r, θ]',rect:'rect(r, θ)',deg:'degrees marker',ans:'previous answer'};
 var MATH_SYMBOLS=[['pi','π'],['infinity','∞'],['Delta','Δ'],['degree','°'],['times','×'],['divide','÷'],['plus minus','±'],['less or equal','≤'],['greater or equal','≥'],['not equal','≠'],['approx','≈'],['arrow','→'],['implies','⇒'],['sqrt','√'],['squared','²'],['cubed','³'],['therefore','∴'],['sum','Σ'],['integral','∫'],['dot','·'],['bullet','•'],['em dash','—'],['check','✓'],['cross','✗']];
@@ -4284,7 +4345,9 @@ editor.addEventListener('mousedown',function(e){
     if(document.caretPositionFromPoint){ var p=document.caretPositionFromPoint(e.clientX,e.clientY); if(p) pos={node:p.offsetNode,off:p.offset}; }
     else if(document.caretRangeFromPoint){ var r=document.caretRangeFromPoint(e.clientX,e.clientY); if(r) pos={node:r.startContainer,off:r.startOffset}; }
     if(pos && c.contains(pos.node)){ var ro=renderedOffset(c,pos.node,pos.off); var map=parseInline(rawText).map; raw=ro<map.length?map[ro]:rawText.length; }
+    var onMath=!!e.target.closest('.imath');
     e.preventDefault(); select(null); c._pendingCaret=raw; c.focus(); if(isCell){ if(c.dataset.mode!=='raw') enterRawCell(c); } else if(c.dataset.mode!=='raw') enterRaw(c);
+    if(onMath && !isCell){ setCaret(c,raw+1); startInlineMath(c,b); }
     return;
   }
   if(e.target.closest('a') && !e.target.closest('.content')) return;
@@ -4312,7 +4375,7 @@ editor.addEventListener('focusin',function(e){
   if(e.target.closest('.caption')||e.target.tagName==='TEXTAREA'){ if(selectedId) select(null); }
 });
 editor.addEventListener('focusout',function(e){
-  var c=e.target.closest('.content'); if(c){ leaveRaw(c); if(slashState.open||bslState.open) setTimeout(function(){ if(!editor.contains(document.activeElement)){ closeSlash(); closeBsl(); } },0); return; }
+  var c=e.target.closest('.content'); if(c){ if(imqState.open || (e.relatedTarget && imq.contains(e.relatedTarget))) return; leaveRaw(c); if(slashState.open||bslState.open) setTimeout(function(){ if(!editor.contains(document.activeElement)){ closeSlash(); closeBsl(); } },0); return; }
   var cl=e.target.closest('.cl-in'); if(cl){ setTimeout(function(){ if(!editor.contains(document.activeElement)){ closeBsl(); closePfx(); } else pfxCheck(cl); },0); }
   var cell=e.target.closest('.cell'); if(cell) leaveRawCell(cell);
 });
