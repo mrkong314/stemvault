@@ -1087,7 +1087,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
         <tr><td>^2^ and ~2~</td><td>Superscript and subscript. Ctrl/Cmd+Shift+= and Ctrl/Cmd+Shift+− wrap the selection, as in Word; in a maths field they type a power or subscript. Enter or Esc inside a ^…^ or ~…~ span steps out past its end.</td></tr>
         <tr><td>~~struck~~</td><td>Strikethrough (Ctrl/Cmd+Shift+X)</td></tr>
         <tr><td>==text==</td><td>Highlight</td></tr>
-        <tr><td>`</td><td>Inline maths in a text line: press ` to open a live maths field at the cursor, type as in a calculator line, then ` or Esc to finish. The formula is typeset in the line straight away and you keep typing after it. Click a formula to edit it; press ` twice for a plain backtick.</td></tr>
+        <tr><td>` or ‘</td><td>Inline maths in a text line: press ` (or an opening ‘ on a phone keyboard) to open a live maths field at the cursor, type as in a calculator line, then ` or Esc to finish. The formula is typeset in the line straight away and you keep typing after it. Click a formula to edit it; press ` twice for a plain backtick.</td></tr>
         <tr><td>[text](url)</td><td>Link. Bare https links also become clickable.</td></tr>
       </table>
       <h3>Keys</h3>
@@ -3453,7 +3453,7 @@ function startInlineMath(c,b){
   var nt=t.slice(0,off)+'``'+t.slice(off); setRawHTML(c,nt); b.text=nt; save(); openInlineMath(c,b,off,off+2,'');
 }
 imq.addEventListener('keydown',function(e){
-  if(e.key==='`'){ e.preventDefault(); e.stopPropagation(); var empty=!(imqState.mq.latex()||'').trim(); closeInlineMath(true,empty); return; }
+  if(e.key==='`'||e.key==='\u2018'||e.key==='\u2019'){ e.preventDefault(); e.stopPropagation(); var empty=!(imqState.mq.latex()||'').trim(); closeInlineMath(true,empty); return; }
   if((e.metaKey||e.ctrlKey) && e.shiftKey && (e.key==='+'||e.key==='='||e.code==='Equal')){ e.preventDefault(); e.stopPropagation(); imqState.mq.typedText('^'); return; }
   if((e.metaKey||e.ctrlKey) && e.shiftKey && (e.key==='_'||e.key==='-'||e.code==='Minus')){ e.preventDefault(); e.stopPropagation(); imqState.mq.typedText('_'); return; }
   if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); closeInlineMath(true); return; }
@@ -3466,7 +3466,14 @@ document.addEventListener('mousedown',function(e){ if(imqState.open && !imq.cont
 editor.addEventListener('keydown',function(e){
   var c=e.target.closest?e.target.closest('.content'):null; if(!c) return;
   var blk=c.closest('.block'); var b=blk?getBlock(blk.dataset.id):null; if(!b) return;
-  if((e.key==='`' && !e.ctrlKey && !e.metaKey && !e.altKey) || ((e.ctrlKey||e.metaKey) && !e.shiftKey && (e.key==='m'||e.key==='M'))){ e.preventDefault(); e.stopPropagation(); startInlineMath(c,b); }
+  if(((e.key==='`'||e.key==='\u2018') && !e.ctrlKey && !e.metaKey && !e.altKey) || ((e.ctrlKey||e.metaKey) && !e.shiftKey && (e.key==='m'||e.key==='M'))){ e.preventDefault(); e.stopPropagation(); startInlineMath(c,b); }
+},true);
+/* Phone keyboards turn a quote into a smart one at insert time (keydown never sees it): an opening ‘ in text opens inline maths too. */
+editor.addEventListener('beforeinput',function(e){
+  if(e.inputType!=='insertText' || e.data!=='\u2018') return;
+  var c=e.target.closest?e.target.closest('.content'):null; if(!c||imqState.open) return;
+  var blk=c.closest('.block'); var b=blk?getBlock(blk.dataset.id):null; if(!b) return;
+  e.preventDefault(); e.stopPropagation(); startInlineMath(c,b);
 },true);
 
 /* ---------- backslash picker: functions, constants and symbols ---------- */
