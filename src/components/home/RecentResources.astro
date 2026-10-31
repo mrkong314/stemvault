@@ -3,11 +3,7 @@ import TypeBadge from '~/components/resources/TypeBadge.astro';
 import { getRecentResources, resourceHref, isExternalHref } from '~/lib/collections';
 const recent = await getRecentResources(5);
 ---
-<aside class="recent card">
-  <div class="recent-head">
-    <span class="label-mono">Recently added</span>
-    <a href="/resources" class="recent-all">All resources →</a>
-  </div>
+<div class="recent card">
   <ul role="list" class="recent-list">
     {recent.map(r => {
       const href = resourceHref(r);
@@ -30,12 +26,10 @@ const recent = await getRecentResources(5);
       );
     })}
   </ul>
-</aside>
+</div>
 
 <style>
-  .recent { padding: 1rem 1.1rem 0.5rem; border-radius: 18px; }
-  .recent-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-bottom: 0.3rem; }
-  .recent-all { font-size: 0.8rem; font-weight: 600; }
+  .recent { padding: 0.35rem 1.1rem; border-radius: 18px; }
   .recent-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0; border-top: 1px solid var(--rule); color: var(--ink); }
   .recent-list li:first-child .recent-item { border-top: 0; }
   .recent-item:hover .recent-title { color: var(--accent); }
