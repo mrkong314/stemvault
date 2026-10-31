@@ -875,13 +875,17 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
 @media (max-width:520px){ .tmenu-submenu{position:static;display:none;margin-top:4px;box-shadow:none} }
 
 /* settings popover */
-#settingsPopover{gap:.6rem}
+#settingsPopover{gap:.6rem;max-height:calc(100vh - 110px);max-height:calc(100dvh - 110px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#settingsPopover .settings-act{flex:0 0 auto}
 .settings-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.88rem}
 .settings-label{font-size:.72rem;font-weight:600;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.04em}
 .settings-sep{height:1px;background:var(--rule);margin:2px 0}
 .settings-act{display:flex;align-items:center;width:100%;text-align:left;font:inherit;font-size:.9rem;font-weight:600;min-height:40px;padding:0 12px;border:1px solid var(--glass-border);background:var(--glass-key);color:var(--accent);border-radius:11px;cursor:pointer;box-shadow:inset 0 1px 0 var(--glass-edge)}
 .settings-act:active{transform:translateY(1px)}
 .settings-act[data-act="clear"]{color:var(--danger)}
+.storage-row{display:flex;flex-direction:column;gap:6px}
+.storage-info{font-size:.8rem;color:var(--ink-dim);line-height:1.35}
+.storage-info.warn{color:var(--warn)}
 
 /* calculator keypad (touch): the Calculator tool's paged pad, docked at the bottom */
 #calcpad{display:none}
@@ -981,8 +985,14 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
           <button type="button" class="settings-act" data-act="copy">Copy note as Markdown</button>
           <button type="button" class="settings-act" data-act="guide">Guide</button>
           <div class="settings-sep"></div>
+          <button type="button" class="settings-act" data-act="export">Export this note (file)</button>
+          <button type="button" class="settings-act" data-act="exportmd">Export this note as Markdown</button>
+          <button type="button" class="settings-act" data-act="link">Copy link to share this note</button>
+          <button type="button" class="settings-act" data-act="share" hidden>Share this note…</button>
+          <div class="settings-sep"></div>
           <button type="button" class="settings-act" data-act="backup">Back up all notes</button>
           <button type="button" class="settings-act" data-act="restore">Restore from a backup file</button>
+          <div class="storage-row"><span class="settings-label">Storage</span><div id="storageInfo" class="storage-info">Saved on this device</div><button type="button" class="settings-act" data-act="persist" id="persistBtn" hidden>Keep notes on this device</button></div>
           <div class="settings-sep"></div>
           <button type="button" class="settings-act" data-act="clear">Clear this note</button>
         </div>
@@ -1005,6 +1015,12 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
     <div class="help glass" id="help" hidden>
       <h3>About</h3>
       <p style="margin-top:0;color:var(--fg)">Notes for quick ideas. Open the menu at the top left to switch notes, make new ones, and file them into groups. Click the note and start typing. Type <code>/</code> at the start of a line for the block menu. A line shows its Markdown while you edit it and renders when you click away. Everything is saved as you type, only in this browser on this device, and nothing is sent anywhere.</p>
+      <h3>Sharing, export and backups</h3>
+      <table>
+        <tr><td>Copy link</td><td>Settings or a note’s menu copies a link that carries the whole note inside it (compressed). Anyone who opens the link gets a copy of the note added to their own Notepad; nothing is uploaded anywhere. Big images make links very long, so you are offered a copy without them.</td></tr>
+        <tr><td>Export</td><td>Export this note saves a single-note file that Restore reads back; Export as Markdown saves plain text for other apps. Back up all notes saves every note, group and setting in one file.</td></tr>
+        <tr><td>Storage</td><td>Notes live only in this browser. Settings shows whether the browser has promised to keep them. On iPhone, Safari can clear a site’s storage after 7 days without a visit unless the page is added to the Home Screen, so back up regularly or install it.</td></tr>
+      </table>
       <h3>Notes and groups</h3>
       <table>
         <tr><td>+ New note</td><td>Starts a blank note. The list shows each note's title, or its first line.</td></tr>
@@ -1177,6 +1193,35 @@ var GROUP_COLORS=['#5b7fa6','#5f9e7a','#b98a4a','#b4635f','#8a6fb0','#5a9aa8','#
 
 var state=null, doc=null, saveTimer=null, selectedId=null, storage='idb', pendingImageTarget=null;
 var drawOn={}, embedEdit={};
+/* ---------- bytes <-> base64url, deflate when the browser has CompressionStream ---------- */
+function bytesToB64u(bytes){ var s=''; for(var i=0;i<bytes.length;i+=0x8000) s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000)); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function b64uToBytes(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; var bin=atob(s); var out=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
+function pipeBytes(bytes,stream){ return new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer().then(function(ab){ return new Uint8Array(ab); }); }
+function encodeNoteLink(obj){
+  var bytes=new TextEncoder().encode(JSON.stringify(obj));
+  if(typeof CompressionStream==='function'){ return pipeBytes(bytes,new CompressionStream('deflate-raw')).then(function(z){ return 'd.'+bytesToB64u(z); }).catch(function(){ return 'j.'+bytesToB64u(bytes); }); }
+  return Promise.resolve('j.'+bytesToB64u(bytes));
+}
+function decodeNoteLink(s){
+  var m=/^([dj])\.(.+)$/.exec(s||''); if(!m) return Promise.reject(new Error('bad'));
+  var bytes=b64uToBytes(m[2]);
+  var p=(m[1]==='d')?(typeof DecompressionStream==='function'?pipeBytes(bytes,new DecompressionStream('deflate-raw')):Promise.reject(new Error('no inflate'))):Promise.resolve(bytes);
+  return p.then(function(b){ return JSON.parse(new TextDecoder().decode(b)); });
+}
+/* Save text as a file: through the claude.ai host when embedded there, else a download link. */
+function saveTextFile(name,text,mime,label){
+  var hostSave=function(){
+    if(!(window.claude && typeof window.claude.use==='function')) return Promise.resolve(false);
+    return window.claude.use('downloads').then(function(d){ if(!d) return false; return d.save({filename:name,data:text}).then(function(){ toast(label||'Saved'); return true; },function(err){ if(err && err.code==='declined'){ toast('Not saved'); return true; } return false; }); },function(){ return false; });
+  };
+  return hostSave().then(function(done){
+    if(done) return true;
+    try{ var blob=new Blob([text],{type:mime||'text/plain'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },2000); toast(label||'Saved'); return true; }catch(e){ return false; }
+  });
+}
+function safeFileName(s){ return (String(s||'note').replace(/[\\/:*?"<>|\u0000-\u001f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,60)||'note'); }
+/* A note from a file or link: fresh ids and every block filled out with its defaults. */
+function normaliseDoc(d){ var out={title:typeof d.title==='string'?d.title:'',blocks:[]}; (Array.isArray(d.blocks)?d.blocks:[]).forEach(function(b){ if(!b||typeof b!=='object') return; var nb=newBlock(TYPE_INFO[b.type]?b.type:'p',b); nb.id=uid(); if(typeof nb.indent!=='number') nb.indent=0; if(typeof nb.text!=='string') nb.text=''; out.blocks.push(nb); }); if(!out.blocks.length) out.blocks=[newBlock('p')]; return out; }
 var IS_TOUCH=!!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
 /* On touch devices the on-screen keypad does the typing: inputmode=none keeps the OS keyboard
    away from MathQuill's hidden textarea while taps still focus the field and place the caret. */
@@ -4194,6 +4239,11 @@ function openTabMenu(id,x,y){
   menuItem(state.favourites.indexOf(id)>=0?'Remove from favourites':'Add to favourites',function(){ toggleFavourite(id); });
   menuItem('Copy as Markdown',function(){ copyText(toMarkdown(t.doc),'Copied as Markdown'); });
   menuSep();
+  menuItem('Export note (file)',function(){ exportNote(t); });
+  menuItem('Export as Markdown',function(){ exportNoteMarkdown(t); });
+  menuItem('Copy link to share',function(){ shareNoteLink(t,false); });
+  if(navigator.share) menuItem('Share…',function(){ shareNoteLink(t,true); });
+  menuSep();
   if(t.group){ var g=groupById(t.group); menuItem('Rename group'+(g?' ('+g.name+')':''),function(){ renameGroup(t.group); }); menuItem('Remove from group',function(){ ungroupTab(id); }); }
   else menuItem('Group this note',function(){ createGroupFromTab(id); });
   var others=state.groups.filter(function(g){ return g.id!==t.group; });
@@ -4306,6 +4356,11 @@ settingsPop.addEventListener('click',function(e){
   else if(a==='copy'){ copyText(toMarkdown(),'Copied as Markdown'); closeSettings(); }
   else if(a==='guide'){ var h=document.getElementById('help'); h.hidden=!h.hidden; closeSettings(); if(!h.hidden) h.scrollIntoView({behavior:'smooth',block:'start'}); }
   else if(a==='backup'){ closeSettings(); backupNotes(); }
+  else if(a==='export'){ closeSettings(); exportNote(activeTab()); }
+  else if(a==='exportmd'){ closeSettings(); exportNoteMarkdown(activeTab()); }
+  else if(a==='link'){ closeSettings(); shareNoteLink(activeTab(),false); }
+  else if(a==='share'){ closeSettings(); shareNoteLink(activeTab(),true); }
+  else if(a==='persist'){ requestPersistence(true); }
   else if(a==='restore'){ closeSettings(); document.getElementById('restoreFile').click(); }
   else if(a==='clear'){ closeSettings(); confirmIfNotEmpty(docIsEmpty(doc),'Clear everything in this note?','Clear').then(function(ok){ if(!ok) return; doc.title=''; doc.blocks=[newBlock('p')]; selectedId=null; paintTitle(); render(); renderTabList(); save(); focusBlock(doc.blocks[0].id,0); toast('Note cleared'); }); }
 });
@@ -4337,7 +4392,7 @@ barTitle.addEventListener('click',function(){ if(barTitle.getAttribute('contente
 function endBarRename(commit){ if(barTitle.getAttribute('contenteditable')!=='true') return; var v=barTitle.textContent.replace(/\n/g,' ').trim(); barTitle.removeAttribute('contenteditable'); if(commit && v!==(doc.title||'')){ doc.title=v; paintTitle(); save(); } renderTabList(); }
 barTitle.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); barTitle.blur(); } else if(e.key==='Escape'){ e.preventDefault(); endBarRename(false); barTitle.blur(); } });
 barTitle.addEventListener('blur',function(){ endBarRename(true); });
-function openSettings(){ settingsPop.hidden=false; settingsBtn.setAttribute('aria-expanded','true'); paintSettings(); }
+function openSettings(){ settingsPop.hidden=false; settingsBtn.setAttribute('aria-expanded','true'); paintSettings(); paintStorageInfo(); }
 function closeSettings(){ settingsPop.hidden=true; settingsBtn.setAttribute('aria-expanded','false'); }
 settingsBtn.addEventListener('click',function(e){ e.stopPropagation(); settingsPop.hidden?openSettings():closeSettings(); });
 document.addEventListener('mousedown',function(e){ if(!settingsPop.hidden && !settingsPop.contains(e.target) && e.target!==settingsBtn && !settingsBtn.contains(e.target)) closeSettings(); });
@@ -4360,16 +4415,90 @@ function backupNotes(){
     try{ var blob=new Blob([json],{type:'application/json'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },2000); }catch(e){}
     copyText(json,'Backup downloaded and copied to the clipboard');
   });
+  state.lastBackup=new Date().toISOString(); save(); paintStorageInfo();
+}
+/* ---------- export one note, share one note as a link ---------- */
+function exportNote(t){
+  if(!t) return; var payload={format:'pocket-scratchpad-note',version:2,exported:new Date().toISOString(),name:tabName(t),doc:t.doc};
+  saveTextFile('notepad-'+safeFileName(tabName(t))+'.json',JSON.stringify(payload,null,1),'application/json','Note exported');
+}
+function exportNoteMarkdown(t){ if(!t) return; saveTextFile(safeFileName(tabName(t))+'.md',toMarkdown(t.doc),'text/markdown','Markdown exported'); }
+function docWithoutImages(d){ var c=clone(d); c.blocks=c.blocks.map(function(b){ if(b.type==='image'){ return newBlock('p',{text:(b.text?b.text+' ':'')+'[image not included in the shared link]',indent:b.indent}); } return b; }); return c; }
+function noteLinkBase(){ return location.origin+location.pathname; }
+var LINK_SOFT=60000, LINK_HARD=400000;   /* characters: above the soft limit offer to drop images; above the hard limit browsers start refusing the URL */
+function shareNoteLink(t,useShareSheet){
+  if(!t) return; var name=tabName(t);
+  var build=function(d){ return encodeNoteLink({v:2,n:name,d:{title:d.title||'',blocks:d.blocks}}).then(function(code){ return noteLinkBase()+'#n='+code; }); };
+  var hasImages=t.doc.blocks.some(function(b){ return b.type==='image' && b.src; });
+  build(t.doc).then(function(url){
+    if(url.length>LINK_SOFT && hasImages){
+      return confirmDialog('This note’s images make the link very long ('+Math.round(url.length/1024)+' kB). Share a copy without the images?','Share without images').then(function(ok){ return ok?build(docWithoutImages(t.doc)):url; });
+    }
+    return url;
+  }).then(function(url){
+    if(url.length>LINK_HARD){ toast('The link is '+Math.round(url.length/1024)+' kB, which many apps will refuse. Export the note as a file instead.'); return; }
+    var long=url.length>LINK_SOFT?' ('+Math.round(url.length/1024)+' kB)':'';
+    if(useShareSheet && navigator.share){ navigator.share({title:name,url:url}).then(function(){ toast('Shared'); },function(err){ if(!err||err.name!=='AbortError') copyText(url,'Link copied'+long); }); return; }
+    copyText(url,'Link copied'+long+'. Anyone who opens it gets a copy of this note.');
+  }).catch(function(){ toast('Could not build a link for this note'); });
+}
+/* A note arriving in the URL (#n=…) is added as a new tab, once, and the hash is cleared. */
+function importNoteFromHash(){
+  var m=/^#n=(.+)$/.exec(location.hash||''); if(!m) return Promise.resolve(false);
+  var clearHash=function(){ try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; } };
+  return decodeNoteLink(decodeURIComponent(m[1])).then(function(p){
+    clearHash(); var d=p&&p.d; if(!d||!Array.isArray(d.blocks)) throw new Error('bad');
+    var nd=normaliseDoc(d); if(p.n && !nd.title) nd.title=String(p.n).slice(0,120);
+    var key=JSON.stringify(nd.blocks.map(function(b){ var c=clone(b); delete c.id; return c; }));
+    var same=state.tabs.filter(function(t){ return JSON.stringify(t.doc.blocks.map(function(b){ var c=clone(b); delete c.id; return c; }))===key; })[0];
+    if(same){ state.activeTabId=same.id; toast('This note is already here'); return true; }
+    var nt={id:'t'+(++state.tabSeq),doc:nd}; state.tabs.push(nt); state.activeTabId=nt.id; toast('Note added from the link'); return true;
+  }).catch(function(){ clearHash(); toast('That link does not contain a note'); return false; });
+}
+/* ---------- storage persistence: ask the browser to keep the notes, and say when it will not promise to ---------- */
+var persistState={supported:!!(navigator.storage && navigator.storage.persist),granted:null};
+var IS_IOS=/iP(hone|ad|od)/.test(navigator.platform||'') || (navigator.userAgent.indexOf('Mac')>=0 && navigator.maxTouchPoints>1);
+var IS_STANDALONE=!!(window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+function paintStorageInfo(){
+  var el=document.getElementById('storageInfo'), btn=document.getElementById('persistBtn'); if(!el) return;
+  var lines=[]; var warn=false;
+  if(storage==='local') { lines.push('Saved in this browser’s local storage (small notes only).'); warn=true; }
+  if(persistState.granted===true) lines.push('The browser has promised to keep these notes.');
+  else if(persistState.supported && persistState.granted===false){ lines.push('The browser may clear these notes when space is short.'); warn=true; }
+  else if(!persistState.supported) lines.push('Saved only in this browser.');
+  if(IS_IOS && !IS_STANDALONE){ lines.push('Safari can clear a site’s storage after 7 days without a visit. Add this page to the Home Screen or back up regularly.'); warn=true; }
+  var lb=state&&state.lastBackup?new Date(state.lastBackup):null; var days=lb?Math.floor((Date.now()-lb.getTime())/864e5):null;
+  lines.push(lb?('Last backup: '+(days===0?'today':days+' day'+(days===1?'':'s')+' ago')+'.'):'No backup yet.'); if(!lb || days>30) warn=true;
+  el.textContent=lines.join(' '); el.classList.toggle('warn',warn);
+  if(btn) btn.hidden=!(persistState.supported && persistState.granted===false);
+}
+function requestPersistence(fromUser){
+  if(!persistState.supported) return Promise.resolve(false);
+  return navigator.storage.persist().then(function(ok){ persistState.granted=!!ok; paintStorageInfo(); if(fromUser) toast(ok?'The browser will keep these notes':'The browser did not promise to keep the notes. Install the app or back up regularly.'); return ok; },function(){ return false; });
+}
+function checkPersistence(){
+  if(!persistState.supported){ paintStorageInfo(); return; }
+  navigator.storage.persisted().then(function(ok){ persistState.granted=!!ok; paintStorageInfo(); if(!ok && !docIsEmpty(doc)) requestPersistence(false); },function(){ paintStorageInfo(); });
+}
+function storageNudge(){
+  var k='pocket-scratchpad-nudge'; var last=0; try{ last=+localStorage.getItem(k)||0; }catch(e){}
+  if(Date.now()-last<7*864e5) return;
+  var nonEmpty=state.tabs.some(function(t){ return !docIsEmpty(t.doc); }); if(!nonEmpty) return;
+  var lb=state.lastBackup?new Date(state.lastBackup).getTime():0; var stale=!lb || Date.now()-lb>30*864e5;
+  var msg=null;
+  if(IS_IOS && !IS_STANDALONE) msg='Notes live only in this browser. Safari can clear them after 7 days unused: add this page to the Home Screen, or back up from Settings.';
+  else if(stale) msg='Notes live only in this browser. Back up all notes from Settings now and then.';
+  if(msg){ toast(msg); try{ localStorage.setItem(k,String(Date.now())); }catch(e){} }
 }
 document.getElementById('restoreFile').addEventListener('change',function(e){
   var f=e.target.files[0]; e.target.value=''; if(!f) return;
   var fr=new FileReader();
   fr.onload=function(){
     var p; try{ p=JSON.parse(fr.result); }catch(err){ toast('That file is not a notepad backup'); return; }
-    var tabs=p&&p.tabs; if(!Array.isArray(tabs)){ if(p&&p.blocks) tabs=[{doc:p}]; else { toast('That file is not a notepad backup'); return; } }
+    var tabs=p&&p.tabs; if(!Array.isArray(tabs)){ if(p&&p.blocks) tabs=[{doc:p}]; else if(p&&p.doc&&Array.isArray(p.doc.blocks)) tabs=[{doc:p.doc}]; else { toast('That file is not a notepad backup'); return; } }
     var gmap={}; (p.groups||[]).forEach(function(g){ var ng={id:'g'+(++state.groupSeq),name:g.name||'Group',color:g.color||nextColor(),collapsed:!!g.collapsed}; state.groups.push(ng); gmap[g.id]=ng.id; });
     var added=0, firstId=null;
-    tabs.forEach(function(t){ if(!t.doc||!Array.isArray(t.doc.blocks)) return; var d=clone(t.doc); d.blocks.forEach(function(b){ b.id=uid(); }); if(!d.blocks.length) d.blocks=[newBlock('p')]; var nt={id:'t'+(++state.tabSeq),doc:d}; if(t.group&&gmap[t.group]) nt.group=gmap[t.group]; state.tabs.push(nt); added++; if(!firstId) firstId=nt.id; });
+    tabs.forEach(function(t){ if(!t.doc||!Array.isArray(t.doc.blocks)) return; var d=normaliseDoc(t.doc); var nt={id:'t'+(++state.tabSeq),doc:d}; if(t.group&&gmap[t.group]) nt.group=gmap[t.group]; state.tabs.push(nt); added++; if(!firstId) firstId=nt.id; });
     normalizeTabOrder();
     if(!added){ toast('No notes found in that file'); return; }
     renderTabList(); save(); toast(added+(added===1?' note restored':' notes restored')); if(firstId) switchTab(firstId,true);
@@ -5005,8 +5134,13 @@ function boot(){
     if(!state.groups) state.groups=[]; if(!state.favourites) state.favourites=[]; if(!state.tabSeq) state.tabSeq=state.tabs.length; if(!state.groupSeq) state.groupSeq=state.groups.length;
     state.tabs.forEach(function(t){ if(!t.doc) t.doc=blankDoc(); if(!t.doc.blocks||!t.doc.blocks.length) t.doc.blocks=[newBlock('p')]; t.doc.blocks.forEach(function(b){ if(!b.id) b.id=uid(); if(typeof b.indent!=='number') b.indent=0; if(typeof b.text!=='string') b.text=''; if(b.type==='table'&&!b.rows) b.rows=[['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.type==='calc') migrateCalc(b); } }); });
     applyTheme(); paintSettings(); paintDock(); applyZoom(); applyNoteWidth();
+    var sb=document.querySelector('[data-act="share"]'); if(sb) sb.hidden=!navigator.share;
+    return importNoteFromHash();
+  }).then(function(){
     if(!state.tabs.length){ newTab(); setStatus(''); setTimeout(function(){ if(doc.blocks[0]) focusBlock(doc.blocks[0].id,0); },0); }
     else { var id=tabById(state.activeTabId)?state.activeTabId:state.tabs[0].id; switchTab(id,true); setStatus('Saved on this device'); }
+    checkPersistence(); setTimeout(storageNudge,1500);
+    window.addEventListener('hashchange',function(){ if(/^#n=/.test(location.hash)) importNoteFromHash().then(function(ok){ if(ok){ switchTab(state.activeTabId,true); } }); });
   });
 }
 boot();
