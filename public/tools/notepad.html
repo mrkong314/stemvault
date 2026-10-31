@@ -1028,7 +1028,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
       <table>
         <tr><td>**bold**</td><td>Bold (Ctrl/Cmd+B)</td></tr>
         <tr><td>*italic*</td><td>Italic (Ctrl/Cmd+I)</td></tr>
-        <tr><td>^2^ and ~2~</td><td>Superscript and subscript. Ctrl/Cmd+Shift+= and Ctrl/Cmd+Shift+− wrap the selection, as in Word; in a maths field they type a power or subscript.</td></tr>
+        <tr><td>^2^ and ~2~</td><td>Superscript and subscript. Ctrl/Cmd+Shift+= and Ctrl/Cmd+Shift+− wrap the selection, as in Word; in a maths field they type a power or subscript. Enter or Esc inside a ^…^ or ~…~ span steps out past its end.</td></tr>
         <tr><td>~~struck~~</td><td>Strikethrough (Ctrl/Cmd+Shift+X)</td></tr>
         <tr><td>==text==</td><td>Highlight</td></tr>
         <tr><td>`</td><td>Inline maths in a text line: press ` to open a live maths field at the cursor, type as in a calculator line, then ` or Esc to finish. The formula is typeset in the line straight away and you keep typing after it. Click a formula to edit it; press ` twice for a plain backtick.</td></tr>
@@ -1214,6 +1214,18 @@ function setRawHTML(el,text){
   /* a caret cannot sit after a trailing non-editable span in every browser: give it a text node to live in */
   if(el.lastChild && isWidget(el.lastChild)) el.appendChild(document.createTextNode(ZW));
   if(el.firstChild && isWidget(el.firstChild)) el.insertBefore(document.createTextNode(ZW),el.firstChild);
+}
+/* inside a ^superscript^ or ~subscript~ span at raw offset `off`? Returns where the caret should go to leave it
+   (after the closing marker, inserting one if the span is still open), or null when not inside one. */
+function markerExit(text,off){
+  var marks=['^','~'];
+  for(var m=0;m<marks.length;m++){
+    var mk=marks[m], single=[], i;
+    for(i=0;i<text.length;i++){ if(text[i]!==mk) continue; if(mk==='~' && (text[i-1]==='~'||text[i+1]==='~')) continue; single.push(i); }
+    var before=single.filter(function(p){ return p<off; }).length;
+    if(before%2===1){ var next=single.filter(function(p){ return p>=off; })[0]; if(next!==undefined) return {caret:next+1}; return {insert:mk,caret:off+1}; }
+  }
+  return null;
 }
 /* ---------- caret helpers ---------- */
 function renderedOffset(el,node,off){
@@ -4435,6 +4447,8 @@ editor.addEventListener('beforeinput',function(e){
     var b=getBlock(e.target.closest('.block').dataset.id);
     if(cap){ b.text=cap.textContent; appendBlockAfter(b,'p'); return; }
     if(cell){ if(!cellMove(cell,b,1,0)) return; return; }
+    var rt=rawOf(c), offM=caretOffset(c), mx=markerExit(rt,offM);
+    if(mx){ if(mx.insert){ var ntm=rt.slice(0,offM)+mx.insert+rt.slice(offM); setRawHTML(c,ntm); b.text=ntm; save(); } setCaret(c,mx.caret); return; }
     splitBlock(c,b);
   }
 });
@@ -4527,7 +4541,7 @@ editor.addEventListener('keydown',function(e){
   if(e.key==='Delete' && selectionCollapsed() && caretOffset(c)===rawOf(c).length){ e.preventDefault(); deleteAtEnd(c,b); return; }
   if(e.key==='ArrowUp' && onEdge(c,-1)){ e.preventDefault(); moveFocus(b,-1); return; }
   if(e.key==='ArrowDown' && onEdge(c,1)){ e.preventDefault(); if(!moveFocus(b,1)) appendBlockAfter(b,'p'); return; }
-  if(e.key==='Escape'){ c.blur(); return; }
+  if(e.key==='Escape'){ var rtE=rawOf(c), mE=markerExit(rtE,caretOffset(c)); if(mE){ e.preventDefault(); if(mE.insert){ var ntE=rtE.slice(0,caretOffset(c))+mE.insert+rtE.slice(caretOffset(c)); setRawHTML(c,ntE); b.text=ntE; save(); } setCaret(c,mE.caret); return; } c.blur(); return; }
 });
 document.addEventListener('keydown',function(e){
   if(!selectedId) return;
