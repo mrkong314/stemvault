@@ -214,6 +214,34 @@
   body.big .exit-big { display: inline-flex; }
   @media (prefers-reduced-motion: reduce) { .bar > i, .switch::after, .gbtn { transition: none; } body.flash, .bar.final > i { animation: none; } }
   @media (max-height: 640px) { .pct { font-size: clamp(4rem, 26vw, 8rem); } .controls .gbtn { min-height: 52px; } }
+  /* Phone landscape: the card and the three buttons share the first screen side by side and fill its height.
+     The stage row is sized from the viewport minus the header (published as --topbar-h by a ResizeObserver),
+     so the rep-length panel lands below the fold, a scroll away rather than squeezing the timer. */
+  @media (orientation: landscape) and (max-height: 520px) {
+    body { padding-block: 0 calc(10px + env(safe-area-inset-bottom, 0px)); }
+    header.topbar { margin-bottom: 8px; padding-top: 8px; padding-bottom: 8px; }
+    header.topbar .inner, .app { max-width: none; }
+    .app {
+      flex: none; display: grid; gap: 10px;
+      grid-template-columns: minmax(0, 1fr) clamp(150px, 28vw, 240px);
+      grid-template-rows: minmax(calc(100dvh - var(--topbar-h, 60px) - 18px - env(safe-area-inset-bottom, 0px)), auto) auto;
+    }
+    .main { grid-area: 1 / 1; padding: 12px 16px; gap: 4px; }
+    .controls { grid-area: 1 / 2; grid-template-columns: 1fr; grid-template-rows: 1.5fr 1fr 1fr; }
+    .controls .gbtn { min-height: 0; height: 100%; }
+    .settings { grid-area: 2 / 1 / 3 / 3; }
+    .pct { font-size: clamp(3rem, 40dvh, 12rem); margin: 0; }
+    .bar { height: 20px; border-radius: 10px; margin: 4px 0 0; }
+    .times { margin-top: 4px; }
+    .times .v { font-size: clamp(1.3rem, 7dvh, 2.2rem); }
+    /* Big display keeps the two columns; with no header the digits take nearly half the height.
+       The exit button sits in the top-right, so the button column starts below it. */
+    body.big { padding-block: 10px calc(10px + env(safe-area-inset-bottom, 0px)); }
+    body.big .app { grid-template-rows: minmax(calc(100dvh - 20px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)), auto) auto; }
+    body.big .pct { font-size: clamp(4rem, 50dvh, 16rem); }
+    body.big .bar { height: 26px; border-radius: 13px; }
+    body.big .controls { max-width: none; margin: 0; padding-top: 50px; }
+  }
 </style>
 </head>
 <body>
@@ -511,6 +539,12 @@
   el.exitBig.addEventListener('click', () => setBig(false));
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && document.body.classList.contains('big')) { document.body.classList.remove('big'); el.big.classList.remove('on'); } });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { holdWake(); render(); } });
+
+  // Phone landscape sizes the stage from the viewport minus the header, so the header's height is published as a CSS variable.
+  const topbar = document.querySelector('header.topbar');
+  const setTopbarH = () => document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
+  if (window.ResizeObserver) new ResizeObserver(setTopbarH).observe(topbar); else window.addEventListener('resize', setTopbarH);
+  setTopbarH();
 
   // ---- Boot ----
   applyTheme(); syncSettings(); syncPresets(); render(); holdWake();
