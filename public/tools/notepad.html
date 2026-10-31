@@ -812,6 +812,11 @@ body.blk-drag iframe{pointer-events:none}
 .cl:focus-within{background:var(--calc-focus)}
 .cl .cl-in{flex:1 1 12em;min-width:0}
 .cl .cl-out{margin-left:auto;flex:0 1 auto;max-width:100%}
+.cl .cl-note{flex:1 0 100%;display:none;margin:.1rem 0 .15rem}
+.cl.has-note .cl-note{display:block}
+.cl-note-ta{display:block;width:100%;box-sizing:border-box;font:inherit;font-size:.86rem;line-height:1.35;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:.35rem .55rem;resize:none;overflow:hidden;min-height:1.7rem;outline:none}
+.cl-note-ta:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint)}
+.cl-note-ta::placeholder{color:var(--ink-dim)}
 .cl-in{display:block;min-width:0;font-size:1.05rem;line-height:normal;min-height:1.4rem;color:var(--ink)}
 .cl-in.mq-editable-field{border:0!important;box-shadow:none!important;background:transparent;padding:2px 0;border-radius:0}
 .cl-in.mq-editable-field.mq-focused{border:0!important;box-shadow:none!important}
@@ -1155,6 +1160,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
       <table>
         <tr><td>\</td><td>Type a backslash, then letters, to search every function, constant and Greek letter; Enter inserts the choice. Nothing is left behind in the line. In text lines the same search inserts symbols.</td></tr>
         <tr><td>@</td><td>Type @, then letters, to search the Calculator’s formula sheet and constants by name or topic (suvat, snell, kinetic); Enter writes the formula into the line.</td></tr>
+        <tr><td>"</td><td>Opens a note under the line, as in the Calculator: plain text for working or a comment. Enter or Esc returns to the line, Shift+Enter adds a line to the note, and a note left empty disappears.</td></tr>
         <tr><td>Add variables</td><td>A line that uses undefined names shows a chip for each. Enter on that line, or Add all, adds a line below for every one (set to 1 to start); a single chip adds just that one.</td></tr>
         <tr><td>2(3+4)^2, 2x</td><td>Each line is one expression, evaluated by the same engine as the Calculator tool. Implicit multiplication works.</td></tr>
         <tr><td>a = 4, or 2.5*12 = m</td><td>Defines a variable for the whole section, in any order. <code>ans</code> is the line above.</td></tr>
@@ -1332,7 +1338,7 @@ var slashState={open:false,blockId:null,items:[],index:0};
 
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='graph'){ var GD={eqs:[''],pts:'',xmin:-10,xmax:10,ymin:-10,ymax:10,xstep:1,ystep:1,xlabel:'`x`',ylabel:'`y`',title:'',grid:true,arrows:true,legend:false,angle:'rad',autoX:true,autoY:true,h:320}; for(var gk in GD){ if(b[gk]===undefined||b[gk]===null) b[gk]=GD[gk]; }
+function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; if(!Array.isArray(b.notes)) b.notes=[]; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='graph'){ var GD={eqs:[''],pts:'',xmin:-10,xmax:10,ymin:-10,ymax:10,xstep:1,ystep:1,xlabel:'`x`',ylabel:'`y`',title:'',grid:true,arrows:true,legend:false,angle:'rad',autoX:true,autoY:true,h:320}; for(var gk in GD){ if(b[gk]===undefined||b[gk]===null) b[gk]=GD[gk]; }
   if(!Array.isArray(b.points)){ b.points=String(b.pts||'').split(/\n/).map(function(l){ return l.trim(); }).filter(Boolean).map(function(l){ return {c:l,lab:true,txt:''}; }); } delete b.pts;
   if(!b.quads||typeof b.quads!=='object'){ var Q=b.quad||'all'; b.quads={q1:true,q2:Q==='all'||Q==='py',q3:Q==='all',q4:Q==='all'||Q==='px'}; } delete b.quad; if(typeof b.eqs==='string'){ b.eqs=b.eqs.split('\n').filter(function(l){ return l.trim(); }).map(function(l){ return (typeof textToLatex==='function')?textToLatex(l.replace(/^\s*y\s*=\s*/i,'')):l; }); } if(!Array.isArray(b.eqs)||!b.eqs.length) b.eqs=['']; } if(b.type==='embed'){ if(b.url==null) b.url=''; if(b.url&&!b.src){ var em=resolveEmbed(b.url); if(em){ b.src=em.src; b.kind=em.kind; } } } return b; }
 function getBlock(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return doc.blocks[i]; return null; }
@@ -3524,6 +3530,7 @@ editor.addEventListener('keydown',function(e){
     if(dbl && dbl.key==='*' && now-dbl.t<500){ mqx.keystroke('Backspace'); insertSciExp(mqx); } else { typeTimes(cl); cl._dbl={key:'*',t:now}; } return; }
   if(e.key==='^' && inEmptySup(cl)){ if(e.repeat || cl._supHeld){ e.preventDefault(); e.stopPropagation(); cl._supHeld=true; return; } }
   if(e.repeat && inEmptySup(cl) && /^[\^*]$/.test(e.key)){ e.preventDefault(); e.stopPropagation(); return; }
+  if(e.key==='"' && cl.classList.contains('cl-in') && !e.ctrlKey && !e.metaKey && !e.altKey){ e.preventDefault(); e.stopPropagation(); openCalcNote(cl); return; }
   if(e.key==='\\'){ e.preventDefault(); e.stopPropagation(); openBslMq(cl,'calc'); }
   else if(e.key==='@'){ e.preventDefault(); e.stopPropagation(); openBslMq(cl,'at'); }
 },true);
@@ -3722,13 +3729,16 @@ function tableHTML(b){
     '<button type="button" data-act="del">Delete table</button></div></div>';
   return s;
 }
+/* a note under a calculator or maths line: " opens it, Enter or Esc returns to the line, an empty note disappears */
+function calcNoteHTML(i,note){ return '<div class="cl-note"><textarea class="cl-note-ta" data-i="'+i+'" rows="1" placeholder="Note…" spellcheck="true">'+esc(note)+'</textarea></div>'; }
 function calcHTML(b){
   var res=evalCalc(b);
   var s='<div class="calc"><div class="calc-lines">';
   b.lines.forEach(function(line,i){
     var r=res[i]||{text:''};
-    s+='<div class="cl"><span class="cl-in" data-i="'+i+'"></span>'+
-       '<div class="cl-out'+(r.err&&!(r.undef&&r.undef.length)?' err':'')+(r.muted?' muted':'')+(r.undef&&r.undef.length?' undef':'')+'" data-i="'+i+'">'+calcOutHTML(r)+'</div></div>';
+    var note=(b.notes&&b.notes[i])||'';
+    s+='<div class="cl'+(note.trim()?' has-note':'')+'"><span class="cl-in" data-i="'+i+'"></span>'+
+       '<div class="cl-out'+(r.err&&!(r.undef&&r.undef.length)?' err':'')+(r.muted?' muted':'')+(r.undef&&r.undef.length?' undef':'')+'" data-i="'+i+'">'+calcOutHTML(r)+'</div>'+calcNoteHTML(i,note)+'</div>';
   });
   s+='</div><button type="button" class="add-line-strip" title="Add line" aria-label="Add line"><span>+</span></button></div>';
   return s;
@@ -3737,7 +3747,7 @@ function calcOutHTML(r){ if(r.undef&&r.undef.length){ var h='<span class="undef-
 function calcModesHTML(){ var S=state.settings; return '<button type="button" data-set="angle" data-val="'+(S.angle==='rad'?'deg':'rad')+'">'+(S.angle==='rad'?'rad':'deg')+'</button><button type="button" data-set="exact" data-val="'+(S.exact==='exact'?'decimal':'exact')+'">'+(S.exact==='exact'?'exact':'decimal')+'</button><button type="button" data-set="sigfigs" data-val="'+(S.sigfigs==='auto'?'3':'auto')+'">'+(S.sigfigs==='auto'?'auto':'3 s.f.')+'</button><button type="button" data-set="solve" data-val="'+(S.solve==='all'?'first':'all')+'">'+(S.solve==='all'?'all roots':'first root')+'</button>'; }
 function mathHTML(b){
   var s='<div class="mathblk"><div class="calc-lines">';
-  b.lines.forEach(function(line,i){ s+='<div class="cl ml"><span class="cl-in" data-i="'+i+'"></span></div>'; });
+  b.lines.forEach(function(line,i){ var note=(b.notes&&b.notes[i])||''; s+='<div class="cl ml'+(note.trim()?' has-note':'')+'"><span class="cl-in" data-i="'+i+'"></span>'+calcNoteHTML(i,note)+'</div>'; });
   s+='</div><button type="button" class="add-line-strip" title="Add line" aria-label="Add line"><span>+</span></button></div>';
   return s;
 }
@@ -3821,7 +3831,7 @@ function render(){
     html+=blockHTML(b,num);
   });
   editor.innerHTML=html;
-  editor.querySelectorAll('textarea.code').forEach(autosize);
+  editor.querySelectorAll('textarea.code, textarea.cl-note-ta').forEach(autosize);
   initCalcFields();
   initDrawBlocks();
   initEmbedBlocks();
@@ -4009,11 +4019,11 @@ var calcTimer=null;
 function calcLine(b,i,text){ b.lines[i]=text; clearTimeout(calcTimer); calcTimer=setTimeout(function(){ calcRefresh(b); },120); save(); }
 /* add defining lines (name = 1) below line i for the given names; returns the index of the first new line */
 function addVariables(b,i,names){ if(!names||!names.length) return -1; names.forEach(function(v,k){ b.lines.splice(i+1+k,0,varLatex(v)+'=1'); }); render(); focusBlock(b.id,Infinity,{i:i+1}); save(); return i+1; }
-function calcInsert(b,i,text){ b.lines.splice(i+1,0,text||''); render(); focusBlock(b.id,0,{i:i+1}); save(); }
+function calcInsert(b,i,text){ b.lines.splice(i+1,0,text||''); if(Array.isArray(b.notes)) b.notes.splice(i+1,0,''); render(); focusBlock(b.id,0,{i:i+1}); save(); }
 function calcRemove(b,i){
   checkpoint();
   if(b.lines.length<=1){ var p=newBlock('p',{indent:b.indent}); doc.blocks.splice(idx(b.id),1,p); render(); focusBlock(p.id,0); save(); return; }
-  b.lines.splice(i,1); render(); focusBlock(b.id,Infinity,{i:Math.max(0,i-1)}); save();
+  b.lines.splice(i,1); if(Array.isArray(b.notes)) b.notes.splice(i,1); render(); focusBlock(b.id,Infinity,{i:Math.max(0,i-1)}); save();
 }
 
 /* ---------- slash menu ---------- */
@@ -4162,7 +4172,7 @@ function toMarkdown(d){
         break;
       case 'calc':
         var res=evalCalc(b); lines.push(ind+'```calc');
-        b.lines.forEach(function(l,j){ var r=res[j]||{}; lines.push(ind+prettyPlain(latexToPlain(l))+(r.text?'  = '+r.text:'')); });
+        b.lines.forEach(function(l,j){ var r=res[j]||{}; lines.push(ind+prettyPlain(latexToPlain(l))+(r.text?'  = '+r.text:'')); var nt=(b.notes&&b.notes[j]||'').trim(); if(nt) nt.split('\n').forEach(function(x){ lines.push(ind+'# '+x); }); });
         lines.push(ind+'```'); break;
       default: lines.push(ind+b.text);
     }
@@ -4624,7 +4634,7 @@ var allSelected=false;
 function selectAllBlocks(){ allSelected=true; select(null); editor.classList.add('all-selected'); if(document.activeElement&&document.activeElement.blur) document.activeElement.blur(); }
 function clearAllSelected(){ if(!allSelected) return; allSelected=false; editor.classList.remove('all-selected'); }
 document.addEventListener('keydown',function(e){
-  if(e.target.closest && e.target.closest('.gedit')) return;   /* keys inside a graph's editor belong to its inputs */
+  if(e.target.closest && e.target.closest('.gedit, .cl-note-ta')) return;   /* keys inside a graph's editor or a line note belong to them */
   if((e.metaKey||e.ctrlKey) && (e.key==='a'||e.key==='A')){
     var blk=e.target.closest?e.target.closest('.block'):null;
     if(!blk && !selectedId && !allSelected) return;
@@ -4692,7 +4702,7 @@ function moveRange(dir){
   Array.prototype.splice.apply(doc.blocks,[at,0].concat(chunk)); render(); rangeAnchor=at; rangeFocus=at+chunk.length-1; setRange(at,rangeFocus); save();
 }
 document.addEventListener('keydown',function(e){
-  var inField=e.target.closest && (e.target.closest('#sidepanel')||e.target.closest('#tabMenu')||e.target.closest('#confirm')||e.target.closest('#settingsPopover')||e.target.closest('.gedit')||e.target.id==='title');
+  var inField=e.target.closest && (e.target.closest('#sidepanel')||e.target.closest('#tabMenu')||e.target.closest('#confirm')||e.target.closest('#settingsPopover')||e.target.closest('.gedit')||e.target.closest('.cl-note-ta')||e.target.id==='title');
   if(inField) return;
   var blk=e.target.closest?e.target.closest('.block'):null;
   if(e.shiftKey && (e.key==='ArrowDown'||e.key==='ArrowUp') && !e.altKey && !e.metaKey && !e.ctrlKey){
@@ -5129,6 +5139,25 @@ function initGraphBlocks(){
 }
 new MutationObserver(function(){ editor.querySelectorAll('.block.t-graph').forEach(function(blk){ var b=getBlock(blk.dataset.id), cv=blk.querySelector('canvas.graph'); if(b&&cv) graphPaint(cv,b); }); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
+/* ---------- notes under calculator lines: " opens one, as in the Calculator ---------- */
+function openCalcNote(cl){
+  var row=cl.closest('.cl'); var ta=row&&row.querySelector('.cl-note-ta'); if(!ta) return;
+  row.classList.add('has-note'); autosize(ta); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length);
+}
+editor.addEventListener('keydown',function(e){
+  var ta=e.target.closest&&e.target.closest('.cl-note-ta'); if(!ta) return;
+  if(e.key==='Escape' || (e.key==='Enter' && !e.shiftKey)){ e.preventDefault(); e.stopPropagation(); var cl=ta.closest('.cl').querySelector('.cl-in'); ta.blur(); if(cl) focusCalcField(cl,Infinity); return; }
+  e.stopPropagation();   /* every other key belongs to the note (Shift+Enter makes a new line) */
+},true);
+editor.addEventListener('input',function(e){
+  var ta=e.target.closest&&e.target.closest('.cl-note-ta'); if(!ta) return; e.stopPropagation();
+  var blk=ta.closest('.block'), b=blk&&getBlock(blk.dataset.id); if(!b) return; if(!Array.isArray(b.notes)) b.notes=[]; b.notes[+ta.dataset.i]=ta.value; autosize(ta); save();
+},true);
+editor.addEventListener('focusout',function(e){
+  var ta=e.target.closest&&e.target.closest('.cl-note-ta'); if(!ta) return;
+  if(!ta.value.trim()){ var row=ta.closest('.cl'); if(row) row.classList.remove('has-note'); var blk=ta.closest('.block'), b=blk&&getBlock(blk.dataset.id); if(b&&Array.isArray(b.notes)) b.notes[+ta.dataset.i]=''; save(); }
+},true);
+
 /* ---------- undo and redo of note changes ---------- */
 function snapshotNow(){ return JSON.stringify({tab:state.activeTabId,doc:doc}); }
 function pushHistory(){ if(!doc) return; var s=snapshotNow(); if(hist.stack[hist.index]===s) return; hist.stack=hist.stack.slice(0,hist.index+1); hist.stack.push(s); if(hist.stack.length>hist.max) hist.stack.shift(); hist.index=hist.stack.length-1; }
@@ -5341,7 +5370,7 @@ editor.addEventListener('paste',function(e){
   var text=cd.getData('text/plain'); if(!text) return;
   e.preventDefault();
   if(e.target.closest('.cl-in')) return;
-  if(e.target.classList.contains('code')){ var t=e.target; t.setRangeText(text,t.selectionStart,t.selectionEnd,'end'); t.dispatchEvent(new Event('input',{bubbles:true})); return; }
+  if(e.target.classList.contains('code') || e.target.classList.contains('cl-note-ta')){ var t=e.target; t.setRangeText(text,t.selectionStart,t.selectionEnd,'end'); t.dispatchEvent(new Event('input',{bubbles:true})); return; }
   if(e.target.closest('.caption, .cell')){ document.execCommand('insertText',false,text.replace(/\s*\n+\s*/g,' ')); return; }
   var c=e.target.closest('.content'); if(!c||!blk) return;
   if(text.indexOf('\n')<0 && !/^\|.*\|$/.test(text.trim())){
