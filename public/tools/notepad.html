@@ -705,7 +705,17 @@ body.blk-drag iframe{pointer-events:none}
 #calcpad .pk-y{display:none}
 #calcpad.for-graph .pk-y{display:flex}
 #calcpad.for-graph .pk-at{display:none}
-.gedit .grow2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:8px;align-items:end}
+.gedit .grow2{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start}
+.gedit .gside{display:flex;flex-direction:column;gap:8px;min-width:0}
+.gedit .grow4{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:8px;align-items:end}
+.gedit .grow4.auto input[type=number]{color:var(--ink-dim)}
+.gedit .gauto{padding-bottom:7px;white-space:nowrap}
+.gquad{display:block;width:96px;height:96px;margin-top:4px;cursor:pointer}
+.gquad .gq{fill:var(--control);stroke:var(--rule);stroke-width:1.5;transition:fill .12s}
+.gquad .gq.on{fill:var(--accent-tint);stroke:var(--accent)}
+.gquad .gq:hover{stroke:var(--accent)}
+.gquad .gq-ax{fill:none;stroke:var(--ink);stroke-width:2.5;pointer-events:none}
+.gquad .gq-ar{fill:var(--ink);pointer-events:none}
 .gedit .seg{text-transform:none;letter-spacing:0;font-weight:500;margin-top:3px}
 .g-lines{display:flex;flex-direction:column;gap:4px;text-transform:none;letter-spacing:0}
 .g-line{display:flex;align-items:center;gap:8px;padding:2px 6px 2px 8px;border-radius:8px;background:var(--panel);border:1px solid var(--rule)}
@@ -1092,7 +1102,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
     <h3>Graph</h3>
     <table>
       <tr><td>/graph</td><td>Axes you set, with equations in x typed in live maths fields like a calculator line (<code>x^2 - 4</code>, <code>2x + 1</code>, <code>sin(x)</code>; a leading <code>y =</code> is fine). Enter adds a line, Backspace on an empty line removes it; \ and @ search as in the calculator. Points go one per line as <code>x, y</code>. The settings show when a graph is created and hide once you click elsewhere; select the graph and press Edit settings to bring them back (Hide settings or Esc also closes them).</td></tr>
-      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Axes shown limits the graph to positive x, positive y or the first quadrant without changing the stored ranges. Gridlines and the axis arrowheads can be switched off.</td></tr>
+      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Click the quadrants in the small axes picture to show or hide them; the ranges clamp at zero on the hidden sides without changing your stored values. With Auto ticked, an axis fits its range and step to the curves and points; typing a min, max or step switches that axis to manual. Gridlines and the axis arrowheads can be switched off.</td></tr>
       <tr><td>Copy PNG</td><td>Copies the graph as an image on a white background, ready to paste into Word or a slide. Save PNG downloads the same image.</td></tr>
       <tr><td>Delete</td><td>Click the graph’s margin to select the block, then Backspace. On a phone, a selected block shows Duplicate and Delete buttons.</td></tr>
     </table>
@@ -1291,7 +1301,8 @@ var slashState={open:false,blockId:null,items:[],index:0};
 
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='graph'){ var GD={eqs:[''],pts:'',xmin:-10,xmax:10,ymin:-10,ymax:10,xstep:1,ystep:1,xlabel:'x',ylabel:'y',title:'',grid:true,arrows:true,angle:'rad',quad:'all',h:320}; for(var gk in GD){ if(b[gk]===undefined||b[gk]===null) b[gk]=GD[gk]; } if(typeof b.eqs==='string'){ b.eqs=b.eqs.split('\n').filter(function(l){ return l.trim(); }).map(function(l){ return (typeof textToLatex==='function')?textToLatex(l.replace(/^\s*y\s*=\s*/i,'')):l; }); } if(!Array.isArray(b.eqs)||!b.eqs.length) b.eqs=['']; } if(b.type==='embed'){ if(b.url==null) b.url=''; if(b.url&&!b.src){ var em=resolveEmbed(b.url); if(em){ b.src=em.src; b.kind=em.kind; } } } return b; }
+function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='graph'){ var GD={eqs:[''],pts:'',xmin:-10,xmax:10,ymin:-10,ymax:10,xstep:1,ystep:1,xlabel:'x',ylabel:'y',title:'',grid:true,arrows:true,angle:'rad',autoX:true,autoY:true,h:320}; for(var gk in GD){ if(b[gk]===undefined||b[gk]===null) b[gk]=GD[gk]; }
+  if(!b.quads||typeof b.quads!=='object'){ var Q=b.quad||'all'; b.quads={q1:true,q2:Q==='all'||Q==='py',q3:Q==='all',q4:Q==='all'||Q==='px'}; } delete b.quad; if(typeof b.eqs==='string'){ b.eqs=b.eqs.split('\n').filter(function(l){ return l.trim(); }).map(function(l){ return (typeof textToLatex==='function')?textToLatex(l.replace(/^\s*y\s*=\s*/i,'')):l; }); } if(!Array.isArray(b.eqs)||!b.eqs.length) b.eqs=['']; } if(b.type==='embed'){ if(b.url==null) b.url=''; if(b.url&&!b.src){ var em=resolveEmbed(b.url); if(em){ b.src=em.src; b.kind=em.kind; } } } return b; }
 function getBlock(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return doc.blocks[i]; return null; }
 function idx(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return i; return -1; }
 function isText(b){ return TEXT_TYPES.indexOf(b.type)>=0; }
@@ -3745,21 +3756,22 @@ function embedHTML(b){
     '<div class="draw-tools etools"><span class="ekind">'+esc(kind)+'</span><a href="'+esc(b.url)+'" target="_blank" rel="noopener">Open</a><button type="button" data-eact="link">Change link</button><span class="dsep"></span><button type="button" data-dact="delete" class="tdel" aria-label="Delete this embed">Delete</button></div><div class="draw-resize" title="Drag to change height"></div></div>';
 }
 function graphEditorHTML(b){
-  var num=function(k,label){ return '<label>'+label+'<input type="number" step="any" inputmode="decimal" data-g="'+k+'" value="'+esc(b[k])+'"></label>'; };
+  var num=function(k,label){ return '<label>'+label+'<input type="number" step="any" inputmode="decimal" data-g="'+k+'" value="'+esc(gfmt(b[k]))+'"></label>'; };
   var rich=function(k,label,ph){ return '<label>'+label+'<span class="gtxt" contenteditable="true" spellcheck="false" data-g="'+k+'" data-ph="'+esc(ph||'')+'"></span></label>'; };
   var eqs=(Array.isArray(b.eqs)&&b.eqs.length)?b.eqs:[''];
   var lines=eqs.map(function(l,i){ return '<div class="g-line"><span class="g-sw" style="background:'+GRAPH_COLORS[i%GRAPH_COLORS.length]+'"></span><span class="g-in" data-i="'+i+'"></span><button type="button" class="g-del" data-gdel="'+i+'" aria-label="Remove this equation">×</button></div>'; }).join('');
+  var qs=b.quads||{q1:true,q2:true,q3:true,q4:true};
+  var quadSvg='<svg class="gquad" viewBox="0 0 100 100" role="group" aria-label="Quadrants shown">'+[['q2',2,2],['q1',52,2],['q3',2,52],['q4',52,52]].map(function(q){ return '<rect class="gq'+(qs[q[0]]?' on':'')+'" data-q="'+q[0]+'" x="'+q[1]+'" y="'+q[2]+'" width="46" height="46" rx="6"><title>'+q[0].toUpperCase()+'</title></rect>'; }).join('')+'<path class="gq-ax" d="M4 50H96M50 4V96"/><path class="gq-ar" d="M96 50l-7-4v8zM50 4l-4 7h8z"/></svg>';
   return '<div class="gedit">'+
     '<label>Equations in x, one per line (y = is optional)<div class="g-lines">'+lines+'<button type="button" class="g-add" data-gadd aria-label="Add an equation">+ Add equation</button></div></label>'+
     '<div class="gerr" hidden></div>'+
     '<label>Points, one per line as x, y<textarea data-g="pts" rows="2" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="1, 2\n(3, 4.5)">'+esc(b.pts||'')+'</textarea></label>'+
-    '<div class="grow">'+num('xmin','x min')+num('xmax','x max')+num('xstep','x step')+'</div>'+
-    '<div class="grow">'+num('ymin','y min')+num('ymax','y max')+num('ystep','y step')+'</div>'+
+    '<div class="grow4'+(b.autoX!==false?' auto':'')+'" data-axis="x">'+num('xmin','x min')+num('xmax','x max')+num('xstep','x step')+'<label class="gchk gauto"><input type="checkbox" data-g="autoX"'+(b.autoX!==false?' checked':'')+'> Auto</label></div>'+
+    '<div class="grow4'+(b.autoY!==false?' auto':'')+'" data-axis="y">'+num('ymin','y min')+num('ymax','y max')+num('ystep','y step')+'<label class="gchk gauto"><input type="checkbox" data-g="autoY"'+(b.autoY!==false?' checked':'')+'> Auto</label></div>'+
     '<div class="grow">'+rich('xlabel','x axis title','x')+rich('ylabel','y axis title','y')+rich('title','Graph title','')+'</div>'+
-    '<div class="ghint">Titles: ^2^ for superscript, ~n~ for subscript, ‘ or ` for inline maths.</div>'+
-    '<label>Axes shown<div class="seg full" data-gseg="quad">'+[['all','All'],['px','Positive x'],['q1','First quadrant'],['py','Positive y']].map(function(q){ return '<button type="button" data-val="'+q[0]+'" class="'+((b.quad||'all')===q[0]?'on':'')+'">'+q[1]+'</button>'; }).join('')+'</div></label>'+
-    '<div class="grow2"><label>Angle for trig<div class="seg full" data-gseg="angle"><button type="button" data-val="rad" class="'+(b.angle==='deg'?'':'on')+'">Radians</button><button type="button" data-val="deg" class="'+(b.angle==='deg'?'on':'')+'">Degrees</button></div></label>'+
-    '<div class="gchks"><label class="gchk"><input type="checkbox" data-g="grid"'+(b.grid!==false?' checked':'')+'> Show gridlines</label><label class="gchk"><input type="checkbox" data-g="arrows"'+(b.arrows!==false?' checked':'')+'> Axis arrows</label></div></div>'+
+    '<div class="ghint">Titles: ^2^ for superscript, ~n~ for subscript, ‘ or ` for inline maths. Auto fits an axis to the curves and points; typing a value makes that axis manual.</div>'+
+    '<div class="grow2"><label>Quadrants shown (click to show or hide)'+quadSvg+'</label><div class="gside"><label>Angle for trig<div class="seg full" data-gseg="angle"><button type="button" data-val="rad" class="'+(b.angle==='deg'?'':'on')+'">Radians</button><button type="button" data-val="deg" class="'+(b.angle==='deg'?'on':'')+'">Degrees</button></div></label>'+
+    '<div class="gchks"><label class="gchk"><input type="checkbox" data-g="grid"'+(b.grid!==false?' checked':'')+'> Show gridlines</label><label class="gchk"><input type="checkbox" data-g="arrows"'+(b.arrows!==false?' checked':'')+'> Axis arrows</label></div></div></div>'+
     '</div>';
 }
 function render(){
@@ -4785,6 +4797,23 @@ function graphParsePoints(text){
   var out=[]; String(text||'').split(/\n|;/).forEach(function(l){ var m=l.replace(/[()\[\]]/g,' ').trim().split(/[,\s]+/).filter(Boolean); if(m.length>=2){ var x=parseFloat(m[0]), y=parseFloat(m[1]); if(isFinite(x)&&isFinite(y)) out.push({x:x,y:y}); } });
   return out;
 }
+function gfmt(v){ if(typeof v!=='number'||!isFinite(v)) return ''; return (+v.toPrecision(6)).toString(); }
+/* Ranges and steps actually drawn: automatic ones are fitted to the curves and points, then everything is clamped to the quadrants shown. */
+function graphRanges(b){
+  var qs=b.quads||{q1:true,q2:true,q3:true,q4:true}; var negX=!!(qs.q2||qs.q3), posX=!!(qs.q1||qs.q4), posY=!!(qs.q1||qs.q2), negY=!!(qs.q3||qs.q4);
+  var xmin=+b.xmin, xmax=+b.xmax; if(!isFinite(xmin)||!isFinite(xmax)||xmax<=xmin){ xmin=-10; xmax=10; }
+  var pts=graphParsePoints(b.pts);
+  if(b.autoX!==false && pts.length){ var pxs=pts.map(function(p){ return p.x; }); var lo=Math.min.apply(null,pxs), hi=Math.max.apply(null,pxs); if(hi-lo<1e-9){ lo-=1; hi+=1; } var padx=(hi-lo)*0.1; lo-=padx; hi+=padx; var st0=niceStep(hi-lo); xmin=Math.floor(lo/st0)*st0; xmax=Math.ceil(hi/st0)*st0; if(lo>=0 && xmin<0) xmin=0; }
+  if(!negX) xmin=Math.max(0,xmin); if(!posX) xmax=Math.min(0,xmax); if(xmax<=xmin){ if(!negX) xmax=xmin+10; else xmin=xmax-10; }
+  var xs=(b.autoX===false && +b.xstep>0)?+b.xstep:niceStep(xmax-xmin); if((xmax-xmin)/xs>400) xs=niceStep(xmax-xmin);
+  var ymin=+b.ymin, ymax=+b.ymax; if(!isFinite(ymin)||!isFinite(ymax)||ymax<=ymin){ ymin=-10; ymax=10; }
+  if(b.autoY!==false){ var vals=[]; (Array.isArray(b.eqs)?b.eqs:[]).forEach(function(l){ var f=String(l||'').trim()?graphCompile(l,b):null; if(!f) return; for(var i=0;i<=200;i++){ var y; try{ y=f(xmin+(xmax-xmin)*i/200); }catch(e){ y=NaN; } if(isFinite(y)) vals.push(y); } }); pts.forEach(function(p){ vals.push(p.y); });
+    if(vals.length){ vals.sort(function(a,c){ return a-c; }); var lo2=vals[Math.floor((vals.length-1)*0.02)], hi2=vals[Math.ceil((vals.length-1)*0.98)]; if(hi2-lo2<1e-9){ lo2-=1; hi2+=1; } var pady=(hi2-lo2)*0.08; lo2-=pady; hi2+=pady; var st1=niceStep(hi2-lo2); ymin=Math.floor(lo2/st1)*st1; ymax=Math.ceil(hi2/st1)*st1; if(vals[0]>=0 && ymin<0) ymin=0; if(vals[vals.length-1]<=0 && ymax>0) ymax=0; } }
+  if(!negY) ymin=Math.max(0,ymin); if(!posY) ymax=Math.min(0,ymax); if(ymax<=ymin){ if(!negY) ymax=ymin+10; else ymin=ymax-10; }
+  var ys=(b.autoY===false && +b.ystep>0)?+b.ystep:niceStep(ymax-ymin); if((ymax-ymin)/ys>400) ys=niceStep(ymax-ymin);
+  return {xmin:xmin,xmax:xmax,ymin:ymin,ymax:ymax,xs:xs,ys:ys};
+}
+function syncRangeInputs(b){ var el=blockEl(b.id), ge=el&&el.querySelector('.gedit'); if(!ge) return; var R=graphRanges(b); var map={xmin:R.xmin,xmax:R.xmax,xstep:R.xs,ymin:R.ymin,ymax:R.ymax,ystep:R.ys}; for(var k in map){ var inp=ge.querySelector('[data-g="'+k+'"]'); var auto=(k[0]==='x')?b.autoX!==false:b.autoY!==false; if(inp && auto && document.activeElement!==inp) inp.value=gfmt(map[k]); } ge.querySelectorAll('.grow4').forEach(function(row){ var auto=row.dataset.axis==='x'?b.autoX!==false:b.autoY!==false; row.classList.toggle('auto',auto); var cb=row.querySelector('input[type=checkbox]'); if(cb) cb.checked=auto; }); }
 function niceStep(range){ var raw=range/8, p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p; return (m<1.5?1:m<3.5?2:m<7.5?5:10)*p; }
 function fmtTick(v,step){ var d=Math.max(0,Math.min(6,-Math.floor(Math.log10(step)))); var s=v.toFixed(d); if(d>0) s=s.replace(/\.?0+$/,''); return s==='-0'?'0':s; }
 function graphColors(light){
@@ -4847,13 +4876,7 @@ function graphPaint(cv,b,o){
   if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
   var ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
   var C=graphColors(!!o.light); if(o.bg){ ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H); }
-  var xmin=+b.xmin, xmax=+b.xmax, ymin=+b.ymin, ymax=+b.ymax;
-  if(!isFinite(xmin)||!isFinite(xmax)||xmax<=xmin){ xmin=-10; xmax=10; } if(!isFinite(ymin)||!isFinite(ymax)||ymax<=ymin){ ymin=-10; ymax=10; }
-  var quad=b.quad||'all';
-  if(quad==='px'||quad==='q1'){ xmin=Math.max(0,xmin); if(xmax<=xmin) xmax=xmin+Math.abs(+b.xmax||10)||10; }
-  if(quad==='py'||quad==='q1'){ ymin=Math.max(0,ymin); if(ymax<=ymin) ymax=ymin+Math.abs(+b.ymax||10)||10; }
-  var xs=+b.xstep>0?+b.xstep:niceStep(xmax-xmin), ys=+b.ystep>0?+b.ystep:niceStep(ymax-ymin);
-  if((xmax-xmin)/xs>400) xs=niceStep(xmax-xmin); if((ymax-ymin)/ys>400) ys=niceStep(ymax-ymin);
+  var R=graphRanges(b); var xmin=R.xmin, xmax=R.xmax, ymin=R.ymin, ymax=R.ymax, xs=R.xs, ys=R.ys;
   var px=o.light?14:13; var tickFont=px+'px '+GRAPH_FONT;
   ctx.font=tickFont;
   var ylabW=0; for(var v=Math.ceil(ymin/ys)*ys; v<=ymax+1e-9; v+=ys) ylabW=Math.max(ylabW,ctx.measureText(fmtTick(v,ys)).width);
@@ -4911,6 +4934,8 @@ function graphCopyPNG(b){
 function graphSavePNG(b){ graphPNG(b).then(function(bl){ saveTextFile(safeFileName(richRuns(b.title||'').map(function(r){ return r.t; }).join('')||'graph')+'.png',bl,'image/png','Graph saved'); }); }
 function graphApplyInput(b,inp){
   var k=inp.dataset.g; if(!k) return;
+  if(k==='autoX'||k==='autoY'){ b[k]=inp.checked; return; }
+  if(k==='xmin'||k==='xmax'||k==='xstep') b.autoX=false; if(k==='ymin'||k==='ymax'||k==='ystep') b.autoY=false;
   if(inp.classList.contains('gtxt')) b[k]=rawOf(inp).replace(/\n/g,' ');
   else if(inp.type==='checkbox') b[k]=inp.checked;
   else if(inp.type==='number'){ var v=parseFloat(inp.value); b[k]=isFinite(v)?v:(k==='xstep'||k==='ystep'?0:b[k]); }
@@ -4939,7 +4964,7 @@ function initGraphBlocks(){
         spaceBehavesLikeTab:false, typingSlashWritesDivisionSymbol:false, charsThatBreakOutOfSupSub:'+-*/=',
         autoCommands:'pi sqrt sum nthroot int '+GREEK_AUTOCOMMANDS, autoOperatorNames:MQ_OPERATORS,
         handlers:{
-          edit:function(){ if(el._quiet||!el.isConnected||i>=b.eqs.length) return; expandSciShortcut(mq,el); b.eqs[i]=mq.latex(); graphPaint(cv,b); paintErr(); pfxCheck(el); later(); },
+          edit:function(){ if(el._quiet||!el.isConnected||i>=b.eqs.length) return; expandSciShortcut(mq,el); b.eqs[i]=mq.latex(); graphPaint(cv,b); syncRangeInputs(b); paintErr(); pfxCheck(el); later(); },
           enter:function(){ graphInsertLine(b,i); },
           upOutOf:function(){ graphMoveLine(b,i,-1); }, downOutOf:function(){ graphMoveLine(b,i,1); },
           deleteOutOf:function(dir){ if(dir===MQ.L){ if(!(mq.latex()||'').trim()){ if(b.eqs.length>1) graphRemoveLine(b,i); } else if(i>0) graphFocusLine(b.id,i-1,true); } },
@@ -4958,11 +4983,13 @@ function initGraphBlocks(){
         if(mod && e.shiftKey && (e.key==='_'||e.key==='-'||e.code==='Minus')){ e.preventDefault(); wrapSelection('~'); return; } });
       el.addEventListener('focusout',function(){ if(imqState.open && imqState.el===el) return; setRawHTML(el,b[k]||''); });
     });
-    ge.addEventListener('input',function(e){ e.stopPropagation(); var inp=e.target.closest('[data-g]'); if(!inp) return; graphApplyInput(b,inp); graphPaint(cv,b); paintErr(); later(); });
+    ge.addEventListener('input',function(e){ e.stopPropagation(); var inp=e.target.closest('[data-g]'); if(!inp) return; graphApplyInput(b,inp); graphPaint(cv,b); syncRangeInputs(b); paintErr(); later(); });
+    ge.addEventListener('click',function(e){ var q=e.target.closest('.gq'); if(!q) return; var qs=b.quads||(b.quads={q1:true,q2:true,q3:true,q4:true}); var on=Object.keys(qs).filter(function(k){ return qs[k]; }); if(qs[q.dataset.q] && on.length<=1) return; qs[q.dataset.q]=!qs[q.dataset.q]; q.classList.toggle('on',!!qs[q.dataset.q]); graphPaint(cv,b); syncRangeInputs(b); later(); });
+    ge.addEventListener('pointerdown',function(){ ge._hold=Date.now(); });
     ge.addEventListener('change',function(e){ e.stopPropagation(); });
     ge.addEventListener('click',function(e){ var sb=e.target.closest('[data-gseg] button'); if(!sb) return; var seg=sb.closest('[data-gseg]'); b[seg.dataset.gseg]=sb.dataset.val; seg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on',x===sb); }); graphPaint(cv,b); paintErr(); later(); });
     /* the settings close themselves once focus has left them (a picker or the inline maths field counts as still inside) */
-    ge.addEventListener('focusout',function(){ setTimeout(function(){ if(!graphEdit[b.id] || !ge.isConnected) return; var a=document.activeElement; if(ge.contains(a)) return; if(imqState.open && imqState.el && ge.contains(imqState.el)) return; if(bslState.open || (typeof pfxState!=='undefined' && pfxState.open)) return; delete graphEdit[b.id]; rerenderBlock(b.id); },150); });
+    ge.addEventListener('focusout',function(){ setTimeout(function(){ if(!graphEdit[b.id] || !ge.isConnected) return; var a=document.activeElement; if(ge.contains(a)) return; if(ge._hold && Date.now()-ge._hold<600) return;   /* a click on a control that takes no focus (Safari) */ if(imqState.open && imqState.el && ge.contains(imqState.el)) return; if(bslState.open || (typeof pfxState!=='undefined' && pfxState.open)) return; delete graphEdit[b.id]; rerenderBlock(b.id); },150); });
     ge.addEventListener('pointerdown',function(){ if(selectedId) select(null); });
     ge.addEventListener('keydown',function(e){ if(e.key==='Escape' && !imqState.open){ delete graphEdit[b.id]; rerenderBlock(b.id); select(b.id); } });
     paintErr();
