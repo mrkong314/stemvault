@@ -322,7 +322,6 @@ a.card:hover, .card.is-link:hover { transform: translateY(-2px); background: var
 /* ------------------------------------------------------------------ */
 /* Edit mode                                                           */
 /* ------------------------------------------------------------------ */
-body:not([data-edit="on"]) [data-edit-only] { display: none !important; }
 
 /* ------------------------------------------------------------------ */
 /* Full-page mode (BaseLayout fullPage)                                */

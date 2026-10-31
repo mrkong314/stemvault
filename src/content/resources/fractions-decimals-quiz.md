@@ -1,6 +1,6 @@
 ---
 title: "Fractions and Decimals Quiz"
-type: applet
+type: quiz
 subject: Mathematics
 yearLevel: [7, 8]
 topic: "Fractions and Decimals"

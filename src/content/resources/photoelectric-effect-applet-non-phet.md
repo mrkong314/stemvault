@@ -1,5 +1,5 @@
 ---
-title: "Photoelectric Effect Applet (Non-PhET)"
+title: "Photoelectric Effect Bench"
 type: applet
 subject: Physics
 yearLevel: [11, 12]

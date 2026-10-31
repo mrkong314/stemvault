@@ -1,6 +1,6 @@
 ---
 title: "Year 8 Statistics Quiz 2"
-type: applet
+type: quiz
 subject: Mathematics
 yearLevel: [8]
 topic: "Statistics"

@@ -45,7 +45,7 @@ export function embedSrc(entry: ResourceEntry): string | undefined {
 }
 
 /** Direct download / external link for file entries. */
-export function fileHref(entry: ResourceEntry): string {
+function fileHref(entry: ResourceEntry): string {
   const d = entry.data;
   if (d.externalUrl) return d.externalUrl;
   const f = d.fileUrl ?? '';
@@ -53,7 +53,7 @@ export function fileHref(entry: ResourceEntry): string {
 }
 
 /** Does this entry open the raw applet itself rather than a site page? */
-export function opensRaw(entry: ResourceEntry): boolean {
+function opensRaw(entry: ResourceEntry): boolean {
   const t = entry.data.type;
   return (t === 'applet' || t === 'quiz') && Boolean(embedSrc(entry));
 }

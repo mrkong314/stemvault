@@ -2,7 +2,6 @@
 import ResourceLayout from '~/layouts/ResourceLayout.astro';
 import FilterPanel from '~/components/filters/FilterPanel.astro';
 import ResourceItem from '~/components/resources/ResourceItem.astro';
-import AddButton from '~/components/edit/AddButton.astro';
 import { SUBJECTS, subjectFromSlug } from '~/data/subjects';
 import { getResources, getSubjectTopicTree, topicSlug, topicFor } from '~/lib/collections';
 
@@ -53,8 +52,6 @@ const total = matching.length;
     <div class="head-row">
       <h1>{topicName}</h1>
       <div class="head-actions">
-        <AddButton label="+ Applet" kind="applet" />
-        <AddButton label="+ File" kind="file" />
       </div>
     </div>
     <p class="page-sub">{total} resource{total === 1 ? '' : 's'} in this topic.</p>

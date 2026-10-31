@@ -31,7 +31,7 @@ If the type is genuinely unclear, ask one short clarifying question rather than 
 Required for every entry:
 
 - `title`: human title, as given.
-- `type`: one of `applet`, `file`, `video`, `quiz` (per the table).
+- `type`: one of `applet`, `file`, `video`, `quiz` (per the table). Use `quiz` for anything self-marking (a quiz, tester or drill with scored answers), even when it is a self-hosted HTML file; `applet` is for explorations, simulations and builders. Practice banks stay `applet` with `category: practice`.
 - `subject`: exactly one of the names in `src/data/subjects.ts` (currently `Mathematics`, `Chemistry`, `Physics`, `Biology`). Match case exactly.
 - `yearLevel`: a YAML array of integers, each one of the values in `src/data/yearLevels.ts` (currently `7, 8, 9, 10, 11, 12`). Example: `[11, 12]`.
 - `addedAt`: today's date in `YYYY-MM-DD`. Use the real current date, not a placeholder.
@@ -39,7 +39,7 @@ Required for every entry:
 Common optional fields:
 
 - `tags`: array of short strings. The first tag is used as the topic fallback when `topic` is absent, so order it sensibly.
-- `topic`: the topic this sits under (drives the subject/topic pages). Prefer setting it explicitly.
+- `topic`: the topic this sits under (drives the subject/topic pages). Prefer setting it explicitly, and reuse an existing topic name for that subject (`grep -h '^topic:' src/content/resources/*.md | sort | uniq -c`) rather than coining a near-duplicate; a new topic page with one resource in it is worse than a slightly broader existing one.
 - `description`: one or two sentences. Recommended for applets and videos.
 - `category`: `practice` for a self-marking practice bank (these also appear in the Practice section) or `game` for a classroom game such as Taboo. Omit for everything else.
 - `sourceNote`: provenance / licensing note (used on file entries).

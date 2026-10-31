@@ -62,9 +62,4 @@ const resources = defineCollection({
   schema,
 });
 
-const tools = defineCollection({
-  type: 'content',
-  schema,
-});
-
-export const collections = { resources, tools };
+export const collections = { resources };

@@ -3,7 +3,6 @@ import BaseLayout from '~/layouts/BaseLayout.astro';
 import ResourceEmbed from '~/components/resources/ResourceEmbed.astro';
 import FullPageEmbed from '~/components/resources/FullPageEmbed.astro';
 import TypeBadge from '~/components/resources/TypeBadge.astro';
-import AddButton from '~/components/edit/AddButton.astro';
 import { getResources, embedSrc, topicFor, topicSlug } from '~/lib/collections';
 import { TYPE_LABEL } from '~/lib/types';
 import { subjectFromSlug, slugForSubject } from '~/data/subjects';
@@ -43,7 +42,6 @@ const sourceLabel = isExternal ? new URL(src!, 'https://x').hostname.replace('x'
       { label: title },
     ]}
   >
-    <AddButton slot="actions" label={`Edit ${TYPE_LABEL[type].toLowerCase()}`} kind="applet" />
     <div slot="about" class="about">
       <div class="head-badges">
         <TypeBadge type={type} format={format} />
@@ -90,7 +88,6 @@ const sourceLabel = isExternal ? new URL(src!, 'https://x').hostname.replace('x'
         </div>
         <div class="head-row">
           <h1>{title}</h1>
-          <AddButton label={`Edit ${TYPE_LABEL[type].toLowerCase()}`} kind="applet" />
         </div>
         {description && <p class="page-sub">{description}</p>}
         {tags.length > 0 && (

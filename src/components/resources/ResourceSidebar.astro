@@ -1,7 +1,6 @@
 ---
 import { SUBJECTS } from '~/data/subjects';
 import { getSubjectTopicTree, topicSlug } from '~/lib/collections';
-import AddButton from '~/components/edit/AddButton.astro';
 
 interface Props {
   activeSubject?: string;
@@ -13,7 +12,6 @@ const tree = await getSubjectTopicTree();
 <aside class="sidebar glass">
   <div class="sidebar-head">
     <span class="label-mono">Browse</span>
-    <AddButton label="+ File" kind="file" />
   </div>
   <nav aria-label="Resource topics">
     <ul role="list" class="subject-list">

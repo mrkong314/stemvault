@@ -2,7 +2,6 @@
 import ResourceLayout from '~/layouts/ResourceLayout.astro';
 import { SUBJECTS, subjectFromSlug } from '~/data/subjects';
 import { getResources, getSubjectTopicTree, topicSlug, topicFor } from '~/lib/collections';
-import AddButton from '~/components/edit/AddButton.astro';
 
 export async function getStaticPaths() {
   return SUBJECTS.map(s => ({ params: { subject: s.slug }, props: { subject: s.name } }));
@@ -36,7 +35,6 @@ const total = all.filter(r => r.data.subject === subject).length;
     <span class="eyebrow accent">Subject</span>
     <div class="head-row">
       <h1 class="accent">{subject}</h1>
-      <AddButton label="+ File" kind="file" />
     </div>
     <p class="page-sub">{total} resource{total === 1 ? '' : 's'} across {topics.length} topic{topics.length === 1 ? '' : 's'}. Pick a topic to see what's in it.</p>
   </header>
