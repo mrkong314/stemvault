@@ -1353,6 +1353,10 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .gquad .gq-ax { fill: none; stroke: var(--ink); stroke-width: 2.5; pointer-events: none; }
   .gquad .gq-ar { fill: var(--ink); pointer-events: none; }
   .line.is-graph.gs-open .actbtn.graph-gear { color: var(--accent); opacity: 1; }
+  /* while a graph equation is focused the keypad's @ key becomes y */
+  #keypad .pk-y { display: none; }
+  body.for-graph #keypad .pk-y { display: flex; }
+  body.for-graph #keypad .pk-at { display: none; }
   .graph-settings .g-more { align-self: flex-start; font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0.2rem 0.1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
   .graph-settings .g-more-ar { display: inline-block; transition: transform 0.15s; }
   .graph-settings .g-more.open .g-more-ar { transform: rotate(90deg); }
@@ -7411,8 +7415,8 @@ function addGraphRow(lineObj, initialLatex = '', focusIt = true, at = null) {
   }));
   entry.mq = mq;
   if (IS_TOUCH) suppressOSKeyboard(fEl);
-  fEl.addEventListener('focusin', () => { focusLine(lineObj); beginEditCapture(lineObj); });
-  fEl.addEventListener('focusout', () => { commitEditCapture(lineObj); });
+  fEl.addEventListener('focusin', () => { focusLine(lineObj); beginEditCapture(lineObj); document.body.classList.add('for-graph'); });
+  fEl.addEventListener('focusout', () => { commitEditCapture(lineObj); document.body.classList.remove('for-graph'); });
   fEl.addEventListener('keydown', (e) => {
     if (e.key === 'Backspace' && mq.latex() === '' && lineObj.eqFields.length > 1) {
       e.preventDefault();
@@ -8286,7 +8290,7 @@ const PAGE_CALC = [
   {l:'4', t:'write', v:'4'}, {l:'5', t:'write', v:'5'}, {l:'6', t:'write', v:'6'}, {l:'\u00D7', t:'cmd', v:'\\times', c:'op'}, {l:'x\u00B2', t:'sq', v:'', c:'op', katex:'x^{2}'},
   {l:'1', t:'write', v:'1'}, {l:'2', t:'write', v:'2'}, {l:'3', t:'write', v:'3'}, {l:'\u2212', t:'type', v:'-', c:'op'}, {l:'\u03C0', t:'cmd', v:'\\pi', c:'op', katex:'\\pi'},
   {l:'0', t:'write', v:'0'}, {l:'.', t:'write', v:'.'}, {l:'=', t:'write', v:'=', c:'op'}, {l:'+', t:'type', v:'+', c:'op'}, {l:'ans', t:'write', v:'ans', c:'act'},
-  {l:'?', t:'act', v:'symbol', c:'act'}, {l:'x', t:'var', v:'x', c:'varkey', letter:true}, {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}'}, {l:'@', t:'act', v:'formula', c:'act'}, {l:',', t:'write', v:',', c:'op'},
+  {l:'?', t:'act', v:'symbol', c:'act'}, {l:'x', t:'var', v:'x', c:'varkey', letter:true}, {l:'x\u25A1', t:'subscript', v:'', c:'op', katex:'x_{n}'}, {l:'@', t:'act', v:'formula', c:'act pk-at'}, {l:'y', t:'var', v:'y', c:'varkey pk-y', letter:true}, {l:',', t:'write', v:',', c:'op'},
 ];
 /* abc page: the FULL lowercase alphabet (constants like c render grey with
    hover cards now, so an accidental tap is visible and self-explaining), with
