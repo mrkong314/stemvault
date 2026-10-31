@@ -1,16 +1,4 @@
 ---
-import { getResources, getSubjectTopicTree } from '~/lib/collections';
-import { TOOLS } from '~/data/tools';
-
-const all = await getResources();
-const tree = await getSubjectTopicTree();
-const stats = [
-  { label: 'Resources', value: all.length },
-  { label: 'Applets', value: all.filter(r => r.data.type === 'applet').length },
-  { label: 'Practice banks', value: all.filter(r => r.data.category === 'practice').length },
-  { label: 'Topics', value: Object.values(tree).reduce((n, ts) => n + ts.length, 0) },
-  { label: 'Tools', value: TOOLS.length },
-];
 ---
 <section class="hero">
   <div class="container">
@@ -26,27 +14,15 @@ const stats = [
         <a href="/resources" class="btn">Browse resources</a>
         <a href="/tools" class="btn btn-ghost">Open tools</a>
       </div>
-      <dl class="hero-stats">
-        {stats.map(s => (
-          <div class="stat">
-            <dd>{s.value}</dd>
-            <dt>{s.label}</dt>
-          </div>
-        ))}
-      </dl>
     </div>
   </div>
 </section>
 
 <style>
-  .hero { padding: 4rem 0 3.5rem; border-top: 1px solid var(--rule); margin-top: 2rem; }
+  .hero { padding: 3.75rem 0 1.5rem; }
   .hero-title { font-size: clamp(2.4rem, 5vw, 3.6rem); line-height: 1.04; margin: 0.6rem 0 0.9rem; letter-spacing: -0.035em; }
   .hero-title em { font-style: normal; color: var(--accent); }
   .hero-tag { font-size: 1.08rem; line-height: 1.5; max-width: 60ch; color: var(--ink-dim); margin: 0 0 1.4rem; }
   .hero-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-  .hero-stats { display: flex; flex-wrap: wrap; gap: 1.25rem 1.75rem; margin: 1.75rem 0 0; padding-top: 1.1rem; border-top: 1px solid var(--rule); }
-  .stat { display: flex; flex-direction: column; }
-  .stat dd { margin: 0; font-size: 1.8rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
-  .stat dt { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); margin-top: 0.35rem; }
-  @media (max-width: 900px) { .hero { padding: 2.5rem 0 2.5rem; } }
+  @media (max-width: 900px) { .hero { padding: 2.5rem 0 1rem; } }
 </style>
