@@ -7205,7 +7205,10 @@ function graphPaint(cv, line, o) {
   ctx.font = tickFont;
   let ylabW = 0; for (let v = Math.ceil(ymin / ys) * ys; v <= ymax + 1e-9; v += ys) ylabW = Math.max(ylabW, ctx.measureText(fmtTick(v, ys)).width);
   const hasY = !!(g.ylabel && String(g.ylabel).trim()), hasX = !!(g.xlabel && String(g.xlabel).trim()), hasT = !!(g.title && String(g.title).trim());
-  const ML = Math.ceil(ylabW) + 14 + (hasY ? px + 8 : 0), MR = 14, MT = 10 + (hasT ? px + 12 : 0), MB = px + 14 + (hasX ? px + 6 : 0);
+  // exam-style axis titles: x past the x-axis arrowhead, y above the y-axis arrowhead; margins make room so nothing can overlap
+  const xRuns = hasX ? richRuns(g.xlabel) : [], yRuns = hasY ? richRuns(g.ylabel) : [];
+  const xlabW = hasX ? richMeasure(ctx, xRuns, px + 1) : 0, ylabTW = hasY ? richMeasure(ctx, yRuns, px + 1) : 0;
+  const ML = Math.ceil(ylabW) + 14, MR = 14 + (hasX ? Math.ceil(xlabW) + 8 : 0), MT = 10 + (hasT ? px + 12 : 0) + (hasY ? px + 6 : 0), MB = px + 14;
   const pw = W - ML - MR, ph = H - MT - MB; if (pw < 20 || ph < 20) return;
   const sx = x => ML + (x - xmin) / (xmax - xmin) * pw, sy = y => MT + (ymax - y) / (ymax - ymin) * ph;
   if (g.grid !== false) {
@@ -7229,9 +7232,9 @@ function graphPaint(cv, line, o) {
   for (let tx = Math.ceil(xmin / xs - 1e-9) * xs; tx <= xmax + 1e-9; tx += xs) { const t = R.pi ? fmtPiTick(tx, xs) : fmtTick(tx, xs), tw = ctx.measureText(t).width, cx = sx(tx); if (cx - tw / 2 > lastX + 6) { ctx.fillText(t, cx, MT + ph + 4); lastX = cx + tw / 2; } }
   ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
   for (let ty = Math.ceil(ymin / ys) * ys; ty <= ymax + 1e-9; ty += ys) ctx.fillText(fmtTick(ty, ys), ML - 6, sy(ty));
-  if (hasX) drawRich(ctx, g.xlabel, ML + pw / 2, H - 6, 'center', px + 1, C.ink);
-  if (hasY) { ctx.save(); ctx.translate(px + 2, MT + ph / 2); ctx.rotate(-Math.PI / 2); drawRich(ctx, g.ylabel, 0, 0, 'center', px + 1, C.ink); ctx.restore(); }
-  if (hasT) drawRich(ctx, g.title, ML + pw / 2, MT - 8, 'center', px + 3, C.ink);
+  if (hasX) drawRich(ctx, xRuns, ML + pw + 9, ax + px * 0.36, 'left', px + 1, C.ink);
+  if (hasY) { let yx = ay + 8, yAlign = 'left'; if (yx + ylabTW > W - 4) { yx = ay - 8; yAlign = 'right'; } drawRich(ctx, yRuns, yx, MT - 6, yAlign, px + 1, C.ink); }
+  if (hasT) drawRich(ctx, g.title, ML + pw / 2, 10 + px + 2, 'center', px + 3, C.ink);
   ctx.save(); ctx.beginPath(); ctx.rect(ML, MT, pw, ph); ctx.clip();
   const eqs = line._gEqs || [], fns = line._gFns || [], legend = [];
   eqs.forEach((lx, ci) => {
