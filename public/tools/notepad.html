@@ -806,6 +806,8 @@ body.blk-drag iframe{pointer-events:none}
 .draw-tools .dsw.on{border-color:var(--panel);box-shadow:0 0 0 2px var(--accent)}
 .draw-tools [data-dw] i{display:block;width:16px;border-radius:2px;background:currentColor}
 .draw-tools .dsep{width:1px;height:18px;background:var(--rule);margin:0 2px}
+.draw-tools button.tdel{color:var(--danger)}
+.draw-tools.idle>.tdel,.draw-tools.idle>.dsep:last-of-type{display:inline-flex}
 .draw-resize{position:absolute;left:0;right:0;bottom:0;height:10px;cursor:ns-resize;touch-action:none}
 .draw-resize::after{content:"";position:absolute;left:50%;bottom:3px;width:36px;height:3px;margin-left:-18px;border-radius:2px;background:var(--rule-strong);opacity:.7}
 @media (pointer:coarse){ .draw-tools{display:none} .block:focus-within .draw-tools,.block.selected .draw-tools{display:flex} }
@@ -3698,8 +3700,10 @@ function blockHTML(b,num){
     s+='<figure class="fig"><div class="imgwrap'+(drawOn[b.id]?' drawing':'')+'"><img src="'+esc(b.src||'')+'" alt="'+esc(b.text||'')+'" draggable="false"><canvas class="draw" tabindex="0" aria-label="Drawing over the image"></canvas>'+drawToolsHTML(true,!drawOn[b.id])+'</div><div class="caption" contenteditable="true" spellcheck="true" data-ph="Add a caption">'+esc(b.text||'')+'</div></figure>';
   } else if(b.type==='embed'){
     s+=embedHTML(b);
+  } else if(b.type==='draw'){
+    s+='<div class="drawblk" style="height:'+(b.h||260)+'px"><canvas class="draw" tabindex="0" aria-label="Drawing"></canvas>'+drawToolsHTML(false,false)+'<div class="draw-resize" title="Drag to change height"></div></div>';
   } else if(b.type==='graph'){
-    s+='<div class="graphblk" style="height:'+(b.h||320)+'px"><canvas class="graph" aria-label="Graph"></canvas><div class="draw-tools etools"><span class="ekind">Graph</span><button type="button" data-gact="edit">'+(graphEdit[b.id]?'Done':'Edit settings')+'</button><button type="button" data-gact="copy">Copy PNG</button><button type="button" data-gact="save">Save PNG</button></div><div class="draw-resize" title="Drag to change height"></div></div>'+(graphEdit[b.id]?graphEditorHTML(b):'');
+    s+='<div class="graphblk" style="height:'+(b.h||320)+'px"><canvas class="graph" aria-label="Graph"></canvas><div class="draw-tools etools"><span class="ekind">Graph</span><button type="button" data-gact="edit">'+(graphEdit[b.id]?'Done':'Edit settings')+'</button><button type="button" data-gact="copy">Copy PNG</button><button type="button" data-gact="save">Save PNG</button><span class="dsep"></span><button type="button" data-dact="delete" class="tdel" aria-label="Delete this graph">Delete</button></div><div class="draw-resize" title="Drag to change height"></div></div>'+(graphEdit[b.id]?graphEditorHTML(b):'');
   } else {
     s+='<div class="content" contenteditable="true" spellcheck="true" data-ph="'+esc(PLACEHOLDER[b.type]||'')+'">'+contentHTML(b)+'</div>';
   }
@@ -3709,7 +3713,7 @@ function drawToolsHTML(withPen,idle){
   return '<div class="draw-tools'+(idle?' idle':'')+'">'+(withPen?'<button type="button" data-dact="pen" aria-label="Draw on the image">'+(idle?'Draw':'Done')+'</button><span class="dsep"></span>':'')+
     ['ink','accent','danger','good'].map(function(c){ return '<button type="button" class="dsw" data-color="'+c+'" aria-label="Pen colour '+c+'"></button>'; }).join('')+
     '<span class="dsep"></span><button type="button" data-dw="2" aria-label="Thin"><i style="height:2px"></i></button><button type="button" data-dw="4" aria-label="Medium"><i style="height:4px"></i></button><button type="button" data-dw="8" aria-label="Thick"><i style="height:8px"></i></button>'+
-    '<span class="dsep"></span><button type="button" data-dact="erase" aria-label="Eraser">Eraser</button><button type="button" data-dact="undo" aria-label="Undo stroke">Undo</button><button type="button" data-dact="clear" aria-label="Clear drawing">Clear</button></div>';
+    '<span class="dsep"></span><button type="button" data-dact="erase" aria-label="Eraser">Eraser</button><button type="button" data-dact="undo" aria-label="Undo stroke">Undo</button><button type="button" data-dact="clear" aria-label="Clear drawing">Clear</button><span class="dsep"></span><button type="button" data-dact="delete" class="tdel" aria-label="Delete this block">Delete</button></div>';
 }
 function embedHTML(b){
   if(!b.src || embedEdit[b.id]){
@@ -3717,7 +3721,7 @@ function embedHTML(b){
   }
   var kind=EMBED_KINDS[b.kind]||'Embed';
   return '<div class="embedblk'+(b.kind==='youtube'&&!b.h?' yt':'')+'"'+(b.h?' style="height:'+b.h+'px"':'')+'><iframe src="'+esc(b.src)+'" title="'+esc(kind)+'" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-presentation" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>'+
-    '<div class="draw-tools etools"><span class="ekind">'+esc(kind)+'</span><a href="'+esc(b.url)+'" target="_blank" rel="noopener">Open</a><button type="button" data-eact="link">Change link</button></div><div class="draw-resize" title="Drag to change height"></div></div>';
+    '<div class="draw-tools etools"><span class="ekind">'+esc(kind)+'</span><a href="'+esc(b.url)+'" target="_blank" rel="noopener">Open</a><button type="button" data-eact="link">Change link</button><span class="dsep"></span><button type="button" data-dact="delete" class="tdel" aria-label="Delete this embed">Delete</button></div><div class="draw-resize" title="Drag to change height"></div></div>';
 }
 function graphEditorHTML(b){
   var num=function(k,label){ return '<label>'+label+'<input type="number" step="any" inputmode="decimal" data-g="'+k+'" value="'+esc(b[k])+'"></label>'; };
@@ -4990,6 +4994,7 @@ editor.addEventListener('click',function(e){
   if(e.target.closest('.chk')){ b.checked=!b.checked; blk.classList.toggle('done',b.checked); e.target.setAttribute('aria-pressed',b.checked?'true':'false'); save(); return; }
   if(e.target.closest('.tog')){ b.collapsed=!b.collapsed; render(); save(); return; }
   if(e.target.closest('.img-x')){ removeBoxBlock(b); return; }
+  var tdel=e.target.closest('.draw-tools [data-dact="delete"]'); if(tdel){ removeBoxBlock(b); return; }
   var sbt=e.target.closest('.selbar button'); if(sbt){ if(sbt.dataset.sel==='del'){ removeBoxBlock(b); } else { checkpoint(); var cp=clone(b); cp.id=uid(); insertAfter(b.id,cp); render(); select(cp.id); save(); } return; }
   var et=e.target.closest('.etools button'); if(et && b.type==='embed'){ if(et.dataset.eact==='link'){ embedEdit[b.id]=true; render(); var ei=blockEl(b.id).querySelector('.embed-url'); if(ei){ ei.focus(); ei.select(); } } return; }
   if(b.type==='embed' && !e.target.closest('iframe, .draw-tools, .draw-resize, .embed-url')){ select(b.id); return; }
