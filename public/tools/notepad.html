@@ -739,6 +739,21 @@ textarea.code:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent
 .addvar:active{opacity:.7}
 .addvar.addall{background:rgba(10,132,255,.06);color:var(--accent);border:1.5px dashed var(--accent)}
 .mathblk .cl-in{font-size:1.15rem}
+/* drawing block */
+.drawblk{position:relative;margin:6px 0;border-radius:14px;background:var(--panel);border:1px solid var(--rule);overflow:hidden;min-width:0}
+.drawblk canvas.draw{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair;outline:none}
+.selected .drawblk{box-shadow:0 0 0 2px var(--accent)}
+.draw-tools{position:absolute;top:8px;right:8px;display:none;align-items:center;gap:4px;padding:4px 6px;border-radius:10px;background:var(--glass-strong);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)}
+.block:hover .draw-tools,.block:focus-within .draw-tools,.block.selected .draw-tools{display:flex}
+.draw-tools button{font:inherit;font-size:.74rem;font-weight:600;min-height:26px;min-width:26px;padding:0 7px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--ink-dim);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.draw-tools button.on{background:var(--accent-tint);color:var(--accent);border-color:var(--accent)}
+.draw-tools .dsw{width:22px;min-width:22px;height:22px;min-height:22px;padding:0;border-radius:50%;border:2px solid transparent}
+.draw-tools .dsw.on{border-color:var(--panel);box-shadow:0 0 0 2px var(--accent)}
+.draw-tools [data-dw] i{display:block;width:16px;border-radius:2px;background:currentColor}
+.draw-tools .dsep{width:1px;height:18px;background:var(--rule);margin:0 2px}
+.draw-resize{position:absolute;left:0;right:0;bottom:0;height:10px;cursor:ns-resize;touch-action:none}
+.draw-resize::after{content:"";position:absolute;left:50%;bottom:3px;width:36px;height:3px;margin-left:-18px;border-radius:2px;background:var(--rule-strong);opacity:.7}
+@media (pointer:coarse){ .draw-tools{display:none} .block:focus-within .draw-tools,.block.selected .draw-tools{display:flex} }
 
 /* popups: slash menu, pickers, prefix list, table size */
 #slash,#bsl,#pfx,#tgrid,#tabMenu{position:fixed;z-index:60;background:var(--panel);border:1px solid var(--glass-border);border-radius:14px;box-shadow:0 12px 34px rgba(0,0,0,.22),inset 0 1px 0 var(--glass-edge);padding:6px}
@@ -894,8 +909,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
 }
 @media (prefers-reduced-motion: reduce){ .tog,.block,#sidepanel,#panelScrim,.tgroup-twist{transition:none} }
 </style>
-</head>
-<body>
+
 <div id="app">
   <aside id="sidepanel" aria-label="Notes">
     <div class="sp-top"><button id="newTab" class="tablist-new" type="button">+ New note</button><input id="noteSearch" type="search" placeholder="Search notes" autocomplete="off" spellcheck="false" aria-label="Search notes"></div>
@@ -942,6 +956,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
         <button type="button" data-bb="table" aria-label="Table">⊞</button>
         <button type="button" data-bb="calc" aria-label="Calculator"><span class="k">=</span></button>
         <button type="button" data-bb="math" aria-label="Maths"><span class="k">∑</span></button>
+        <button type="button" data-bb="draw" aria-label="Drawing">✎</button>
         <button type="button" data-bb="image" aria-label="Image">▣</button>
       </div>
       <div id="calcpad" role="toolbar" aria-label="Calculator keys">
@@ -993,9 +1008,15 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
         <tr><td>=</td><td>Calculator section</td></tr>
         <tr><td>$$</td><td>Maths block: typeset equations, not evaluated</td></tr>
         <tr><td>---</td><td>Divider</td></tr>
-        <tr><td>/</td><td>Block menu, including Table, Calculator and Image</td></tr>
+        <tr><td>/</td><td>Block menu, including Table, Calculator, Maths, Drawing and Image</td></tr>
       </table>
-      <h3>Tables</h3>
+      <h3>Drawing</h3>
+    <table>
+      <tr><td>/draw</td><td>A sketch area for pen, mouse or finger. Tools appear on hover or tap: four pen colours, three widths, an eraser, Undo stroke and Clear. Ctrl/Cmd+Z on the canvas removes the last stroke.</td></tr>
+      <tr><td>Height</td><td>Drag the bar at the bottom edge to make the area taller. Strokes are kept as lines, so the drawing stays sharp at any size and in both themes.</td></tr>
+      <tr><td>Delete</td><td>Click the drawing’s margin to select the block, then Backspace.</td></tr>
+    </table>
+    <h3>Tables</h3>
       <table>
         <tr><td>Size picker</td><td>Choosing Table from the menu asks for rows and columns first.</td></tr>
         <tr><td>Tab / Shift+Tab</td><td>Next or previous cell. Tab in the last cell adds a row; Shift+Tab in the last column adds a column.</td></tr>
@@ -1093,7 +1114,7 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
 var KEY='pocket-scratchpad-v2', OLD_KEY='pocket-scratchpad-v1', THEME_KEY='pocket-scratchpad-theme';
 var TEXT_TYPES=['p','h1','h2','h3','bullet','number','todo','toggle','quote','code'];
 var LIST_TYPES=['bullet','number','todo'];
-var BOX_TYPES=['image','divider','table','calc','math'];
+var BOX_TYPES=['image','divider','table','calc','math','draw'];
 var TYPE_INFO={
   p:{label:'Text',hint:'Plain paragraph'},
   h1:{label:'Heading 1',hint:'# '},
@@ -1108,10 +1129,11 @@ var TYPE_INFO={
   table:{label:'Table',hint:'| a | b |'},
   calc:{label:'Calculator',hint:'= '},
   math:{label:'Maths',hint:'$$ '},
+  draw:{label:'Drawing',hint:'Sketch with pen, mouse or finger'},
   image:{label:'Image',hint:'Choose a file, or paste one'},
   divider:{label:'Divider',hint:'---'}
 };
-var SLASH_ORDER=['p','h1','h2','h3','bullet','number','todo','toggle','quote','code','table','calc','math','image','divider'];
+var SLASH_ORDER=['p','h1','h2','h3','bullet','number','todo','toggle','quote','code','table','calc','math','draw','image','divider'];
 var PLACEHOLDER={p:'',h1:'Heading 1',h2:'Heading 2',h3:'Heading 3',bullet:'',number:'',todo:'',toggle:'',quote:'',code:'Code'};
 var PREFIX_SHORTCUTS=[['### ','h3'],['## ','h2'],['# ','h1'],['- ','bullet'],['* ','bullet'],['+ ','toggle'],['1. ','number'],['[] ','todo'],['[ ] ','todo'],['> ','toggle'],['" ','quote'],['= ','calc'],['$$ ','math']];
 var GROUP_COLORS=['#5b7fa6','#5f9e7a','#b98a4a','#b4635f','#8a6fb0','#5a9aa8','#a89b4a','#9a7a8a'];
@@ -1123,7 +1145,7 @@ var slashState={open:false,blockId:null,items:[],index:0};
 
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } return b; }
+function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } return b; }
 function getBlock(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return doc.blocks[i]; return null; }
 function idx(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return i; return -1; }
 function isText(b){ return TEXT_TYPES.indexOf(b.type)>=0; }
@@ -3538,6 +3560,11 @@ function blockHTML(b,num){
     s+=calcHTML(b);
   } else if(b.type==='math'){
     s+=mathHTML(b);
+  } else if(b.type==='draw'){
+    s+='<div class="drawblk" style="height:'+(b.h||260)+'px"><canvas class="draw" tabindex="0" aria-label="Drawing"></canvas><div class="draw-tools">'+
+      ['ink','accent','danger','good'].map(function(c){ return '<button type="button" class="dsw" data-color="'+c+'" aria-label="Pen colour '+c+'"></button>'; }).join('')+
+      '<span class="dsep"></span><button type="button" data-dw="2" aria-label="Thin"><i style="height:2px"></i></button><button type="button" data-dw="4" aria-label="Medium"><i style="height:4px"></i></button><button type="button" data-dw="8" aria-label="Thick"><i style="height:8px"></i></button>'+
+      '<span class="dsep"></span><button type="button" data-dact="erase" aria-label="Eraser">Eraser</button><button type="button" data-dact="undo" aria-label="Undo stroke">Undo</button><button type="button" data-dact="clear" aria-label="Clear drawing">Clear</button></div><div class="draw-resize" title="Drag to change height"></div></div>';
   } else {
     s+='<div class="content" contenteditable="true" spellcheck="true" data-ph="'+esc(PLACEHOLDER[b.type]||'')+'">'+contentHTML(b)+'</div>';
   }
@@ -3557,6 +3584,7 @@ function render(){
   editor.innerHTML=html;
   editor.querySelectorAll('textarea.code').forEach(autosize);
   initCalcFields();
+  initDrawBlocks();
   highlightSearch();
 }
 /* place a popup just under an element, in .page coordinates (the popups are absolutely positioned inside .page) */
@@ -3593,7 +3621,7 @@ function rerenderBlock(id){
 function focusBlock(id,off,extra){
   var el=blockEl(id); if(!el) return;
   var b=getBlock(id);
-  if(b.type==='image' || b.type==='divider'){ select(id); return; }
+  if(b.type==='image' || b.type==='divider' || b.type==='draw'){ select(id); return; }
   if(b.type==='code'){ var t=el.querySelector('textarea'); t.focus(); var p=off==null||off===Infinity?t.value.length:off; t.setSelectionRange(p,p); return; }
   if(b.type==='table'){ var cells=el.querySelectorAll('.cell'); if(!cells.length) return; var r=extra&&extra.r!=null?extra.r:(off===Infinity?b.rows.length-1:0); var cI=extra&&extra.c!=null?extra.c:0; var cell=el.querySelector('.cell[data-r="'+r+'"][data-c="'+cI+'"]')||cells[0]; cell._pendingCaret=off; cell.focus(); if(document.activeElement===cell) enterRawCell(cell); return; }
   if(b.type==='calc'||b.type==='math'){ var ins=el.querySelectorAll('.cl-in'); if(!ins.length) return; var li=extra&&extra.i!=null?extra.i:(off===Infinity?ins.length-1:0); li=Math.max(0,Math.min(li,ins.length-1)); focusCalcField(ins[li],off); return; }
@@ -3746,7 +3774,7 @@ function calcRemove(b,i){
 }
 
 /* ---------- slash menu ---------- */
-var SLASH_ALIASES={p:'text paragraph plain',h1:'heading title big',h2:'heading subheading',h3:'heading small',bullet:'list bullets dot',number:'list numbered ordered',todo:'checkbox task tick check',toggle:'collapse fold dropdown',quote:'blockquote',code:'monospace snippet',table:'grid cells columns rows',calc:'calculator calc sum solve evaluate',math:'maths math equation formula latex typeset display',image:'photo picture upload',divider:'rule line separator hr'};
+var SLASH_ALIASES={p:'text paragraph plain',h1:'heading title big',h2:'heading subheading',h3:'heading small',bullet:'list bullets dot',number:'list numbered ordered',todo:'checkbox task tick check',toggle:'collapse fold dropdown',quote:'blockquote',code:'monospace snippet',table:'grid cells columns rows',calc:'calculator calc sum solve evaluate',math:'maths math equation formula latex typeset display',draw:'drawing sketch pen scratch whiteboard canvas doodle diagram',image:'photo picture upload',divider:'rule line separator hr'};
 function openSlash(b,query){
   var q=query.toLowerCase();
   slashState.items=SLASH_ORDER.filter(function(t){ return !q || TYPE_INFO[t].label.toLowerCase().indexOf(q)>=0 || t.indexOf(q)>=0 || (SLASH_ALIASES[t]||'').indexOf(q)>=0; });
@@ -3767,6 +3795,7 @@ function convertTo(b,type){
   if(type==='image'){ b.text=''; pendingImageTarget=b.id; render(); document.getElementById('file').click(); return; }
   if(type==='divider'){ b.type='divider'; b.text=''; var nb=newBlock('p',{indent:b.indent}); insertAfter(b.id,nb); render(); focusBlock(nb.id,0); save(); return; }
   if(type==='table'){ b.text=''; render(); focusBlock(b.id,0); openTableGrid(b); return; }
+  if(type==='draw'){ b.type='draw'; b.text=''; b.strokes=[]; b.h=260; var nd=newBlock('p',{indent:b.indent}); insertAfter(b.id,nd); render(); select(b.id); save(); return; }
   if(type==='calc'||type==='math'){ b.type=type; b.lines=[textToLatex(b.text||'')]; b.tex=true; b.text=''; render(); focusBlock(b.id,Infinity,{i:0}); save(); return; }
   b.type=type; b.text=''; if(type==='toggle') b.collapsed=false; render(); focusBlock(b.id,0); save();
 }
@@ -3877,6 +3906,7 @@ function toMarkdown(d){
       case 'divider': lines.push('---'); break;
       case 'math': b.lines.forEach(function(l){ lines.push(ind+'$$'+l+'$$'); }); break;
       case 'image': lines.push(ind+'!['+(b.text||'image')+'](image stored on this device)'); break;
+      case 'draw': lines.push(ind+'![drawing]('+(b.strokes&&b.strokes.length?'drawing stored on this device':'empty drawing')+')'); break;
       case 'table':
         b.rows.forEach(function(row,r){ lines.push(ind+'| '+row.map(function(c){ return c.replace(/\|/g,'\\|'); }).join(' | ')+' |'); if(r===0 && b.header) lines.push(ind+'|'+row.map(function(){ return ' --- |'; }).join('')); });
         break;
@@ -3911,7 +3941,7 @@ function confirmDialog(message,okLabel){
     setTimeout(function(){ ov.querySelector('.ok').focus(); },0);
   });
 }
-function docIsEmpty(d){ if(d.title&&d.title.trim()) return false; return d.blocks.every(function(b){ if(b.type==='image'||b.type==='table') return false; if(b.type==='calc'||b.type==='math') return b.lines.every(function(l){ return !l.trim(); }); if(b.type==='divider') return true; return !(b.text&&b.text.trim()); }); }
+function docIsEmpty(d){ if(d.title&&d.title.trim()) return false; return d.blocks.every(function(b){ if(b.type==='image'||b.type==='table') return false; if(b.type==='draw') return !(b.strokes&&b.strokes.length); if(b.type==='calc'||b.type==='math') return b.lines.every(function(l){ return !l.trim(); }); if(b.type==='divider') return true; return !(b.text&&b.text.trim()); }); }
 function confirmIfNotEmpty(empty,msg,ok){ return empty?Promise.resolve(true):confirmDialog(msg,ok); }
 
 /* ---------- tabs and groups ---------- */
@@ -4369,6 +4399,52 @@ document.querySelector('.note').addEventListener('pointerdown',function(e){
 });
 document.addEventListener('mousedown',function(e){ if(rangeSel && !e.shiftKey && !(e.target.closest&&e.target.closest('.drag'))) clearRange(); },true);
 
+/* ---------- drawing blocks: strokes on a canvas, pen or finger, kept as vectors ---------- */
+var drawTool={color:'ink',w:4,erase:false};
+function drawColor(name){ var cs=getComputedStyle(document.documentElement); var map={ink:'--ink',accent:'--accent',danger:'--danger',good:'--good'}; return (cs.getPropertyValue(map[name]||'--ink')||'#000').trim(); }
+function drawPaint(cv,b){
+  var ctx=cv.getContext('2d'), dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=cv.clientHeight;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){ cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); }
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+  (b.strokes||[]).forEach(function(s){ drawStroke(ctx,s); });
+}
+function drawStroke(ctx,s,from){
+  var pts=s.pts; if(!pts||!pts.length) return;
+  ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+  if(s.erase){ ctx.globalCompositeOperation='destination-out'; ctx.strokeStyle='#000'; ctx.lineWidth=s.w*4; }
+  else { ctx.strokeStyle=drawColor(s.c); ctx.lineWidth=s.w; }
+  var start=Math.max(0,(from||1)-1);
+  if(pts.length===1){ ctx.beginPath(); ctx.arc(pts[0][0],pts[0][1],ctx.lineWidth/2,0,Math.PI*2); ctx.fillStyle=ctx.strokeStyle; if(!s.erase) ctx.fill(); ctx.restore(); return; }
+  ctx.beginPath(); ctx.moveTo(pts[start][0],pts[start][1]);
+  for(var i=start+1;i<pts.length;i++){ var p=pts[i]; if(!s.erase && p[2]){ ctx.lineWidth=s.w*(0.5+p[2]); } ctx.lineTo(p[0],p[1]); ctx.stroke(); ctx.beginPath(); ctx.moveTo(p[0],p[1]); }
+  ctx.restore();
+}
+function paintDrawTools(blk){ blk.querySelectorAll('.dsw').forEach(function(x){ x.classList.toggle('on',!drawTool.erase && x.dataset.color===drawTool.color); }); blk.querySelectorAll('[data-dw]').forEach(function(x){ x.classList.toggle('on',+x.dataset.dw===drawTool.w); }); var er=blk.querySelector('[data-dact="erase"]'); if(er) er.classList.toggle('on',drawTool.erase); }
+function initDrawBlocks(){
+  editor.querySelectorAll('.block.t-draw').forEach(function(blk){
+    var b=getBlock(blk.dataset.id), cv=blk.querySelector('canvas.draw'); if(!b||!cv||cv._init) return; cv._init=true;
+    blk.querySelectorAll('.dsw').forEach(function(x){ x.style.background=drawColor(x.dataset.color); });
+    paintDrawTools(blk); drawPaint(cv,b);
+    var cur=null;
+    cv.addEventListener('pointerdown',function(e){ if(e.button!==0 && e.pointerType==='mouse') return; e.preventDefault(); cv.focus(); select(null); try{ cv.setPointerCapture(e.pointerId); }catch(x){}
+      var r=cv.getBoundingClientRect(); cur={c:drawTool.color,w:drawTool.w,erase:drawTool.erase,pts:[[Math.round(e.clientX-r.left),Math.round(e.clientY-r.top),e.pointerType==='pen'?+e.pressure.toFixed(2):0]]};
+      var ctx=cv.getContext('2d'); drawStroke(ctx,cur); });
+    cv.addEventListener('pointermove',function(e){ if(!cur) return; e.preventDefault(); var r=cv.getBoundingClientRect(); var evs=e.getCoalescedEvents?e.getCoalescedEvents():[e]; if(!evs.length) evs=[e];
+      var before=cur.pts.length; evs.forEach(function(ev){ cur.pts.push([Math.round(ev.clientX-r.left),Math.round(ev.clientY-r.top),ev.pointerType==='pen'?+ev.pressure.toFixed(2):0]); });
+      drawStroke(cv.getContext('2d'),cur,before); });
+    var end=function(e){ if(!cur) return; if(cur.pts.length>1||!cur.erase){ b.strokes.push(cur); save(); } cur=null; drawPaint(cv,b); };
+    cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end); cv.addEventListener('lostpointercapture',function(){ if(cur) end(); });
+    cv.addEventListener('keydown',function(e){ if((e.metaKey||e.ctrlKey) && (e.key==='z'||e.key==='Z') && !e.shiftKey && b.strokes.length){ e.preventDefault(); e.stopPropagation(); b.strokes.pop(); drawPaint(cv,b); save(); } if(e.key==='Escape'){ cv.blur(); select(b.id); } });
+    var rz=blk.querySelector('.draw-resize');
+    rz.addEventListener('pointerdown',function(e){ e.preventDefault(); var sy=e.clientY, h0=b.h||260, pid=e.pointerId; try{ rz.setPointerCapture(pid); }catch(x){}
+      var mv=function(ev){ b.h=Math.max(120,Math.min(1400,Math.round(h0+ev.clientY-sy))); blk.querySelector('.drawblk').style.height=b.h+'px'; drawPaint(cv,b); };
+      var up=function(){ document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); save(); };
+      document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up); });
+  });
+}
+window.addEventListener('resize',function(){ editor.querySelectorAll('.block.t-draw').forEach(function(blk){ var b=getBlock(blk.dataset.id), cv=blk.querySelector('canvas.draw'); if(b&&cv) drawPaint(cv,b); }); });
+new MutationObserver(function(){ editor.querySelectorAll('.block.t-draw').forEach(function(blk){ var b=getBlock(blk.dataset.id), cv=blk.querySelector('canvas.draw'); if(b&&cv) drawPaint(cv,b); blk.querySelectorAll('.dsw').forEach(function(x){ x.style.background=drawColor(x.dataset.color); }); }); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
 /* ---------- undo and redo of note changes ---------- */
 function snapshotNow(){ return JSON.stringify({tab:state.activeTabId,doc:doc}); }
 function pushHistory(){ if(!doc) return; var s=snapshotNow(); if(hist.stack[hist.index]===s) return; hist.stack=hist.stack.slice(0,hist.index+1); hist.stack.push(s); if(hist.stack.length>hist.max) hist.stack.shift(); hist.index=hist.stack.length-1; }
@@ -4419,6 +4495,10 @@ editor.addEventListener('click',function(e){
   if(e.target.closest('.chk')){ b.checked=!b.checked; blk.classList.toggle('done',b.checked); e.target.setAttribute('aria-pressed',b.checked?'true':'false'); save(); return; }
   if(e.target.closest('.tog')){ b.collapsed=!b.collapsed; render(); save(); return; }
   if(e.target.closest('.img-x')){ removeBoxBlock(b); return; }
+  var dt=e.target.closest('.draw-tools button'); if(dt && b.type==='draw'){ var cv=blk.querySelector('canvas.draw');
+    if(dt.dataset.color){ drawTool.color=dt.dataset.color; drawTool.erase=false; } else if(dt.dataset.dw){ drawTool.w=+dt.dataset.dw; } else if(dt.dataset.dact==='erase'){ drawTool.erase=!drawTool.erase; } else if(dt.dataset.dact==='undo'){ if(b.strokes.length){ b.strokes.pop(); drawPaint(cv,b); save(); } } else if(dt.dataset.dact==='clear'){ if(b.strokes.length){ checkpoint(); b.strokes=[]; drawPaint(cv,b); save(); } }
+    editor.querySelectorAll('.block.t-draw').forEach(paintDrawTools); return; }
+  if(e.target.closest('.drawblk') && !e.target.closest('canvas, .draw-tools, .draw-resize')){ select(b.id); return; }
   var tb=e.target.closest('.tbl-tools button'); if(tb){ var fc=blk._lastCell||{r:0,c:0}; tableAct(b,tb.dataset.act,fc.r,fc.c); return; }
   if(e.target.closest('.add-line-strip') && (b.type==='calc'||b.type==='math')){ calcInsert(b,b.lines.length-1,''); return; }
   var vc=e.target.closest('.addvar'); if(vc && (b.type==='calc')){ var li=+vc.closest('.cl-out').dataset.i; if(vc.dataset.all){ var rr=evalCalc(b)[li]||{}; addVariables(b,li,rr.undef||[]); } else addVariables(b,li,[vc.dataset.var]); return; }
@@ -4615,7 +4695,7 @@ function blockbarAct(k){
   var b=getBlock(c.closest('.block').dataset.id); if(!b) return; var off=caretOffset(c);
   if(k==='indent'||k==='outdent'){ if(setIndent(b,k==='indent'?1:-1)){ render(); focusBlock(b.id,off); save(); } return; }
   if(k==='image'){ pendingImageTarget=b.id; document.getElementById('file').click(); return; }
-  if(k==='table'||k==='calc'||k==='math'){ convertTo(b,k); return; }
+  if(k==='table'||k==='calc'||k==='math'||k==='draw'){ convertTo(b,k); return; }
   if(k==='heading'){ b.type=b.type==='h1'?'h2':b.type==='h2'?'h3':b.type==='h3'?'p':'h1'; }
   else b.type=(b.type===k?'p':k);
   if(b.type==='toggle') b.collapsed=false;
@@ -4643,5 +4723,3 @@ function boot(){
 boot();
 })();
 </script>
-</body>
-</html>
