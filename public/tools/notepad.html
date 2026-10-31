@@ -4996,7 +4996,9 @@ function graphPaint(cv,b,o){
   ctx.font=tickFont;
   var ylabW=0; for(var v=Math.ceil(ymin/ys)*ys; v<=ymax+1e-9; v+=ys) ylabW=Math.max(ylabW,ctx.measureText(fmtTick(v,ys)).width);
   var hasY=!!(b.ylabel&&String(b.ylabel).trim()), hasX=!!(b.xlabel&&String(b.xlabel).trim()), hasT=!!(b.title&&String(b.title).trim());
-  var ML=Math.ceil(ylabW)+14+(hasY?px+8:0), MR=14, MT=10+(hasT?px+12:0), MB=px+14+(hasX?px+6:0);
+  /* exam-style axis titles: x past the x-axis arrowhead, y above the y-axis arrowhead; margins make room so nothing can overlap */
+  var xRuns=hasX?richRuns(b.xlabel):[], yRuns=hasY?richRuns(b.ylabel):[]; var xlabW=hasX?richMeasure(ctx,xRuns,px+1):0, ylabTW=hasY?richMeasure(ctx,yRuns,px+1):0;
+  var ML=Math.ceil(ylabW)+14, MR=14+(hasX?Math.ceil(xlabW)+8:0), MT=10+(hasT?px+12:0)+(hasY?px+6:0), MB=px+14;
   var pw=W-ML-MR, ph=H-MT-MB; if(pw<20||ph<20) return;
   var sx=function(x){ return ML+(x-xmin)/(xmax-xmin)*pw; }, sy=function(y){ return MT+(ymax-y)/(ymax-ymin)*ph; };
   if(b.grid!==false){ ctx.strokeStyle=C.grid; ctx.lineWidth=1; ctx.beginPath();
@@ -5013,9 +5015,9 @@ function graphPaint(cv,b,o){
   var lastX=-1e9; for(var tx=Math.ceil(xmin/xs-1e-9)*xs; tx<=xmax+1e-9; tx+=xs){ var t=R.pi?fmtPiTick(tx,xs):fmtTick(tx,xs), tw=ctx.measureText(t).width, cx=sx(tx); if(cx-tw/2>lastX+6){ ctx.fillText(t,cx,MT+ph+4); lastX=cx+tw/2; } }
   ctx.textAlign='right'; ctx.textBaseline='middle';
   for(var ty=Math.ceil(ymin/ys)*ys; ty<=ymax+1e-9; ty+=ys){ ctx.fillText(fmtTick(ty,ys),ML-6,sy(ty)); }
-  if(hasX) drawRich(ctx,b.xlabel,ML+pw/2,H-6,'center',px+1,C.ink);
-  if(hasY){ ctx.save(); ctx.translate(px+2,MT+ph/2); ctx.rotate(-Math.PI/2); drawRich(ctx,b.ylabel,0,0,'center',px+1,C.ink); ctx.restore(); }
-  if(hasT) drawRich(ctx,b.title,ML+pw/2,MT-8,'center',px+3,C.ink);
+  if(hasX) drawRich(ctx,xRuns,ML+pw+9,ax+px*0.36,'left',px+1,C.ink);
+  if(hasY){ var yx=ay+8, yAlign='left'; if(yx+ylabTW>W-4){ yx=ay-8; yAlign='right'; } drawRich(ctx,yRuns,yx,MT-6,yAlign,px+1,C.ink); }
+  if(hasT) drawRich(ctx,b.title,ML+pw/2,10+px+2,'center',px+3,C.ink);
   ctx.save(); ctx.beginPath(); ctx.rect(ML,MT,pw,ph); ctx.clip();
   var eqs=Array.isArray(b.eqs)?b.eqs:[], legend=[];
   eqs.forEach(function(line,ci){ if(!String(line||'').trim()) return; var f=graphCompile(line,b); var col=graphEqColor(b,ci); if(col==='ink') col=C.ink; legend.push({runs:latexRuns(line,0,[]),c:col,w:((b.eqStyles&&b.eqStyles[ci])||{}).w,bad:!f}); if(!f) return;
@@ -5120,8 +5122,10 @@ function initGraphBlocks(){
       el._commit=function(nt){ nt=nt.replace(/\n/g,' '); if(pe) pe.txt=nt; else b[k]=nt; graphPaint(cv,b); later(); };
       el.addEventListener('keydown',function(e){ var mod=e.metaKey||e.ctrlKey;
         if(e.key==='Enter'){ e.preventDefault(); el.blur(); return; }
+        if(mod && !e.shiftKey && (e.key==='a'||e.key==='A')){ e.preventDefault(); e.stopPropagation(); el._selAll=true; var rg=document.createRange(); rg.selectNodeContents(el); var sl=window.getSelection(); sl.removeAllRanges(); sl.addRange(rg); return; }
         if(mod && e.shiftKey && (e.key==='+'||e.key==='='||e.code==='Equal')){ e.preventDefault(); wrapSelection('^'); return; }
         if(mod && e.shiftKey && (e.key==='_'||e.key==='-'||e.code==='Minus')){ e.preventDefault(); wrapSelection('~'); return; } });
+      el.addEventListener('beforeinput',function(e){ if(el._selAll && e.inputType==='insertText'){ el._selAll=false; var sl=window.getSelection(); if(sl.rangeCount && !sl.isCollapsed && sl.toString().replace(/\u200b/g,'').length>=rawOf(el).replace(/`[^`]*`/g,'').length-1){ e.preventDefault(); setRawHTML(el,''); el._commit(''); document.execCommand('insertText',false,e.data||''); } } else el._selAll=false; });
       el.addEventListener('focusout',function(){ if(imqState.open && imqState.el===el) return; setRawHTML(el,pe?(pe.txt||''):(b[k]||'')); });
     });
     ge.addEventListener('input',function(e){ e.stopPropagation(); var inp=e.target.closest('[data-g],[data-pk]'); if(!inp) return; graphApplyInput(b,inp); graphPaint(cv,b); syncRangeInputs(b); paintErr(); later(); });
