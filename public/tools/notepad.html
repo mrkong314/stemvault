@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Notepad</title>
-<link rel="icon" type="image/png" href="/tools/notepad-icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/tools/notepad-icon-180.png">
+<link rel="icon" type="image/png" href="/tools/notepad-green-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/tools/notepad-green-180.png">
 <link rel="manifest" href="/tools/notepad.webmanifest">
 <meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)">
@@ -1130,7 +1130,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
     <h3>Graph</h3>
     <table>
       <tr><td>/graph</td><td>Axes you set, with equations in x typed in live maths fields like a calculator line (<code>x^2 - 4</code>, <code>2x + 1</code>, <code>sin(x)</code>; a leading <code>y =</code> is fine). Enter adds a line, Backspace on an empty line removes it; \ and @ search as in the calculator. Points go one per line as <code>x, y</code>. The settings show when a graph is created and hide once you click elsewhere; select the graph and press Edit settings to bring them back (Hide settings or Esc also closes them).</td></tr>
-      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Click the quadrants in the small axes picture to show or hide them; the ranges clamp at zero on the hidden sides without changing your stored values. With Auto ticked, an axis fits its range and step to the curves and points; typing a min, max or step switches that axis to manual. A trig function in radians puts the x axis into π mode: steps and tick labels become multiples of π (π/2, π, 3π/2) and the x boxes are read in units of π; the π button beside Auto turns this on or off for any graph. Gridlines and the axis arrowheads can be switched off.</td></tr>
+      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Click the quadrants in the small axes picture to show or hide them; the ranges clamp at zero on the hidden sides without changing your stored values. With Auto ticked, an axis fits its range and step to the curves and points; typing a min, max or step switches that axis to manual. A trig function in radians puts the x axis into π mode while the axis is automatic: steps and tick labels become multiples of π (π/2, π, 3π/2) and the x boxes are read in units of π; the π button beside Auto turns this on or off for any graph. Gridlines and the axis arrowheads can be switched off.</td></tr>
       <tr><td>Points</td><td>One entry per line: <code>(1, 2)</code> or <code>1, 2</code> for a point, or a bracketed list such as <code>[(0,0),(1,3),(2,4)]</code> for points joined by a line. Enter adds an entry, Backspace on an empty one removes it. Click the colour dot beside an equation or point to set its colour (black included), opacity and thickness; for points also the marker (filled or hollow circle, cross, plus, square, triangle, diamond) and its size. Label shows the coordinates beside each point in maths formatting; type your own label text instead, with ‘ for a maths run, and it sits by the last point. Equation labels switches the legend on (it is off to start). Curves and points are black until you pick a colour.</td></tr>
       <tr><td>Copy PNG</td><td>Copies the graph as an image on a white background, ready to paste into Word or a slide. Save PNG downloads the same image.</td></tr>
       <tr><td>Delete</td><td>Click the graph’s margin to select the block, then Backspace. On a phone, a selected block shows Duplicate and Delete buttons.</td></tr>
@@ -4885,7 +4885,7 @@ function drawMarker(ctx,x,y,mk,s,col,bg){
 function fmtCoord(v){ var s=(+v.toPrecision(6)).toString(); return s; }
 /* x axis in multiples of π: automatic for trig in radians, or switched with the π button */
 function graphUsesTrig(b){ return (Array.isArray(b.eqs)?b.eqs:[]).some(function(l){ return /\\?(sin|cos|tan|sec|csc|cot)\b/.test(String(l||'')); }); }
-function graphUsesPi(b){ if(b.xpi===true) return true; if(b.xpi===false) return false; return b.angle!=='deg' && graphUsesTrig(b); }
+function graphUsesPi(b){ if(b.xpi===true) return true; if(b.xpi===false) return false; return b.angle!=='deg' && b.autoX!==false && graphUsesTrig(b); }
 var PI_STEPS=[1/12,1/6,1/4,1/3,1/2,1,2,4,8,16];
 function piNiceStep(range){ var r=range/Math.PI; for(var i=0;i<PI_STEPS.length;i++){ if(r/PI_STEPS[i]<=10) return PI_STEPS[i]*Math.PI; } return PI_STEPS[PI_STEPS.length-1]*Math.PI; }
 function fmtPiTick(v,step){ var dens=[1,2,3,4,6,8,12,16,24]; var su=step/Math.PI, den=1; for(var i=0;i<dens.length;i++){ if(Math.abs(su*dens[i]-Math.round(su*dens[i]))<1e-6){ den=dens[i]; break; } } var n=Math.round(v/Math.PI*den); if(n===0) return '0'; var g=function(a,c){ return c?g(c,a%c):Math.abs(a); }; var d=g(n,den); n/=d; var dd=den/d; var s=(n===1?'':n===-1?'−':(n<0?'−'+(-n):String(n)))+'π'; return dd===1?s:s+'/'+dd; }
@@ -5044,7 +5044,8 @@ function graphApplyInput(b,inp){
   var k=inp.dataset.g; if(!k) return;
   if(k==='autoX'||k==='autoY'){ b[k]=inp.checked; return; }
   /* the first manual edit on an axis freezes the values currently shown, then applies the typed one */
-  if((k==='xmin'||k==='xmax'||k==='xstep') && b.autoX!==false){ var RX=graphRanges(b); b.xmin=RX.xmin; b.xmax=RX.xmax; b.xstep=RX.xs; b.autoX=false; }
+  if((k==='xmin'||k==='xmax'||k==='xstep') && b.autoX!==false){ var RX=graphRanges(b); if(b.xpi===undefined && RX.pi) b.xpi=true;   /* keep the π units the boxes were showing */
+    b.xmin=RX.xmin; b.xmax=RX.xmax; b.xstep=RX.xs; b.autoX=false; }
   if((k==='ymin'||k==='ymax'||k==='ystep') && b.autoY!==false){ var RY=graphRanges(b); b.ymin=RY.ymin; b.ymax=RY.ymax; b.ystep=RY.ys; b.autoY=false; }
   if((k==='xmin'||k==='xmax'||k==='xstep') && inp.type==='number'){ var pv=parseFloat(inp.value); if(isFinite(pv)){ b[k]=graphUsesPi(b)?pv*Math.PI:pv; } else if(k==='xstep') b[k]=0; return; }
   if(inp.classList.contains('gtxt')) b[k]=rawOf(inp).replace(/\n/g,' ');
