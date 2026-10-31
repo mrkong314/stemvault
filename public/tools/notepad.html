@@ -4992,7 +4992,7 @@ function initGraphBlocks(){
     ge.addEventListener('focusout',function(){ setTimeout(function(){ if(!graphEdit[b.id] || !ge.isConnected) return; var a=document.activeElement; if(ge.contains(a)) return; if(ge._hold && Date.now()-ge._hold<600) return;   /* a click on a control that takes no focus (Safari) */ if(imqState.open && imqState.el && ge.contains(imqState.el)) return; if(bslState.open || (typeof pfxState!=='undefined' && pfxState.open)) return; delete graphEdit[b.id]; rerenderBlock(b.id); },150); });
     ge.addEventListener('pointerdown',function(){ if(selectedId) select(null); });
     ge.addEventListener('keydown',function(e){ if(e.key==='Escape' && !imqState.open){ delete graphEdit[b.id]; rerenderBlock(b.id); select(b.id); } });
-    paintErr();
+    paintErr(); syncRangeInputs(b);
   });
 }
 new MutationObserver(function(){ editor.querySelectorAll('.block.t-graph').forEach(function(blk){ var b=getBlock(blk.dataset.id), cv=blk.querySelector('canvas.graph'); if(b&&cv) graphPaint(cv,b); }); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
