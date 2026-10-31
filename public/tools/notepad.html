@@ -1092,7 +1092,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
     <h3>Graph</h3>
     <table>
       <tr><td>/graph</td><td>Axes you set, with equations in x typed in live maths fields like a calculator line (<code>x^2 - 4</code>, <code>2x + 1</code>, <code>sin(x)</code>; a leading <code>y =</code> is fine). Enter adds a line, Backspace on an empty line removes it; \ and @ search as in the calculator. Points go one per line as <code>x, y</code>. The settings show when a graph is created and hide once you click elsewhere; select the graph and press Edit settings to bring them back (Hide settings or Esc also closes them).</td></tr>
-      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Gridlines and the axis arrowheads can be switched off.</td></tr>
+      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Axes shown limits the graph to positive x, positive y or the first quadrant without changing the stored ranges. Gridlines and the axis arrowheads can be switched off.</td></tr>
       <tr><td>Copy PNG</td><td>Copies the graph as an image on a white background, ready to paste into Word or a slide. Save PNG downloads the same image.</td></tr>
       <tr><td>Delete</td><td>Click the graph’s margin to select the block, then Backspace. On a phone, a selected block shows Duplicate and Delete buttons.</td></tr>
     </table>
@@ -1291,7 +1291,7 @@ var slashState={open:false,blockId:null,items:[],index:0};
 
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='graph'){ var GD={eqs:[''],pts:'',xmin:-10,xmax:10,ymin:-10,ymax:10,xstep:1,ystep:1,xlabel:'x',ylabel:'y',title:'',grid:true,arrows:true,angle:'rad',h:320}; for(var gk in GD){ if(b[gk]===undefined||b[gk]===null) b[gk]=GD[gk]; } if(typeof b.eqs==='string'){ b.eqs=b.eqs.split('\n').filter(function(l){ return l.trim(); }).map(function(l){ return (typeof textToLatex==='function')?textToLatex(l.replace(/^\s*y\s*=\s*/i,'')):l; }); } if(!Array.isArray(b.eqs)||!b.eqs.length) b.eqs=['']; } if(b.type==='embed'){ if(b.url==null) b.url=''; if(b.url&&!b.src){ var em=resolveEmbed(b.url); if(em){ b.src=em.src; b.kind=em.kind; } } } return b; }
+function newBlock(type,props){ var b={id:uid(),type:type||'p',text:'',indent:0}; if(props){ for(var k in props) b[k]=props[k]; } if(b.type==='table'&&!b.rows) b.rows=[['',''],['','']]; if(b.type==='calc'||b.type==='math'){ if(!b.lines) b.lines=['']; if(b.tex==null) b.tex=true; } if(b.type==='draw'){ if(!b.strokes) b.strokes=[]; if(!b.h) b.h=260; } if(b.type==='image'&&!b.strokes) b.strokes=[]; if(b.type==='graph'){ var GD={eqs:[''],pts:'',xmin:-10,xmax:10,ymin:-10,ymax:10,xstep:1,ystep:1,xlabel:'x',ylabel:'y',title:'',grid:true,arrows:true,angle:'rad',quad:'all',h:320}; for(var gk in GD){ if(b[gk]===undefined||b[gk]===null) b[gk]=GD[gk]; } if(typeof b.eqs==='string'){ b.eqs=b.eqs.split('\n').filter(function(l){ return l.trim(); }).map(function(l){ return (typeof textToLatex==='function')?textToLatex(l.replace(/^\s*y\s*=\s*/i,'')):l; }); } if(!Array.isArray(b.eqs)||!b.eqs.length) b.eqs=['']; } if(b.type==='embed'){ if(b.url==null) b.url=''; if(b.url&&!b.src){ var em=resolveEmbed(b.url); if(em){ b.src=em.src; b.kind=em.kind; } } } return b; }
 function getBlock(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return doc.blocks[i]; return null; }
 function idx(id){ for(var i=0;i<doc.blocks.length;i++) if(doc.blocks[i].id===id) return i; return -1; }
 function isText(b){ return TEXT_TYPES.indexOf(b.type)>=0; }
@@ -3757,6 +3757,7 @@ function graphEditorHTML(b){
     '<div class="grow">'+num('ymin','y min')+num('ymax','y max')+num('ystep','y step')+'</div>'+
     '<div class="grow">'+rich('xlabel','x axis title','x')+rich('ylabel','y axis title','y')+rich('title','Graph title','')+'</div>'+
     '<div class="ghint">Titles: ^2^ for superscript, ~n~ for subscript, ‘ or ` for inline maths.</div>'+
+    '<label>Axes shown<div class="seg full" data-gseg="quad">'+[['all','All'],['px','Positive x'],['q1','First quadrant'],['py','Positive y']].map(function(q){ return '<button type="button" data-val="'+q[0]+'" class="'+((b.quad||'all')===q[0]?'on':'')+'">'+q[1]+'</button>'; }).join('')+'</div></label>'+
     '<div class="grow2"><label>Angle for trig<div class="seg full" data-gseg="angle"><button type="button" data-val="rad" class="'+(b.angle==='deg'?'':'on')+'">Radians</button><button type="button" data-val="deg" class="'+(b.angle==='deg'?'on':'')+'">Degrees</button></div></label>'+
     '<div class="gchks"><label class="gchk"><input type="checkbox" data-g="grid"'+(b.grid!==false?' checked':'')+'> Show gridlines</label><label class="gchk"><input type="checkbox" data-g="arrows"'+(b.arrows!==false?' checked':'')+'> Axis arrows</label></div></div>'+
     '</div>';
@@ -4848,6 +4849,9 @@ function graphPaint(cv,b,o){
   var C=graphColors(!!o.light); if(o.bg){ ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H); }
   var xmin=+b.xmin, xmax=+b.xmax, ymin=+b.ymin, ymax=+b.ymax;
   if(!isFinite(xmin)||!isFinite(xmax)||xmax<=xmin){ xmin=-10; xmax=10; } if(!isFinite(ymin)||!isFinite(ymax)||ymax<=ymin){ ymin=-10; ymax=10; }
+  var quad=b.quad||'all';
+  if(quad==='px'||quad==='q1'){ xmin=Math.max(0,xmin); if(xmax<=xmin) xmax=xmin+Math.abs(+b.xmax||10)||10; }
+  if(quad==='py'||quad==='q1'){ ymin=Math.max(0,ymin); if(ymax<=ymin) ymax=ymin+Math.abs(+b.ymax||10)||10; }
   var xs=+b.xstep>0?+b.xstep:niceStep(xmax-xmin), ys=+b.ystep>0?+b.ystep:niceStep(ymax-ymin);
   if((xmax-xmin)/xs>400) xs=niceStep(xmax-xmin); if((ymax-ymin)/ys>400) ys=niceStep(ymax-ymin);
   var px=o.light?14:13; var tickFont=px+'px '+GRAPH_FONT;
