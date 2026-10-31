@@ -1353,6 +1353,14 @@ return 1===t.length?t:"{"+(t||" ")+"}"}return this.ctrlSeq+"_"+t(this.ends[Tt].l
   .gquad .gq-ax { fill: none; stroke: var(--ink); stroke-width: 2.5; pointer-events: none; }
   .gquad .gq-ar { fill: var(--ink); pointer-events: none; }
   .line.is-graph.gs-open .actbtn.graph-gear { color: var(--accent); opacity: 1; }
+  .graph-settings .g-more { align-self: flex-start; font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0.2rem 0.1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .graph-settings .g-more-ar { display: inline-block; transition: transform 0.15s; }
+  .graph-settings .g-more.open .g-more-ar { transform: rotate(90deg); }
+  .graph-settings .gs-more { display: flex; flex-direction: column; gap: 0.55rem; width: 100%; padding-top: 0.4rem; border-top: 1px solid var(--rule); }
+  .graph-eq.off .mq-field, .graph-eq.off .g-sw, .graph-pt.off .g-pc, .graph-pt.off .g-ptxt, .graph-pt.off .g-sw { opacity: 0.4; }
+  #gpal .gp-title { display: flex; justify-content: space-between; align-items: center; }
+  #gpal .gp-vis { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--ink); }
+  #gpal .gp-vis input { accent-color: var(--accent); }
   .line .actbtn.graph-png svg, .line .actbtn.graph-gear svg { display: block; }
   #gpal {
     position: fixed; z-index: 10005; width: 256px; display: flex; flex-direction: column; gap: 10px; padding: 12px;
@@ -7033,7 +7041,8 @@ function graphPointEntry(e) {
   while ((m = re.exec(t))) { const x = parseFloat(m[1]), y = parseFloat(m[2]); if (isFinite(x) && isFinite(y)) pts.push({ x, y }); }
   return { pts, connected: /^\s*\[/.test(t) && pts.length > 1 };
 }
-function graphAllPoints(g) { const out = []; (g.points || []).forEach(e => { out.push(...graphPointEntry(e).pts); }); return out; }
+function graphAllPoints(g) { const out = []; (g.points || []).forEach(e => { if (e.hidden) return; out.push(...graphPointEntry(e).pts); }); return out; }
+function graphEqHidden(g, i) { return !!(g.eqStyles && g.eqStyles[i] && g.eqStyles[i].hidden); }
 function graphEqStyle(g, i) { if (!Array.isArray(g.eqStyles)) g.eqStyles = []; let st = g.eqStyles[i]; if (!st || typeof st !== 'object') st = g.eqStyles[i] = {}; return st; }
 function graphEqColor(g, i) { const st = (g.eqStyles && g.eqStyles[i]) || {}; return st.col || 'ink'; }
 function graphPointColor(g, i) { const pe = (g.points || [])[i]; return (pe && pe.col) || 'ink'; }
@@ -7104,7 +7113,7 @@ function graphRanges(line) {
   let ymin = +g.ymin, ymax = +g.ymax; if (!isFinite(ymin) || !isFinite(ymax) || ymax <= ymin) { ymin = -10; ymax = 10; }
   if (g.autoY !== false) {
     const vals = [];
-    (line._gFns || []).forEach(f => { if (!f) return; for (let i = 0; i <= 200; i++) { let y; try { y = f(xmin + (xmax - xmin) * i / 200); } catch (e) { y = NaN; } if (isFinite(y)) vals.push(y); } });
+    (line._gFns || []).forEach((f, li) => { if (!f || graphEqHidden(g, li)) return; for (let i = 0; i <= 200; i++) { let y; try { y = f(xmin + (xmax - xmin) * i / 200); } catch (e) { y = NaN; } if (isFinite(y)) vals.push(y); } });
     pts.forEach(p => vals.push(p.y));
     if (vals.length) {
       vals.sort((a, c) => a - c);
@@ -7238,7 +7247,7 @@ function graphPaint(cv, line, o) {
   ctx.save(); ctx.beginPath(); ctx.rect(ML, MT, pw, ph); ctx.clip();
   const eqs = line._gEqs || [], fns = line._gFns || [], legend = [];
   eqs.forEach((lx, ci) => {
-    if (!String(lx || '').trim()) return;
+    if (!String(lx || '').trim() || graphEqHidden(g, ci)) return;
     const f = fns[ci]; let col = graphEqColor(g, ci); if (col === 'ink') col = C.ink;
     const est = (g.eqStyles && g.eqStyles[ci]) || {};
     legend.push({ runs: latexRuns(lx, 0, []), c: col, w: est.w, bad: !f }); if (!f) return;
@@ -7254,6 +7263,7 @@ function graphPaint(cv, line, o) {
   });
   const labels = [];
   (g.points || []).forEach((e, i) => {
+    if (e.hidden) return;
     const pe = graphPointEntry(e); if (!pe.pts.length) return; let col = graphPointColor(g, i); if (col === 'ink') col = C.ink;
     ctx.save(); ctx.globalAlpha = e.op == null ? 1 : e.op;
     if (pe.connected) { ctx.strokeStyle = col; ctx.lineWidth = e.w || 2; ctx.lineJoin = 'round'; ctx.beginPath(); pe.pts.forEach((p, j) => { const cx = sx(p.x), cy = sy(p.y); if (j) ctx.lineTo(cx, cy); else ctx.moveTo(cx, cy); }); ctx.stroke(); }
@@ -7337,6 +7347,7 @@ function openGraphPalette(line, kind, i, anchor) {
       const sw = e.target.closest('[data-col]'); if (sw) { apply(t => { t.col = sw.dataset.col; }); gpal.querySelectorAll('[data-col]').forEach(x => x.classList.toggle('on', x === sw)); return; }
       const mk = e.target.closest('[data-mk]'); if (mk) { apply(t => { t.mk = mk.dataset.mk; }); gpal.querySelectorAll('[data-mk]').forEach(x => x.classList.toggle('on', x === mk)); return; }
     });
+    gpal.addEventListener('change', e => { const v = e.target.closest('input[data-k="vis"]'); if (!v) return; apply(t => { t.hidden = !v.checked; }); });
     gpal.addEventListener('input', e => {
       const r = e.target.closest('input[type=range]'); if (!r) return; const k = r.dataset.k, v = +r.value;
       const out = gpal.querySelector('[data-out="' + k + '"]'); if (out) out.textContent = k === 'op' ? v + '%' : v;
@@ -7349,7 +7360,7 @@ function openGraphPalette(line, kind, i, anchor) {
   const st = kind === 'eq' ? graphEqStyle(line.g, i) : ((line.g.points || [])[i] || {});
   const cur = kind === 'eq' ? graphEqColor(line.g, i) : graphPointColor(line.g, i);
   const op = Math.round((st.op == null ? 1 : st.op) * 100), w = st.w || 2, sz = st.sz || 5, mk = st.mk || 'dot';
-  let h = '<div class="gp-title">' + (kind === 'eq' ? 'Curve style' : 'Point style') + '</div>';
+  let h = '<div class="gp-title"><span>' + (kind === 'eq' ? 'Curve style' : 'Point style') + '</span><label class="gp-vis"><input type="checkbox" data-k="vis"' + (st.hidden ? '' : ' checked') + '> Shown</label></div>';
   h += '<div class="gp-sw">' + GRAPH_PALETTE.map(c => '<button type="button" data-col="' + c[0] + '" class="' + (c[0] === cur ? 'on' : '') + '" title="' + c[1] + '" aria-label="' + c[1] + '" style="background:' + graphCssColor(c[0]) + '"></button>').join('') + '</div>';
   h += '<label class="gp-row"><span>Opacity</span><input type="range" min="10" max="100" step="5" value="' + op + '" data-k="op"><output data-out="op">' + op + '%</output></label>';
   h += '<label class="gp-row"><span>' + (kind === 'eq' ? 'Thickness' : 'Line') + '</span><input type="range" min="1" max="8" step="0.5" value="' + w + '" data-k="w"><output data-out="w">' + w + '</output></label>';
@@ -7369,8 +7380,8 @@ function closeGraphPalette() { if (gpal) gpal.hidden = true; gpalState = null; }
 
 /* ---- the line itself ---- */
 function graphColorRows(lineObj) {
-  lineObj.eqFields.forEach((ef, i) => { ef.sw.style.background = graphCssColor(graphEqColor(lineObj.g, i)); });
-  (lineObj.ptRows || []).forEach((pr, i) => { pr.sw.style.background = graphCssColor(graphPointColor(lineObj.g, i)); });
+  lineObj.eqFields.forEach((ef, i) => { ef.sw.style.background = graphCssColor(graphEqColor(lineObj.g, i)); ef.row.classList.toggle('off', graphEqHidden(lineObj.g, i)); });
+  (lineObj.ptRows || []).forEach((pr, i) => { pr.sw.style.background = graphCssColor(graphPointColor(lineObj.g, i)); pr.wrap.classList.toggle('off', !!(lineObj.g.points[i] && lineObj.g.points[i].hidden)); });
 }
 function addGraphRow(lineObj, initialLatex = '', focusIt = true, at = null) {
   const row = document.createElement('div'); row.className = 'graph-eq';
@@ -7552,15 +7563,24 @@ function buildGraphSettings(lineObj) {
     const on = Object.keys(qs).filter(k => qs[k]); if (qs[q.dataset.q] && on.length <= 1) return;
     qs[q.dataset.q] = !qs[q.dataset.q]; q.classList.toggle('on', !!qs[q.dataset.q]); repaintGraph(lineObj); scheduleSave();
   });
-  panel.appendChild(axisRow('x'));
-  panel.appendChild(axisRow('y'));
   panel.appendChild(row('', txt('xlabel', 'x axis title', '`x`'), txt('ylabel', 'y axis title', '`y`'), txt('title', 'Graph title', '')));
   const hint = document.createElement('div'); hint.className = 'gs-hint';
-  hint.textContent = 'Titles: ^2^ for superscript, ~n~ for subscript, `LaTeX` for maths. Auto fits an axis to the curves and points; typing a value makes that axis manual. Range boxes take maths such as pi/6 or 2a.';
+  hint.textContent = 'Titles: ^2^ for superscript, ~n~ for subscript, `LaTeX` for maths. Click a colour dot for colour, opacity, thickness, marker and show/hide.';
   panel.appendChild(hint);
-  panel.appendChild(row('', field('Quadrants shown (click to show or hide)', quad, 'gs-quad'),
-                        seg('angle', 'Angle for trig', [['rad', 'Radians'], ['deg', 'Degrees'], ['auto', 'Calculator']], true),
-                        chk('legend', 'Equation labels'), chk('grid', 'Gridlines'), chk('arrows', 'Axis arrows')));
+  panel.appendChild(row('', field('Quadrants shown (click to show or hide)', quad, 'gs-quad')));
+  // the rest folds away under one toggle; the open state lives on the line
+  const more = document.createElement('button'); more.type = 'button'; more.className = 'g-more'; more.setAttribute('aria-expanded', 'false');
+  more.innerHTML = '<span class="g-more-ar">▸</span> Axes and options';
+  const moreSec = document.createElement('div'); moreSec.className = 'gs-more'; moreSec.hidden = true;
+  moreSec.appendChild(axisRow('x'));
+  moreSec.appendChild(axisRow('y'));
+  const hint2 = document.createElement('div'); hint2.className = 'gs-hint';
+  hint2.textContent = 'Auto fits an axis to the curves and points; typing a value (pi/6, 1/4, 2pi or 2a all work) makes that axis manual.';
+  moreSec.appendChild(hint2);
+  moreSec.appendChild(row('', seg('angle', 'Angle for trig', [['rad', 'Radians'], ['deg', 'Degrees'], ['auto', 'Calculator']], true),
+                          chk('legend', 'Equation labels'), chk('grid', 'Gridlines'), chk('arrows', 'Axis arrows')));
+  more.addEventListener('click', (e) => { e.preventDefault(); const open = moreSec.hidden; moreSec.hidden = !open; more.classList.toggle('open', open); more.setAttribute('aria-expanded', open ? 'true' : 'false'); if (open) syncRangeInputs(lineObj); });
+  panel.appendChild(more); panel.appendChild(moreSec);
   return panel;
 }
 function createGraphLine(folder, afterLine = null, data = null) {
@@ -7694,7 +7714,7 @@ function openPresentGraph(line) {
     graphPaint(cv, line, { w: W, h: H });
     eqs.innerHTML = '';
     (line._gEqs || []).forEach((lx, i) => {
-      if (!String(lx || '').trim()) return;
+      if (!String(lx || '').trim() || graphEqHidden(line.g, i)) return;
       const s = document.createElement('span'); const sw = document.createElement('i'); sw.style.background = graphCssColor(graphEqColor(line.g, i));
       const k = document.createElement('span'); try { katex.render(lx, k, { throwOnError: false }); } catch (e) { k.textContent = lx; }
       s.appendChild(sw); s.appendChild(k); eqs.appendChild(s);
