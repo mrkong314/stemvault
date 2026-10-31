@@ -627,10 +627,12 @@ body.resizing{cursor:col-resize;user-select:none;-webkit-user-select:none}
 .block{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);align-items:start;padding-left:calc(var(--i,0)*24px);border-radius:8px;transition:background .12s}
 .block:focus-within{background:var(--accent-tint);box-shadow:-8px 0 0 var(--accent-tint),8px 0 0 var(--accent-tint)}
 /* a whole block selected (Ctrl/Cmd+A, a click on its margin): a solid ring, so it reads differently from a block being edited */
-.block.selected{background:var(--accent-tint);box-shadow:-8px 0 0 var(--accent-tint),8px 0 0 var(--accent-tint);outline:2px solid var(--accent);outline-offset:6px}
+.block.selected,.block.msel,#editor.all-selected .block{isolation:isolate}
+.block.selected::before,.block.msel::before,#editor.all-selected .block::before{content:"";position:absolute;inset:0 -8px;z-index:-1;border-radius:10px;background:var(--accent-tint);border:2px solid var(--accent);pointer-events:none}
+/* a run of selected blocks reads as one shape: inner edges lose their border and rounding */
+.block.msel+.block.msel::before,#editor.all-selected .block+.block::before{border-top:0;border-top-left-radius:0;border-top-right-radius:0}
+.block.msel:has(+.block.msel)::before,#editor.all-selected .block:has(+.block)::before{border-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0}
 .block.t-calc:focus-within:not(.selected),.block.t-math:focus-within:not(.selected){background:transparent;box-shadow:none}
-#editor.all-selected .block,.block.msel{background:var(--accent-tint);box-shadow:-8px 0 0 var(--accent-tint),8px 0 0 var(--accent-tint);outline:2px solid var(--accent);outline-offset:6px}
-#editor.all-selected .block,.block.msel{outline-offset:1px}
 .block.msel .calc,.block.msel .mathblk{box-shadow:0 0 0 2px var(--accent)}
 #marquee{position:fixed;z-index:50;border:1px solid var(--accent);background:var(--accent-tint);border-radius:4px;pointer-events:none}
 body.marquee-on{user-select:none;-webkit-user-select:none;cursor:crosshair}
@@ -1018,7 +1020,8 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
   #title{font-size:1.55rem;margin-left:26px}
   .block{grid-template-columns:26px minmax(0,1fr);padding-left:calc(var(--i,0)*18px)}
   .block .drag{left:calc(var(--i,0)*18px - 18px)}
-  .block.selected,.block:focus-within{box-shadow:none}
+  .block:focus-within{box-shadow:none}
+  .block.selected::before,.block.msel::before,#editor.all-selected .block::before{inset:0 -4px}
   .cl{padding-left:10px;padding-right:10px}
 }
 @media (prefers-reduced-motion: reduce){ .tog,.block,#sidepanel,#panelScrim,.tgroup-twist{transition:none} }
