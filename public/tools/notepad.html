@@ -715,6 +715,9 @@ body.blk-drag iframe{pointer-events:none}
 .gedit .grow4{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:8px;align-items:end}
 .gedit .grow4.auto input[type=number]{color:var(--ink-dim)}
 .gedit .gauto{padding-bottom:7px;white-space:nowrap}
+.gedit .gxopts{display:flex;align-items:end;gap:8px}
+.g-pi{font:inherit;font-family:var(--font-math);font-size:1rem;width:30px;height:30px;margin-bottom:4px;border-radius:8px;border:1px solid var(--rule);background:transparent;color:var(--ink-dim);cursor:pointer;text-transform:none}
+.g-pi.on{background:var(--accent-tint);color:var(--accent);border-color:var(--accent)}
 .gquad{display:block;width:96px;height:96px;margin-top:4px;cursor:pointer}
 .gquad .gq{fill:var(--control);stroke:var(--rule);stroke-width:1.5;transition:fill .12s}
 .gquad .gq.on{fill:var(--accent-tint);stroke:var(--accent)}
@@ -1127,7 +1130,7 @@ input.tname-edit{font:inherit;font-size:.92rem;padding:2px 6px;border:1px solid 
     <h3>Graph</h3>
     <table>
       <tr><td>/graph</td><td>Axes you set, with equations in x typed in live maths fields like a calculator line (<code>x^2 - 4</code>, <code>2x + 1</code>, <code>sin(x)</code>; a leading <code>y =</code> is fine). Enter adds a line, Backspace on an empty line removes it; \ and @ search as in the calculator. Points go one per line as <code>x, y</code>. The settings show when a graph is created and hide once you click elsewhere; select the graph and press Edit settings to bring them back (Hide settings or Esc also closes them).</td></tr>
-      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Click the quadrants in the small axes picture to show or hide them; the ranges clamp at zero on the hidden sides without changing your stored values. With Auto ticked, an axis fits its range and step to the curves and points; typing a min, max or step switches that axis to manual. Gridlines and the axis arrowheads can be switched off.</td></tr>
+      <tr><td>Axes</td><td>Set x and y minimum, maximum and step. A step of 0 picks a sensible one. Axis and graph titles are drawn in Times New Roman: wrap text in ^ ^ for a superscript (m s^-1^), ~ ~ for a subscript (v~x~), and press ‘ or ` for a typeset maths run. Trig in equations uses radians unless the graph’s Angle setting is Degrees. Click the quadrants in the small axes picture to show or hide them; the ranges clamp at zero on the hidden sides without changing your stored values. With Auto ticked, an axis fits its range and step to the curves and points; typing a min, max or step switches that axis to manual. A trig function in radians puts the x axis into π mode: steps and tick labels become multiples of π (π/2, π, 3π/2) and the x boxes are read in units of π; the π button beside Auto turns this on or off for any graph. Gridlines and the axis arrowheads can be switched off.</td></tr>
       <tr><td>Points</td><td>One entry per line: <code>(1, 2)</code> or <code>1, 2</code> for a point, or a bracketed list such as <code>[(0,0),(1,3),(2,4)]</code> for points joined by a line. Enter adds an entry, Backspace on an empty one removes it. Click the colour dot beside an equation or point to set its colour (black included), opacity and thickness; for points also the marker (filled or hollow circle, cross, plus, square, triangle, diamond) and its size. Label shows the coordinates beside each point in maths formatting; type your own label text instead, with ‘ for a maths run, and it sits by the last point. Equation labels switches the legend on (it is off to start). Curves and points are black until you pick a colour.</td></tr>
       <tr><td>Copy PNG</td><td>Copies the graph as an image on a white background, ready to paste into Word or a slide. Save PNG downloads the same image.</td></tr>
       <tr><td>Delete</td><td>Click the graph’s margin to select the block, then Backspace. On a phone, a selected block shows Duplicate and Delete buttons.</td></tr>
@@ -3783,7 +3786,7 @@ function embedHTML(b){
     '<div class="draw-tools etools"><span class="ekind">'+esc(kind)+'</span><a href="'+esc(b.url)+'" target="_blank" rel="noopener">Open</a><button type="button" data-eact="link">Change link</button><span class="dsep"></span><button type="button" data-dact="delete" class="tdel" aria-label="Delete this embed">Delete</button></div><div class="draw-resize" title="Drag to change height"></div></div>';
 }
 function graphEditorHTML(b){
-  var num=function(k,label){ return '<label>'+label+'<input type="number" step="any" inputmode="decimal" data-g="'+k+'" value="'+esc(gfmt(b[k]))+'"></label>'; };
+  var num=function(k,label){ return '<label><span data-glab="'+k+'">'+label+'</span><input type="number" step="any" inputmode="decimal" data-g="'+k+'" value="'+esc(gfmt(b[k]))+'"></label>'; };
   var rich=function(k,label,ph){ return '<label>'+label+'<span class="gtxt" contenteditable="true" spellcheck="false" data-g="'+k+'" data-ph="'+esc(ph||'')+'"></span></label>'; };
   var eqs=(Array.isArray(b.eqs)&&b.eqs.length)?b.eqs:[''];
   var lines=eqs.map(function(l,i){ return '<div class="g-line"><button type="button" class="g-sw" data-sw="eq" data-si="'+i+'" style="background:'+graphCssColor(graphEqColor(b,i))+'" title="Colour" aria-label="Change colour"></button><span class="g-in" data-i="'+i+'"></span><button type="button" class="g-del" data-gdel="'+i+'" aria-label="Remove this equation">×</button></div>'; }).join('');
@@ -3795,7 +3798,7 @@ function graphEditorHTML(b){
     '<div class="gfield">Equations in x, one per line (y = is optional)<div class="g-lines">'+lines+'<button type="button" class="g-add" data-gadd aria-label="Add an equation">+ Add equation</button></div></div>'+
     '<div class="gerr" hidden></div>'+
     '<div class="gfield">Points, one per line: (x, y), or a list [(0,0),(1,3)] for a connected line<div class="g-lines">'+plines+'<button type="button" class="g-add" data-padd aria-label="Add a point">+ Add point</button></div></div>'+
-    '<div class="grow4'+(b.autoX!==false?' auto':'')+'" data-axis="x">'+num('xmin','x min')+num('xmax','x max')+num('xstep','x step')+'<label class="gchk gauto"><input type="checkbox" data-g="autoX"'+(b.autoX!==false?' checked':'')+'> Auto</label></div>'+
+    '<div class="grow4'+(b.autoX!==false?' auto':'')+'" data-axis="x">'+num('xmin','x min')+num('xmax','x max')+num('xstep','x step')+'<div class="gxopts"><label class="gchk gauto"><input type="checkbox" data-g="autoX"'+(b.autoX!==false?' checked':'')+'> Auto</label><button type="button" class="g-pi'+(graphUsesPi(b)?' on':'')+'" data-gpi title="Steps and labels in multiples of π" aria-pressed="'+(graphUsesPi(b)?'true':'false')+'">π</button></div></div>'+
     '<div class="grow4'+(b.autoY!==false?' auto':'')+'" data-axis="y">'+num('ymin','y min')+num('ymax','y max')+num('ystep','y step')+'<label class="gchk gauto"><input type="checkbox" data-g="autoY"'+(b.autoY!==false?' checked':'')+'> Auto</label></div>'+
     '<div class="grow">'+rich('xlabel','x axis title','`x`')+rich('ylabel','y axis title','`y`')+rich('title','Graph title','')+'</div>'+
     '<div class="ghint">Titles: ^2^ for superscript, ~n~ for subscript, ‘ or ` for inline maths. Auto fits an axis to the curves and points; typing a value makes that axis manual.</div>'+
@@ -4880,23 +4883,34 @@ function drawMarker(ctx,x,y,mk,s,col,bg){
 }
 
 function fmtCoord(v){ var s=(+v.toPrecision(6)).toString(); return s; }
+/* x axis in multiples of π: automatic for trig in radians, or switched with the π button */
+function graphUsesTrig(b){ return (Array.isArray(b.eqs)?b.eqs:[]).some(function(l){ return /\\?(sin|cos|tan|sec|csc|cot)\b/.test(String(l||'')); }); }
+function graphUsesPi(b){ if(b.xpi===true) return true; if(b.xpi===false) return false; return b.angle!=='deg' && graphUsesTrig(b); }
+var PI_STEPS=[1/12,1/6,1/4,1/3,1/2,1,2,4,8,16];
+function piNiceStep(range){ var r=range/Math.PI; for(var i=0;i<PI_STEPS.length;i++){ if(r/PI_STEPS[i]<=10) return PI_STEPS[i]*Math.PI; } return PI_STEPS[PI_STEPS.length-1]*Math.PI; }
+function fmtPiTick(v,step){ var dens=[1,2,3,4,6,8,12,16,24]; var su=step/Math.PI, den=1; for(var i=0;i<dens.length;i++){ if(Math.abs(su*dens[i]-Math.round(su*dens[i]))<1e-6){ den=dens[i]; break; } } var n=Math.round(v/Math.PI*den); if(n===0) return '0'; var g=function(a,c){ return c?g(c,a%c):Math.abs(a); }; var d=g(n,den); n/=d; var dd=den/d; var s=(n===1?'':n===-1?'−':(n<0?'−'+(-n):String(n)))+'π'; return dd===1?s:s+'/'+dd; }
 function gfmt(v){ if(typeof v!=='number'||!isFinite(v)) return ''; return (+v.toPrecision(6)).toString(); }
 /* Ranges and steps actually drawn: automatic ones are fitted to the curves and points, then everything is clamped to the quadrants shown. */
 function graphRanges(b){
   var qs=b.quads||{q1:true,q2:true,q3:true,q4:true}; var negX=!!(qs.q2||qs.q3), posX=!!(qs.q1||qs.q4), posY=!!(qs.q1||qs.q2), negY=!!(qs.q3||qs.q4);
+  var usePi=graphUsesPi(b);
   var xmin=+b.xmin, xmax=+b.xmax; if(!isFinite(xmin)||!isFinite(xmax)||xmax<=xmin){ xmin=-10; xmax=10; }
   var pts=graphAllPoints(b);
-  if(b.autoX!==false && pts.length){ var pxs=pts.map(function(p){ return p.x; }); var lo=Math.min.apply(null,pxs), hi=Math.max.apply(null,pxs); if(hi-lo<1e-9){ lo-=1; hi+=1; } var padx=(hi-lo)*0.1; lo-=padx; hi+=padx; var st0=niceStep(hi-lo); xmin=Math.floor(lo/st0)*st0; xmax=Math.ceil(hi/st0)*st0; if(lo>=0 && xmin<0) xmin=0; }
+  if(usePi && b.autoX!==false && !pts.length){ xmin=-2*Math.PI; xmax=2*Math.PI; }
+  if(b.autoX!==false && pts.length){ var pxs=pts.map(function(p){ return p.x; }); var lo=Math.min.apply(null,pxs), hi=Math.max.apply(null,pxs); if(hi-lo<1e-9){ lo-=1; hi+=1; } var padx=(hi-lo)*0.1; lo-=padx; hi+=padx; var st0=usePi?piNiceStep(hi-lo):niceStep(hi-lo); xmin=Math.floor(lo/st0)*st0; xmax=Math.ceil(hi/st0)*st0; if(lo>=0 && xmin<0) xmin=0; }
   if(!negX) xmin=Math.max(0,xmin); if(!posX) xmax=Math.min(0,xmax); if(xmax<=xmin){ if(!negX) xmax=xmin+10; else xmin=xmax-10; }
-  var xs=(b.autoX===false && +b.xstep>0)?+b.xstep:niceStep(xmax-xmin); if((xmax-xmin)/xs>400) xs=niceStep(xmax-xmin);
+  var xs=(b.autoX===false && +b.xstep>0)?+b.xstep:(usePi?piNiceStep(xmax-xmin):niceStep(xmax-xmin)); if((xmax-xmin)/xs>400) xs=usePi?piNiceStep(xmax-xmin):niceStep(xmax-xmin);
   var ymin=+b.ymin, ymax=+b.ymax; if(!isFinite(ymin)||!isFinite(ymax)||ymax<=ymin){ ymin=-10; ymax=10; }
   if(b.autoY!==false){ var vals=[]; (Array.isArray(b.eqs)?b.eqs:[]).forEach(function(l){ var f=String(l||'').trim()?graphCompile(l,b):null; if(!f) return; for(var i=0;i<=200;i++){ var y; try{ y=f(xmin+(xmax-xmin)*i/200); }catch(e){ y=NaN; } if(isFinite(y)) vals.push(y); } }); pts.forEach(function(p){ vals.push(p.y); });
     if(vals.length){ vals.sort(function(a,c){ return a-c; }); var lo2=vals[Math.floor((vals.length-1)*0.02)], hi2=vals[Math.ceil((vals.length-1)*0.98)]; if(hi2-lo2<1e-9){ lo2-=1; hi2+=1; } var pady=(hi2-lo2)*0.08; lo2-=pady; hi2+=pady; var st1=niceStep(hi2-lo2); ymin=Math.floor(lo2/st1)*st1; ymax=Math.ceil(hi2/st1)*st1; if(vals[0]>=0 && ymin<0) ymin=0; if(vals[vals.length-1]<=0 && ymax>0) ymax=0; } }
   if(!negY) ymin=Math.max(0,ymin); if(!posY) ymax=Math.min(0,ymax); if(ymax<=ymin){ if(!negY) ymax=ymin+10; else ymin=ymax-10; }
   var ys=(b.autoY===false && +b.ystep>0)?+b.ystep:niceStep(ymax-ymin); if((ymax-ymin)/ys>400) ys=niceStep(ymax-ymin);
-  return {xmin:xmin,xmax:xmax,ymin:ymin,ymax:ymax,xs:xs,ys:ys};
+  return {xmin:xmin,xmax:xmax,ymin:ymin,ymax:ymax,xs:xs,ys:ys,pi:usePi};
 }
-function syncRangeInputs(b){ var el=blockEl(b.id), ge=el&&el.querySelector('.gedit'); if(!ge) return; var R=graphRanges(b); var map={xmin:R.xmin,xmax:R.xmax,xstep:R.xs,ymin:R.ymin,ymax:R.ymax,ystep:R.ys}; for(var k in map){ var inp=ge.querySelector('[data-g="'+k+'"]'); var auto=(k[0]==='x')?b.autoX!==false:b.autoY!==false; if(inp && auto && document.activeElement!==inp) inp.value=gfmt(map[k]); } ge.querySelectorAll('.grow4').forEach(function(row){ var auto=row.dataset.axis==='x'?b.autoX!==false:b.autoY!==false; row.classList.toggle('auto',auto); var cb=row.querySelector('input[type=checkbox]'); if(cb) cb.checked=auto; }); }
+function syncRangeInputs(b){ var el=blockEl(b.id), ge=el&&el.querySelector('.gedit'); if(!ge) return; var R=graphRanges(b); var map={xmin:R.xmin,xmax:R.xmax,xstep:R.xs,ymin:R.ymin,ymax:R.ymax,ystep:R.ys}; var pb=ge.querySelector('.g-pi'); if(pb){ pb.classList.toggle('on',!!R.pi); pb.setAttribute('aria-pressed',R.pi?'true':'false'); }
+  ['xmin','xmax','xstep'].forEach(function(k){ var lb=ge.querySelector('[data-glab="'+k+'"]'); if(lb) lb.textContent=k.replace('x','x ')+(R.pi?' (×π)':''); });
+  for(var k in map){ var inp=ge.querySelector('[data-g="'+k+'"]'); var auto=(k[0]==='x')?b.autoX!==false:b.autoY!==false; var v=map[k]; if(k[0]==='x' && R.pi) v=v/Math.PI; if(inp && (auto || (k[0]==='x' && ge._piWas!==!!R.pi)) && document.activeElement!==inp) inp.value=gfmt(v); }
+  ge._piWas=!!R.pi; ge.querySelectorAll('.grow4').forEach(function(row){ var auto=row.dataset.axis==='x'?b.autoX!==false:b.autoY!==false; row.classList.toggle('auto',auto); var cb=row.querySelector('input[type=checkbox]'); if(cb) cb.checked=auto; }); }
 function niceStep(range){ var raw=range/8, p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p; return (m<1.5?1:m<3.5?2:m<7.5?5:10)*p; }
 function fmtTick(v,step){ var d=Math.max(0,Math.min(6,-Math.floor(Math.log10(step)))); var s=v.toFixed(d); if(d>0) s=s.replace(/\.?0+$/,''); return s==='-0'?'0':s; }
 function graphColors(light){
@@ -4968,7 +4982,7 @@ function graphPaint(cv,b,o){
   var pw=W-ML-MR, ph=H-MT-MB; if(pw<20||ph<20) return;
   var sx=function(x){ return ML+(x-xmin)/(xmax-xmin)*pw; }, sy=function(y){ return MT+(ymax-y)/(ymax-ymin)*ph; };
   if(b.grid!==false){ ctx.strokeStyle=C.grid; ctx.lineWidth=1; ctx.beginPath();
-    for(var gx=Math.ceil(xmin/xs)*xs; gx<=xmax+1e-9; gx+=xs){ var gpx=Math.round(sx(gx))+.5; ctx.moveTo(gpx,MT); ctx.lineTo(gpx,MT+ph); }
+    for(var gx=Math.ceil(xmin/xs-1e-9)*xs; gx<=xmax+1e-9; gx+=xs){ var gpx=Math.round(sx(gx))+.5; ctx.moveTo(gpx,MT); ctx.lineTo(gpx,MT+ph); }
     for(var gy=Math.ceil(ymin/ys)*ys; gy<=ymax+1e-9; gy+=ys){ var gpy=Math.round(sy(gy))+.5; ctx.moveTo(ML,gpy); ctx.lineTo(ML+pw,gpy); }
     ctx.stroke(); }
   ctx.strokeStyle=C.rule; ctx.lineWidth=1; ctx.strokeRect(ML+.5,MT+.5,pw-1,ph-1);
@@ -4978,7 +4992,7 @@ function graphPaint(cv,b,o){
   ctx.stroke();
   if(b.arrows!==false){ var AH=8, AW=4.5, axr=Math.round(ax)+.5, ayr=Math.round(ay)+.5; ctx.fillStyle=C.ink; ctx.beginPath(); ctx.moveTo(ML+pw+1,axr); ctx.lineTo(ML+pw+1-AH,axr-AW); ctx.lineTo(ML+pw+1-AH,axr+AW); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(ayr,MT-1); ctx.lineTo(ayr-AW,MT-1+AH); ctx.lineTo(ayr+AW,MT-1+AH); ctx.closePath(); ctx.fill(); }
   ctx.font=tickFont; ctx.fillStyle=C.dim; ctx.textAlign='center'; ctx.textBaseline='top';
-  var lastX=-1e9; for(var tx=Math.ceil(xmin/xs)*xs; tx<=xmax+1e-9; tx+=xs){ var t=fmtTick(tx,xs), tw=ctx.measureText(t).width, cx=sx(tx); if(cx-tw/2>lastX+6){ ctx.fillText(t,cx,MT+ph+4); lastX=cx+tw/2; } }
+  var lastX=-1e9; for(var tx=Math.ceil(xmin/xs-1e-9)*xs; tx<=xmax+1e-9; tx+=xs){ var t=R.pi?fmtPiTick(tx,xs):fmtTick(tx,xs), tw=ctx.measureText(t).width, cx=sx(tx); if(cx-tw/2>lastX+6){ ctx.fillText(t,cx,MT+ph+4); lastX=cx+tw/2; } }
   ctx.textAlign='right'; ctx.textBaseline='middle';
   for(var ty=Math.ceil(ymin/ys)*ys; ty<=ymax+1e-9; ty+=ys){ ctx.fillText(fmtTick(ty,ys),ML-6,sy(ty)); }
   if(hasX) drawRich(ctx,b.xlabel,ML+pw/2,H-6,'center',px+1,C.ink);
@@ -5029,7 +5043,10 @@ function graphApplyInput(b,inp){
   if(inp.dataset.pk){ var pe=(b.points||[])[+inp.dataset.pi]; if(!pe) return; if(inp.dataset.pk==='c') pe.c=inp.value; else if(inp.dataset.pk==='txt') pe.txt=rawOf(inp).replace(/\n/g,' '); return; }
   var k=inp.dataset.g; if(!k) return;
   if(k==='autoX'||k==='autoY'){ b[k]=inp.checked; return; }
-  if(k==='xmin'||k==='xmax'||k==='xstep') b.autoX=false; if(k==='ymin'||k==='ymax'||k==='ystep') b.autoY=false;
+  /* the first manual edit on an axis freezes the values currently shown, then applies the typed one */
+  if((k==='xmin'||k==='xmax'||k==='xstep') && b.autoX!==false){ var RX=graphRanges(b); b.xmin=RX.xmin; b.xmax=RX.xmax; b.xstep=RX.xs; b.autoX=false; }
+  if((k==='ymin'||k==='ymax'||k==='ystep') && b.autoY!==false){ var RY=graphRanges(b); b.ymin=RY.ymin; b.ymax=RY.ymax; b.ystep=RY.ys; b.autoY=false; }
+  if((k==='xmin'||k==='xmax'||k==='xstep') && inp.type==='number'){ var pv=parseFloat(inp.value); if(isFinite(pv)){ b[k]=graphUsesPi(b)?pv*Math.PI:pv; } else if(k==='xstep') b[k]=0; return; }
   if(inp.classList.contains('gtxt')) b[k]=rawOf(inp).replace(/\n/g,' ');
   else if(inp.type==='checkbox') b[k]=inp.checked;
   else if(inp.type==='number'){ var v=parseFloat(inp.value); b[k]=isFinite(v)?v:(k==='xstep'||k==='ystep'?0:b[k]); }
@@ -5082,10 +5099,11 @@ function initGraphBlocks(){
       el.addEventListener('focusout',function(){ if(imqState.open && imqState.el===el) return; setRawHTML(el,pe?(pe.txt||''):(b[k]||'')); });
     });
     ge.addEventListener('input',function(e){ e.stopPropagation(); var inp=e.target.closest('[data-g],[data-pk]'); if(!inp) return; graphApplyInput(b,inp); graphPaint(cv,b); syncRangeInputs(b); paintErr(); later(); });
-    ge.addEventListener('click',function(e){ var q=e.target.closest('.gq'); if(!q) return; var qs=b.quads||(b.quads={q1:true,q2:true,q3:true,q4:true}); var on=Object.keys(qs).filter(function(k){ return qs[k]; }); if(qs[q.dataset.q] && on.length<=1) return; qs[q.dataset.q]=!qs[q.dataset.q]; q.classList.toggle('on',!!qs[q.dataset.q]); graphPaint(cv,b); syncRangeInputs(b); later(); });
+    ge.addEventListener('click',function(e){ var pb=e.target.closest('[data-gpi]'); if(pb){ b.xpi=!graphUsesPi(b); graphPaint(cv,b); syncRangeInputs(b); later(); return; }
+      var q=e.target.closest('.gq'); if(!q) return; var qs=b.quads||(b.quads={q1:true,q2:true,q3:true,q4:true}); var on=Object.keys(qs).filter(function(k){ return qs[k]; }); if(qs[q.dataset.q] && on.length<=1) return; qs[q.dataset.q]=!qs[q.dataset.q]; q.classList.toggle('on',!!qs[q.dataset.q]); graphPaint(cv,b); syncRangeInputs(b); later(); });
     ge.addEventListener('pointerdown',function(){ ge._hold=Date.now(); });
     ge.addEventListener('change',function(e){ e.stopPropagation(); });
-    ge.addEventListener('click',function(e){ var sb=e.target.closest('[data-gseg] button'); if(!sb) return; var seg=sb.closest('[data-gseg]'); b[seg.dataset.gseg]=sb.dataset.val; seg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on',x===sb); }); graphPaint(cv,b); paintErr(); later(); });
+    ge.addEventListener('click',function(e){ var sb=e.target.closest('[data-gseg] button'); if(!sb) return; var seg=sb.closest('[data-gseg]'); b[seg.dataset.gseg]=sb.dataset.val; seg.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on',x===sb); }); graphPaint(cv,b); syncRangeInputs(b); paintErr(); later(); });
     /* the settings close themselves once focus has left them (a picker or the inline maths field counts as still inside) */
     ge.addEventListener('focusout',function(){ setTimeout(function(){ if(!graphEdit[b.id] || !ge.isConnected) return; var a=document.activeElement; if(ge.contains(a)) return; if(ge._hold && Date.now()-ge._hold<600) return;   /* a click on a control that takes no focus (Safari) */ if(imqState.open && imqState.el && ge.contains(imqState.el)) return; if(bslState.open || (typeof pfxState!=='undefined' && pfxState.open)) return; delete graphEdit[b.id]; rerenderBlock(b.id); },150); });
     ge.addEventListener('pointerdown',function(){ if(selectedId) select(null); });
