@@ -2369,12 +2369,14 @@ function angleScope() {
     sin: x => Math.sin(x*DEG), cos: x => Math.cos(x*DEG), tan: x => Math.tan(x*DEG),
     sec: x => 1/Math.cos(x*DEG), csc: x => 1/Math.sin(x*DEG), cot: x => 1/Math.tan(x*DEG),
     arcsin: x => Math.asin(x)/DEG, arccos: x => Math.acos(x)/DEG, arctan: x => Math.atan(x)/DEG,
-    asin: x => Math.asin(x)/DEG, acos: x => Math.acos(x)/DEG, atan: x => Math.atan(x)/DEG
+    asin: x => Math.asin(x)/DEG, acos: x => Math.acos(x)/DEG, atan: x => Math.atan(x)/DEG,
+    asec: x => Math.acos(1/x)/DEG, acsc: x => Math.asin(1/x)/DEG, acot: x => Math.atan(1/x)/DEG
   };
 }
 
 const FUNCS = ['sin','cos','tan','sec','csc','cot','sinh','cosh','tanh',
-  'arcsin','arccos','arctan','asin','acos','atan','ln','log','exp','sqrt',
+  'arcsin','arccos','arctan','asin','acos','atan','asec','acsc','acot',
+  'asinh','acosh','atanh','ln','log','exp','sqrt',
   'nthRoot','abs','floor','ceil','round','sign','deg','ans','mod','min','max',
   'gcd','lcm','factorial','solve','integrate','summation',
   'nCr','nPr','normCDF','invNorm','binomPDF','binomCDF','sumlist','add','zscore',
@@ -2825,6 +2827,10 @@ function latexToMath(latex) {
   // internally and renders back as t_{1/2} (see varToLatex).
   s = s.replace(/_\{\\frac\{1\}\{2\}\}/g, '_{half}').replace(/_\{1\/2\}/g, '_{half}');
   s = s.replace(/\\left/g, '').replace(/\\right/g, '');
+  // inverse trig via ^{-1}: \cos^{-1}(x) is arccos(x), not (cos)^(-1). Done
+  // before the exponent pass so the superscript never reaches the parser.
+  s = s.replace(/\\(sin|cos|tan|sec|csc|cot|sinh|cosh|tanh)\^\{\s*-\s*1\s*\}/g,
+                (m, fn) => '\\operatorname{a' + fn + '}');
   s = expandEllipsisLists(s);        // [1,2,...,5] -> [1,2,3,4,5] (integer patterns)
   s = s.replace(/\\square/g, '');   // unfilled placeholder box -> empty (incomplete expr renders blank)
   // absolute value bars |...| -> abs(...). Replace innermost pairs repeatedly so
@@ -2854,6 +2860,9 @@ function latexToMath(latex) {
                'arcsin','arccos','arctan','ln','log','exp','abs','floor','ceil','round','sign'];
   fns.forEach(fn => { s = s.replace(new RegExp('\\\\' + fn + '(?![a-zA-Z])', 'g'), fn); });
   s = s.replace(/\\pi/g, 'pi ');
+  // arcsin/arccos/arctan -> math.js asin/acos/atan (arcsin is otherwise only
+  // defined by the degree scope, so it was undefined in Rad mode)
+  s = s.replace(/\barc(sin|cos|tan)\b/g, 'a$1');
   // Greek letters -> unicode glyphs (used as variable identifiers). Longest
   // names first so \vartheta isn't partially matched by \theta etc.
   Object.keys(GREEK).sort((a,b) => b.length - a.length).forEach(name => {
@@ -6370,6 +6379,26 @@ function shouldStayInSupSub(mq, fieldEl, key) {
   return false;
 }
 
+/* True if the caret sits at the end of a superscript that reads "-1" whose base
+   is a trig operator name (sin, cos, tan, sec, csc, cot, sinh, cosh, tanh), i.e.
+   the user has just typed cos^-1 and the next "(" belongs outside the exponent. */
+function inInverseTrigExponent(fieldEl) {
+  let root = fieldEl;
+  if (!root) root = document.querySelector('.mq-field.mq-focused') || document.querySelector('.mq-field:focus-within');
+  if (!root) return false;
+  const cursor = root.querySelector('.mq-cursor');
+  if (!cursor) return false;
+  const sup = cursor.closest('.mq-supsub, .mq-sup, .mq-sup-only, .mq-exponent');
+  if (!sup) return false;
+  if (cursor.nextSibling) return false;                      // caret not at the end of the exponent
+  const content = sup.textContent.replace(/[\u200b\s]/g, '').replace(/\u2212/g, '-');
+  if (content !== '-1') return false;
+  const supsub = cursor.closest('.mq-supsub') || sup;
+  let name = '', el = supsub.previousElementSibling;
+  while (el && el.classList.contains('mq-operator-name')) { name = el.textContent + name; el = el.previousElementSibling; }
+  return /^(sin|cos|tan|sec|csc|cot|sinh|cosh|tanh)$/.test(name.replace(/\s/g, ''));
+}
+
 /* Build the full vertical navigation sequence for the active tab:
    tab name -> (folder name -> its lines) for each folder. */
 function navSequence() {
@@ -6615,6 +6644,14 @@ function createLine(folder, afterLine = null, initialLatex = '') {
         else mq.typedText(e.key);               // + - =
         recompute(); return;
       }
+    }
+    // "(" typed right after cos^-1 (or any trig ^{-1}) exits the exponent first,
+    // so cos^-1( gives cos^{-1}(...) rather than cos^{-1(...)}
+    if (e.key === '(' && !e.ctrlKey && !e.metaKey && !e.altKey && inInverseTrigExponent(fieldEl)) {
+      e.preventDefault(); e.stopPropagation();
+      mq.keystroke('Right');
+      mq.typedText('(');
+      recompute(); return;
     }
     // "/" pressed LEFT of a number (23*|8): the number to the right becomes the
     // denominator, numerator left empty with the caret in it
@@ -8178,6 +8215,9 @@ function makeKey(k) {
       case 'type':
         if (/^[+\-*/=]$/.test(k.v) && !shouldStayInSupSub(mq, line && line.fieldEl, k.v)) {
           breakOutOfSupSub(mq, line && line.fieldEl);
+        }
+        if (k.v === '(' && inInverseTrigExponent(line && line.fieldEl)) {
+          breakOutOfSupSub(mq, line && line.fieldEl);   // cos^-1 then "(" -> paren outside the exponent
         }
         mq.typedText(k.v);
         if (k.v === '/') stripFracParens(mq);
