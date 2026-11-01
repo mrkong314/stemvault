@@ -2829,7 +2829,7 @@ function latexToMath(latex) {
   s = s.replace(/\\left/g, '').replace(/\\right/g, '');
   // inverse trig via ^{-1}: \cos^{-1}(x) is arccos(x), not (cos)^(-1). Done
   // before the exponent pass so the superscript never reaches the parser.
-  s = s.replace(/\\(sin|cos|tan|sec|csc|cot|sinh|cosh|tanh)\^\{\s*-\s*1\s*\}/g,
+  s = s.replace(/\\(sin|cos|tan|sec|csc|cot|sinh|cosh|tanh)\s*\^\{\s*-\s*1\s*\}/g,
                 (m, fn) => '\\operatorname{a' + fn + '}');
   s = expandEllipsisLists(s);        // [1,2,...,5] -> [1,2,3,4,5] (integer patterns)
   s = s.replace(/\\square/g, '');   // unfilled placeholder box -> empty (incomplete expr renders blank)
