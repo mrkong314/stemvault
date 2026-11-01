@@ -8412,18 +8412,42 @@ function setPadPage(idx) {
    leave nothing focused. Default-prevent the press (as the nav keys do), and if
    the field still lost focus by the time the click lands, put it back. */
 function keepMathFocus(btn) {
-  let hadMathFocus = false;
+  let hadMathFocus = false, mq = null, caret = null;
   btn.addEventListener('pointerdown', (e) => {
     hadMathFocus = !!(document.activeElement && document.activeElement.closest('.mq-editable-field'));
+    // remember which field and where its caret is (e.g. inside cos( )) so a
+    // browser that still blurs the field on the tap gets the caret back there
+    mq = hadMathFocus ? activeMQ() : null;
+    caret = mq ? mqCaretSnapshot(mq) : null;
     e.preventDefault();
   });
   btn.addEventListener('mousedown', (e) => e.preventDefault());
   btn.addEventListener('click', () => {
     if (!hadMathFocus) return;
     if (document.activeElement && document.activeElement.closest('.mq-editable-field')) return;
-    const mq = activeMQ();
-    if (mq) mq.focus();
+    const target = mq || activeMQ();
+    if (!target) return;
+    target.focus();
+    mqCaretRestore(target, caret);
   });
+}
+/* MathQuill keeps the caret as (parent block, node to its left); capture that
+   so the exact position survives a blur/refocus cycle. Internal API, guarded. */
+function mqCaretSnapshot(mq) {
+  try { const c = mq.__controller.cursor; return c && c.parent ? { parent: c.parent, left: c[-1] || null } : null; }
+  catch (e) { return null; }
+}
+function mqCaretRestore(mq, snap) {
+  if (!snap) return;
+  try {
+    const ctrlr = mq.__controller, c = ctrlr.cursor;
+    let n = snap.parent;                       // the saved block must still be in this field's tree
+    while (n && n !== ctrlr.root) n = n.parent;
+    if (!n) return;
+    if (snap.left && snap.left.parent === snap.parent) c.insRightOf(snap.left);
+    else c.insAtLeftEnd(snap.parent);
+    c.show();
+  } catch (e) {}
 }
 portraitPad.appendChild(padTabs); portraitPad.appendChild(pagesWrap);
 
