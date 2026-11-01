@@ -8119,6 +8119,7 @@ function makeKey(k) {
   if (k.letter) letterButtons.push({ btn: b, lo: k.v, up: k.v.toUpperCase() });
   if (k.t === 'greek' && k.capL) letterButtons.push({ btn: b, lo: k.l, up: k.capL });
   if (k.t === 'caps') b.classList.add('capskey');
+  if (k.t === 'layer') keepMathFocus(b);   // αβγ/abc flip keeps the caret in the math field
   // long-press on × inserts the full ×10^□ scaffold (caret in the exponent,
   // which also raises the metric-prefix dropdown); a fired long-press
   // suppresses the button's normal × insert
@@ -8394,6 +8395,7 @@ PAGES.forEach((pg, i) => {
   if (window.katex) { try { katex.render(pg.math, tab, { throwOnError:false }); } catch (e) { tab.textContent = pg.name; } }
   else tab.textContent = pg.name;
   tab.setAttribute('aria-label', pg.name);
+  keepMathFocus(tab);
   tab.addEventListener('click', () => setPadPage(i));
   padTabs.appendChild(tab);
   const page = document.createElement('div'); page.className = 'pad-page ' + pg.cls + (i===0?' on':'');
@@ -8403,6 +8405,25 @@ PAGES.forEach((pg, i) => {
 });
 function setPadPage(idx) {
   pageEls.forEach((p, i) => { p.tab.classList.toggle('on', i===idx); p.page.classList.toggle('on', i===idx); });
+}
+/* Keypad controls that change the keyboard rather than insert anything (page
+   tabs, the αβγ/abc layer key) must not take the caret away from the math
+   field: on a phone the tap would otherwise blur the field, hide the caret and
+   leave nothing focused. Default-prevent the press (as the nav keys do), and if
+   the field still lost focus by the time the click lands, put it back. */
+function keepMathFocus(btn) {
+  let hadMathFocus = false;
+  btn.addEventListener('pointerdown', (e) => {
+    hadMathFocus = !!(document.activeElement && document.activeElement.closest('.mq-editable-field'));
+    e.preventDefault();
+  });
+  btn.addEventListener('mousedown', (e) => e.preventDefault());
+  btn.addEventListener('click', () => {
+    if (!hadMathFocus) return;
+    if (document.activeElement && document.activeElement.closest('.mq-editable-field')) return;
+    const mq = activeMQ();
+    if (mq) mq.focus();
+  });
 }
 portraitPad.appendChild(padTabs); portraitPad.appendChild(pagesWrap);
 
