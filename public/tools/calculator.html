@@ -2853,6 +2853,14 @@ function latexToMath(latex) {
     s = s.replace(/\\sqrt\[((?:[^{}]|\{[^{}]*\})*)\]\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'nthRoot(($2),($1))');
     s = s.replace(/\\sqrt\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'sqrt($1)');
   } while (s !== prev);
+  // Greek letters -> unicode glyphs (used as variable identifiers). Longest
+  // names first so \vartheta isn't partially matched by \theta etc. This runs
+  // BEFORE the function-name pass: MathQuill emits adjacent commands with no
+  // separator (\theta\sin), and once \sin had lost its backslash the Greek
+  // regex saw \thetasin and failed, leaving t*h*e*t*a*sin.
+  Object.keys(GREEK).sort((a,b) => b.length - a.length).forEach(name => {
+    s = s.replace(new RegExp('\\\\' + name + '(?![a-zA-Z])', 'g'), GREEK[name]);
+  });
   s = s.replace(/\\operatorname\{([^}]*)\}/g, '$1');
   s = s.replace(/\\log_\{((?:[^{}]|\{[^{}]*\})*)\}\s*\(((?:[^()]|\([^()]*\))*)\)/g, 'log($2,$1)');
   s = s.replace(/\\log_(\w)\s*\(((?:[^()]|\([^()]*\))*)\)/g, 'log($2,$1)');
@@ -2863,11 +2871,6 @@ function latexToMath(latex) {
   // arcsin/arccos/arctan -> math.js asin/acos/atan (arcsin is otherwise only
   // defined by the degree scope, so it was undefined in Rad mode)
   s = s.replace(/\barc(sin|cos|tan)\b/g, 'a$1');
-  // Greek letters -> unicode glyphs (used as variable identifiers). Longest
-  // names first so \vartheta isn't partially matched by \theta etc.
-  Object.keys(GREEK).sort((a,b) => b.length - a.length).forEach(name => {
-    s = s.replace(new RegExp('\\\\' + name + '(?![a-zA-Z])', 'g'), GREEK[name]);
-  });
   s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*').replace(/\\div/g, '/');
   s = s.replace(/\bln\b/g, 'log');
   s = s.replace(/\\degree|°/g, ' deg');
