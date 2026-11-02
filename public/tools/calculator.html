@@ -2369,12 +2369,14 @@ function angleScope() {
     sin: x => Math.sin(x*DEG), cos: x => Math.cos(x*DEG), tan: x => Math.tan(x*DEG),
     sec: x => 1/Math.cos(x*DEG), csc: x => 1/Math.sin(x*DEG), cot: x => 1/Math.tan(x*DEG),
     arcsin: x => Math.asin(x)/DEG, arccos: x => Math.acos(x)/DEG, arctan: x => Math.atan(x)/DEG,
-    asin: x => Math.asin(x)/DEG, acos: x => Math.acos(x)/DEG, atan: x => Math.atan(x)/DEG
+    asin: x => Math.asin(x)/DEG, acos: x => Math.acos(x)/DEG, atan: x => Math.atan(x)/DEG,
+    asec: x => Math.acos(1/x)/DEG, acsc: x => Math.asin(1/x)/DEG, acot: x => Math.atan(1/x)/DEG
   };
 }
 
 const FUNCS = ['sin','cos','tan','sec','csc','cot','sinh','cosh','tanh',
-  'arcsin','arccos','arctan','asin','acos','atan','ln','log','exp','sqrt',
+  'arcsin','arccos','arctan','asin','acos','atan','asec','acsc','acot',
+  'asinh','acosh','atanh','ln','log','exp','sqrt',
   'nthRoot','abs','floor','ceil','round','sign','deg','ans','mod','min','max',
   'gcd','lcm','factorial','solve','integrate','summation',
   'nCr','nPr','normCDF','invNorm','binomPDF','binomCDF','sumlist','add','zscore',
@@ -2825,6 +2827,10 @@ function latexToMath(latex) {
   // internally and renders back as t_{1/2} (see varToLatex).
   s = s.replace(/_\{\\frac\{1\}\{2\}\}/g, '_{half}').replace(/_\{1\/2\}/g, '_{half}');
   s = s.replace(/\\left/g, '').replace(/\\right/g, '');
+  // inverse trig via ^{-1}: \cos^{-1}(x) is arccos(x), not (cos)^(-1). Done
+  // before the exponent pass so the superscript never reaches the parser.
+  s = s.replace(/\\(sin|cos|tan|sec|csc|cot|sinh|cosh|tanh)\s*\^\{\s*-\s*1\s*\}/g,
+                (m, fn) => '\\operatorname{a' + fn + '}');
   s = expandEllipsisLists(s);        // [1,2,...,5] -> [1,2,3,4,5] (integer patterns)
   s = s.replace(/\\square/g, '');   // unfilled placeholder box -> empty (incomplete expr renders blank)
   // absolute value bars |...| -> abs(...). Replace innermost pairs repeatedly so
@@ -2847,6 +2853,14 @@ function latexToMath(latex) {
     s = s.replace(/\\sqrt\[((?:[^{}]|\{[^{}]*\})*)\]\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'nthRoot(($2),($1))');
     s = s.replace(/\\sqrt\{((?:[^{}]|\{[^{}]*\})*)\}/g, 'sqrt($1)');
   } while (s !== prev);
+  // Greek letters -> unicode glyphs (used as variable identifiers). Longest
+  // names first so \vartheta isn't partially matched by \theta etc. This runs
+  // BEFORE the function-name pass: MathQuill emits adjacent commands with no
+  // separator (\theta\sin), and once \sin had lost its backslash the Greek
+  // regex saw \thetasin and failed, leaving t*h*e*t*a*sin.
+  Object.keys(GREEK).sort((a,b) => b.length - a.length).forEach(name => {
+    s = s.replace(new RegExp('\\\\' + name + '(?![a-zA-Z])', 'g'), GREEK[name]);
+  });
   s = s.replace(/\\operatorname\{([^}]*)\}/g, '$1');
   s = s.replace(/\\log_\{((?:[^{}]|\{[^{}]*\})*)\}\s*\(((?:[^()]|\([^()]*\))*)\)/g, 'log($2,$1)');
   s = s.replace(/\\log_(\w)\s*\(((?:[^()]|\([^()]*\))*)\)/g, 'log($2,$1)');
@@ -2854,11 +2868,9 @@ function latexToMath(latex) {
                'arcsin','arccos','arctan','ln','log','exp','abs','floor','ceil','round','sign'];
   fns.forEach(fn => { s = s.replace(new RegExp('\\\\' + fn + '(?![a-zA-Z])', 'g'), fn); });
   s = s.replace(/\\pi/g, 'pi ');
-  // Greek letters -> unicode glyphs (used as variable identifiers). Longest
-  // names first so \vartheta isn't partially matched by \theta etc.
-  Object.keys(GREEK).sort((a,b) => b.length - a.length).forEach(name => {
-    s = s.replace(new RegExp('\\\\' + name + '(?![a-zA-Z])', 'g'), GREEK[name]);
-  });
+  // arcsin/arccos/arctan -> math.js asin/acos/atan (arcsin is otherwise only
+  // defined by the degree scope, so it was undefined in Rad mode)
+  s = s.replace(/\barc(sin|cos|tan)\b/g, 'a$1');
   s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*').replace(/\\div/g, '/');
   s = s.replace(/\bln\b/g, 'log');
   s = s.replace(/\\degree|°/g, ' deg');
@@ -6370,6 +6382,26 @@ function shouldStayInSupSub(mq, fieldEl, key) {
   return false;
 }
 
+/* True if the caret sits at the end of a superscript that reads "-1" whose base
+   is a trig operator name (sin, cos, tan, sec, csc, cot, sinh, cosh, tanh), i.e.
+   the user has just typed cos^-1 and the next "(" belongs outside the exponent. */
+function inInverseTrigExponent(fieldEl) {
+  let root = fieldEl;
+  if (!root) root = document.querySelector('.mq-field.mq-focused') || document.querySelector('.mq-field:focus-within');
+  if (!root) return false;
+  const cursor = root.querySelector('.mq-cursor');
+  if (!cursor) return false;
+  const sup = cursor.closest('.mq-supsub, .mq-sup, .mq-sup-only, .mq-exponent');
+  if (!sup) return false;
+  if (cursor.nextSibling) return false;                      // caret not at the end of the exponent
+  const content = sup.textContent.replace(/[\u200b\s]/g, '').replace(/\u2212/g, '-');
+  if (content !== '-1') return false;
+  const supsub = cursor.closest('.mq-supsub') || sup;
+  let name = '', el = supsub.previousElementSibling;
+  while (el && el.classList.contains('mq-operator-name')) { name = el.textContent + name; el = el.previousElementSibling; }
+  return /^(sin|cos|tan|sec|csc|cot|sinh|cosh|tanh)$/.test(name.replace(/\s/g, ''));
+}
+
 /* Build the full vertical navigation sequence for the active tab:
    tab name -> (folder name -> its lines) for each folder. */
 function navSequence() {
@@ -6615,6 +6647,14 @@ function createLine(folder, afterLine = null, initialLatex = '') {
         else mq.typedText(e.key);               // + - =
         recompute(); return;
       }
+    }
+    // "(" typed right after cos^-1 (or any trig ^{-1}) exits the exponent first,
+    // so cos^-1( gives cos^{-1}(...) rather than cos^{-1(...)}
+    if (e.key === '(' && !e.ctrlKey && !e.metaKey && !e.altKey && inInverseTrigExponent(fieldEl)) {
+      e.preventDefault(); e.stopPropagation();
+      mq.keystroke('Right');
+      mq.typedText('(');
+      recompute(); return;
     }
     // "/" pressed LEFT of a number (23*|8): the number to the right becomes the
     // denominator, numerator left empty with the caret in it
@@ -8082,6 +8122,7 @@ function makeKey(k) {
   if (k.letter) letterButtons.push({ btn: b, lo: k.v, up: k.v.toUpperCase() });
   if (k.t === 'greek' && k.capL) letterButtons.push({ btn: b, lo: k.l, up: k.capL });
   if (k.t === 'caps') b.classList.add('capskey');
+  if (k.t === 'layer') keepMathFocus(b);   // αβγ/abc flip keeps the caret in the math field
   // long-press on × inserts the full ×10^□ scaffold (caret in the exponent,
   // which also raises the metric-prefix dropdown); a fired long-press
   // suppresses the button's normal × insert
@@ -8178,6 +8219,9 @@ function makeKey(k) {
       case 'type':
         if (/^[+\-*/=]$/.test(k.v) && !shouldStayInSupSub(mq, line && line.fieldEl, k.v)) {
           breakOutOfSupSub(mq, line && line.fieldEl);
+        }
+        if (k.v === '(' && inInverseTrigExponent(line && line.fieldEl)) {
+          breakOutOfSupSub(mq, line && line.fieldEl);   // cos^-1 then "(" -> paren outside the exponent
         }
         mq.typedText(k.v);
         if (k.v === '/') stripFracParens(mq);
@@ -8354,6 +8398,7 @@ PAGES.forEach((pg, i) => {
   if (window.katex) { try { katex.render(pg.math, tab, { throwOnError:false }); } catch (e) { tab.textContent = pg.name; } }
   else tab.textContent = pg.name;
   tab.setAttribute('aria-label', pg.name);
+  keepMathFocus(tab);
   tab.addEventListener('click', () => setPadPage(i));
   padTabs.appendChild(tab);
   const page = document.createElement('div'); page.className = 'pad-page ' + pg.cls + (i===0?' on':'');
@@ -8363,6 +8408,49 @@ PAGES.forEach((pg, i) => {
 });
 function setPadPage(idx) {
   pageEls.forEach((p, i) => { p.tab.classList.toggle('on', i===idx); p.page.classList.toggle('on', i===idx); });
+}
+/* Keypad controls that change the keyboard rather than insert anything (page
+   tabs, the αβγ/abc layer key) must not take the caret away from the math
+   field: on a phone the tap would otherwise blur the field, hide the caret and
+   leave nothing focused. Default-prevent the press (as the nav keys do), and if
+   the field still lost focus by the time the click lands, put it back. */
+function keepMathFocus(btn) {
+  let hadMathFocus = false, mq = null, caret = null;
+  btn.addEventListener('pointerdown', (e) => {
+    hadMathFocus = !!(document.activeElement && document.activeElement.closest('.mq-editable-field'));
+    // remember which field and where its caret is (e.g. inside cos( )) so a
+    // browser that still blurs the field on the tap gets the caret back there
+    mq = hadMathFocus ? activeMQ() : null;
+    caret = mq ? mqCaretSnapshot(mq) : null;
+    e.preventDefault();
+  });
+  btn.addEventListener('mousedown', (e) => e.preventDefault());
+  btn.addEventListener('click', () => {
+    if (!hadMathFocus) return;
+    if (document.activeElement && document.activeElement.closest('.mq-editable-field')) return;
+    const target = mq || activeMQ();
+    if (!target) return;
+    target.focus();
+    mqCaretRestore(target, caret);
+  });
+}
+/* MathQuill keeps the caret as (parent block, node to its left); capture that
+   so the exact position survives a blur/refocus cycle. Internal API, guarded. */
+function mqCaretSnapshot(mq) {
+  try { const c = mq.__controller.cursor; return c && c.parent ? { parent: c.parent, left: c[-1] || null } : null; }
+  catch (e) { return null; }
+}
+function mqCaretRestore(mq, snap) {
+  if (!snap) return;
+  try {
+    const ctrlr = mq.__controller, c = ctrlr.cursor;
+    let n = snap.parent;                       // the saved block must still be in this field's tree
+    while (n && n !== ctrlr.root) n = n.parent;
+    if (!n) return;
+    if (snap.left && snap.left.parent === snap.parent) c.insRightOf(snap.left);
+    else c.insAtLeftEnd(snap.parent);
+    c.show();
+  } catch (e) {}
 }
 portraitPad.appendChild(padTabs); portraitPad.appendChild(pagesWrap);
 
