@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Cairn</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CjxkZWZzPgogIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzJiN2E2MyIvPgogICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTc0YTNjIi8+CiAgPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8cmVjdCB4PSI0MCIgeT0iNDAiIHdpZHRoPSI0MzIiIGhlaWdodD0iNDMyIiByeD0iMTA0IiBmaWxsPSJ1cmwoI2JnKSIvPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CiAgPGVsbGlwc2UgY3g9IjI1NiIgY3k9IjM3MiIgcng9IjEzOCIgcnk9IjQ2Ii8+CiAgPGVsbGlwc2UgY3g9IjI0OCIgY3k9IjI3NiIgcng9IjEwMiIgcnk9IjQwIi8+CiAgPGVsbGlwc2UgY3g9IjI2MiIgY3k9IjE5NiIgcng9IjY2IiByeT0iMzIiLz4KPC9nPgo8L3N2Zz4K">
+<link rel="apple-touch-icon" sizes="180x180" href="/tools/cairn-icon-180.png">
+<link rel="manifest" href="/tools/cairn.webmanifest">
+<meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cairn">
+<meta name="description" content="Leave the phone face up on this page and a stone is stacked every minute. Tap Done whenever you like. Leaving the page topples the cairn. Nothing is stored or sent anywhere.">
+<style>
+/* StemVault app tokens: the phone-first profile used by Class Timer, Rep Timer and
+   Random Picker. Same light palette as the site; dark mode is true OLED black with no
+   ambient gradient, no glass tint and hairline borders only, so unlit pixels stay off.
+   Paste verbatim into the tool's <style>. */
+:root {
+  --bg: #eef1f6; --panel: #ffffff; --surface: #f5f5f7; --ink: #1d1d1f; --ink-dim: #86868b;
+  --accent: #0a84ff; --good: #34c759; --warn: #ff9f0a; --danger: #ff3b30;
+  --rule: #e5e5ea; --rule-strong: #d1d1d6; --track: #e5e5ea;
+  --glass: rgba(255,255,255,0.55); --glass-strong: rgba(255,255,255,0.72); --glass-border: rgba(255,255,255,0.7);
+  --glass-edge: rgba(255,255,255,0.9); --glass-shadow: 0 8px 30px rgba(31,45,80,0.12), 0 2px 8px rgba(31,45,80,0.08);
+  --glass-key: rgba(255,255,255,0.6); --blur: saturate(180%) blur(20px);
+  --ambient-1: #cfe0ff; --ambient-2: #e7d9ff; --ambient-3: #d6f0e6;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  --font-digits: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000; --panel: #000000; --surface: #0c0c0d; --ink: #ededf0; --ink-dim: #8e8e93;
+    --accent: #0a84ff; --good: #30d158; --warn: #ffd60a; --danger: #ff453a;
+    --rule: #1f1f22; --rule-strong: #2c2c2e; --track: #1f1f22;
+    --glass: #000000; --glass-strong: #000000; --glass-border: rgba(255,255,255,0.14); --glass-edge: rgba(255,255,255,0.05);
+    --glass-shadow: none; --glass-key: #0c0c0d; --blur: none; --ambient-1: #000; --ambient-2: #000; --ambient-3: #000;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --panel: #000000; --surface: #0c0c0d; --ink: #ededf0; --ink-dim: #8e8e93;
+  --accent: #0a84ff; --good: #30d158; --warn: #ffd60a; --danger: #ff453a;
+  --rule: #1f1f22; --rule-strong: #2c2c2e; --track: #1f1f22;
+  --glass: #000000; --glass-strong: #000000; --glass-border: rgba(255,255,255,0.14); --glass-edge: rgba(255,255,255,0.05);
+  --glass-shadow: none; --glass-key: #0c0c0d; --blur: none; --ambient-1: #000; --ambient-2: #000; --ambient-3: #000;
+  color-scheme: dark;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass: rgba(255,255,255,0.96); --glass-strong: rgba(255,255,255,0.98); --glass-key: rgba(255,255,255,0.97); }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; height: 100%; padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font);
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; touch-action: manipulation;
+  padding-block: 0 calc(28px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(40rem 40rem at 12% 8%, var(--ambient-1), transparent 60%), radial-gradient(36rem 36rem at 88% 14%, var(--ambient-2), transparent 60%), radial-gradient(44rem 44rem at 70% 96%, var(--ambient-3), transparent 62%), var(--bg); }
+/* Fill the status-bar area with glass so content scrolling under it stays legible. */
+body::after { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 40; background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-user-select: none; user-select: none; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (pointer: coarse) { input, select, textarea { font-size: 16px; } }
+.num { font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+
+.app { max-width: 620px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.glass { background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge); }
+.panel { border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Sticky top bar: the title must clear the iOS status bar / Dynamic Island, so the top padding
+   grows by 1.25x the inset (the glass status bar softens text that sits right under it). */
+header.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+  margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 12px calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  padding: calc(10px + env(safe-area-inset-top, 0px) * 1.25) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+  background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border-bottom: 1px solid var(--glass-border); box-shadow: inset 0 1px 0 var(--glass-edge); }
+header.topbar .inner { max-width: 620px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+header.topbar .title { font-size: 1.18rem; font-weight: 600; letter-spacing: -0.02em; }
+header.topbar .sub { font-size: 0.8rem; color: var(--ink-dim); margin-top: 1px; }
+header.topbar .spacer { flex: 1; }
+.settings-wrap { position: relative; }
+.popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; width: min(300px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 0.75rem; padding: 0.9rem; border-radius: 14px;
+  background: var(--panel); border: 1px solid var(--glass-border); box-shadow: 0 12px 34px rgba(0,0,0,0.22), inset 0 1px 0 var(--glass-edge); }
+:root[data-theme="dark"] .popover { box-shadow: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .popover { box-shadow: none; } }
+.popover .row { display: flex; flex-direction: column; gap: 0.35rem; }
+.popover .row.inline { flex-direction: row; align-items: center; justify-content: space-between; }
+
+/* Controls */
+.gbtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--ink);
+  border-radius: 11px; min-height: 44px; padding: 0 16px; font-weight: 600; font-size: 0.95rem; backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: inset 0 1px 0 var(--glass-edge); }
+.gbtn:active { transform: translateY(1px); }
+.gbtn:disabled { opacity: 0.4; cursor: default; }
+.gbtn.icon { width: 40px; min-height: 40px; padding: 0; border-radius: 10px; color: var(--ink-dim); }
+.gbtn.icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.gbtn.icon[aria-expanded="true"] { color: var(--accent); }
+.gbtn.ghost { color: var(--accent); }
+.gbtn.danger { color: var(--danger); }
+.gbtn.pill { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 2px 8px rgba(10,132,255,0.35), inset 0 1px 0 rgba(255,255,255,0.4); min-height: 58px; font-size: 1.15rem; }
+/* On OLED black the primary button is outlined, not filled, so it does not glow. */
+:root[data-theme="dark"] .gbtn.pill { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gbtn.pill { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; } }
+.remove.armed { color: #fff; background: var(--danger); border-color: transparent; }
+.seg { display: inline-flex; background: var(--glass-key); border-radius: 10px; padding: 2px; gap: 2px; border: 1px solid var(--glass-border); }
+.seg button { border: none; background: transparent; color: var(--ink); font-size: 0.85rem; font-weight: 500; padding: 0.45rem 0.5rem; border-radius: 8px; min-width: 2.4rem; flex: 1 1 0; min-height: 36px; }
+.seg button.on { background: var(--glass-strong); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.14), inset 0 1px 0 var(--glass-edge); }
+:root[data-theme="dark"] .seg button.on { background: var(--rule-strong); box-shadow: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg button.on { background: var(--rule-strong); box-shadow: none; } }
+.seg.full { display: flex; }
+.label { font-size: 0.72rem; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.hint { font-size: 0.8rem; color: var(--ink-dim); }
+.switch { position: relative; width: 50px; height: 30px; border-radius: 15px; background: var(--track); border: 0; padding: 0; flex-shrink: 0; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.25); transition: left 0.15s; }
+:root[data-theme="dark"] .switch::after { background: #e5e5ea; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .switch::after { background: #e5e5ea; } }
+.switch[aria-checked="true"] { background: var(--good); }
+.switch[aria-checked="true"]::after { left: 22px; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass-key); font-size: 1.3rem; line-height: 1; }
+.stepper .v { font-family: var(--font-digits); font-weight: 600; font-size: 1.2rem; min-width: 2ch; text-align: center; }
+.field { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--rule-strong); background: var(--surface); color: var(--ink); font-weight: 600; }
+
+/* Big readouts */
+.digits { font-family: var(--font-digits); font-variant-numeric: tabular-nums; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-size: clamp(3rem, 22vw, 7rem); }
+.digits .tenths { font-size: 0.4em; color: var(--ink-dim); }
+.stage { min-height: 200px; justify-content: center; align-items: center; text-align: center; gap: 8px; }
+
+/* Bottom sheet for secondary editors */
+.overlay { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,0.45); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-width: 620px; max-height: calc(100vh - env(safe-area-inset-top, 0px) - 40px); border-radius: 22px 22px 0 0; padding: 14px 18px calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--panel); border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 1.05rem; }
+.sheet-actions { display: flex; gap: 10px; }
+.sheet-actions .gbtn { flex: 1; }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 90; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) { .switch::after { transition: none; } }
+</style>
+<style>
+  /* Layout: header, a glass stage holding the canvas scene, the elapsed time, then one control row.
+     The page itself never scrolls: the stage takes whatever height is left. */
+  body { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+  .app { flex: 1; min-height: 0; width: 100%; }
+  .stage { flex: 1; min-height: 180px; padding: 0; position: relative; overflow: hidden; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .stage .note {
+    position: absolute; left: 0; right: 0; top: 14px; padding: 0 22px; text-align: center;
+    font-size: 0.86rem; color: var(--ink-dim); text-wrap: balance; pointer-events: none;
+  }
+  .stage .note strong { color: var(--ink); font-weight: 600; }
+  .readout { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 2px 0; }
+  .readout .digits { font-size: clamp(2.6rem, 14vw, 4.4rem); }
+  .readout .stones { font-size: 0.95rem; font-weight: 600; color: var(--ink-dim); min-height: 1.3em; }
+  .controls { display: flex; gap: 10px; }
+  .controls .gbtn { flex: 1; min-height: 58px; font-size: 1.1rem; }
+  .gbtn.pill.go { background: var(--good); box-shadow: 0 2px 8px rgba(52,199,89,0.35), inset 0 1px 0 rgba(255,255,255,0.4); }
+  :root[data-theme="dark"] .gbtn.pill.go { background: #000; color: var(--good); border-color: var(--good); box-shadow: none; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gbtn.pill.go { background: #000; color: var(--good); border-color: var(--good); box-shadow: none; } }
+  .popover .seg { display: flex; }
+  .sep { height: 1px; background: var(--rule); }
+  @media (max-height: 600px) { .readout .digits { font-size: clamp(2rem, 9vw, 3rem); } .controls .gbtn { min-height: 50px; } }
+  @media (pointer: fine) and (min-width: 900px), (pointer: none) and (min-width: 900px), (min-width: 1000px) {
+    .app { max-width: 760px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="inner">
+    <div>
+      <div class="title">Cairn</div>
+      <div class="sub" id="sub">Ready</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="settings-wrap">
+      <button class="gbtn icon" id="settingsBtn" type="button" aria-label="Settings" title="Settings" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+      <div class="popover" id="settings" hidden>
+        <div class="row">
+          <span class="label">Appearance</span>
+          <div class="seg" id="themeSeg">
+            <button type="button" data-v="auto">Auto</button><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="row inline">
+          <span id="soundLabel">Sound</span>
+          <button class="switch" id="soundToggle" type="button" role="switch" aria-checked="true" aria-labelledby="soundLabel"></button>
+        </div>
+        <span class="hint">A quiet clack as each stone lands, a rumble if it topples.</span>
+        <div class="row inline">
+          <span>Screen stays awake</span>
+          <span class="hint" id="wakeStatus">Off</span>
+        </div>
+        <div class="sep"></div>
+        <span class="hint">One stone a minute while this page is open. Switching apps or tabs for more than 3 seconds topples it. Nothing leaves the device.</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <section class="glass panel stage">
+    <canvas id="cv" aria-hidden="true"></canvas>
+    <div class="note" id="note"></div>
+  </section>
+  <div class="readout" aria-live="polite">
+    <div class="digits num" id="time">00:00</div>
+    <div class="stones num" id="stones"></div>
+  </div>
+  <div class="controls">
+    <button type="button" class="gbtn pill go" id="startBtn">Place the first stone</button>
+    <button type="button" class="gbtn pill" id="doneBtn" hidden>Done</button>
+    <button type="button" class="gbtn" id="againBtn" hidden>New cairn</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const STORE = 'cairn-v1';
+  const GRACE_MS = 3000;
+  const STONE_MS = 60 * 1000;
+  const $ = id => document.getElementById(id);
+  const el = { sub: $('sub'), note: $('note'), time: $('time'), stones: $('stones'), start: $('startBtn'), done: $('doneBtn'), again: $('againBtn'),
+               settings: $('settings'), settingsBtn: $('settingsBtn'), themeSeg: $('themeSeg'), sound: $('soundToggle'), wake: $('wakeStatus') };
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  const stage = cv.parentElement;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---- State: settings plus the live session, so a reload mid-build carries on and a reload after leaving shows the topple ----
+  // session = { seed, startAt, hiddenAt }   result = { seed, stones, elapsedMs, status: 'stood' | 'toppled' }
+  let t = { theme: 'dark', sound: true, session: null, result: null };
+  try { Object.assign(t, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(t)); } catch (e) {} }
+
+  const phase = () => t.session ? 'running' : t.result ? t.result.status : 'idle';
+  const elapsedAt = at => t.session ? Math.max(0, at - t.session.startAt) : 0;
+  const elapsed = () => elapsedAt(Date.now());
+  const stonesAt = ms => Math.floor(ms / STONE_MS);
+  function stoneCount() { return t.session ? stonesAt(elapsed()) : t.result ? t.result.stones : 0; }
+  const seedNow = () => t.session ? t.session.seed : t.result ? t.result.seed : 1;
+  const pad = n => String(n).padStart(2, '0');
+  function fmt(ms) { const s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60; return (h ? h + ':' + pad(m) : pad(m)) + ':' + pad(r); }
+  const stonesWord = n => n + (n === 1 ? ' stone' : ' stones');
+
+  // ---- Audio: Web Audio only, created on the first gesture ----
+  let actx = null;
+  function unlock() { try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) {} }
+  function tone(freq, at, dur, gain, type) {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.connect(g).connect(actx.destination); o.start(at); o.stop(at + dur + 0.03);
+  }
+  function clack() { if (!t.sound) return; unlock(); if (!actx) return; const a = actx.currentTime + 0.01; tone(1500, a, 0.05, 0.12, 'triangle'); tone(820, a + 0.01, 0.08, 0.08); }
+  function rumble() { if (!t.sound) return; unlock(); if (!actx) return; const a = actx.currentTime + 0.01; [0, 0.09, 0.2, 0.34, 0.5].forEach((d, i) => tone(140 - i * 14, a + d, 0.28, 0.25, 'triangle')); }
+  function chime() { if (!t.sound) return; unlock(); if (!actx) return; const a = actx.currentTime + 0.01; [523, 659, 784].forEach((f, i) => tone(f, a + i * 0.12, 0.6, 0.18)); }
+  document.addEventListener('pointerdown', unlock, { passive: true });
+
+  // ---- Wake lock while a cairn is being built ----
+  let wake = null;
+  async function holdWake() {
+    if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') { el.wake.textContent = 'Unavailable'; return; }
+    try {
+      if (wake) return;
+      wake = await navigator.wakeLock.request('screen'); el.wake.textContent = 'On';
+      wake.addEventListener('release', () => { wake = null; el.wake.textContent = 'Off'; });
+    } catch (e) { wake = null; el.wake.textContent = 'Off'; }
+  }
+  async function dropWake() { try { if (wake) { await wake.release(); wake = null; } } catch (e) {} el.wake.textContent = 'Off'; }
+
+  // ---- Session lifecycle ----
+  let placedAt = [];       // performance.now() when each stone landed, for the drop animation
+  let bodies = null;       // physics bodies once toppled
+  let dust = [];
+  let wobble = 0;          // spikes when the page comes back inside the grace window
+  let graceTimer = null;
+
+  function start() {
+    const now = Date.now();
+    t.session = { seed: (now % 100000) + 1, startAt: now, hiddenAt: null };
+    t.result = null; placedAt = []; bodies = null; dust = [];
+    save(); holdWake(); render();
+  }
+  function finish(status, at) {
+    if (!t.session) return;
+    const e = elapsedAt(at);
+    t.result = { seed: t.session.seed, stones: stonesAt(e), elapsedMs: e, status };
+    t.session = null; bodies = null;
+    clearTimeout(graceTimer);
+    save(); dropWake(); render();
+    if (status === 'stood') chime(); else rumble();
+  }
+  function reset() { t.result = null; t.session = null; bodies = null; placedAt = []; dust = []; save(); render(); }
+
+  el.start.addEventListener('click', () => { unlock(); start(); clack(); });
+  el.done.addEventListener('click', () => finish('stood', Date.now()));
+  el.again.addEventListener('click', reset);
+
+  // ---- Visibility: leaving the page for longer than the grace period topples the cairn ----
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (!t.session) return;
+      t.session.hiddenAt = Date.now(); save();
+      clearTimeout(graceTimer);
+      graceTimer = setTimeout(() => { if (t.session && t.session.hiddenAt) finish('toppled', t.session.hiddenAt); }, GRACE_MS + 50);
+    } else {
+      clearTimeout(graceTimer);
+      if (t.session && t.session.hiddenAt) {
+        const at = t.session.hiddenAt, gap = Date.now() - at;
+        t.session.hiddenAt = null;
+        if (gap > GRACE_MS) { finish('toppled', at); return; }
+        wobble = 1; save();
+      }
+      if (t.session) holdWake();
+      render();
+    }
+  });
+  document.addEventListener('pointerdown', () => { if (t.session && !wake) holdWake(); }, { passive: true });
+
+  // ---- Render the chrome (the scene itself is drawn every frame below) ----
+  function render() {
+    const p = phase();
+    el.start.hidden = p !== 'idle';
+    el.done.hidden = p !== 'running';
+    el.again.hidden = !(p === 'stood' || p === 'toppled');
+    el.sub.textContent = p === 'idle' ? 'Ready' : p === 'running' ? 'Building' : p === 'stood' ? 'Standing' : 'Toppled';
+    if (p === 'idle') el.note.innerHTML = 'Leave the phone face up here. <strong>One stone a minute.</strong> Tap Done whenever you like. Leaving the page topples it.';
+    else if (p === 'running') el.note.textContent = '';
+    else if (p === 'stood') el.note.innerHTML = '<strong>It stands.</strong> ' + stonesWord(t.result.stones) + ' in ' + fmt(t.result.elapsedMs) + '.';
+    else el.note.innerHTML = '<strong>Toppled</strong> at ' + stonesWord(t.result.stones) + ', after ' + fmt(t.result.elapsedMs) + '.';
+    tickReadout();
+  }
+  function tickReadout() {
+    if (t.session) { el.time.textContent = fmt(elapsed()); el.stones.textContent = stonesWord(stoneCount()); }
+    else if (t.result) { el.time.textContent = fmt(t.result.elapsedMs); el.stones.textContent = stonesWord(t.result.stones); }
+    else { el.time.textContent = '00:00'; el.stones.textContent = ''; }
+  }
+
+  // ---- Settings ----
+  function openSettings(on) { el.settings.hidden = !on; el.settingsBtn.setAttribute('aria-expanded', String(on)); }
+  el.settingsBtn.addEventListener('click', () => openSettings(el.settings.hidden));
+  document.addEventListener('pointerdown', e => { if (!el.settings.hidden && !e.target.closest('.settings-wrap')) openSettings(false); }, { passive: true });
+  function applyTheme() {
+    if (t.theme === 'dark' || t.theme === 'light') document.documentElement.setAttribute('data-theme', t.theme);
+    else document.documentElement.removeAttribute('data-theme');
+    el.themeSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === t.theme));
+  }
+  el.themeSeg.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (!b) return; t.theme = b.dataset.v; save(); applyTheme(); });
+  el.sound.addEventListener('click', () => { t.sound = !t.sound; save(); el.sound.setAttribute('aria-checked', String(t.sound)); if (t.sound) clack(); });
+  const darkQuery = matchMedia('(prefers-color-scheme: dark)');
+  const isDark = () => t.theme === 'dark' || (t.theme !== 'light' && darkQuery.matches);
+
+  // ---- Stone geometry: seeded so a cairn looks the same after a reload and every cairn is different ----
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let x = a; x = Math.imul(x ^ (x >>> 15), x | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+  }
+  const geomCache = new Map();
+  function stoneGeom(seed, i, s) {
+    const key = seed + ':' + i + ':' + Math.round(s);
+    if (geomCache.has(key)) return geomCache.get(key);
+    const r = rng(seed * 7919 + i * 104729 + 17);
+    const taper = Math.max(0.34, 1 - 0.028 * i);
+    const w = s * taper * (0.86 + 0.28 * r());
+    const h = w * (0.30 + 0.24 * r());
+    const dx = (r() - 0.5) * w * 0.22;
+    const rot = (r() - 0.5) * 0.14;
+    const pts = [];
+    for (let k = 0; k < 16; k++) pts.push(0.90 + 0.18 * r());
+    const g = { w, h, dx, rot, pts, tone: r() };
+    geomCache.set(key, g);
+    return g;
+  }
+  function layout(seed, n, s, groundY, cx) {
+    const out = []; let y = groundY, x = cx;
+    for (let i = 0; i < n; i++) {
+      const g = stoneGeom(seed, i, s);
+      x = cx + (x - cx) * 0.65 + g.dx;
+      y -= g.h * 0.5;
+      out.push({ i, x, y, w: g.w, h: g.h, a: g.rot, g });
+      y -= g.h * 0.42;
+    }
+    return out;
+  }
+  function stonePath(b, w, h) {
+    const N = b.g.pts.length;
+    ctx.beginPath();
+    for (let k = 0; k <= N; k++) {
+      const q = k % N, ang = (q / N) * Math.PI * 2, rr = b.g.pts[q];
+      const px = Math.cos(ang) * (w / 2) * rr, py = Math.sin(ang) * (h / 2) * (rr * 0.9 + 0.1);
+      if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  }
+  function drawStone(b, dark, dim) {
+    ctx.save();
+    ctx.translate(b.x, b.y); ctx.rotate(b.a);
+    const w = b.w, h = b.h, tn = b.g.tone;
+    ctx.save(); ctx.translate(0, h * 0.42); ctx.scale(1, 0.35);
+    ctx.beginPath(); ctx.arc(0, 0, w * 0.42, 0, Math.PI * 2);
+    ctx.fillStyle = dark ? 'rgba(0,0,0,0.5)' : 'rgba(30,40,60,0.18)'; ctx.fill(); ctx.restore();
+    let base = dark ? [104 + tn * 22, 110 + tn * 18, 122 + tn * 10] : [128 + tn * 22, 133 + tn * 18, 144 + tn * 10];
+    if (dim) base = base.map(v => v * (dark ? 0.72 : 0.9));
+    const grad = ctx.createRadialGradient(-w * 0.22, -h * 0.35, 0, 0, 0, w * 0.75);
+    grad.addColorStop(0, 'rgb(' + base.map(v => Math.round(Math.min(255, v + 46))).join(',') + ')');
+    grad.addColorStop(0.55, 'rgb(' + base.map(Math.round).join(',') + ')');
+    grad.addColorStop(1, 'rgb(' + base.map(v => Math.round(v * 0.58)).join(',') + ')');
+    stonePath(b, w, h);
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = dark ? 'rgba(0,0,0,0.4)' : 'rgba(20,30,50,0.28)'; ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---- Topple physics ----
+  function makeBodies(stack, groundY) {
+    const r = rng(seedNow() * 31 + 5);
+    const n = stack.length, lean = r() < 0.5 ? -1 : 1;
+    return stack.map(b => {
+      const k = b.i / Math.max(1, n - 1);
+      return Object.assign({}, b, { vx: lean * (40 + 260 * k) * (0.6 + 0.8 * r()), vy: -(40 + 200 * k) * r(), va: lean * (2 + 7 * k) * (0.5 + r()), rest: false, groundY });
+    });
+  }
+  function stepBodies(dt, left, right) {
+    const G = 1500;
+    for (const b of bodies) {
+      if (b.rest) continue;
+      b.vy += G * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.a += b.va * dt;
+      // side walls keep the scatter inside the stage
+      const half = b.w * 0.5;
+      if (b.x - half < left) { b.x = left + half; b.vx = Math.abs(b.vx) * 0.4; }
+      if (b.x + half > right) { b.x = right - half; b.vx = -Math.abs(b.vx) * 0.4; }
+      const ext = (b.h / 2) * Math.abs(Math.cos(b.a)) + (b.w / 2) * Math.abs(Math.sin(b.a));
+      if (b.y + ext > b.groundY) {
+        b.y = b.groundY - ext;
+        if (Math.abs(b.vy) > 60) { b.vy *= -0.28; b.vx *= 0.6; b.va *= 0.5; spawnDust(b.x, b.groundY, 4); }
+        else { b.vy = 0; b.vx *= 0.8; b.va *= 0.7; }
+        const target = Math.round(b.a / Math.PI) * Math.PI;
+        b.a += (target - b.a) * 0.2;
+        if (Math.abs(b.vx) < 4 && Math.abs(b.va) < 0.2 && Math.abs(b.vy) < 1) { b.rest = true; b.a = target; b.vx = 0; b.va = 0; }
+      }
+    }
+  }
+  function spawnDust(x, y, n) {
+    for (let i = 0; i < n; i++) dust.push({ x: x + (Math.random() - 0.5) * 20, y, vx: (Math.random() - 0.5) * 60, vy: -(10 + Math.random() * 30), r: 2 + Math.random() * 3, life: 0, ttl: 0.8 + Math.random() * 0.6 });
+  }
+
+  // ---- Scene ----
+  let dpr = 1, W = 0, H = 0;
+  function resize() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = stage.clientWidth; H = stage.clientHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+  const easeOut = q => 1 - Math.pow(1 - q, 3);
+  let lastT = performance.now(), lastStones = -1, lastReadout = 0;
+
+  function draw(nowMs) {
+    const dt = Math.min(0.05, (nowMs - lastT) / 1000); lastT = nowMs;
+    const tt = nowMs / 1000;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    if (!W || !H) return;
+
+    const p = phase(), dark = isDark();
+    wobble = Math.max(0, wobble - dt * 0.6);
+    const n = stoneCount();
+    const seed = seedNow();
+    const cx = W / 2, groundY = H * 0.9;
+    const s = Math.min(Math.max(50, W * 0.24), 112);
+
+    // ground
+    ctx.fillStyle = dark ? 'rgba(255,255,255,0.05)' : 'rgba(30,40,60,0.05)'; ctx.fillRect(0, groundY, W, H - groundY);
+    ctx.fillStyle = dark ? 'rgba(255,255,255,0.14)' : 'rgba(30,40,60,0.2)'; ctx.fillRect(0, groundY - 0.5, W, 1);
+
+    // a stone landed since last frame
+    while (placedAt.length < n) placedAt.push(nowMs);
+    if (placedAt.length > n) placedAt.length = n;
+    if (p === 'running' && lastStones >= 0 && n > lastStones) clack();
+    lastStones = p === 'running' ? n : -1;
+
+    const stack = layout(seed, n, s, groundY, cx);
+    const totalH = stack.length ? groundY - (stack[stack.length - 1].y - stack[stack.length - 1].h / 2) : 0;
+    const scale = Math.min(1, (H * 0.72) / Math.max(1, totalH));
+
+    ctx.save();
+    ctx.translate(cx, groundY); ctx.scale(scale, scale); ctx.translate(-cx, -groundY);
+    if (p === 'idle') {
+      const g = stoneGeom(1, 0, s);
+      const b = { x: cx, y: groundY - g.h / 2, w: g.w, h: g.h, a: 0, g };
+      ctx.save(); ctx.translate(b.x, b.y);
+      stonePath(b, g.w, g.h); ctx.setLineDash([4, 5]); ctx.lineWidth = 1;
+      ctx.strokeStyle = dark ? 'rgba(255,255,255,0.25)' : 'rgba(30,40,60,0.3)'; ctx.stroke();
+      ctx.restore();
+    } else if (p === 'toppled') {
+      if (!bodies) bodies = makeBodies(stack, groundY);
+      stepBodies(dt, cx - (cx - 10) / scale, cx + (cx - 10) / scale);
+      for (const b of bodies) drawStone(b, dark, true);
+    } else {
+      for (const b of stack) {
+        let y = b.y, a = b.a;
+        const age = (nowMs - placedAt[b.i]) / 1000;
+        if (age < 0.55 && !reduceMotion) {
+          const q = easeOut(Math.min(1, age / 0.5));
+          y = b.y - (1 - q) * (H * 0.35 / scale);
+          if (age > 0.5) y += Math.sin((age - 0.5) * 60) * 1.5 * (0.55 - age) * 10;
+        }
+        if (wobble > 0 && n > 0) a += Math.sin(tt * 22 + b.i) * 0.09 * wobble * Math.pow(b.i / n, 2) * (reduceMotion ? 0.3 : 1);
+        drawStone(Object.assign({}, b, { y, a }), dark, false);
+      }
+    }
+    ctx.restore();
+
+    for (const d of dust) {
+      d.life += dt; d.x += d.vx * dt; d.y += d.vy * dt; d.vy *= 0.96; d.r += 10 * dt;
+      const a = Math.max(0, 0.35 * (1 - d.life / d.ttl));
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r * scale, 0, Math.PI * 2);
+      ctx.fillStyle = (dark ? 'rgba(170,165,160,' : 'rgba(90,95,105,') + a + ')'; ctx.fill();
+    }
+    dust = dust.filter(d => d.life < d.ttl);
+
+    if (nowMs - lastReadout > 200) { lastReadout = nowMs; tickReadout(); }
+  }
+  function loop(now) { draw(now); requestAnimationFrame(loop); }
+
+  // ---- Boot: settle a session that was interrupted while the page was away ----
+  (function resume() {
+    if (!t.session) return;
+    const now = Date.now();
+    if (t.session.hiddenAt && now - t.session.hiddenAt > GRACE_MS) { finish('toppled', t.session.hiddenAt); return; }
+    t.session.hiddenAt = null; save();
+    placedAt = new Array(stonesAt(elapsedAt(now))).fill(-1e9);
+    holdWake();
+  })();
+  applyTheme(); el.sound.setAttribute('aria-checked', String(!!t.sound)); render();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

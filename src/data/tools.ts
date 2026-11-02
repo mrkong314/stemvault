@@ -31,6 +31,12 @@ export const TOOLS: Tool[] = [
     href: '/tools/random-picker.html',
   },
   {
+    slug: 'cairn',
+    title: 'Cairn',
+    description: 'Focus timer that rewards leaving the phone alone. Set it face up and a stone is stacked every minute. Tap Done whenever you like. Switching apps or tabs topples the cairn. Nothing is stored or sent anywhere. Installs to a phone home screen.',
+    href: '/tools/cairn.html',
+  },
+  {
     slug: 'notepad',
     title: 'Notepad',
     description: 'Notes filed as tabs and groups, with checkboxes, lists, toggles, tables, inline calculator sections, Markdown shortcuts and pasted images. Saved only in the browser, on the device. Installs to a phone home screen.',
