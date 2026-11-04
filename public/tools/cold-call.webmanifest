@@ -1,0 +1,25 @@
+{
+  "name": "Cold Call",
+  "short_name": "Cold Call",
+  "description": "Paste a class roster with photos, then cold call students at random or place them on a podium. Classes stay in this browser.",
+  "start_url": "/tools/cold-call.html",
+  "scope": "/tools/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
+  "icons": [
+    {
+      "src": "/tools/cold-call-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/tools/cold-call-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

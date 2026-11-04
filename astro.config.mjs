@@ -15,6 +15,7 @@ export default defineConfig({
     '/tools/class-timer': '/tools/class-timer.html',
     '/tools/rep-timer': '/tools/rep-timer.html',
     '/tools/random-picker': '/tools/random-picker.html',
+    '/tools/cold-call': '/tools/cold-call.html',
     '/tools/notepad': '/tools/notepad.html',
     // Scratchpad was renamed Notepad.
     '/tools/scratchpad': '/tools/notepad.html',
