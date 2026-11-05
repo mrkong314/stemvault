@@ -184,11 +184,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .fs-exit { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 2; }
 
   /* Podium */
-  .podium { display: flex; align-items: flex-end; justify-content: center; gap: clamp(6px, 2vw, 18px); width: 100%; padding-top: 8px; }
-  .slot { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-width: 0; max-width: 200px; }
+  /* Three grid rows (students, blocks, notes) so every block sits on the same baseline whatever is under it. */
+  .podium { display: grid; grid-template-columns: var(--cols, 1fr); column-gap: clamp(6px, 2vw, 18px); row-gap: 6px; width: min(100%, calc(var(--k, 1) * 220px)); margin: 0 auto; padding-top: 8px; align-items: end; }
+  .slot { display: contents; }
+  .slot > * { grid-column: var(--c); min-width: 0; }
+  .slot .top { grid-row: 1; align-self: end; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .slot .block { grid-row: 2; align-self: end; }
+  .slot .foot { grid-row: 3; align-self: start; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .slot .avatar { width: clamp(56px, 16vw, 104px); height: clamp(56px, 16vw, 104px); font-size: clamp(1.1rem, 5vw, 2rem); border: 3px solid var(--panel); box-shadow: 0 6px 18px rgba(0,0,0,0.16); transition: transform 0.4s ease, opacity 0.4s ease; }
   .slot .avatar.open { background: var(--surface); color: var(--ink-dim); border-style: dashed; border-color: var(--rule-strong); box-shadow: none; font-size: 1.4rem; }
-  .slot .pname { font-weight: 700; font-size: clamp(0.8rem, 3.2vw, 1.05rem); line-height: 1.15; text-align: center; overflow-wrap: anywhere; min-height: 2.3em; display: flex; align-items: flex-end; text-wrap: balance; }
+  .slot .who { display: flex; gap: 4px; justify-content: center; align-items: flex-end; max-width: 100%; }
+  .slot.tie .avatar { width: clamp(44px, 11vw, 76px); height: clamp(44px, 11vw, 76px); font-size: clamp(0.9rem, 3.5vw, 1.4rem); }
+  .slot .names { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; min-height: 2.3em; justify-content: flex-end; }
+  .slot .pnote { font-family: var(--font-digits); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink-dim); font-size: clamp(0.78rem, 3vw, 0.95rem); text-align: center; overflow-wrap: anywhere; }
+  .slot .note-in { width: 100%; max-width: 120px; padding: 4px 6px; border-radius: 8px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink-dim); font-size: 0.8rem; font-weight: 600; text-align: center; font-family: var(--font-digits); font-variant-numeric: tabular-nums; }
+  .slot .note-in:focus { outline: none; border-color: var(--accent); color: var(--ink); }
+  .slot .note-in::placeholder { color: var(--ink-dim); opacity: 0.55; font-weight: 500; }
+  .fs-only { display: none; }
+  .main-fs .fs-only { display: block; }
+  .main-fs .podium .slot .pnote { font-size: clamp(1rem, 3vh, 2rem); color: var(--ink); }
+  .main-fs .podium .slot.tie .avatar { width: clamp(70px, 13vh, 150px); height: clamp(70px, 13vh, 150px); font-size: clamp(1.2rem, 5vh, 3rem); }
+  .slot .pname { font-weight: 700; font-size: clamp(0.8rem, 3.2vw, 1.05rem); line-height: 1.15; text-align: center; overflow-wrap: anywhere; text-wrap: balance; }
   .slot .block { width: 100%; height: var(--h); border-radius: 12px 12px 6px 6px; background: var(--metal, var(--accent-tint)); display: flex; align-items: flex-start; justify-content: center; padding-top: 6px; color: var(--ink); box-shadow: inset 0 1px 0 rgba(255,255,255,0.45); }
   .slot .block .place { font-family: var(--font-digits); font-weight: 800; font-size: clamp(1rem, 4vw, 1.6rem); line-height: 1; }
   .slot[data-place="1"] { --metal: var(--gold); } .slot[data-place="2"] { --metal: var(--silver); } .slot[data-place="3"] { --metal: var(--bronze); }
@@ -196,7 +212,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   /* Concealed place: no photo, initials or tint colour shows, only a dashed circle with a question mark. */
   .slot.veiled .avatar { background: var(--surface); color: transparent; border-style: dashed; border-color: var(--rule-strong); box-shadow: none; }
   .slot.veiled .avatar img { visibility: hidden; }
-  .slot.veiled .pname { visibility: hidden; }
+  .slot.veiled .pname, .slot.veiled .pnote, .slot.veiled .note-in { visibility: hidden; }
   .slot.veiled .avatar::after { content: "?"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--ink-dim); font-size: 1.4rem; }
   .slot.revealed .avatar { animation: pop 0.45s ease-out; }
   @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: none; } }
@@ -326,6 +342,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
         </div>
         <div class="bar fs-hide">
           <button type="button" class="gbtn" id="randomFill">Random fill</button>
+          <button type="button" class="gbtn" id="tieBtn" aria-pressed="false">Tie next</button>
           <span class="spacer"></span>
           <button type="button" class="gbtn ghost remove" id="clearPodium" style="min-height:36px; font-size:0.85rem">Clear podium</button>
         </div>
@@ -421,16 +438,23 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   const present = () => { const a = awaySet(); return students().filter(s => !a.has(s.id)); };
   const uncalled = () => { const c = new Set(calledList()); return present().filter(s => !c.has(s.id)); };
   const podiumList = () => (state.podiums[state.current] = state.podiums[state.current] || []);
-  const newPodium = name => ({ id: uid(), name, places: state.places, ids: [], hidden: false, revealed: [] });
+  // A podium is a list of slots in rank order; a slot with several students is a tie. Places are numbered by
+  // competition ranking, so a tie for 1st is followed by 3rd. notes holds an optional line per student.
+  const newPodium = name => ({ id: uid(), name, places: state.places, slots: [], notes: {}, hidden: false, revealed: [] });
   function pod() {
     const list = podiumList(); let p = list.find(x => x.id === state.podiumCur[state.current]);
     if (!p) { if (!list.length) list.push(newPodium('Podium 1')); p = list[0]; state.podiumCur[state.current] = p.id; }
-    if (![1, 3, 5].includes(p.places)) p.places = 3; p.ids = Array.isArray(p.ids) ? p.ids : []; p.revealed = Array.isArray(p.revealed) ? p.revealed : [];
+    if (![1, 3, 5].includes(p.places)) p.places = 3; p.revealed = Array.isArray(p.revealed) ? p.revealed : [];
+    if (!Array.isArray(p.slots)) { p.slots = (Array.isArray(p.ids) ? p.ids : []).filter(Boolean).map(id => [id]); delete p.ids; }
+    p.slots = p.slots.filter(sl => Array.isArray(sl) && sl.length); if (!p.notes || typeof p.notes !== 'object') p.notes = {};
     return p;
   }
-  const podiumIds = () => pod().ids;
-  // A place is concealed when the podium is hidden and that place has not been revealed yet.
-  const veiledPlace = place => { const p = pod(); return !!(p.hidden && p.ids[place - 1] && !p.revealed.includes(place)); };
+  const podiumCount = () => pod().slots.reduce((n, sl) => n + sl.length, 0);
+  // Competition-ranking label for slot k (1-based): one more than the number of students in earlier slots.
+  const slotLabel = k => 1 + pod().slots.slice(0, k - 1).reduce((n, sl) => n + sl.length, 0);
+  const slotOf = id => pod().slots.findIndex(sl => sl.includes(id)) + 1;
+  // A slot is concealed when the podium is hidden and that slot has not been revealed yet.
+  const veiledSlot = k => { const p = pod(); return !!(p.hidden && p.slots[k - 1] && !p.revealed.includes(k)); };
   const byId = id => students().find(s => s.id === id);
   function shuffled(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -492,7 +516,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
   // ---- Modes ----
   segOn($('modeSeg'), v => { state.mode = v; save(); stopCycle(); stopReveal(); renderAll(); });
-  segOn($('placesSeg'), v => { const p = pod(); p.places = +v; state.places = p.places; p.ids.length = Math.min(p.ids.length, p.places); p.revealed = p.revealed.filter(x => x <= p.places); save(); renderAll(); });
+  segOn($('placesSeg'), v => { const p = pod(); p.places = +v; state.places = p.places; trimPodium(p); save(); renderAll(); });
+  // Keeps the number of placed students within the places setting, dropping from the bottom.
+  function trimPodium(p) { let n = 0; p.slots = p.slots.map(sl => { const keep = sl.slice(0, Math.max(0, p.places - n)); n += keep.length; return keep; }).filter(sl => sl.length); p.revealed = p.revealed.filter(k => k <= p.slots.length); }
 
   function renderAll() {
     segSync($('modeSeg'), state.mode); segSync($('placesSeg'), pod().places);
@@ -561,58 +587,92 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   }
 
   // ---- Podium mode ----
-  const ORDER = { 1: [1], 3: [2, 1, 3], 5: [4, 2, 1, 3, 5] };
+  // Visual order of slots across the stage (centre is highest) and block heights, by slot rank.
+  const ORDER = { 1: [1], 2: [1, 2], 3: [2, 1, 3], 4: [4, 2, 1, 3], 5: [4, 2, 1, 3, 5] };
   const HEIGHT = { 1: 96, 2: 72, 3: 54, 4: 40, 5: 30 };
   const SUFFIX = n => n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th';
-  let revealT = null, justRevealed = 0;
+  let revealT = null, justRevealed = 0, tieNext = false;
   const podiumSelect = $('podiumSelect');
   function renderPodiumSelect() {
     podiumSelect.innerHTML = '';
     podiumList().forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name || 'Untitled'; podiumSelect.appendChild(o); });
     podiumSelect.value = pod().id; $('podiumName').value = pod().name;
   }
-  podiumSelect.addEventListener('change', () => { stopReveal(); state.podiumCur[state.current] = podiumSelect.value; save(); renderAll(); });
+  podiumSelect.addEventListener('change', () => { stopReveal(); tieNext = false; state.podiumCur[state.current] = podiumSelect.value; save(); renderAll(); });
   $('podiumName').addEventListener('input', () => { pod().name = $('podiumName').value; save(); podiumSelect.options[podiumSelect.selectedIndex].textContent = pod().name || 'Untitled'; $('subLabel').textContent = 'Podium · ' + (pod().name || 'Untitled'); });
-  $('newPodium').addEventListener('click', () => { stopReveal(); const p = newPodium('Podium ' + (podiumList().length + 1)); podiumList().push(p); state.podiumCur[state.current] = p.id; save(); renderAll(); $('podiumName').focus(); $('podiumName').select(); });
-  arm($('deletePodium'), 'Delete', () => { stopReveal(); const id = pod().id; state.podiums[state.current] = podiumList().filter(p => p.id !== id); delete state.podiumCur[state.current]; save(); renderAll(); toast('Podium deleted'); });
+  $('newPodium').addEventListener('click', () => { stopReveal(); tieNext = false; const p = newPodium('Podium ' + (podiumList().length + 1)); podiumList().push(p); state.podiumCur[state.current] = p.id; save(); renderAll(); $('podiumName').focus(); $('podiumName').select(); });
+  arm($('deletePodium'), 'Delete', () => { stopReveal(); tieNext = false; const id = pod().id; state.podiums[state.current] = podiumList().filter(p => p.id !== id); delete state.podiumCur[state.current]; save(); renderAll(); toast('Podium deleted'); });
   function stopReveal() { if (revealT) { clearTimeout(revealT); revealT = null; } }
   function renderPodium() {
-    const p = pod(), ids = p.ids, n = p.places;
+    const p = pod(), slots = p.slots, n = p.places;
     renderPodiumSelect();
     $('subLabel').textContent = 'Podium · ' + (p.name || 'Untitled');
     const el = $('podium'); el.innerHTML = '';
-    ORDER[n].forEach(place => {
-      const slot = document.createElement('div'); slot.className = 'slot'; slot.dataset.place = place; slot.style.setProperty('--h', HEIGHT[place] + 'px');
-      const s = ids[place - 1] ? byId(ids[place - 1]) : null;
-      if (s) { slot.appendChild(avatar(s)); const nm = document.createElement('div'); nm.className = 'pname'; nm.textContent = s.name; slot.appendChild(nm); if (veiledPlace(place)) slot.classList.add('veiled'); else if (justRevealed === place) slot.classList.add('revealed'); }
-      else { const a = document.createElement('div'); a.className = 'avatar open'; a.textContent = '?'; slot.appendChild(a); const nm = document.createElement('div'); nm.className = 'pname'; nm.textContent = ''; slot.appendChild(nm); }
-      const b = document.createElement('div'); b.className = 'block'; const pl = document.createElement('span'); pl.className = 'place'; pl.textContent = SUFFIX(place); b.appendChild(pl); slot.appendChild(b);
-      if (s) { const x = document.createElement('button'); x.type = 'button'; x.className = 'clear fs-hide'; x.textContent = 'Remove'; x.addEventListener('click', () => { stopReveal(); ids.splice(place - 1, 1); p.revealed = []; save(); renderAll(); }); slot.appendChild(x); }
+    // Show the filled slots plus empty ones for the places still to fill (an empty slot stands for one student).
+    const total = podiumCount(); const shown = Math.min(5, slots.length + Math.max(0, n - total));
+    el.style.setProperty('--k', String(shown));
+    el.style.setProperty('--cols', ORDER[shown].map(k => (slots[k - 1] || []).length > 1 ? 'minmax(0, 1.6fr)' : 'minmax(0, 1fr)').join(' '));
+    let col = 1;
+    ORDER[shown].forEach(k => {
+      const slot = document.createElement('div'); slot.className = 'slot'; slot.style.setProperty('--h', HEIGHT[k] + 'px'); slot.style.setProperty('--c', String(col++));
+      const ids = slots[k - 1] || []; const label = ids.length ? slotLabel(k) : total + (k - slots.length);
+      slot.dataset.place = label; const concealed = veiledSlot(k);
+      const top = document.createElement('div'); top.className = 'top'; slot.appendChild(top);
+      if (ids.length) {
+        if (ids.length > 1) slot.classList.add('tie');
+        const who = document.createElement('div'); who.className = 'who'; ids.forEach(id => { const st = byId(id); if (st) who.appendChild(avatar(st)); }); top.appendChild(who);
+        const names = document.createElement('div'); names.className = 'names';
+        ids.forEach(id => { const st = byId(id); if (!st) return; const nm = document.createElement('div'); nm.className = 'pname'; nm.textContent = st.name; names.appendChild(nm); });
+        top.appendChild(names);
+        if (concealed) slot.classList.add('veiled'); else if (justRevealed === k) slot.classList.add('revealed');
+      } else { const a = document.createElement('div'); a.className = 'avatar open'; a.textContent = '?'; top.appendChild(a); const names = document.createElement('div'); names.className = 'names'; top.appendChild(names); }
+      const b = document.createElement('div'); b.className = 'block'; const pl = document.createElement('span'); pl.className = 'place'; pl.textContent = SUFFIX(label) + (ids.length > 1 ? ' =' : ''); b.appendChild(pl); slot.appendChild(b);
+      const foot = document.createElement('div'); foot.className = 'foot'; slot.appendChild(foot);
+      ids.forEach(id => {
+        const st = byId(id); if (!st) return;
+        // Optional note under the place (a percentage, score or comment): editable here, plain text in big display.
+        const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'note-in fs-hide'; inp.maxLength = 40; inp.value = p.notes[id] || ''; inp.placeholder = ids.length > 1 ? initials(st.name) + ' note' : 'Note'; inp.setAttribute('aria-label', 'Note for ' + st.name);
+        inp.addEventListener('input', () => { if (inp.value.trim()) p.notes[id] = inp.value.trim(); else delete p.notes[id]; save(); });
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+        foot.appendChild(inp);
+        const note = document.createElement('div'); note.className = 'pnote fs-only'; note.textContent = (ids.length > 1 ? st.name.split(/\s+/)[0] + ': ' : '') + (p.notes[id] || ''); if (!p.notes[id]) note.hidden = true; foot.appendChild(note);
+        const x = document.createElement('button'); x.type = 'button'; x.className = 'clear fs-hide'; x.textContent = ids.length > 1 ? 'Remove ' + st.name.split(/\s+/)[0] : 'Remove';
+        x.addEventListener('click', () => { stopReveal(); removeFromPodium(id); });
+        foot.appendChild(x);
+      });
       el.appendChild(slot);
     });
     justRevealed = 0;
-    const filled = ids.filter(Boolean).length;
-    const veiled = ORDER[n].filter(veiledPlace).length;
-    $('podiumHint').textContent = !filled ? 'Tap students in rank order, or use Random fill' : veiled ? veiled + ' of ' + filled + ' hidden. Reveal from last place up.' : filled >= n ? 'Podium full' : 'Tap students in rank order: next is ' + SUFFIX(filled + 1);
+    const filled = slots.length;
+    const veiled = slots.map((sl, i) => i + 1).filter(veiledSlot).length;
+    const nextLabel = total + 1;
+    $('podiumHint').textContent = !filled ? 'Tap students in rank order, or use Random fill' : veiled ? veiled + ' of ' + filled + ' hidden. Reveal from last place up.' : tieNext ? 'Next student ties for ' + SUFFIX(slotLabel(filled)) : total >= n ? 'Podium full' : 'Tap students in rank order: next is ' + SUFFIX(nextLabel);
     // Reveal buttons while anything is concealed; Hide while anything is showing (it is the primary action once all is shown).
     $('revealBtn').hidden = !veiled; $('revealAllBtn').hidden = veiled < 2; $('hideBtn').hidden = !filled || veiled >= filled; $('hideBtn').classList.toggle('pill', !veiled);
-    $('randomFill').disabled = filled >= n || present().length <= filled;
+    $('randomFill').disabled = total >= n || present().length <= total;
+    $('tieBtn').disabled = !filled || total >= n; $('tieBtn').setAttribute('aria-pressed', String(tieNext)); $('tieBtn').classList.toggle('ghost', tieNext); $('tieBtn').textContent = tieNext ? 'Tie next: on' : 'Tie next';
   }
+  function removeFromPodium(id) { const p = pod(); p.slots = p.slots.map(sl => sl.filter(x => x !== id)).filter(sl => sl.length); delete p.notes[id]; p.revealed = []; tieNext = false; save(); renderAll(); }
   function placeStudent(id) {
-    const p = pod(), ids = p.ids;
-    const at = ids.indexOf(id);
-    if (at >= 0) { ids.splice(at, 1); p.revealed = []; }
-    else { if (ids.length >= p.places) { toast('Podium is full. Remove someone first.'); return; } ids.push(id); if (p.hidden) toast('Placed ' + SUFFIX(ids.length) + ' (hidden)'); }
+    const p = pod();
+    if (slotOf(id)) { stopReveal(); removeFromPodium(id); return; }
+    if (podiumCount() >= p.places) { toast('Podium is full. Remove someone first.'); return; }
+    if (tieNext && p.slots.length) { p.slots[p.slots.length - 1].push(id); tieNext = false; if (p.hidden) toast('Tied for ' + SUFFIX(slotLabel(p.slots.length)) + ' (hidden)'); }
+    else { p.slots.push([id]); if (p.hidden) toast('Placed ' + SUFFIX(slotLabel(p.slots.length)) + ' (hidden)'); }
     stopReveal(); save(); renderAll();
   }
+  $('tieBtn').addEventListener('click', () => { tieNext = !tieNext; renderPodium(); });
   function hidePodium() { stopReveal(); const p = pod(); p.hidden = true; p.revealed = []; save(); renderAll(); }
-  // Reveals the lowest remaining place (5th before 4th); first place gets the fanfare.
+  // Reveals the lowest remaining slot (5th before 4th); the top slot gets the fanfare.
   function revealNext() {
-    const p = pod(); const places = ORDER[p.places].filter(veiledPlace).sort((a, b) => b - a);
-    if (!places.length) return false;
-    const place = places[0]; p.revealed.push(place); justRevealed = place; save(); renderPodium(); renderGrid();
-    const s = byId(p.ids[place - 1]); $('sr').textContent = SUFFIX(place) + (s ? ': ' + s.name : '');
-    if (place === 1) { fanfare(); if (state.confetti && !reducedMotion()) burst(); } else chime();
+    const p = pod(); const ks = p.slots.map((sl, i) => i + 1).filter(veiledSlot).sort((a, b) => b - a);
+    if (!ks.length) return false;
+    const k = ks[0]; p.revealed.push(k); justRevealed = k;
+    // Once everything is showing the podium is no longer hidden, so later edits do not re-conceal it.
+    if (!p.slots.some((sl, i) => veiledSlot(i + 1))) { p.hidden = false; p.revealed = []; }
+    save(); renderPodium(); renderGrid();
+    $('sr').textContent = SUFFIX(slotLabel(k)) + ': ' + p.slots[k - 1].map(id => (byId(id) || {}).name).filter(Boolean).join(', ');
+    if (k === 1) { fanfare(); if (state.confetti && !reducedMotion()) burst(); } else chime();
     return true;
   }
   $('hideBtn').addEventListener('click', hidePodium);
@@ -620,28 +680,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   $('revealAllBtn').addEventListener('click', () => {
     if (revealT) return;
     const gap = reducedMotion() ? 0 : 1100;
-    const step = () => { revealT = null; if (revealNext() && ORDER[pod().places].some(veiledPlace)) revealT = setTimeout(step, gap); };
+    const step = () => { revealT = null; if (revealNext() && pod().slots.some((sl, i) => veiledSlot(i + 1))) revealT = setTimeout(step, gap); };
     step();
   });
   $('randomFill').addEventListener('click', () => {
-    stopReveal(); const p = pod(), ids = p.ids; const taken = new Set(ids);
+    stopReveal(); tieNext = false; const p = pod(); const taken = new Set(p.slots.flat());
     const pool = shuffled(present().filter(s => !taken.has(s.id)));
-    while (ids.length < p.places && pool.length) ids.push(pool.shift().id);
+    while (podiumCount() < p.places && pool.length) p.slots.push([pool.shift().id]);
     p.hidden = true; p.revealed = []; save(); renderAll();
   });
-  arm($('clearPodium'), 'Clear podium', () => { stopReveal(); const p = pod(); p.ids = []; p.revealed = []; p.hidden = false; save(); renderAll(); });
+  arm($('clearPodium'), 'Clear podium', () => { stopReveal(); tieNext = false; const p = pod(); p.slots = []; p.notes = {}; p.revealed = []; p.hidden = false; save(); renderAll(); });
 
   // ---- Roster grid ----
   function renderGrid() {
     const g = $('grid'); g.innerHTML = '';
-    const all = students(), away = awaySet(), called = new Set(calledList()), ids = podiumIds();
+    const all = students(), away = awaySet(), called = new Set(calledList());
     const callMode = state.mode === 'call';
     $('rosterCount').textContent = all.length ? all.length + (all.length === 1 ? ' student' : ' students') : '';
     if (!all.length) { const d = document.createElement('div'); d.className = 'hint'; d.style.gridColumn = '1 / -1'; d.textContent = 'No students yet. Tap Edit class to paste a roster.'; g.appendChild(d); }
     all.forEach(s => {
       const t = document.createElement('button'); t.type = 'button'; t.className = 'tile';
-      const isAway = away.has(s.id), isCalled = called.has(s.id); let place = ids.indexOf(s.id) + 1;
-      if (place && veiledPlace(place)) place = 0;
+      const isAway = away.has(s.id), isCalled = called.has(s.id); const k = slotOf(s.id); let place = k && !veiledSlot(k) ? slotLabel(k) : 0;
       if (isAway) t.classList.add('away');
       if (callMode && isCalled) t.classList.add('called');
       if (!callMode && place) t.classList.add('placed');
