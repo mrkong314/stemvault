@@ -58,7 +58,7 @@ Applets and quizzes open the raw HTML full page, so every file in `public/applet
 
 ## Tools
 
-`src/data/tools.ts` lists every tool shown on `/tools`, and `QUICK_TOOLS` picks the three shown in the header and on the home page. The phone-first tools (Calculator, Notepad, Class Timer, Rep Timer, Random Picker) are standalone PWAs in `public/tools/` with their own manifest and icons, and always open as their own page; the old framed URLs such as `/tools/calculator` redirect to the `.html` file (see `redirects` in `astro.config.mjs`). The VCE graphers and circuit maker are desktop applets framed by `FullPageEmbed` from pages in `src/pages/tools/`.
+`src/data/tools.ts` lists every tool shown on `/tools`, and `QUICK_TOOLS` picks the three shown in the header and on the home page. The phone-first tools (Calculator, Notepad, Class Timer, Rep Timer, Random Picker, Cold Call) are standalone PWAs in `public/tools/` with their own manifest and icons, and always open as their own page; the old framed URLs such as `/tools/calculator` redirect to the `.html` file (see `redirects` in `astro.config.mjs`). The VCE graphers and circuit maker are desktop applets framed by `FullPageEmbed` from pages in `src/pages/tools/`.
 
 ## Front-end structure
 

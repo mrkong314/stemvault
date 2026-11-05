@@ -31,6 +31,12 @@ export const TOOLS: Tool[] = [
     href: '/tools/random-picker.html',
   },
   {
+    slug: 'cold-call',
+    title: 'Cold Call',
+    description: 'Paste a class roster with photos from your school system, then cold call students at random with no repeats until everyone has had a turn, or place them on a top 1, 3 or 5 podium with a staged reveal. Separate classes are stored only in the browser. Installs to a phone home screen.',
+    href: '/tools/cold-call.html',
+  },
+  {
     slug: 'cairn',
     title: 'Cairn',
     description: 'Focus timer that rewards leaving the phone alone. Set it face up and a stone is stacked every minute. Tap Done whenever you like. Switching apps or tabs topples the cairn. Nothing is stored or sent anywhere. Installs to a phone home screen.',
