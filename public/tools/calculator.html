@@ -11501,5 +11501,12 @@ function restoreTabsOrFresh(deferActiveLoad) {
   }
 }
 </script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("/tools/sw.js").catch(function () {});
+  });
+}
+</script>
 </body>
 </html>
