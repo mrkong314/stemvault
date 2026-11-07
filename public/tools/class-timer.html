@@ -447,6 +447,10 @@
   body.big .timer .head { justify-content: center; }
   body.big .name-input { text-align: center; flex: 0 1 auto; }
   body.big .controls { max-width: 380px; margin: 0 auto; width: 100%; }
+  /* Untouched timers (not running, nothing elapsed, no laps) stay off the big display; when every timer is idle and the phase timer is off, the period clock takes the whole screen. */
+  body.big .timer.idle { display: none; }
+  body.big.no-aux .scroll { display: none; }
+  body.big.no-aux .app { grid-template-rows: 1fr; grid-template-columns: 1fr; }
   .exit-big { display: none; position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(10px + env(safe-area-inset-right, 0px)); z-index: 50; }
   body.big .exit-big { display: inline-flex; }
   @media (min-width: 760px) and (orientation: landscape) {
@@ -991,6 +995,13 @@
     els.start.textContent = t.running ? 'Pause' : (e > 0 ? 'Resume' : 'Start');
     els.start.classList.toggle('stop', t.running);
     els.start.classList.toggle('go', !t.running);
+    v.root.classList.toggle('idle', isIdle(t));
+    syncBigAux();
+  }
+  // A timer is idle when it has never been touched since its last reset: hidden on the big display.
+  function isIdle(t) { return !t.running && elapsed(t) === 0 && !t.laps.length; }
+  function syncBigAux() {
+    document.body.classList.toggle('no-aux', !state.phase.on && state.timers.every(isIdle));
   }
   function renderLaps(t) {
     const v = views.get(t.id); if (!v) return;
