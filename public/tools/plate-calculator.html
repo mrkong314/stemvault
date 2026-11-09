@@ -172,8 +172,10 @@ header.topbar .spacer { flex: 1; }
   .plate-row { display: flex; align-items: center; gap: 12px; padding: 8px 6px; min-height: 60px; border-bottom: 1px solid var(--rule); border-radius: 12px; }
   .plate-row:last-child { border-bottom: 0; }
   .plate-row:active { background: var(--glass-key); }
-  .disc { width: 34px; height: 34px; border-radius: 50%; background: var(--c); flex-shrink: 0; position: relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18); }
-  .disc::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: var(--panel); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18); }
+  /* The disc scales with the plate's weight (--d is set per plate in the script) inside a fixed slot so the labels stay aligned. */
+  .disc-slot { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .disc { width: var(--d, 34px); height: var(--d, 34px); border-radius: 50%; background: var(--c); position: relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18); }
+  .disc::after { content: ""; position: absolute; inset: 31%; border-radius: 50%; background: var(--panel); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18); }
   .plate-row.p5 .disc { box-shadow: inset 0 0 0 1px var(--p5-edge); }
   .pw { font-family: var(--font-digits); font-weight: 700; font-size: 1.25rem; letter-spacing: -0.02em; min-width: 4.2ch; }
   .pw small { font-size: 0.7em; font-weight: 600; color: var(--ink-dim); margin-left: 2px; }
@@ -250,12 +252,13 @@ header.topbar .spacer { flex: 1; }
   const STORE = 'plate-calculator-v1';
   // Plates in kg, heaviest first. Everything is counted in quarter kilograms so sums stay exact.
   const PLATES = [
-    { id: 'p20',   kg: 20,   q: 80, cls: 'p20',   w: 16, h: 104 },
-    { id: 'p10',   kg: 10,   q: 40, cls: 'p10',   w: 14, h: 92 },
-    { id: 'p5',    kg: 5,    q: 20, cls: 'p5',    w: 12, h: 72 },
-    { id: 'p2-5',  kg: 2.5,  q: 10, cls: 'p2-5',  w: 10, h: 58 },
-    { id: 'p1-25', kg: 1.25, q: 5,  cls: 'p1-25', w: 8,  h: 48 },
-    { id: 'p0-5',  kg: 0.5,  q: 2,  cls: 'p0-5',  w: 7,  h: 42 }
+    // w/h: plate size in the bar diagram; d: disc diameter in the plate row, both scaled by weight.
+    { id: 'p20',   kg: 20,   q: 80, cls: 'p20',   w: 16, h: 104, d: 46 },
+    { id: 'p10',   kg: 10,   q: 40, cls: 'p10',   w: 14, h: 92,  d: 40 },
+    { id: 'p5',    kg: 5,    q: 20, cls: 'p5',    w: 12, h: 72,  d: 33 },
+    { id: 'p2-5',  kg: 2.5,  q: 10, cls: 'p2-5',  w: 10, h: 58,  d: 27 },
+    { id: 'p1-25', kg: 1.25, q: 5,  cls: 'p1-25', w: 8,  h: 48,  d: 22 },
+    { id: 'p0-5',  kg: 0.5,  q: 2,  cls: 'p0-5',  w: 7,  h: 42,  d: 18 }
   ];
   const COLOR = { p20: 'var(--p20)', p10: 'var(--p10)', p5: 'var(--p5)', 'p2-5': 'var(--p2-5)', 'p1-25': 'var(--p1-25)', 'p0-5': 'var(--p0-5)' };
 
@@ -290,7 +293,7 @@ header.topbar .spacer { flex: 1; }
     const row = document.createElement('div');
     row.className = 'plate-row ' + p.cls; row.dataset.id = p.id;
     row.innerHTML =
-      '<span class="disc" style="--c:' + COLOR[p.id] + '"></span>' +
+      '<span class="disc-slot"><span class="disc" style="--c:' + COLOR[p.id] + ';--d:' + p.d + 'px"></span></span>' +
       '<span class="pw">' + fmtQ(p.q) + '<small>kg</small></span>' +
       '<span class="contrib" id="c-' + p.id + '"></span>' +
       '<div class="stepper">' +
