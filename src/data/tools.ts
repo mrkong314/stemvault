@@ -25,6 +25,12 @@ export const TOOLS: Tool[] = [
     href: '/tools/rep-timer.html',
   },
   {
+    slug: 'plate-calculator',
+    title: 'Plate Calculator',
+    description: 'Barbell plate calculator. Tap 0.5, 1.25, 2.5, 5, 10 or 20 kg plates onto a 20 kg bar, counted per side or in total, and read the total weight with a diagram of the loaded bar. Plate counts are saved only on the device. Installs to a phone home screen.',
+    href: '/tools/plate-calculator.html',
+  },
+  {
     slug: 'random-picker',
     title: 'Random Picker',
     description: 'Spin a wheel of names to pick a student, with winners removed as you go, plus group maker and shuffle modes and saved lists. Installs to a phone home screen.',

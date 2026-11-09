@@ -14,6 +14,7 @@ export default defineConfig({
     '/tools/calculator': '/tools/calculator.html',
     '/tools/class-timer': '/tools/class-timer.html',
     '/tools/rep-timer': '/tools/rep-timer.html',
+    '/tools/plate-calculator': '/tools/plate-calculator.html',
     '/tools/random-picker': '/tools/random-picker.html',
     '/tools/cold-call': '/tools/cold-call.html',
     '/tools/notepad': '/tools/notepad.html',
