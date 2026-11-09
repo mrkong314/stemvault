@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Plate Calculator</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+CiAgPGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMmI3YTYzIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTc0YTNjIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMDQiIGZpbGw9InVybCgjZykiLz4KICA8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iNTYiIHkxPSIyNTYiIHgyPSI0NTYiIHkyPSIyNTYiLz4KICAgIDxyZWN0IHg9IjEzMCIgeT0iMTI4IiB3aWR0aD0iNDYiIGhlaWdodD0iMjU2IiByeD0iMTQiLz4KICAgIDxyZWN0IHg9IjE5MCIgeT0iMTY4IiB3aWR0aD0iNDAiIGhlaWdodD0iMTc2IiByeD0iMTIiLz4KICAgIDxyZWN0IHg9IjMzNiIgeT0iMTI4IiB3aWR0aD0iNDYiIGhlaWdodD0iMjU2IiByeD0iMTQiLz4KICAgIDxyZWN0IHg9IjI4MiIgeT0iMTY4IiB3aWR0aD0iNDAiIGhlaWdodD0iMTc2IiByeD0iMTIiLz4KICA8L2c+Cjwvc3ZnPgo=">
+<link rel="apple-touch-icon" sizes="180x180" href="/tools/plate-calculator-icon-180.png">
+<link rel="manifest" href="/tools/plate-calculator.webmanifest">
+<meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Plates">
+<meta name="description" content="Barbell plate calculator: tap plates onto a 20 kg bar and read the total weight. Nothing is stored or sent anywhere except the plate counts kept on this device.">
+<style>
+/* StemVault app tokens: the phone-first profile used by Class Timer, Rep Timer and
+   Random Picker. Same light palette as the site; dark mode is true OLED black with no
+   ambient gradient, no glass tint and hairline borders only, so unlit pixels stay off.
+   Paste verbatim into the tool's <style>. */
+:root {
+  --bg: #eef1f6; --panel: #ffffff; --surface: #f5f5f7; --ink: #1d1d1f; --ink-dim: #86868b;
+  --accent: #0a84ff; --good: #34c759; --warn: #ff9f0a; --danger: #ff3b30;
+  --rule: #e5e5ea; --rule-strong: #d1d1d6; --track: #e5e5ea;
+  --glass: rgba(255,255,255,0.55); --glass-strong: rgba(255,255,255,0.72); --glass-border: rgba(255,255,255,0.7);
+  --glass-edge: rgba(255,255,255,0.9); --glass-shadow: 0 8px 30px rgba(31,45,80,0.12), 0 2px 8px rgba(31,45,80,0.08);
+  --glass-key: rgba(255,255,255,0.6); --blur: saturate(180%) blur(20px);
+  --ambient-1: #cfe0ff; --ambient-2: #e7d9ff; --ambient-3: #d6f0e6;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  --font-digits: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000; --panel: #000000; --surface: #0c0c0d; --ink: #ededf0; --ink-dim: #8e8e93;
+    --accent: #0a84ff; --good: #30d158; --warn: #ffd60a; --danger: #ff453a;
+    --rule: #1f1f22; --rule-strong: #2c2c2e; --track: #1f1f22;
+    --glass: #000000; --glass-strong: #000000; --glass-border: rgba(255,255,255,0.14); --glass-edge: rgba(255,255,255,0.05);
+    --glass-shadow: none; --glass-key: #0c0c0d; --blur: none; --ambient-1: #000; --ambient-2: #000; --ambient-3: #000;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --panel: #000000; --surface: #0c0c0d; --ink: #ededf0; --ink-dim: #8e8e93;
+  --accent: #0a84ff; --good: #30d158; --warn: #ffd60a; --danger: #ff453a;
+  --rule: #1f1f22; --rule-strong: #2c2c2e; --track: #1f1f22;
+  --glass: #000000; --glass-strong: #000000; --glass-border: rgba(255,255,255,0.14); --glass-edge: rgba(255,255,255,0.05);
+  --glass-shadow: none; --glass-key: #0c0c0d; --blur: none; --ambient-1: #000; --ambient-2: #000; --ambient-3: #000;
+  color-scheme: dark;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass: rgba(255,255,255,0.96); --glass-strong: rgba(255,255,255,0.98); --glass-key: rgba(255,255,255,0.97); }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; height: 100%; padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font);
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; touch-action: manipulation;
+  padding-block: 0 calc(28px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(40rem 40rem at 12% 8%, var(--ambient-1), transparent 60%), radial-gradient(36rem 36rem at 88% 14%, var(--ambient-2), transparent 60%), radial-gradient(44rem 44rem at 70% 96%, var(--ambient-3), transparent 62%), var(--bg); }
+/* Fill the status-bar area with glass so content scrolling under it stays legible. */
+body::after { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 40; background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-user-select: none; user-select: none; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (pointer: coarse) { input, select, textarea { font-size: 16px; } }
+.num { font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+
+.app { max-width: 620px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.glass { background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge); }
+.panel { border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Sticky top bar: the title must clear the iOS status bar / Dynamic Island, so the top padding
+   grows by 1.25x the inset (the glass status bar softens text that sits right under it). */
+header.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+  margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 12px calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  padding: calc(10px + env(safe-area-inset-top, 0px) * 1.25) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+  background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border-bottom: 1px solid var(--glass-border); box-shadow: inset 0 1px 0 var(--glass-edge); }
+header.topbar .inner { max-width: 620px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+header.topbar .title { font-size: 1.18rem; font-weight: 600; letter-spacing: -0.02em; }
+header.topbar .sub { font-size: 0.8rem; color: var(--ink-dim); margin-top: 1px; }
+header.topbar .spacer { flex: 1; }
+.settings-wrap { position: relative; }
+.popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; width: min(300px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 0.75rem; padding: 0.9rem; border-radius: 14px;
+  background: var(--panel); border: 1px solid var(--glass-border); box-shadow: 0 12px 34px rgba(0,0,0,0.22), inset 0 1px 0 var(--glass-edge); }
+:root[data-theme="dark"] .popover { box-shadow: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .popover { box-shadow: none; } }
+.popover .row { display: flex; flex-direction: column; gap: 0.35rem; }
+.popover .row.inline { flex-direction: row; align-items: center; justify-content: space-between; }
+
+/* Controls */
+.gbtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--ink);
+  border-radius: 11px; min-height: 44px; padding: 0 16px; font-weight: 600; font-size: 0.95rem; backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: inset 0 1px 0 var(--glass-edge); }
+.gbtn:active { transform: translateY(1px); }
+.gbtn:disabled { opacity: 0.4; cursor: default; }
+.gbtn.icon { width: 40px; min-height: 40px; padding: 0; border-radius: 10px; color: var(--ink-dim); }
+.gbtn.icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.gbtn.icon[aria-expanded="true"] { color: var(--accent); }
+.gbtn.ghost { color: var(--accent); }
+.gbtn.danger { color: var(--danger); }
+.gbtn.pill { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 2px 8px rgba(10,132,255,0.35), inset 0 1px 0 rgba(255,255,255,0.4); min-height: 58px; font-size: 1.15rem; }
+/* On OLED black the primary button is outlined, not filled, so it does not glow. */
+:root[data-theme="dark"] .gbtn.pill { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gbtn.pill { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; } }
+.remove.armed { color: #fff; background: var(--danger); border-color: transparent; }
+.seg { display: inline-flex; background: var(--glass-key); border-radius: 10px; padding: 2px; gap: 2px; border: 1px solid var(--glass-border); }
+.seg button { border: none; background: transparent; color: var(--ink); font-size: 0.85rem; font-weight: 500; padding: 0.45rem 0.5rem; border-radius: 8px; min-width: 2.4rem; flex: 1 1 0; min-height: 36px; }
+.seg button.on { background: var(--glass-strong); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.14), inset 0 1px 0 var(--glass-edge); }
+:root[data-theme="dark"] .seg button.on { background: var(--rule-strong); box-shadow: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg button.on { background: var(--rule-strong); box-shadow: none; } }
+.seg.full { display: flex; }
+.label { font-size: 0.72rem; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.hint { font-size: 0.8rem; color: var(--ink-dim); }
+.switch { position: relative; width: 50px; height: 30px; border-radius: 15px; background: var(--track); border: 0; padding: 0; flex-shrink: 0; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.25); transition: left 0.15s; }
+:root[data-theme="dark"] .switch::after { background: #e5e5ea; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .switch::after { background: #e5e5ea; } }
+.switch[aria-checked="true"] { background: var(--good); }
+.switch[aria-checked="true"]::after { left: 22px; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass-key); font-size: 1.3rem; line-height: 1; }
+.stepper .v { font-family: var(--font-digits); font-weight: 600; font-size: 1.2rem; min-width: 2ch; text-align: center; }
+.field { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--rule-strong); background: var(--surface); color: var(--ink); font-weight: 600; }
+
+/* Big readouts */
+.digits { font-family: var(--font-digits); font-variant-numeric: tabular-nums; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-size: clamp(3rem, 22vw, 7rem); }
+.digits .tenths { font-size: 0.4em; color: var(--ink-dim); }
+.stage { min-height: 200px; justify-content: center; align-items: center; text-align: center; gap: 8px; }
+
+/* Bottom sheet for secondary editors */
+.overlay { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,0.45); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-width: 620px; max-height: calc(100vh - env(safe-area-inset-top, 0px) - 40px); border-radius: 22px 22px 0 0; padding: 14px 18px calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--panel); border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 1.05rem; }
+.sheet-actions { display: flex; gap: 10px; }
+.sheet-actions .gbtn { flex: 1; }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 90; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) { .switch::after { transition: none; } }
+</style>
+<style>
+  /* === Plate Calculator layout === */
+  :root {
+    /* Plate colours follow the IWF convention where it exists (20 blue, 10 green, 5 white, 2.5 red),
+       chrome for 1.25 and purple for the 0.5 change plate, all from the iOS system palette. */
+    --p20: #0a84ff; --p10: #30d158; --p5: #d1d1d6; --p2-5: #ff453a; --p1-25: #8e8e93; --p0-5: #bf5af2;
+    --p5-edge: #a1a1a6;
+  }
+  :root[data-theme="dark"] { --p5: #e5e5ea; --p5-edge: #e5e5ea; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --p5: #e5e5ea; --p5-edge: #e5e5ea; } }
+
+  .stage { min-height: 0; padding-top: 20px; padding-bottom: 14px; }
+  .total { display: flex; align-items: baseline; justify-content: center; gap: 0.18em; }
+  .total .digits { font-size: clamp(3.4rem, 20vw, 6.4rem); }
+  .total .unit { font-family: var(--font-digits); font-weight: 600; font-size: clamp(1.2rem, 6vw, 2rem); color: var(--ink-dim); letter-spacing: -0.02em; }
+  .breakdown { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font-size: 0.9rem; color: var(--ink-dim); }
+  .breakdown b { color: var(--ink); font-weight: 600; }
+
+  .bar-wrap { width: 100%; margin-top: 4px; }
+  .bar-wrap svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .bar-wrap .steel { fill: var(--rule-strong); }
+  .bar-wrap .plate { stroke: rgba(0,0,0,0.25); stroke-width: 1; }
+  .bar-wrap .plate.p5 { stroke: var(--p5-edge); }
+  .bar-wrap .collar { fill: var(--ink-dim); }
+
+  .plates { padding: 6px 10px; gap: 0; }
+  .plate-row { display: flex; align-items: center; gap: 12px; padding: 8px 6px; min-height: 60px; border-bottom: 1px solid var(--rule); border-radius: 12px; }
+  .plate-row:last-child { border-bottom: 0; }
+  .plate-row:active { background: var(--glass-key); }
+  .disc { width: 34px; height: 34px; border-radius: 50%; background: var(--c); flex-shrink: 0; position: relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18); }
+  .disc::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: var(--panel); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18); }
+  .plate-row.p5 .disc { box-shadow: inset 0 0 0 1px var(--p5-edge); }
+  .pw { font-family: var(--font-digits); font-weight: 700; font-size: 1.25rem; letter-spacing: -0.02em; min-width: 4.2ch; }
+  .pw small { font-size: 0.7em; font-weight: 600; color: var(--ink-dim); margin-left: 2px; }
+  .contrib { flex: 1; text-align: right; padding-right: 4px; font-size: 0.9rem; color: var(--ink-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .plate-row .stepper button { width: 46px; height: 46px; font-size: 1.5rem; }
+  .plate-row .stepper .v { min-width: 2.2ch; font-size: 1.35rem; }
+  .plate-row .stepper .v.zero { color: var(--ink-dim); font-weight: 500; }
+  .plate-row .stepper button.add { background: var(--accent); color: #fff; border-color: transparent; }
+  :root[data-theme="dark"] .plate-row .stepper button.add { background: #000; color: var(--accent); border-color: var(--accent); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .plate-row .stepper button.add { background: #000; color: var(--accent); border-color: var(--accent); } }
+
+  .actions { flex-direction: row; gap: 10px; }
+  .actions .gbtn { flex: 1; min-height: 52px; }
+  .actions .gbtn.remove { flex: 0 0 auto; min-width: 110px; }
+  .popover .seg.full button { min-width: 0; }
+
+  /* Wide layout for a mouse or trackpad at 900px+, or a tablet in landscape: readout left, plates right. */
+  @media (pointer: fine) and (min-width: 900px), (pointer: none) and (min-width: 900px), (min-width: 1000px) {
+    .app { max-width: 1040px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr; gap: 14px; align-items: start; }
+    .app > .seg { grid-column: 1 / -1; }
+    .stage { grid-row: 2; grid-column: 1; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 84px); }
+    .actions { grid-row: 3; grid-column: 1; }
+    .plates { grid-row: 2 / span 2; grid-column: 2; }
+    .total .digits { font-size: clamp(4rem, 8vw, 7rem); }
+    header.topbar .inner { max-width: 1040px; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="inner">
+    <div><div class="title">Plate Calculator</div><div class="sub" id="subLabel">20 kg bar · plates per side</div></div>
+    <div class="spacer"></div>
+    <div class="settings-wrap">
+      <button class="gbtn icon" id="settingsBtn" type="button" aria-label="Settings" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+      <div class="popover" id="settings" hidden>
+        <div class="row"><span class="label">Appearance</span>
+          <div class="seg full" id="themeSeg"><button type="button" data-v="auto">Auto</button><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div>
+        </div>
+        <div class="row"><span class="label">Bar weight</span>
+          <div class="seg full" id="barSeg"><button type="button" data-v="20">20 kg</button><button type="button" data-v="15">15 kg</button><button type="button" data-v="10">10 kg</button><button type="button" data-v="0">None</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <div class="seg full" id="modeSeg" role="tablist" aria-label="How plates are counted">
+    <button type="button" data-v="side" role="tab">Per side</button>
+    <button type="button" data-v="total" role="tab">Total plates</button>
+  </div>
+
+  <section class="glass panel stage" aria-live="polite">
+    <div class="total"><span class="digits" id="total">20</span><span class="unit">kg</span></div>
+    <div class="breakdown" id="breakdown"></div>
+    <div class="bar-wrap" aria-hidden="true"><svg id="barSvg" viewBox="0 0 400 120"></svg></div>
+  </section>
+
+  <section class="glass panel plates" id="plates"></section>
+
+  <section class="glass panel actions">
+    <button type="button" class="gbtn ghost" id="undoBtn" disabled>Undo last plate</button>
+    <button type="button" class="gbtn remove" id="clearBtn">Clear</button>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const STORE = 'plate-calculator-v1';
+  // Plates in kg, heaviest first. Everything is counted in quarter kilograms so sums stay exact.
+  const PLATES = [
+    { id: 'p20',   kg: 20,   q: 80, cls: 'p20',   w: 16, h: 104 },
+    { id: 'p10',   kg: 10,   q: 40, cls: 'p10',   w: 14, h: 92 },
+    { id: 'p5',    kg: 5,    q: 20, cls: 'p5',    w: 12, h: 72 },
+    { id: 'p2-5',  kg: 2.5,  q: 10, cls: 'p2-5',  w: 10, h: 58 },
+    { id: 'p1-25', kg: 1.25, q: 5,  cls: 'p1-25', w: 8,  h: 48 },
+    { id: 'p0-5',  kg: 0.5,  q: 2,  cls: 'p0-5',  w: 7,  h: 42 }
+  ];
+  const COLOR = { p20: 'var(--p20)', p10: 'var(--p10)', p5: 'var(--p5)', 'p2-5': 'var(--p2-5)', 'p1-25': 'var(--p1-25)', 'p0-5': 'var(--p0-5)' };
+
+  let state = { theme: 'dark', mode: 'side', bar: 20, counts: {}, history: [] };
+  try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
+  if (!state.counts || typeof state.counts !== 'object') state.counts = {};
+  if (!Array.isArray(state.history)) state.history = [];
+  PLATES.forEach(p => { state.counts[p.id] = Math.max(0, parseInt(state.counts[p.id], 10) || 0); });
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+
+  // Format a quarter-kilogram count as kg, trimming trailing zeros: 250 q -> "62.5".
+  function fmtQ(q) { const s = (q / 4).toFixed(2); return s.replace(/\.?0+$/, ''); }
+
+  // Settings + theme
+  const settings = $('settings'), settingsBtn = $('settingsBtn');
+  function openSettings(on) { settings.hidden = !on; settingsBtn.setAttribute('aria-expanded', String(on)); }
+  settingsBtn.addEventListener('click', () => openSettings(settings.hidden));
+  document.addEventListener('pointerdown', e => { if (!settings.hidden && !e.target.closest('.settings-wrap')) openSettings(false); }, { passive: true });
+  function segSync(seg, v) { seg.querySelectorAll('button').forEach(b => { const on = b.dataset.v === String(v); b.classList.toggle('on', on); b.setAttribute('aria-selected', on); }); }
+  function segOn(seg, fn) { seg.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) fn(b.dataset.v); }); }
+  function applyTheme() {
+    if (state.theme === 'dark' || state.theme === 'light') document.documentElement.setAttribute('data-theme', state.theme); else document.documentElement.removeAttribute('data-theme');
+    segSync($('themeSeg'), state.theme);
+  }
+  segOn($('themeSeg'), v => { state.theme = v; save(); applyTheme(); });
+  segOn($('barSeg'), v => { state.bar = parseInt(v, 10) || 0; save(); render(); });
+  segOn($('modeSeg'), v => { state.mode = v; save(); render(); });
+
+  // Plate rows
+  const platesEl = $('plates');
+  PLATES.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'plate-row ' + p.cls; row.dataset.id = p.id;
+    row.innerHTML =
+      '<span class="disc" style="--c:' + COLOR[p.id] + '"></span>' +
+      '<span class="pw">' + fmtQ(p.q) + '<small>kg</small></span>' +
+      '<span class="contrib" id="c-' + p.id + '"></span>' +
+      '<div class="stepper">' +
+        '<button type="button" data-act="sub" aria-label="Remove one ' + fmtQ(p.q) + ' kg plate">−</button>' +
+        '<span class="v num" id="v-' + p.id + '">0</span>' +
+        '<button type="button" class="add" data-act="add" aria-label="Add one ' + fmtQ(p.q) + ' kg plate">+</button>' +
+      '</div>';
+    platesEl.appendChild(row);
+  });
+  platesEl.addEventListener('click', e => {
+    const row = e.target.closest('.plate-row'); if (!row) return;
+    const act = e.target.closest('button[data-act]');
+    if (act && act.dataset.act === 'sub') removePlate(row.dataset.id); else addPlate(row.dataset.id); // tapping anywhere else on the row adds one
+  });
+
+  function addPlate(id) { state.counts[id]++; state.history.push(id); if (state.history.length > 200) state.history.shift(); save(); render(); }
+  function removePlate(id) {
+    if (state.counts[id] <= 0) return;
+    state.counts[id]--;
+    const i = state.history.lastIndexOf(id); if (i >= 0) state.history.splice(i, 1);
+    save(); render();
+  }
+  $('undoBtn').addEventListener('click', () => { const id = state.history.pop(); if (id && state.counts[id] > 0) state.counts[id]--; save(); render(); });
+
+  // Armed clear: first tap arms for 3 s, second tap clears.
+  let armT = null;
+  const clearBtn = $('clearBtn');
+  function disarm() { clearTimeout(armT); clearBtn.classList.remove('armed'); clearBtn.textContent = 'Clear'; }
+  clearBtn.addEventListener('click', () => {
+    if (clearBtn.classList.contains('armed')) { disarm(); PLATES.forEach(p => { state.counts[p.id] = 0; }); state.history = []; save(); render(); }
+    else { clearBtn.classList.add('armed'); clearBtn.textContent = 'Tap again'; armT = setTimeout(disarm, 3000); }
+  });
+
+  // Barbell diagram: plates sit against the collars, heaviest inside, and shrink to fit the sleeve if there are many.
+  const SVG = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs) { const n = document.createElementNS(SVG, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; }
+  function drawBar(left, right) {
+    const svg = $('barSvg'); while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const cy = 60, sleeveLen = 118, collarL = 130, collarR = 270;
+    svg.appendChild(el('rect', { x: 0, y: cy - 4, width: 400, height: 8, rx: 4, class: 'steel' }));            // shaft
+    svg.appendChild(el('rect', { x: 0, y: cy - 7, width: collarL, height: 14, rx: 5, class: 'steel' }));       // left sleeve
+    svg.appendChild(el('rect', { x: collarR, y: cy - 7, width: 400 - collarR, height: 14, rx: 5, class: 'steel' })); // right sleeve
+    svg.appendChild(el('rect', { x: collarL - 2, y: cy - 16, width: 10, height: 32, rx: 3, class: 'collar' }));
+    svg.appendChild(el('rect', { x: collarR - 8, y: cy - 16, width: 10, height: 32, rx: 3, class: 'collar' }));
+    function stack(list, dir) {
+      const natural = list.reduce((s, p) => s + p.w + 2, 0);
+      const scale = natural > sleeveLen - 6 ? (sleeveLen - 6) / natural : 1;
+      let x = dir < 0 ? collarL - 4 : collarR + 4;
+      list.forEach(p => {
+        const w = Math.max(3, p.w * scale);
+        if (dir < 0) x -= w;
+        svg.appendChild(el('rect', { x: x, y: cy - p.h / 2, width: w, height: p.h, rx: Math.min(3, w / 2), fill: COLOR[p.id], class: 'plate ' + p.cls }));
+        x += dir < 0 ? -2 : w + 2;
+      });
+    }
+    stack(left, -1); stack(right, 1);
+  }
+
+  function render() {
+    segSync($('modeSeg'), state.mode); segSync($('barSeg'), state.bar);
+    const perSide = state.mode === 'side';
+    let plateQ = 0, n = 0;
+    const left = [], right = [];
+    PLATES.forEach(p => {
+      const c = state.counts[p.id];
+      const eff = perSide ? c * 2 : c;                       // plates on the bar
+      plateQ += eff * p.q; n += eff;
+      $('v-' + p.id).textContent = c; $('v-' + p.id).classList.toggle('zero', c === 0);
+      $('c-' + p.id).textContent = c ? fmtQ(eff * p.q) + ' kg' : '';   // weight this plate size adds to the bar
+      const nl = perSide ? c : Math.ceil(c / 2), nr = eff - nl;
+      for (let i = 0; i < nl; i++) left.push(p);
+      for (let i = 0; i < nr; i++) right.push(p);
+    });
+    const barQ = state.bar * 4, totalQ = barQ + plateQ;
+    $('total').textContent = fmtQ(totalQ);
+    const parts = [];
+    parts.push('<span><b>' + fmtQ(barQ) + ' kg</b> bar</span>');
+    parts.push('<span><b>' + fmtQ(plateQ) + ' kg</b> plates (' + n + ')</span>');
+    if (perSide && plateQ) parts.push('<span><b>' + fmtQ(plateQ / 2) + ' kg</b> per side</span>');
+    $('breakdown').innerHTML = parts.join('');
+    $('subLabel').textContent = (state.bar ? fmtQ(barQ) + ' kg bar' : 'No bar') + ' · ' + (perSide ? 'plates per side' : 'total plates on the bar');
+    $('undoBtn').disabled = state.history.length === 0;
+    drawBar(left, right);
+  }
+
+  applyTheme(); render();
+})();
+</script>
+</body>
+</html>
