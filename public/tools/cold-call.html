@@ -455,6 +455,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   // Competition-ranking label for slot k (1-based): one more than the number of students in earlier slots.
   const slotLabel = k => 1 + pod().slots.slice(0, k - 1).reduce((n, sl) => n + sl.length, 0);
   const slotOf = id => pod().slots.findIndex(sl => sl.includes(id)) + 1;
+  // The note shown for a slot: the one every member of a tie shares (the first found, if they ever differ).
+  const slotNote = ids => { const p = pod(); return ids.map(id => p.notes[id]).find(Boolean) || ''; };
   // A slot is concealed when the podium is hidden and that slot has not been revealed yet.
   const veiledSlot = k => { const p = pod(); return !!(p.hidden && p.slots[k - 1] && !p.revealed.includes(k)); };
   const byId = id => students().find(s => s.id === id);
@@ -630,18 +632,22 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
       } else { const a = document.createElement('div'); a.className = 'avatar open'; a.textContent = '?'; top.appendChild(a); const names = document.createElement('div'); names.className = 'names'; top.appendChild(names); }
       const b = document.createElement('div'); b.className = 'block'; const pl = document.createElement('span'); pl.className = 'place'; pl.textContent = SUFFIX(label) + (ids.length > 1 ? ' =' : ''); b.appendChild(pl); slot.appendChild(b);
       const foot = document.createElement('div'); foot.className = 'foot'; slot.appendChild(foot);
-      ids.forEach(id => {
-        const st = byId(id); if (!st) return;
+      const present_ = ids.map(byId).filter(Boolean);
+      if (present_.length) {
         // Optional note under the place (a percentage, score or comment): editable here, plain text in big display.
-        const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'note-in fs-hide'; inp.maxLength = 40; inp.value = p.notes[id] || ''; inp.placeholder = ids.length > 1 ? initials(st.name) + ' note' : 'Note'; inp.setAttribute('aria-label', 'Note for ' + st.name);
-        inp.addEventListener('input', () => { if (inp.value.trim()) p.notes[id] = inp.value.trim(); else delete p.notes[id]; save(); });
+        // A tie shares one note, stored against every student in the slot so it survives any of them leaving.
+        const noteVal = slotNote(ids);
+        const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'note-in fs-hide'; inp.maxLength = 40; inp.value = noteVal; inp.placeholder = 'Note'; inp.setAttribute('aria-label', 'Note for ' + present_.map(st => st.name).join(', '));
         inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
         foot.appendChild(inp);
-        const note = document.createElement('div'); note.className = 'pnote fs-only'; note.textContent = (ids.length > 1 ? st.name.split(/\s+/)[0] + ': ' : '') + (p.notes[id] || ''); if (!p.notes[id]) note.hidden = true; foot.appendChild(note);
-        const x = document.createElement('button'); x.type = 'button'; x.className = 'clear fs-hide'; x.textContent = ids.length > 1 ? 'Remove ' + st.name.split(/\s+/)[0] : 'Remove';
-        x.addEventListener('click', () => { stopReveal(); removeFromPodium(id); });
-        foot.appendChild(x);
-      });
+        const note = document.createElement('div'); note.className = 'pnote fs-only'; note.textContent = noteVal; if (!noteVal) note.hidden = true; foot.appendChild(note);
+        inp.addEventListener('input', () => { const v = inp.value.trim(); ids.forEach(id => { if (v) p.notes[id] = v; else delete p.notes[id]; }); note.textContent = v; note.hidden = !v; save(); });
+        present_.forEach(st => {
+          const x = document.createElement('button'); x.type = 'button'; x.className = 'clear fs-hide'; x.textContent = ids.length > 1 ? 'Remove ' + st.name.split(/\s+/)[0] : 'Remove';
+          x.addEventListener('click', () => { stopReveal(); removeFromPodium(st.id); });
+          foot.appendChild(x);
+        });
+      }
       el.appendChild(slot);
     });
     justRevealed = 0;
@@ -658,7 +664,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   function placeStudent(id) {
     const p = pod();
     if (slotOf(id)) { stopReveal(); removeFromPodium(id); return; }
-    if (tieNext && p.slots.length) { p.slots[p.slots.length - 1].push(id); tieNext = false; if (p.hidden) toast('Tied for ' + SUFFIX(slotLabel(p.slots.length)) + ' (hidden)'); }
+    if (tieNext && p.slots.length) { const sl = p.slots[p.slots.length - 1]; const nv = slotNote(sl); if (nv) p.notes[id] = nv; sl.push(id); tieNext = false; if (p.hidden) toast('Tied for ' + SUFFIX(slotLabel(p.slots.length)) + ' (hidden)'); }
     else if (podiumCount() >= p.places) { toast('Podium is full. Use Tie next or remove someone first.'); return; }
     else { p.slots.push([id]); if (p.hidden) toast('Placed ' + SUFFIX(slotLabel(p.slots.length)) + ' (hidden)'); }
     stopReveal(); save(); renderAll();
