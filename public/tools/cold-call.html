@@ -193,7 +193,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .slot .foot { grid-row: 3; align-self: start; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .slot .avatar { width: clamp(56px, 16vw, 104px); height: clamp(56px, 16vw, 104px); font-size: clamp(1.1rem, 5vw, 2rem); border: 3px solid var(--panel); box-shadow: 0 6px 18px rgba(0,0,0,0.16); transition: transform 0.4s ease, opacity 0.4s ease; }
   .slot .avatar.open { background: var(--surface); color: var(--ink-dim); border-style: dashed; border-color: var(--rule-strong); box-shadow: none; font-size: 1.4rem; }
-  .slot .who { display: flex; gap: 4px; justify-content: center; align-items: flex-end; max-width: 100%; }
+  .slot .who { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; align-items: flex-end; max-width: 100%; }
   .slot.tie .avatar { width: clamp(44px, 11vw, 76px); height: clamp(44px, 11vw, 76px); font-size: clamp(0.9rem, 3.5vw, 1.4rem); }
   .slot .names { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%; min-height: 2.3em; justify-content: flex-end; }
   .slot .pnote { font-family: var(--font-digits); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink-dim); font-size: clamp(0.78rem, 3vw, 0.95rem); text-align: center; overflow-wrap: anywhere; }
@@ -439,7 +439,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   const uncalled = () => { const c = new Set(calledList()); return present().filter(s => !c.has(s.id)); };
   const podiumList = () => (state.podiums[state.current] = state.podiums[state.current] || []);
   // A podium is a list of slots in rank order; a slot with several students is a tie. Places are numbered by
-  // competition ranking, so a tie for 1st is followed by 3rd. notes holds an optional line per student.
+  // competition ranking, so a tie for 1st is followed by 3rd. The places setting caps the number of students
+  // who can start a new slot, not the size of a tie, so any number of students can share the last place.
+  // notes holds an optional line per student.
   const newPodium = name => ({ id: uid(), name, places: state.places, slots: [], notes: {}, hidden: false, revealed: [] });
   function pod() {
     const list = podiumList(); let p = list.find(x => x.id === state.podiumCur[state.current]);
@@ -517,8 +519,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   // ---- Modes ----
   segOn($('modeSeg'), v => { state.mode = v; save(); stopCycle(); stopReveal(); renderAll(); });
   segOn($('placesSeg'), v => { const p = pod(); p.places = +v; state.places = p.places; trimPodium(p); save(); renderAll(); });
-  // Keeps the number of placed students within the places setting, dropping from the bottom.
-  function trimPodium(p) { let n = 0; p.slots = p.slots.map(sl => { const keep = sl.slice(0, Math.max(0, p.places - n)); n += keep.length; return keep; }).filter(sl => sl.length); p.revealed = p.revealed.filter(k => k <= p.slots.length); }
+  // Keeps only the slots whose rank fits the places setting, dropping from the bottom. A tie is kept whole.
+  function trimPodium(p) { let n = 0; p.slots = p.slots.filter(sl => { const ok = n < p.places; n += sl.length; return ok; }); p.revealed = p.revealed.filter(k => k <= p.slots.length); }
 
   function renderAll() {
     segSync($('modeSeg'), state.mode); segSync($('placesSeg'), pod().places);
@@ -646,18 +648,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     const filled = slots.length;
     const veiled = slots.map((sl, i) => i + 1).filter(veiledSlot).length;
     const nextLabel = total + 1;
-    $('podiumHint').textContent = !filled ? 'Tap students in rank order, or use Random fill' : veiled ? veiled + ' of ' + filled + ' hidden. Reveal from last place up.' : tieNext ? 'Next student ties for ' + SUFFIX(slotLabel(filled)) : total >= n ? 'Podium full' : 'Tap students in rank order: next is ' + SUFFIX(nextLabel);
+    $('podiumHint').textContent = !filled ? 'Tap students in rank order, or use Random fill' : veiled ? veiled + ' of ' + filled + ' hidden. Reveal from last place up.' : tieNext ? 'Next student ties for ' + SUFFIX(slotLabel(filled)) : total >= n ? 'Podium full. Tie next adds an equal ' + SUFFIX(slotLabel(filled)) : 'Tap students in rank order: next is ' + SUFFIX(nextLabel);
     // Reveal buttons while anything is concealed; Hide while anything is showing (it is the primary action once all is shown).
     $('revealBtn').hidden = !veiled; $('revealAllBtn').hidden = veiled < 2; $('hideBtn').hidden = !filled || veiled >= filled; $('hideBtn').classList.toggle('pill', !veiled);
     $('randomFill').disabled = total >= n || present().length <= total;
-    $('tieBtn').disabled = !filled || total >= n; $('tieBtn').setAttribute('aria-pressed', String(tieNext)); $('tieBtn').classList.toggle('ghost', tieNext); $('tieBtn').textContent = tieNext ? 'Tie next: on' : 'Tie next';
+    $('tieBtn').disabled = !filled; $('tieBtn').setAttribute('aria-pressed', String(tieNext)); $('tieBtn').classList.toggle('ghost', tieNext); $('tieBtn').textContent = tieNext ? 'Tie next: on' : 'Tie next';
   }
   function removeFromPodium(id) { const p = pod(); p.slots = p.slots.map(sl => sl.filter(x => x !== id)).filter(sl => sl.length); delete p.notes[id]; p.revealed = []; tieNext = false; save(); renderAll(); }
   function placeStudent(id) {
     const p = pod();
     if (slotOf(id)) { stopReveal(); removeFromPodium(id); return; }
-    if (podiumCount() >= p.places) { toast('Podium is full. Remove someone first.'); return; }
     if (tieNext && p.slots.length) { p.slots[p.slots.length - 1].push(id); tieNext = false; if (p.hidden) toast('Tied for ' + SUFFIX(slotLabel(p.slots.length)) + ' (hidden)'); }
+    else if (podiumCount() >= p.places) { toast('Podium is full. Use Tie next or remove someone first.'); return; }
     else { p.slots.push([id]); if (p.hidden) toast('Placed ' + SUFFIX(slotLabel(p.slots.length)) + ' (hidden)'); }
     stopReveal(); save(); renderAll();
   }
