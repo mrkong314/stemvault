@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Breathe</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+CjxkZWZzPgogIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzJiN2E2MyIvPgogICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTc0YTNjIi8+CiAgPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8cmVjdCB4PSI0MCIgeT0iNDAiIHdpZHRoPSI0MzIiIGhlaWdodD0iNDMyIiByeD0iMTA0IiBmaWxsPSJ1cmwoI2JnKSIvPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMzQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CiAgPHBhdGggZD0iTTI1NiAxMTggQTEzOCAxMzggMCAxIDEgMTU4IDE1OCIvPgogIDxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iNjIiLz4KPC9nPgo8L3N2Zz4K">
+<link rel="apple-touch-icon" sizes="180x180" href="/tools/breathe-icon-180.png">
+<link rel="manifest" href="/tools/breathe.webmanifest">
+<meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Breathe">
+<meta name="description" content="Guided breathing patterns and a meditation countdown with soft chimes, kept on the device.">
+<style>
+/* StemVault app tokens: the phone-first profile used by Class Timer, Rep Timer and
+   Random Picker. Same light palette as the site; dark mode is true OLED black with no
+   ambient gradient, no glass tint and hairline borders only, so unlit pixels stay off.
+   Paste verbatim into the tool's <style>. */
+:root {
+  --bg: #eef1f6; --panel: #ffffff; --surface: #f5f5f7; --ink: #1d1d1f; --ink-dim: #86868b;
+  --accent: #0a84ff; --good: #34c759; --warn: #ff9f0a; --danger: #ff3b30;
+  --rule: #e5e5ea; --rule-strong: #d1d1d6; --track: #e5e5ea;
+  --glass: rgba(255,255,255,0.55); --glass-strong: rgba(255,255,255,0.72); --glass-border: rgba(255,255,255,0.7);
+  --glass-edge: rgba(255,255,255,0.9); --glass-shadow: 0 8px 30px rgba(31,45,80,0.12), 0 2px 8px rgba(31,45,80,0.08);
+  --glass-key: rgba(255,255,255,0.6); --blur: saturate(180%) blur(20px);
+  --ambient-1: #cfe0ff; --ambient-2: #e7d9ff; --ambient-3: #d6f0e6;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  --font-digits: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000; --panel: #000000; --surface: #0c0c0d; --ink: #ededf0; --ink-dim: #8e8e93;
+    --accent: #0a84ff; --good: #30d158; --warn: #ffd60a; --danger: #ff453a;
+    --rule: #1f1f22; --rule-strong: #2c2c2e; --track: #1f1f22;
+    --glass: #000000; --glass-strong: #000000; --glass-border: rgba(255,255,255,0.14); --glass-edge: rgba(255,255,255,0.05);
+    --glass-shadow: none; --glass-key: #0c0c0d; --blur: none; --ambient-1: #000; --ambient-2: #000; --ambient-3: #000;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000; --panel: #000000; --surface: #0c0c0d; --ink: #ededf0; --ink-dim: #8e8e93;
+  --accent: #0a84ff; --good: #30d158; --warn: #ffd60a; --danger: #ff453a;
+  --rule: #1f1f22; --rule-strong: #2c2c2e; --track: #1f1f22;
+  --glass: #000000; --glass-strong: #000000; --glass-border: rgba(255,255,255,0.14); --glass-edge: rgba(255,255,255,0.05);
+  --glass-shadow: none; --glass-key: #0c0c0d; --blur: none; --ambient-1: #000; --ambient-2: #000; --ambient-3: #000;
+  color-scheme: dark;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass: rgba(255,255,255,0.96); --glass-strong: rgba(255,255,255,0.98); --glass-key: rgba(255,255,255,0.97); }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; height: 100%; padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font);
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; touch-action: manipulation;
+  padding-block: 0 calc(28px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(40rem 40rem at 12% 8%, var(--ambient-1), transparent 60%), radial-gradient(36rem 36rem at 88% 14%, var(--ambient-2), transparent 60%), radial-gradient(44rem 44rem at 70% 96%, var(--ambient-3), transparent 62%), var(--bg); }
+/* Fill the status-bar area with glass so content scrolling under it stays legible. */
+body::after { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 40; background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-user-select: none; user-select: none; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (pointer: coarse) { input, select, textarea { font-size: 16px; } }
+.num { font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+
+.app { max-width: 620px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.glass { background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge); }
+.panel { border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Sticky top bar: the title must clear the iOS status bar / Dynamic Island, so the top padding
+   grows by 1.25x the inset (the glass status bar softens text that sits right under it). */
+header.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+  margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 12px calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  padding: calc(10px + env(safe-area-inset-top, 0px) * 1.25) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+  background: var(--glass); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border-bottom: 1px solid var(--glass-border); box-shadow: inset 0 1px 0 var(--glass-edge); }
+header.topbar .inner { max-width: 620px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+header.topbar .title { font-size: 1.18rem; font-weight: 600; letter-spacing: -0.02em; }
+header.topbar .sub { font-size: 0.8rem; color: var(--ink-dim); margin-top: 1px; }
+header.topbar .spacer { flex: 1; }
+.settings-wrap { position: relative; }
+.popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; width: min(300px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 0.75rem; padding: 0.9rem; border-radius: 14px;
+  background: var(--panel); border: 1px solid var(--glass-border); box-shadow: 0 12px 34px rgba(0,0,0,0.22), inset 0 1px 0 var(--glass-edge); }
+:root[data-theme="dark"] .popover { box-shadow: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .popover { box-shadow: none; } }
+.popover .row { display: flex; flex-direction: column; gap: 0.35rem; }
+.popover .row.inline { flex-direction: row; align-items: center; justify-content: space-between; }
+
+/* Controls */
+.gbtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--ink);
+  border-radius: 11px; min-height: 44px; padding: 0 16px; font-weight: 600; font-size: 0.95rem; backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: inset 0 1px 0 var(--glass-edge); }
+.gbtn:active { transform: translateY(1px); }
+.gbtn:disabled { opacity: 0.4; cursor: default; }
+.gbtn.icon { width: 40px; min-height: 40px; padding: 0; border-radius: 10px; color: var(--ink-dim); }
+.gbtn.icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.gbtn.icon[aria-expanded="true"] { color: var(--accent); }
+.gbtn.ghost { color: var(--accent); }
+.gbtn.danger { color: var(--danger); }
+.gbtn.pill { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 2px 8px rgba(10,132,255,0.35), inset 0 1px 0 rgba(255,255,255,0.4); min-height: 58px; font-size: 1.15rem; }
+/* On OLED black the primary button is outlined, not filled, so it does not glow. */
+:root[data-theme="dark"] .gbtn.pill { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gbtn.pill { background: #000; color: var(--accent); border-color: var(--accent); box-shadow: none; } }
+.remove.armed { color: #fff; background: var(--danger); border-color: transparent; }
+.seg { display: inline-flex; background: var(--glass-key); border-radius: 10px; padding: 2px; gap: 2px; border: 1px solid var(--glass-border); }
+.seg button { border: none; background: transparent; color: var(--ink); font-size: 0.85rem; font-weight: 500; padding: 0.45rem 0.5rem; border-radius: 8px; min-width: 2.4rem; flex: 1 1 0; min-height: 36px; }
+.seg button.on { background: var(--glass-strong); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.14), inset 0 1px 0 var(--glass-edge); }
+:root[data-theme="dark"] .seg button.on { background: var(--rule-strong); box-shadow: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg button.on { background: var(--rule-strong); box-shadow: none; } }
+.seg.full { display: flex; }
+.label { font-size: 0.72rem; font-weight: 600; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.hint { font-size: 0.8rem; color: var(--ink-dim); }
+.switch { position: relative; width: 50px; height: 30px; border-radius: 15px; background: var(--track); border: 0; padding: 0; flex-shrink: 0; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.25); transition: left 0.15s; }
+:root[data-theme="dark"] .switch::after { background: #e5e5ea; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .switch::after { background: #e5e5ea; } }
+.switch[aria-checked="true"] { background: var(--good); }
+.switch[aria-checked="true"]::after { left: 22px; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass-key); font-size: 1.3rem; line-height: 1; }
+.stepper .v { font-family: var(--font-digits); font-weight: 600; font-size: 1.2rem; min-width: 2ch; text-align: center; }
+.field { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--rule-strong); background: var(--surface); color: var(--ink); font-weight: 600; }
+
+/* Big readouts */
+.digits { font-family: var(--font-digits); font-variant-numeric: tabular-nums; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-size: clamp(3rem, 22vw, 7rem); }
+.digits .tenths { font-size: 0.4em; color: var(--ink-dim); }
+.stage { min-height: 200px; justify-content: center; align-items: center; text-align: center; gap: 8px; }
+
+/* Bottom sheet for secondary editors */
+.overlay { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,0.45); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-width: 620px; max-height: calc(100vh - env(safe-area-inset-top, 0px) - 40px); border-radius: 22px 22px 0 0; padding: 14px 18px calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--panel); border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 1.05rem; }
+.sheet-actions { display: flex; gap: 10px; }
+.sheet-actions .gbtn { flex: 1; }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 90; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) { .switch::after { transition: none; } }
+</style>
+<style>
+/* Layout: glass top bar, Breathe / Meditate segment, one stage card holding the breathing orb
+   (phase ring, session ring, phase count and cue), Start / Reset, then the pattern and length chips.
+   Phones keep this single column in both orientations; a short viewport puts the stage beside the
+   controls; a wide pointer layout does the same at larger scale; big display drops the chrome. */
+:root {
+  --inhale: #64d2ff;   /* iOS teal */
+  --hold: #bf5af2;     /* iOS purple */
+  --exhale: #0a84ff;   /* iOS blue */
+  --calm: #30d158;     /* iOS green: session complete */
+  --phase: var(--exhale);
+  --s: 0.58;
+}
+/* Night (default, dark appearance only): warm low-luminance greys, no saturated colour, dimmer text,
+   so the screen can sit beside a bed. The three phases keep a faint warm / neutral / cool difference. */
+:root[data-theme="dark"].night {
+  --ink: #a39e95; --ink-dim: #5e5b55; --accent: #8a8176; --good: #4f5c4a; --danger: #74403a;
+  --rule: #141415; --rule-strong: #1f1e1d; --track: #111111; --glass-border: rgba(255,255,255,0.08); --glass-key: #0a0a0a;
+  --inhale: #9a8d7a; --hold: #6c675f; --exhale: #7c7a78; --calm: #7d8a76;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]).night {
+    --ink: #a39e95; --ink-dim: #5e5b55; --accent: #8a8176; --good: #4f5c4a; --danger: #74403a;
+    --rule: #141415; --rule-strong: #1f1e1d; --track: #111111; --glass-border: rgba(255,255,255,0.08); --glass-key: #0a0a0a;
+    --inhale: #9a8d7a; --hold: #6c675f; --exhale: #7c7a78; --calm: #7d8a76;
+  }
+}
+:root[data-theme="dark"].night .orb, :root:not([data-theme="light"]).night .orb { background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--phase) 34%, transparent), color-mix(in srgb, var(--phase) 16%, transparent) 62%, color-mix(in srgb, var(--phase) 6%, transparent) 86%, transparent 100%); }
+:root[data-theme="dark"].night .switch::after, :root:not([data-theme="light"]).night .switch::after { background: #8a8780; box-shadow: none; }
+:root[data-theme="dark"].night .ring-session, :root:not([data-theme="light"]).night .ring-session { opacity: 0.5; }
+:root[data-theme="dark"].night .toast, :root:not([data-theme="light"]).night .toast { background: #1f1e1d; color: var(--ink); }
+
+.seg.full#modeSeg button { min-height: 40px; }
+
+/* Stage */
+.stage { padding: 16px 18px 14px; gap: 10px; }
+.orb-wrap { position: relative; width: min(100%, 42dvh, 340px); aspect-ratio: 1 / 1; margin: 0 auto; border-radius: 50%; container-type: size; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.orb-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
+.orb-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.ring-track { fill: none; stroke: var(--track); stroke-width: 5; }
+.ring-session { fill: none; stroke: var(--ink-dim); stroke-width: 3; stroke-linecap: round; opacity: 0.75; }
+.ring-phase { fill: none; stroke: var(--phase); stroke-width: 6; stroke-linecap: round; }
+.orb { position: absolute; inset: 11%; border-radius: 50%; transform: scale(var(--s)); will-change: transform;
+  background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--phase) 62%, transparent), color-mix(in srgb, var(--phase) 30%, transparent) 62%, color-mix(in srgb, var(--phase) 12%, transparent) 86%, transparent 100%); }
+/* OLED: the disc is dimmer so it reads as a tinted surface, not a lamp. */
+:root[data-theme="dark"] .orb { background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--phase) 48%, transparent), color-mix(in srgb, var(--phase) 22%, transparent) 62%, color-mix(in srgb, var(--phase) 8%, transparent) 86%, transparent 100%); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .orb { background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--phase) 48%, transparent), color-mix(in srgb, var(--phase) 22%, transparent) 62%, color-mix(in srgb, var(--phase) 8%, transparent) 86%, transparent 100%); } }
+.orb-wrap.pulse .orb { animation: pulse 8s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { transform: scale(0.76); } 50% { transform: scale(0.84); } }
+.centre { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2cqw; pointer-events: none; }
+.centre .big { font-family: var(--font-digits); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; line-height: 1; font-size: 30cqw; }
+.centre .big.clock { font-size: 21cqw; letter-spacing: -0.02em; }
+.centre .lab { font-size: 7cqw; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+.centre .lab.dim { color: var(--ink-dim); }
+.meta { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 0.85rem; color: var(--ink-dim); font-weight: 500; }
+.meta .state { color: var(--ink); font-weight: 600; }
+
+/* Controls */
+.controls { display: grid; grid-template-columns: 1.7fr 1fr; gap: 10px; }
+.controls .gbtn { min-height: 58px; }
+
+/* Setup panels */
+.setup .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; }
+.setup .group { display: flex; flex-direction: column; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button { display: inline-flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; line-height: 1.15; border: 1px solid var(--glass-border); background: var(--glass-key); border-radius: 999px; padding: 6px 14px; min-height: 40px; font-size: 0.9rem; font-weight: 500; }
+.chips button small { font-size: 0.7rem; font-weight: 500; color: var(--ink-dim); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.chips button.on { background: var(--accent); color: #fff; border-color: transparent; }
+.chips button.on small { color: rgba(255,255,255,0.78); }
+:root[data-theme="dark"] .chips button.on { background: #000; color: var(--accent); border-color: var(--accent); }
+:root[data-theme="dark"] .chips button.on small { color: var(--accent); opacity: 0.8; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .chips button.on { background: #000; color: var(--accent); border-color: var(--accent); }
+  :root:not([data-theme="light"]) .chips button.on small { color: var(--accent); opacity: 0.8; }
+}
+.chips .custom { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--ink-dim); }
+.chips input { width: 64px; padding: 7px 8px; border-radius: 10px; border: 1px solid var(--rule-strong); background: var(--surface); text-align: center; font-weight: 600; }
+.stepper .v.wide { min-width: 5ch; font-size: 1rem; }
+.sep { height: 1px; background: var(--rule); }
+
+/* Custom pattern sheet */
+.sheet .prow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sheet .prow .k { font-weight: 600; }
+.sheet .prow .k small { display: block; font-weight: 500; color: var(--ink-dim); font-size: 0.78rem; }
+.sheet .stepper .v { min-width: 3ch; }
+.sheet .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: 1px; }
+
+/* Exit for big display */
+.exit-big { display: none; position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(10px + env(safe-area-inset-right, 0px)); z-index: 50; }
+
+/* Short viewport (a phone on its side, a small laptop window): stage beside the controls so nothing scrolls. */
+@media (max-height: 560px) {
+  body { padding-block: 0 calc(12px + env(safe-area-inset-bottom, 0px)); }
+  header.topbar { margin-bottom: 10px; padding-top: calc(6px + env(safe-area-inset-top, 0px) * 1.25); padding-bottom: 6px; }
+  body:not(.big) .app { max-width: 900px; display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); grid-template-areas: "stage seg" "stage setup" "stage controls"; grid-template-rows: auto 1fr auto; gap: 10px 12px; align-items: start; }
+  body:not(.big) #modeSeg { grid-area: seg; }
+  body:not(.big) .stage { grid-area: stage; align-self: stretch; padding: 12px 14px 10px; }
+  body:not(.big) .setup { grid-area: setup; padding: 12px 14px; gap: 10px; }
+  body:not(.big) .controls { grid-area: controls; }
+  body:not(.big) .controls .gbtn { min-height: 50px; }
+  body:not(.big) .orb-wrap { width: min(100%, 60dvh); }
+  body:not(.big) .chips button { min-height: 36px; padding: 4px 12px; font-size: 0.85rem; }
+}
+@media (max-height: 760px) and (min-height: 561px) { .orb-wrap { width: min(100%, 38dvh, 340px); } }
+
+/* Wide layout for a mouse or trackpad at 900px+, or a tablet on its side. Phones never get this. */
+@media (pointer: fine) and (min-width: 900px), (pointer: none) and (min-width: 900px), (min-width: 1000px) {
+  header.topbar .inner, body:not(.big) .app { max-width: 1040px; }
+  body:not(.big) .app { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); grid-template-areas: "stage seg" "stage setup" "stage controls"; grid-template-rows: auto 1fr auto; gap: 12px 16px; align-items: start; }
+  body:not(.big) #modeSeg { grid-area: seg; }
+  body:not(.big) .stage { grid-area: stage; align-self: stretch; }
+  body:not(.big) .setup { grid-area: setup; }
+  body:not(.big) .controls { grid-area: controls; }
+  body:not(.big) .orb-wrap { width: min(100%, 62dvh, 520px); }
+}
+
+/* Big display: the orb alone, scaled to the screen; Esc or the corner button exits. */
+body.big { padding-block: 10px calc(10px + env(safe-area-inset-bottom, 0px)); min-height: 100dvh; }
+body.big header.topbar, body.big #modeSeg, body.big .setup { display: none; }
+body.big .app { max-width: none; min-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px)); display: grid; grid-template-rows: 1fr auto; gap: 12px; padding-top: env(safe-area-inset-top, 0px); }
+body.big .stage { background: none; border: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+body.big .orb-wrap { width: min(72dvh, 86vw, 900px); }
+body.big .meta { width: auto; gap: 28px; justify-content: center; font-size: 1rem; }
+body.big .controls { max-width: 420px; margin: 0 auto; width: 100%; }
+body.big .exit-big { display: inline-flex; }
+@media (max-height: 560px) { body.big .orb-wrap { width: min(62dvh, 86vw); } }
+@media (min-width: 760px) and (orientation: landscape) {
+  body.big .app { grid-template-rows: 1fr; grid-template-columns: 1fr auto; align-items: center; }
+  body.big .orb-wrap { width: min(78dvh, 50vw, 900px); }
+  body.big .controls { width: 240px; grid-template-columns: 1fr; margin-right: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb-wrap.pulse .orb { animation: none; }
+  .orb { transform: scale(0.8) !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="inner">
+    <div>
+      <div class="title">Breathe</div>
+      <div class="sub num" id="sub">Box · 4-4-4-4 · 3 min</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="gbtn icon" id="bigBtn" type="button" aria-label="Big display" title="Big display">
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+    <div class="settings-wrap">
+      <button class="gbtn icon" id="settingsBtn" type="button" aria-label="Settings" title="Settings" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+      <div class="popover" id="settings" hidden>
+        <div class="row">
+          <span class="label">Appearance</span>
+          <div class="seg full" id="themeSeg"><button type="button" data-v="auto">Auto</button><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div>
+        </div>
+        <div class="row inline">
+          <span id="nightLabel">Night<br><span class="hint">Dim, warm, almost no colour. Dark only.</span></span>
+          <button class="switch" id="nightToggle" type="button" role="switch" aria-checked="true" aria-labelledby="nightLabel"></button>
+        </div>
+        <div class="sep"></div>
+        <div class="row inline">
+          <span id="soundLabel">Chime at each phase, bell at the end</span>
+          <button class="switch" id="soundToggle" type="button" role="switch" aria-checked="true" aria-labelledby="soundLabel"></button>
+        </div>
+        <div class="row inline">
+          <span id="voiceLabel">Spoken cues</span>
+          <button class="switch" id="voiceToggle" type="button" role="switch" aria-checked="false" aria-labelledby="voiceLabel"></button>
+        </div>
+        <div class="row inline" id="vibeRow" hidden>
+          <span id="vibeLabel">Vibrate</span>
+          <button class="switch" id="vibeToggle" type="button" role="switch" aria-checked="true" aria-labelledby="vibeLabel"></button>
+        </div>
+        <div class="sep"></div>
+        <div class="row inline">
+          <span>Screen stays awake while running</span>
+          <span class="hint" id="wakeStatus">Off</span>
+        </div>
+        <span class="hint">Settings and sessions stay on this device. Nothing is sent anywhere.</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <div class="seg full" id="modeSeg" role="tablist" aria-label="Mode">
+    <button type="button" data-v="breathe" role="tab">Breathe</button>
+    <button type="button" data-v="meditate" role="tab">Meditate</button>
+  </div>
+
+  <section class="glass panel stage">
+    <div class="orb-wrap" id="orbWrap" role="button" tabindex="0" aria-label="Start or pause">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="ring-track" cx="100" cy="100" r="92"/>
+        <circle class="ring-session" id="ringSession" cx="100" cy="100" r="97" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+        <circle class="ring-phase" id="ringPhase" cx="100" cy="100" r="92" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      </svg>
+      <div class="orb" id="orb"></div>
+      <div class="centre">
+        <div class="big num" id="big">4</div>
+        <div class="lab" id="lab" aria-live="polite">Breathe in</div>
+      </div>
+    </div>
+    <div class="meta num">
+      <span><span class="state" id="stateLabel">Ready</span> <span id="metaL">· Round 1 of 11</span></span>
+      <span id="metaR">2:56 left</span>
+    </div>
+  </section>
+
+  <div class="controls">
+    <button type="button" class="gbtn pill" id="startBtn">Start</button>
+    <button type="button" class="gbtn remove" id="resetBtn" disabled>Reset</button>
+  </div>
+
+  <section class="glass panel setup" id="setupBreathe">
+    <div class="group">
+      <span class="label">Pattern</span>
+      <div class="chips" id="patternChips">
+        <button type="button" data-v="box">Box<small>4 · 4 · 4 · 4</small></button>
+        <button type="button" data-v="478">4-7-8<small>4 · 7 · 8</small></button>
+        <button type="button" data-v="coherent">Coherent<small>5.5 · 5.5</small></button>
+        <button type="button" data-v="calm">Long exhale<small>4 · 6</small></button>
+        <button type="button" data-v="custom" id="customChip">Custom<small id="customSub">4 · 4 · 6 · 2</small></button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="label">Length</span>
+      <div class="chips" id="lenChipsB">
+        <button type="button" data-s="60">1 min</button><button type="button" data-s="120">2 min</button><button type="button" data-s="180">3 min</button>
+        <button type="button" data-s="300">5 min</button><button type="button" data-s="600">10 min</button><button type="button" data-s="0">Open</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="glass panel setup" id="setupMeditate" hidden>
+    <div class="group">
+      <span class="label">Length</span>
+      <div class="chips" id="lenChipsM">
+        <button type="button" data-s="180">3 min</button><button type="button" data-s="300">5 min</button><button type="button" data-s="600">10 min</button>
+        <button type="button" data-s="900">15 min</button><button type="button" data-s="1200">20 min</button><button type="button" data-s="1800">30 min</button>
+        <button type="button" data-s="0">Open</button>
+        <span class="custom"><input type="number" id="customMin" min="1" max="180" step="1" inputmode="numeric" aria-label="Custom minutes" placeholder="Custom"> min</span>
+      </div>
+    </div>
+    <div class="row">
+      <span><span class="label">Interval bell</span><br><span class="hint">A single bell while you sit</span></span>
+      <div class="stepper" aria-label="Interval bell">
+        <button type="button" id="ivMinus" aria-label="Less often">−</button>
+        <span class="v wide num" id="ivVal">Off</span>
+        <button type="button" id="ivPlus" aria-label="More often">+</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="overlay" id="customSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head"><span id="sheetTitle">Custom pattern</span><span class="hint num" id="sheetCycle">16 s per round</span></div>
+    <div class="prow"><span class="k"><i class="swatch" style="background: var(--inhale)"></i>Breathe in<small>1 to 20 s</small></span>
+      <div class="stepper"><button type="button" data-i="0" data-d="-1" aria-label="Shorter inhale">−</button><span class="v num" id="cv0">4</span><button type="button" data-i="0" data-d="1" aria-label="Longer inhale">+</button></div></div>
+    <div class="prow"><span class="k"><i class="swatch" style="background: var(--hold)"></i>Hold<small>0 to 20 s, 0 skips it</small></span>
+      <div class="stepper"><button type="button" data-i="1" data-d="-1" aria-label="Shorter hold">−</button><span class="v num" id="cv1">4</span><button type="button" data-i="1" data-d="1" aria-label="Longer hold">+</button></div></div>
+    <div class="prow"><span class="k"><i class="swatch" style="background: var(--exhale)"></i>Breathe out<small>1 to 20 s</small></span>
+      <div class="stepper"><button type="button" data-i="2" data-d="-1" aria-label="Shorter exhale">−</button><span class="v num" id="cv2">6</span><button type="button" data-i="2" data-d="1" aria-label="Longer exhale">+</button></div></div>
+    <div class="prow"><span class="k"><i class="swatch" style="background: var(--hold)"></i>Hold<small>0 to 20 s, 0 skips it</small></span>
+      <div class="stepper"><button type="button" data-i="3" data-d="-1" aria-label="Shorter second hold">−</button><span class="v num" id="cv3">2</span><button type="button" data-i="3" data-d="1" aria-label="Longer second hold">+</button></div></div>
+    <div class="sheet-actions">
+      <button type="button" class="gbtn" id="sheetCancel">Cancel</button>
+      <button type="button" class="gbtn ghost" id="sheetSave">Use this pattern</button>
+    </div>
+  </div>
+</div>
+
+<button class="gbtn icon exit-big" id="exitBig" type="button" aria-label="Exit big display">
+  <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+</button>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const STORE = 'breathe-v1';
+  const PRESETS = {
+    box:      { name: 'Box',         d: [4, 4, 4, 4] },
+    '478':    { name: '4-7-8',       d: [4, 7, 8, 0] },
+    coherent: { name: 'Coherent',    d: [5.5, 0, 5.5, 0] },
+    calm:     { name: 'Long exhale', d: [4, 0, 6, 0] }
+  };
+  // Phase cues rise for the inhale (C5), sit on E5 for a hold and fall to G4 for the exhale.
+  const PHASES = [
+    { k: 'in',    label: 'Breathe in',  say: 'Breathe in',  hz: 523, col: 'var(--inhale)' },
+    { k: 'hold',  label: 'Hold',        say: 'Hold',        hz: 659, col: 'var(--hold)' },
+    { k: 'out',   label: 'Breathe out', say: 'Breathe out', hz: 392, col: 'var(--exhale)' },
+    { k: 'hold2', label: 'Hold',        say: 'Hold',        hz: 659, col: 'var(--hold)' }
+  ];
+  const LO = 0.58;                                   // orb scale at the bottom of the breath
+  const ease = x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+
+  const el = {
+    sub: $('sub'), big: $('big'), lab: $('lab'), stateLabel: $('stateLabel'), metaL: $('metaL'), metaR: $('metaR'),
+    orbWrap: $('orbWrap'), orb: $('orb'), ringPhase: $('ringPhase'), ringSession: $('ringSession'),
+    start: $('startBtn'), reset: $('resetBtn'), modeSeg: $('modeSeg'),
+    setupB: $('setupBreathe'), setupM: $('setupMeditate'), patternChips: $('patternChips'), customSub: $('customSub'),
+    lenB: $('lenChipsB'), lenM: $('lenChipsM'), customMin: $('customMin'), ivMinus: $('ivMinus'), ivPlus: $('ivPlus'), ivVal: $('ivVal'),
+    settings: $('settings'), settingsBtn: $('settingsBtn'), themeSeg: $('themeSeg'),
+    night: $('nightToggle'), sound: $('soundToggle'), voice: $('voiceToggle'), vibe: $('vibeToggle'), vibeRow: $('vibeRow'), wake: $('wakeStatus'),
+    big_: $('bigBtn'), exitBig: $('exitBig'), sheet: $('customSheet'), sheetCycle: $('sheetCycle'), sheetCancel: $('sheetCancel'), sheetSave: $('sheetSave'), toast: $('toast')
+  };
+
+  // ---- State: persists so a running session survives a reload or app switch ----
+  let state = { theme: 'dark', night: true, sound: true, voice: false, vibe: true, mode: 'breathe', pattern: 'box', custom: [4, 4, 6, 2],
+                bLen: 180, mLen: 600, interval: 0, running: false, startAt: 0, acc: 0, done: false };
+  try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
+  if (!Array.isArray(state.custom) || state.custom.length !== 4) state.custom = [4, 4, 6, 2];
+  if (state.night && state.theme !== 'dark') state.theme = 'dark';   // Night is dark only
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+  const elapsed = () => state.acc + (state.running ? Date.now() - state.startAt : 0);
+  const pad = n => String(n).padStart(2, '0');
+  function fmt(ms) { const s = Math.max(0, Math.round(ms / 1000)); const m = Math.floor(s / 60); return m + ':' + pad(s % 60); }
+  function fmtLen(sec) { return sec ? (sec % 60 ? (sec / 60).toFixed(1) : sec / 60) + ' min' : 'Open'; }
+  function fmtDurs(d) { return d.filter(x => x > 0).join(' · '); }
+
+  // ---- Session shape ----
+  function session() {
+    if (state.mode === 'breathe') {
+      const d = state.pattern === 'custom' ? state.custom : PRESETS[state.pattern].d;
+      const ph = PHASES.map((p, i) => Object.assign({}, p, { dur: d[i] })).filter(p => p.dur > 0);
+      const cycle = ph.reduce((a, p) => a + p.dur, 0);
+      const rounds = state.bLen ? Math.max(1, Math.round(state.bLen / cycle)) : 0;
+      return { ph, cycle, rounds, total: rounds * cycle * 1000, d };
+    }
+    return { total: state.mLen * 1000, iv: state.interval * 60000 };
+  }
+  // Where in the breath the session is at elapsed e: round (1-based), phase index, phase object, seconds into it, fraction.
+  function breathePos(S, e) {
+    const sec = e / 1000, round = Math.floor(sec / S.cycle) + 1;
+    let pos = sec - (round - 1) * S.cycle, i = 0;
+    for (; i < S.ph.length - 1; i++) { if (pos < S.ph[i].dur) break; pos -= S.ph[i].dur; }
+    const p = S.ph[i];
+    return { round, i, p, off: pos, frac: Math.min(1, pos / p.dur), g: (round - 1) * S.ph.length + i };
+  }
+
+  // ---- Audio: Web Audio only, created on the first gesture ----
+  let ctx = null;
+  function unlock() { try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) {} }
+  function strike(freq, at, dur, gain) {
+    [[1, 1], [2, 0.35], [3, 0.12]].forEach(([m, g]) => {
+      const o = ctx.createOscillator(), a = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = freq * m;
+      a.gain.setValueAtTime(0.0001, at); a.gain.exponentialRampToValueAtTime(gain * g, at + 0.015); a.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      o.connect(a).connect(ctx.destination); o.start(at); o.stop(at + dur + 0.05);
+    });
+  }
+  function chime(freq) { if (!state.sound) return; unlock(); if (!ctx) return; strike(freq, ctx.currentTime + 0.02, 1.3, 0.22); }
+  function bell(n) { if (!state.sound) return; unlock(); if (!ctx) return; const t0 = ctx.currentTime + 0.02; for (let i = 0; i < n; i++) strike(660, t0 + i * 1.3, 2.6, 0.28); }
+  function buzz(pattern) { if (state.vibe && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} } }
+  const canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+  function say(text) { if (!state.voice || !canSpeak) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 0.95; speechSynthesis.speak(u); } catch (e) {} }
+  document.addEventListener('pointerdown', unlock, { passive: true });
+
+  // ---- Wake lock while running ----
+  let wake = null;
+  async function keepAwake(on) {
+    if (!('wakeLock' in navigator)) { el.wake.textContent = 'Unavailable'; return; }
+    try {
+      if (on && !wake && document.visibilityState === 'visible') {
+        wake = await navigator.wakeLock.request('screen'); el.wake.textContent = 'On';
+        wake.addEventListener('release', () => { wake = null; el.wake.textContent = 'Off'; });
+      }
+      if (!on && wake) { await wake.release(); wake = null; }
+    } catch (e) { wake = null; el.wake.textContent = 'Off'; }
+  }
+
+  // ---- Render ----
+  let lastPh = -1, lastIv = 0, raf = 0;
+  function render() {
+    const S = session(), e = elapsed(), done = S.total > 0 && e >= S.total;
+    const status = done ? 'Complete' : state.running ? (state.mode === 'breathe' ? 'Breathing' : 'Meditating') : e > 0 ? 'Paused' : 'Ready';
+    el.stateLabel.textContent = status;
+    el.ringSession.style.strokeDashoffset = S.total ? (1 - Math.min(1, e / S.total)).toFixed(4) : 1;
+    el.ringSession.style.visibility = S.total && e > 0 ? '' : 'hidden';
+    el.orbWrap.classList.remove('pulse');
+
+    if (state.mode === 'breathe') {
+      el.big.classList.remove('clock');
+      if (done) {
+        el.orbWrap.style.setProperty('--phase', 'var(--calm)'); el.orbWrap.style.setProperty('--s', LO);
+        el.ringPhase.style.strokeDashoffset = 0;
+        el.big.textContent = S.rounds; el.lab.textContent = S.rounds === 1 ? 'round done' : 'rounds done';
+        el.metaL.textContent = '· ' + fmtDurs(S.d) + ' s'; el.metaR.textContent = fmt(S.total);
+      } else {
+        const b = breathePos(S, e), p = b.p;
+        if (state.running && b.g !== lastPh) { lastPh = b.g; chime(p.hz); say(p.say); buzz(p.k === 'in' ? 40 : 20); }
+        const s = p.k === 'in' ? LO + (1 - LO) * ease(b.frac) : p.k === 'out' ? 1 - (1 - LO) * ease(b.frac) : p.k === 'hold' ? 1 : LO;
+        el.orbWrap.style.setProperty('--phase', p.col); el.orbWrap.style.setProperty('--s', s.toFixed(4));
+        el.ringPhase.style.strokeDashoffset = (1 - b.frac).toFixed(4);
+        el.big.textContent = Math.max(1, Math.ceil(p.dur - b.off - 1e-6));
+        el.lab.textContent = p.label;
+        el.metaL.textContent = '· Round ' + b.round + (S.rounds ? ' of ' + S.rounds : '');
+        el.metaR.textContent = S.total ? fmt(S.total - e) + ' left' : fmt(e);
+      }
+    } else {
+      el.big.classList.add('clock');
+      el.orbWrap.style.setProperty('--phase', done ? 'var(--calm)' : 'var(--accent)');
+      el.orbWrap.style.setProperty('--s', 0.8);
+      if (state.running && !done) el.orbWrap.classList.add('pulse');
+      if (state.running && !done && S.iv > 0) { const k = Math.floor(e / S.iv); if (k > lastIv) { lastIv = k; bell(1); buzz(60); } }
+      el.ringPhase.style.strokeDashoffset = done ? 0 : S.iv > 0 ? (1 - (e % S.iv) / S.iv).toFixed(4) : 1;
+      el.big.textContent = fmt(S.total ? Math.max(0, S.total - e) : e);
+      el.lab.textContent = done ? 'Complete' : state.running ? 'Meditating' : e > 0 ? 'Paused' : S.total ? 'Ready' : 'Open sit';
+      el.metaL.textContent = S.iv ? '· Bell every ' + state.interval + ' min' : '· No interval bell';
+      el.metaR.textContent = S.total ? (done ? fmt(S.total) : fmt(S.total - e) + ' left') : 'Open';
+    }
+    el.lab.classList.toggle('dim', !state.running && !done);
+    el.ringPhase.style.visibility = parseFloat(el.ringPhase.style.strokeDashoffset) < 1 ? '' : 'hidden';
+
+    if (done && state.running && !state.done) {
+      state.done = true; state.running = false; state.acc = S.total;
+      bell(3); buzz([200, 100, 200]); say('Session complete'); keepAwake(false); save();
+    }
+    el.start.textContent = state.running ? 'Pause' : done ? 'Again' : e > 0 ? 'Resume' : 'Start';
+    el.reset.disabled = !state.running && e === 0;
+    el.sub.textContent = state.mode === 'breathe'
+      ? (state.pattern === 'custom' ? 'Custom' : PRESETS[state.pattern].name) + ' · ' + fmtDurs(S.d).replace(/ · /g, '-') + ' · ' + fmtLen(state.bLen)
+      : fmtLen(state.mLen) + (state.interval ? ' · bell every ' + state.interval + ' min' : ' · no interval bell');
+  }
+  function loop() { render(); if (state.running) raf = requestAnimationFrame(loop); }
+
+  // ---- Start / pause / reset ----
+  function toggle() {
+    unlock();
+    const S = session(), e = elapsed(), done = S.total > 0 && e >= S.total;
+    if (state.running) { state.acc = e; state.running = false; keepAwake(false); }
+    else {
+      if (done) { state.acc = 0; state.done = false; }
+      if (state.acc === 0) { lastPh = -1; lastIv = 0; if (state.mode === 'meditate') { bell(1); say('Begin'); } }
+      else if (state.mode === 'breathe') lastPh = breathePos(S, state.acc).g;
+      else lastIv = S.iv ? Math.floor(state.acc / S.iv) : 0;
+      state.startAt = Date.now(); state.running = true; keepAwake(true);
+      cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
+    }
+    save(); render();
+  }
+  function resetSession() { state.running = false; state.acc = 0; state.startAt = 0; state.done = false; lastPh = -1; lastIv = 0; keepAwake(false); save(); render(); }
+  el.start.addEventListener('click', toggle);
+  el.orbWrap.addEventListener('click', toggle);
+  el.orbWrap.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+  let armT = null;
+  function disarm() { clearTimeout(armT); el.reset.classList.remove('armed'); el.reset.textContent = 'Reset'; }
+  el.reset.addEventListener('click', () => {
+    if (el.reset.classList.contains('armed')) { disarm(); resetSession(); }
+    else { el.reset.classList.add('armed'); el.reset.textContent = 'Tap again'; armT = setTimeout(disarm, 3000); }
+  });
+
+  // ---- Settings, theme, mode ----
+  function openSettings(on) { el.settings.hidden = !on; el.settingsBtn.setAttribute('aria-expanded', String(on)); }
+  el.settingsBtn.addEventListener('click', () => openSettings(el.settings.hidden));
+  document.addEventListener('pointerdown', e => { if (!el.settings.hidden && !e.target.closest('.settings-wrap')) openSettings(false); }, { passive: true });
+  function segSync(seg, v) { seg.querySelectorAll('button').forEach(b => { const on = b.dataset.v === String(v); b.classList.toggle('on', on); b.setAttribute('aria-selected', on); }); }
+  function segOn(seg, fn) { seg.addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) fn(b.dataset.v); }); }
+  function applyTheme() {
+    if (state.theme === 'dark' || state.theme === 'light') document.documentElement.setAttribute('data-theme', state.theme); else document.documentElement.removeAttribute('data-theme');
+    document.documentElement.classList.toggle('night', !!state.night);
+    segSync(el.themeSeg, state.theme);
+  }
+  el.night.addEventListener('click', () => { state.night = !state.night; if (state.night && state.theme === 'light') state.theme = 'dark'; save(); applyTheme(); syncSettings(); });
+  segOn(el.themeSeg, v => { state.theme = v; save(); applyTheme(); });
+  segOn(el.modeSeg, v => { if (v === state.mode) return; state.mode = v; resetSession(); syncSetup(); });
+  el.sound.addEventListener('click', () => { state.sound = !state.sound; save(); syncSettings(); if (state.sound) chime(523); });
+  el.voice.addEventListener('click', () => { state.voice = !state.voice; save(); syncSettings(); if (state.voice) say('Spoken cues on'); });
+  el.vibe.addEventListener('click', () => { state.vibe = !state.vibe; save(); syncSettings(); if (state.vibe) buzz(60); });
+  function syncSettings() {
+    el.night.setAttribute('aria-checked', String(state.night));
+    el.sound.setAttribute('aria-checked', String(state.sound));
+    el.voice.setAttribute('aria-checked', String(state.voice));
+    el.vibe.setAttribute('aria-checked', String(state.vibe));
+    el.vibeRow.hidden = !navigator.vibrate;
+  }
+
+  // ---- Setup chips ----
+  function chipSync(wrap, attr, v) { wrap.querySelectorAll('button[' + attr + ']').forEach(b => b.classList.toggle('on', b.getAttribute(attr) === String(v))); }
+  function syncSetup() {
+    segSync(el.modeSeg, state.mode);
+    el.setupB.hidden = state.mode !== 'breathe'; el.setupM.hidden = state.mode !== 'meditate';
+    chipSync(el.patternChips, 'data-v', state.pattern);
+    el.customSub.textContent = fmtDurs(state.custom);
+    chipSync(el.lenB, 'data-s', state.bLen);
+    const presetM = el.lenM.querySelector('button[data-s="' + state.mLen + '"]');
+    chipSync(el.lenM, 'data-s', presetM ? state.mLen : -1);
+    el.customMin.value = presetM ? '' : String(Math.round(state.mLen / 60));
+    el.ivVal.textContent = state.interval ? state.interval + ' min' : 'Off';
+    el.ivMinus.disabled = state.interval <= 0; el.ivPlus.disabled = state.interval >= 30;
+    render();
+  }
+  el.patternChips.addEventListener('click', e => {
+    const b = e.target.closest('button[data-v]'); if (!b) return;
+    if (b.dataset.v === 'custom') { openSheet(); return; }
+    state.pattern = b.dataset.v; resetSession(); syncSetup();
+  });
+  el.lenB.addEventListener('click', e => { const b = e.target.closest('button[data-s]'); if (!b) return; state.bLen = +b.dataset.s; resetSession(); syncSetup(); });
+  el.lenM.addEventListener('click', e => { const b = e.target.closest('button[data-s]'); if (!b) return; state.mLen = +b.dataset.s; resetSession(); syncSetup(); });
+  el.customMin.addEventListener('change', () => { const m = Math.min(180, Math.max(1, Math.round(+el.customMin.value || 0))); if (!el.customMin.value) return; state.mLen = m * 60; resetSession(); syncSetup(); });
+  el.ivMinus.addEventListener('click', () => { state.interval = Math.max(0, state.interval - 1); save(); syncSetup(); });
+  el.ivPlus.addEventListener('click', () => { state.interval = Math.min(30, state.interval + 1); save(); syncSetup(); });
+
+  // ---- Custom pattern sheet ----
+  let draft = [4, 4, 6, 2];
+  function sheetSync() { draft.forEach((v, i) => { $('cv' + i).textContent = v; }); el.sheetCycle.textContent = draft.reduce((a, b) => a + b, 0) + ' s per round'; }
+  function openSheet() { draft = state.custom.slice(); sheetSync(); el.sheet.hidden = false; }
+  function closeSheet() { el.sheet.hidden = true; }
+  el.sheet.addEventListener('click', e => {
+    if (e.target === el.sheet) { closeSheet(); return; }
+    const b = e.target.closest('button[data-i]'); if (!b) return;
+    const i = +b.dataset.i, min = (i === 0 || i === 2) ? 1 : 0;
+    draft[i] = Math.min(20, Math.max(min, draft[i] + +b.dataset.d)); sheetSync();
+  });
+  el.sheetCancel.addEventListener('click', closeSheet);
+  el.sheetSave.addEventListener('click', () => { state.custom = draft.slice(); state.pattern = 'custom'; closeSheet(); resetSession(); syncSetup(); toast('Custom pattern ' + fmtDurs(state.custom)); });
+  let toastT = null;
+  function toast(msg) { el.toast.textContent = msg; el.toast.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.toast.hidden = true; }, 1800); }
+
+  // ---- Big display ----
+  function setBig(on) {
+    document.body.classList.toggle('big', on); el.big_.classList.toggle('on', on); openSettings(false);
+    if (on && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+    if (!on && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  }
+  el.big_.addEventListener('click', () => setBig(!document.body.classList.contains('big')));
+  el.exitBig.addEventListener('click', () => setBig(false));
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && document.body.classList.contains('big')) { document.body.classList.remove('big'); el.big_.classList.remove('on'); } });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { if (!el.sheet.hidden) closeSheet(); else if (!el.settings.hidden) openSettings(false); else if (document.body.classList.contains('big')) setBig(false); }
+    if (e.key === ' ' && (e.target === document.body || e.target === document.documentElement)) { e.preventDefault(); toggle(); }
+  });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (state.running) { keepAwake(true); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); } render(); } });
+
+  // ---- Boot ----
+  applyTheme(); syncSettings();
+  if (state.running) {
+    const S = session();
+    if (state.mode === 'breathe') lastPh = breathePos(S, elapsed()).g; else lastIv = S.iv ? Math.floor(elapsed() / S.iv) : 0;
+    keepAwake(true); raf = requestAnimationFrame(loop);
+  }
+  syncSetup();
+})();
+</script>
+</body>
+</html>

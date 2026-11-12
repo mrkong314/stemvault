@@ -25,6 +25,12 @@ export const TOOLS: Tool[] = [
     href: '/tools/rep-timer.html',
   },
   {
+    slug: 'breathe',
+    title: 'Breathe',
+    description: 'Guided breathing with Box, 4-7-8, Coherent, long-exhale or custom patterns, and a meditation countdown with interval bells. Soft chimes, spoken cues, a big display mode and a dim warm Night appearance for bedtime. Settings stay on the device. Installs to a phone home screen.',
+    href: '/tools/breathe.html',
+  },
+  {
     slug: 'plate-calculator',
     title: 'Plate Calculator',
     description: 'Barbell plate calculator. Tap 0.5, 1.25, 2.5, 5, 10 or 20 kg plates onto a 20 kg bar, counted per side or in total, and read the total weight with a diagram of the loaded bar. Plate counts are saved only on the device. Installs to a phone home screen.',
