@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Plates">
-<meta name="description" content="Barbell plate calculator: tap plates onto a 20 kg bar and read the total weight. Nothing is stored or sent anywhere except the plate counts kept on this device.">
+<meta name="description" content="Barbell plate calculator: tap plates onto a 20 kg bar and read the total weight, or enter a target weight and it suggests plates per side from the plates you own. Nothing is stored or sent anywhere except the plate counts kept on this device.">
 <style>
 /* StemVault app tokens: the phone-first profile used by Class Timer, Rep Timer and
    Random Picker. Same light palette as the site; dark mode is true OLED black with no
@@ -187,6 +187,19 @@ header.topbar .spacer { flex: 1; }
   :root[data-theme="dark"] .plate-row .stepper button.add { background: #000; color: var(--accent); border-color: var(--accent); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .plate-row .stepper button.add { background: #000; color: var(--accent); border-color: var(--accent); } }
 
+  /* Target mode: target field with nudge buttons above the readout. */
+  .target-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; }
+  .target-row .gbtn.nudge { flex: 0 0 auto; min-width: 64px; padding: 0 12px; font-family: var(--font-digits); font-variant-numeric: tabular-nums; }
+  .target-field { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; max-width: 220px; }
+  .target-field .field { text-align: center; font-family: var(--font-digits); font-size: 1.25rem; padding: 8px 10px; min-width: 0; }
+  .target-field .unit-sm { font-family: var(--font-digits); font-weight: 600; color: var(--ink-dim); }
+  .target-note { font-size: 0.85rem; color: var(--ink-dim); }
+  .target-note.short { color: var(--warn); }
+  .plates-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 6px 4px; }
+  .contrib.used { color: var(--accent); font-weight: 600; white-space: normal; line-height: 1.15; min-width: 0; }
+  .bar-custom { display: flex; align-items: center; gap: 8px; }
+  .bar-custom .field { flex: 1; min-width: 0; font-family: var(--font-digits); }
+
   .actions { flex-direction: row; gap: 10px; }
   .actions .gbtn { flex: 1; min-height: 52px; }
   .actions .gbtn.remove { flex: 0 0 auto; min-width: 110px; }
@@ -219,6 +232,7 @@ header.topbar .spacer { flex: 1; }
         </div>
         <div class="row"><span class="label">Bar weight</span>
           <div class="seg full" id="barSeg"><button type="button" data-v="20">20 kg</button><button type="button" data-v="15">15 kg</button><button type="button" data-v="10">10 kg</button><button type="button" data-v="0">None</button></div>
+          <div class="bar-custom"><input id="barInput" class="field num" type="number" inputmode="decimal" step="0.5" min="0" max="100" aria-label="Bar weight in kilograms"><span class="hint">kg</span></div>
         </div>
       </div>
     </div>
@@ -226,20 +240,28 @@ header.topbar .spacer { flex: 1; }
 </header>
 
 <div class="app">
-  <div class="seg full" id="modeSeg" role="tablist" aria-label="How plates are counted">
+  <div class="seg full" id="modeSeg" role="tablist" aria-label="Mode">
     <button type="button" data-v="side" role="tab">Per side</button>
-    <button type="button" data-v="total" role="tab">Total plates</button>
+    <button type="button" data-v="target" role="tab">Target</button>
   </div>
 
   <section class="glass panel stage" aria-live="polite">
+    <div class="target-row" id="targetRow" hidden>
+      <button type="button" class="gbtn nudge" data-d="-2.5" aria-label="Target down 2.5 kg">−2.5</button>
+      <label class="target-field"><span class="label">Target</span><input id="targetInput" class="field num" type="number" inputmode="decimal" step="0.5" min="0" max="1000"><span class="unit-sm">kg</span></label>
+      <button type="button" class="gbtn nudge" data-d="2.5" aria-label="Target up 2.5 kg">+2.5</button>
+    </div>
     <div class="total"><span class="digits" id="total">20</span><span class="unit">kg</span></div>
+    <div class="target-note" id="targetNote" hidden></div>
     <div class="breakdown" id="breakdown"></div>
     <div class="bar-wrap" aria-hidden="true"><svg id="barSvg" viewBox="0 0 400 120"></svg></div>
   </section>
 
-  <section class="glass panel plates" id="plates"></section>
+  <section class="glass panel plates" id="plates">
+    <div class="plates-head" id="platesHead" hidden><span class="label">Plates you own</span><span class="hint">Count both sides together</span></div>
+  </section>
 
-  <section class="glass panel actions">
+  <section class="glass panel actions" id="actionsPanel">
     <button type="button" class="gbtn ghost" id="undoBtn" disabled>Undo last plate</button>
     <button type="button" class="gbtn remove" id="clearBtn">Clear</button>
   </section>
@@ -262,11 +284,21 @@ header.topbar .spacer { flex: 1; }
   ];
   const COLOR = { p20: 'var(--p20)', p10: 'var(--p10)', p5: 'var(--p5)', 'p2-5': 'var(--p2-5)', 'p1-25': 'var(--p1-25)', 'p0-5': 'var(--p0-5)' };
 
-  let state = { theme: 'dark', mode: 'side', bar: 20, counts: {}, history: [] };
+  // counts: plates on the bar per side. owned: plates in the rack, both sides together. target: kg wanted in target mode.
+  let state = { theme: 'dark', mode: 'side', bar: 20, counts: {}, owned: {}, target: 60, history: [] };
   try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
+  if (state.mode !== 'side' && state.mode !== 'target') state.mode = 'side';   // the old "total plates" mode is gone
   if (!state.counts || typeof state.counts !== 'object') state.counts = {};
+  if (!state.owned || typeof state.owned !== 'object') state.owned = {};
   if (!Array.isArray(state.history)) state.history = [];
-  PLATES.forEach(p => { state.counts[p.id] = Math.max(0, parseInt(state.counts[p.id], 10) || 0); });
+  PLATES.forEach(p => {
+    state.counts[p.id] = Math.max(0, parseInt(state.counts[p.id], 10) || 0);
+    state.owned[p.id] = Math.min(99, Math.max(0, parseInt(state.owned[p.id], 10) || 0));
+  });
+  state.bar = toQuarter(state.bar, 0, 100, 20);
+  state.target = toQuarter(state.target, 0, 1000, 60);
+  // Clamp a kg value to a range and snap it to the nearest quarter kilogram, falling back when it is not a number.
+  function toQuarter(v, lo, hi, dflt) { v = parseFloat(v); if (!isFinite(v)) v = dflt; return Math.round(Math.min(hi, Math.max(lo, v)) * 4) / 4; }
   function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
 
   // Format a quarter-kilogram count as kg, trimming trailing zeros: 250 q -> "62.5".
@@ -284,8 +316,19 @@ header.topbar .spacer { flex: 1; }
     segSync($('themeSeg'), state.theme);
   }
   segOn($('themeSeg'), v => { state.theme = v; save(); applyTheme(); });
+  const barInput = $('barInput');
   segOn($('barSeg'), v => { state.bar = parseInt(v, 10) || 0; save(); render(); });
+  barInput.addEventListener('change', () => { state.bar = toQuarter(barInput.value, 0, 100, 20); save(); render(); });
   segOn($('modeSeg'), v => { state.mode = v; save(); render(); });
+
+  // Target weight: typed, or nudged in 2.5 kg steps.
+  const targetInput = $('targetInput');
+  targetInput.addEventListener('input', () => { const v = parseFloat(targetInput.value); if (isFinite(v)) { state.target = toQuarter(v, 0, 1000, 60); save(); render(); } });
+  targetInput.addEventListener('change', () => { state.target = toQuarter(targetInput.value, 0, 1000, 60); save(); render(); });
+  $('targetRow').addEventListener('click', e => {
+    const b = e.target.closest('button[data-d]'); if (!b) return;
+    state.target = toQuarter(state.target + parseFloat(b.dataset.d), 0, 1000, 60); save(); render();
+  });
 
   // Plate rows
   const platesEl = $('plates');
@@ -297,9 +340,9 @@ header.topbar .spacer { flex: 1; }
       '<span class="pw">' + fmtQ(p.q) + '<small>kg</small></span>' +
       '<span class="contrib" id="c-' + p.id + '"></span>' +
       '<div class="stepper">' +
-        '<button type="button" data-act="sub" aria-label="Remove one ' + fmtQ(p.q) + ' kg plate">−</button>' +
+        '<button type="button" data-act="sub" id="sub-' + p.id + '">−</button>' +
         '<span class="v num" id="v-' + p.id + '">0</span>' +
-        '<button type="button" class="add" data-act="add" aria-label="Add one ' + fmtQ(p.q) + ' kg plate">+</button>' +
+        '<button type="button" class="add" data-act="add" id="add-' + p.id + '">+</button>' +
       '</div>';
     platesEl.appendChild(row);
   });
@@ -309,8 +352,13 @@ header.topbar .spacer { flex: 1; }
     if (act && act.dataset.act === 'sub') removePlate(row.dataset.id); else addPlate(row.dataset.id); // tapping anywhere else on the row adds one
   });
 
-  function addPlate(id) { state.counts[id]++; state.history.push(id); if (state.history.length > 200) state.history.shift(); save(); render(); }
+  // In per-side mode the steppers load the bar; in target mode they edit how many plates you own.
+  function addPlate(id) {
+    if (state.mode === 'target') { if (state.owned[id] < 99) state.owned[id]++; save(); render(); return; }
+    state.counts[id]++; state.history.push(id); if (state.history.length > 200) state.history.shift(); save(); render();
+  }
   function removePlate(id) {
+    if (state.mode === 'target') { if (state.owned[id] > 0) state.owned[id]--; save(); render(); return; }
     if (state.counts[id] <= 0) return;
     state.counts[id]--;
     const i = state.history.lastIndexOf(id); if (i >= 0) state.history.splice(i, 1);
@@ -352,29 +400,76 @@ header.topbar .spacer { flex: 1; }
     stack(left, -1); stack(right, 1);
   }
 
+  // Target mode: pick plates per side from the rack (each side can use half the owned plates) to get as close to
+  // the target as possible without going over, using the fewest plates. Bounded knapsack over quarter kilograms;
+  // each reachable per-side load keeps its full plate composition so the owned limits are never exceeded.
+  // Returns { use: {id: perSide}, sideQ, aboveQ } where aboveQ is the nearest reachable load above the target, or -1.
+  function suggest(needQ) {
+    const L = Math.max(0, Math.floor(needQ / 2));           // per-side load wanted
+    const span = L + 80;                                    // room to look one 20 kg plate past the target
+    const best = new Array(span + 1).fill(null);
+    best[0] = { n: 0, c: PLATES.map(() => 0) };
+    PLATES.forEach((p, i) => {
+      const avail = Math.floor(state.owned[p.id] / 2);
+      for (let k = 0; k < avail; k++) {
+        for (let s = span; s >= p.q; s--) {
+          const b = best[s - p.q];
+          if (!b || b.c[i] >= avail) continue;
+          if (!best[s] || b.n + 1 < best[s].n) { const c = b.c.slice(); c[i]++; best[s] = { n: b.n + 1, c: c }; }
+        }
+      }
+    });
+    let sideQ = L; while (sideQ > 0 && !best[sideQ]) sideQ--;
+    let aboveQ = -1; for (let s = L + 1; s <= span; s++) if (best[s]) { aboveQ = s; break; }
+    const use = {}; PLATES.forEach((p, i) => { use[p.id] = best[sideQ].c[i]; });
+    return { use: use, sideQ: sideQ, aboveQ: aboveQ };
+  }
+
   function render() {
     segSync($('modeSeg'), state.mode); segSync($('barSeg'), state.bar);
+    if (document.activeElement !== barInput) barInput.value = fmtQ(state.bar * 4);
+    if (document.activeElement !== targetInput) targetInput.value = fmtQ(state.target * 4);
     const perSide = state.mode === 'side';
+    const barQ = state.bar * 4, targetQ = state.target * 4;
+    $('targetRow').hidden = perSide; $('platesHead').hidden = perSide; $('actionsPanel').hidden = !perSide;
+    const owns = PLATES.some(p => state.owned[p.id] > 0);
+    const sug = perSide ? null : suggest(targetQ - barQ);
     let plateQ = 0, n = 0;
     const left = [], right = [];
     PLATES.forEach(p => {
-      const c = state.counts[p.id];
-      const eff = perSide ? c * 2 : c;                       // plates on the bar
-      plateQ += eff * p.q; n += eff;
-      $('v-' + p.id).textContent = c; $('v-' + p.id).classList.toggle('zero', c === 0);
-      $('c-' + p.id).textContent = c ? fmtQ(eff * p.q) + ' kg' : '';   // weight this plate size adds to the bar
-      const nl = perSide ? c : Math.ceil(c / 2), nr = eff - nl;
-      for (let i = 0; i < nl; i++) left.push(p);
-      for (let i = 0; i < nr; i++) right.push(p);
+      const c = perSide ? state.counts[p.id] : sug.use[p.id];  // plates on each side
+      const shown = perSide ? state.counts[p.id] : state.owned[p.id];
+      plateQ += c * 2 * p.q; n += c * 2;
+      $('v-' + p.id).textContent = shown; $('v-' + p.id).classList.toggle('zero', shown === 0);
+      const contrib = $('c-' + p.id);
+      contrib.textContent = perSide ? (c ? fmtQ(c * 2 * p.q) + ' kg' : '') : (c ? c + ' per side' : '');
+      contrib.classList.toggle('used', !perSide && c > 0);
+      $('sub-' + p.id).setAttribute('aria-label', (perSide ? 'Remove one ' : 'Own one fewer ') + fmtQ(p.q) + ' kg plate');
+      $('add-' + p.id).setAttribute('aria-label', (perSide ? 'Add one ' : 'Own one more ') + fmtQ(p.q) + ' kg plate');
+      for (let i = 0; i < c; i++) { left.push(p); right.push(p); }
     });
-    const barQ = state.bar * 4, totalQ = barQ + plateQ;
+    const totalQ = barQ + plateQ;
     $('total').textContent = fmtQ(totalQ);
     const parts = [];
     parts.push('<span><b>' + fmtQ(barQ) + ' kg</b> bar</span>');
     parts.push('<span><b>' + fmtQ(plateQ) + ' kg</b> plates (' + n + ')</span>');
-    if (perSide && plateQ) parts.push('<span><b>' + fmtQ(plateQ / 2) + ' kg</b> per side</span>');
+    if (plateQ) parts.push('<span><b>' + fmtQ(plateQ / 2) + ' kg</b> per side</span>');
     $('breakdown').innerHTML = parts.join('');
-    $('subLabel').textContent = (state.bar ? fmtQ(barQ) + ' kg bar' : 'No bar') + ' · ' + (perSide ? 'plates per side' : 'total plates on the bar');
+    const note = $('targetNote');
+    if (perSide) { note.hidden = true; }
+    else {
+      let text = '', short = false;
+      if (!owns) text = 'Add the plates you own below and the bar will be loaded for you.';
+      else if (targetQ < barQ) { text = 'Target is below the bar weight.'; short = true; }
+      else if (totalQ === targetQ) text = 'Matches the target.';
+      else {
+        text = fmtQ(targetQ - totalQ) + ' kg short of ' + fmtQ(targetQ) + ' kg with your plates';
+        if (sug.aboveQ >= 0) text += ' · next up is ' + fmtQ(barQ + sug.aboveQ * 2) + ' kg';
+        short = true;
+      }
+      note.textContent = text; note.classList.toggle('short', short); note.hidden = false;
+    }
+    $('subLabel').textContent = (state.bar ? fmtQ(barQ) + ' kg bar' : 'No bar') + ' · ' + (perSide ? 'plates per side' : 'load for a target weight');
     $('undoBtn').disabled = state.history.length === 0;
     drawBar(left, right);
   }

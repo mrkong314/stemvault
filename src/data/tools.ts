@@ -33,7 +33,7 @@ export const TOOLS: Tool[] = [
   {
     slug: 'plate-calculator',
     title: 'Plate Calculator',
-    description: 'Barbell plate calculator. Tap 0.5, 1.25, 2.5, 5, 10 or 20 kg plates onto a 20 kg bar, counted per side or in total, and read the total weight with a diagram of the loaded bar. Plate counts are saved only on the device. Installs to a phone home screen.',
+    description: 'Barbell plate calculator. Tap 0.5, 1.25, 2.5, 5, 10 or 20 kg plates onto the bar per side and read the total weight with a diagram of the loaded bar, or enter a target weight and it suggests what to load from the plates you own. Bar weight is adjustable (20 kg by default). Plate counts are saved only on the device. Installs to a phone home screen.',
     href: '/tools/plate-calculator.html',
   },
   {
