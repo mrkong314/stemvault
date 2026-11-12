@@ -1,7 +1,7 @@
 {
   "name": "Plate Calculator",
   "short_name": "Plates",
-  "description": "Barbell plate calculator: tap plates onto a 20 kg bar and read the total weight.",
+  "description": "Barbell plate calculator: tap plates onto the bar and read the total weight, or enter a target and it suggests plates from the ones you own.",
   "start_url": "/tools/plate-calculator.html",
   "scope": "/tools/",
   "display": "standalone",
