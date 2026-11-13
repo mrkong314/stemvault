@@ -166,6 +166,7 @@
   .pct .sym { font-size: 0.32em; font-weight: 500; color: var(--ink-dim); letter-spacing: 0; margin-left: 0.08em; }
   .pct.late { color: var(--warn); }
   .pct.done { color: var(--good); }
+  .pct.lead { color: var(--accent); }
   .bar { height: 26px; border-radius: 13px; background: var(--track); overflow: hidden; position: relative; margin: 6px 0 2px; }
   .bar > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 13px; transition: width 0.2s linear; }
   .bar.late > i { background: var(--warn); }
@@ -263,6 +264,10 @@
         </div>
         <span class="hint">Off: the timer keeps running past the end and shows how far over you are.</span>
         <div class="row inline">
+          <span id="leadLabel">10 s lead-in before each rep</span>
+          <button class="switch" id="leadToggle" type="button" role="switch" aria-checked="true" aria-labelledby="leadLabel"></button>
+        </div>
+        <div class="row inline">
           <span>Screen stays awake</span>
           <span class="hint" id="wakeStatus">Off</span>
         </div>
@@ -311,13 +316,15 @@
   const el = { sub: $('sub'), phase: $('phase'), rep: $('repLabel'), pct: $('pct'), bar: $('bar'), target: $('target'), remain: $('remain'), remainK: $('remainK'),
                start: $('startBtn'), reset: $('resetBtn'), skip: $('skipBtn'), resetReps: $('resetReps'), presets: $('presets'), custom: $('custom'),
                settings: $('settings'), settingsBtn: $('settingsBtn'), themeSeg: $('themeSeg'), sound: $('soundToggle'), auto: $('autoToggle'), wake: $('wakeStatus'),
-               count: $('countToggle'), voice: $('voiceToggle'), vibe: $('vibeToggle'), vibeRow: $('vibeRow'),
+               count: $('countToggle'), voice: $('voiceToggle'), vibe: $('vibeToggle'), vibeRow: $('vibeRow'), lead: $('leadToggle'),
                big: $('bigBtn'), exitBig: $('exitBig') };
 
   // ---- State (persists so a running rep survives a reload or app switch) ----
   // q = last quarter cued, cd = last countdown second ticked, s30 = thirty-second cue spoken. Stored so a reload mid-rep does not refire them.
+  // lead = lead-in setting; leadEnd = wall-clock time the current lead-in ends (0 when none), so a reload mid-lead-in carries on.
   let t = { theme: 'dark', target: 240000, running: false, startAt: 0, acc: 0, rep: 1, fired: false, auto: true, sound: true,
-            count: true, voice: false, vibe: true, q: 0, cd: 0, s30: false };
+            count: true, voice: false, vibe: true, lead: true, leadEnd: 0, q: 0, cd: 0, s30: false };
+  const LEAD_MS = 10000;
   try { Object.assign(t, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
   function save() { try { localStorage.setItem(STORE, JSON.stringify(t)); } catch (e) {} }
   const elapsed = () => t.acc + (t.running ? Date.now() - t.startAt : 0);
@@ -368,7 +375,32 @@
   }
 
   // ---- Render ----
+  // Lead-in: a 10 s count shown in place of the percentage; the rep clock starts from the moment the lead-in ended.
+  function renderLead() {
+    const leadLeft = t.leadEnd - Date.now();
+    if (leadLeft <= 0) {
+      t.startAt = t.leadEnd; t.leadEnd = 0; t.running = true; t.cd = 0;
+      beep(1, 784); buzz(60); say('Rep ' + t.rep + '. Go'); holdWake(); save();
+      return false;
+    }
+    const sec = Math.ceil(leadLeft / 1000);
+    el.pct.innerHTML = String(sec);
+    el.pct.classList.remove('late', 'done'); el.pct.classList.add('lead');
+    el.bar.classList.remove('late', 'done', 'final');
+    el.bar.firstElementChild.style.width = '0%';
+    el.remainK.textContent = 'Remaining'; el.remain.textContent = fmt(t.target); el.remain.classList.remove('late');
+    el.target.textContent = 'of ' + fmtTarget(t.target);
+    el.phase.textContent = 'Starting in';
+    el.rep.textContent = 'Rep ' + t.rep;
+    el.start.textContent = 'Cancel';
+    el.start.classList.remove('go', 'stop');
+    el.reset.disabled = true;
+    if (sec <= 3 && sec !== t.cd) { t.cd = sec; if (t.count) { tick(); buzz(40); } save(); }
+    return true;
+  }
   function render() {
+    if (t.leadEnd && renderLead()) return;
+    el.pct.classList.remove('lead');
     const e = elapsed(), left = t.target - e, frac = Math.min(1, e / t.target);
     const pctNum = Math.min(100, Math.floor(frac * 100));
     const late = left < 0, done = left <= 0;
@@ -404,15 +436,19 @@
     }
   }
   function clearCues() { t.fired = false; t.q = 0; t.cd = 0; t.s30 = false; }
-  function resetRep() { t.running = false; t.acc = 0; t.startAt = 0; clearCues(); save(); render(); }
+  function resetRep() { t.running = false; t.acc = 0; t.startAt = 0; t.leadEnd = 0; clearCues(); save(); render(); }
 
   el.start.addEventListener('click', () => {
     unlock();
-    if (t.running) { t.acc = elapsed(); t.running = false; }
+    if (t.leadEnd) { t.leadEnd = 0; t.cd = 0; }
+    else if (t.running) { t.acc = elapsed(); t.running = false; }
     else {
       if (t.target - t.acc <= 0) { t.acc = 0; clearCues(); t.rep += 1; }
-      t.startAt = Date.now(); t.running = true; holdWake();
-      if (t.acc === 0) say('Rep ' + t.rep + '. Go');
+      if (t.acc === 0 && t.lead) { t.leadEnd = Date.now() + LEAD_MS; holdWake(); say('Rep ' + t.rep + ' in ten'); }
+      else {
+        t.startAt = Date.now(); t.running = true; holdWake();
+        if (t.acc === 0) say('Rep ' + t.rep + '. Go');
+      }
     }
     save(); render();
   });
@@ -453,7 +489,7 @@
   // Skip moves straight to the next rep. A running timer keeps running from 0; a paused or ready one stays ready at 0.
   function skipRep() {
     const wasRunning = t.running;
-    t.rep += 1; t.acc = 0; clearCues();
+    t.rep += 1; t.acc = 0; t.leadEnd = 0; clearCues();
     t.startAt = wasRunning ? Date.now() : 0;
     beep(2, 520); save(); render();
   }
@@ -490,6 +526,7 @@
     el.count.setAttribute('aria-checked', String(!!t.count));
     el.voice.setAttribute('aria-checked', String(!!t.voice));
     el.vibe.setAttribute('aria-checked', String(!!t.vibe));
+    el.lead.setAttribute('aria-checked', String(!!t.lead));
     el.vibeRow.hidden = !navigator.vibrate;
     el.voice.disabled = !canSpeak;
   }
@@ -499,6 +536,7 @@
   el.count.addEventListener('click', () => { t.count = !t.count; save(); syncSettings(); if (t.count) tick(); });
   el.voice.addEventListener('click', () => { t.voice = !t.voice; save(); syncSettings(); if (t.voice) say('Spoken cues on'); });
   el.vibe.addEventListener('click', () => { t.vibe = !t.vibe; save(); syncSettings(); if (t.vibe) buzz(60); });
+  el.lead.addEventListener('click', () => { t.lead = !t.lead; save(); syncSettings(); });
 
   // ---- Big display ----
   function setBig(on) {
