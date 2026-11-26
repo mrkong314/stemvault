@@ -434,6 +434,12 @@
   body.focus .coldcall.focused .cc-controls .gbtn { min-height: 60px; font-size: 1.15rem; }
   body.focus .coldcall.focused .cc-foot { justify-content: center; font-size: 1rem; gap: 18px; }
   body.focus .coldcall.focused .cc-foot .reset { font-size: 1rem; }
+  /* Blank: the full-screen stage goes black between calls; a tap anywhere brings it back. */
+  .cc-blank { display: none; }
+  body.focus .coldcall.focused .cc-blank { display: inline; }
+  body.focus .coldcall.focused.blank .cc-head, body.focus .coldcall.focused.blank #ccMain { visibility: hidden; }
+  body.focus .coldcall.focused.blank { cursor: pointer; }
+  body.focus .coldcall.focused.blank::after { content: "Tap to show"; position: absolute; left: 0; right: 0; bottom: calc(var(--fp-b) + 12px); text-align: center; color: var(--ink-dim); opacity: 0.45; font-size: 0.85rem; font-weight: 500; }
   /* Class editor sheet: paste box, preview rows and student rows with photo circles. */
   .cls-row .cls-name { flex: 1; width: auto; }
   .pastebox { min-height: 92px; padding: 14px; border-radius: 12px; border: 2px dashed var(--rule-strong); background: var(--surface); color: var(--ink-dim); display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 500; font-size: 0.9rem; cursor: text; outline: none; overflow-wrap: anywhere; }
@@ -695,6 +701,7 @@
           <div class="cc-foot">
             <span class="num" id="ccCount"></span>
             <button type="button" class="reset" id="ccReset">Restart cycle</button>
+            <button type="button" class="reset cc-blank" id="ccBlank">Hide</button>
           </div>
           <div class="cc-grid" id="ccGrid"></div>
           <div class="cc-legend" id="ccLegend"></div>
@@ -1272,7 +1279,7 @@
   // and today's absentees are keyed by student id. Photos are 160px JPEG thumbnails so a class fits in storage.
   const cc = { panel: $('coldcall'), classSel: $('ccClass'), full: $('ccFull'), toggle: $('ccToggle'), body: $('ccBody'), setup: $('ccSetup'), main: $('ccMain'),
     face: $('ccFace'), name: $('ccName'), pick: $('ccPick'), absent: $('ccAbsent'), undo: $('ccUndo'), count: $('ccCount'), reset: $('ccReset'),
-    grid: $('ccGrid'), legend: $('ccLegend'), awayBar: $('ccAwayBar'), allPresent: $('ccAllPresent') };
+    grid: $('ccGrid'), legend: $('ccLegend'), awayBar: $('ccAwayBar'), allPresent: $('ccAllPresent'), blank: $('ccBlank') };
   const AV = ['--av-1', '--av-2', '--av-3', '--av-4', '--av-5', '--av-6', '--av-7', '--av-8'];
   const THUMB = 160;
   const curClass = () => state.classes.find(c => c.id === state.cls) || null;
@@ -1394,10 +1401,10 @@
     };
     const faces = present(c);
     if (reducedMotion() || faces.length < 2) { land(); return; }
-    let delay = 70;
+    let delay = 60;   // about a second of faces flicking past, slowing as it lands
     const step = () => {
-      showStudent(faces[Math.floor(Math.random() * faces.length)], true); delay *= 1.18;
-      cycleT = setTimeout(delay < 400 ? step : land, delay < 400 ? delay : 160);
+      showStudent(faces[Math.floor(Math.random() * faces.length)], true); delay *= 1.25;
+      cycleT = setTimeout(delay < 260 ? step : land, delay < 260 ? delay : 120);
     };
     cycleT = setTimeout(step, 0); cc.pick.disabled = true;
   }
@@ -1430,6 +1437,10 @@
   cc.classSel.addEventListener('change', () => { state.cls = cc.classSel.value; ccMsg = ''; save(); renderCold(); });
   cc.toggle.addEventListener('click', () => { state.ccOpen = !state.ccOpen; save(); renderCold(); });
   cc.full.addEventListener('click', () => { if (!state.ccOpen) { state.ccOpen = true; save(); renderCold(); } setFocus('cc'); });
+  // Blank the full-screen stage between calls; any tap on it (other than the exit button) shows it again.
+  const blanked = () => cc.panel.classList.contains('blank');
+  cc.blank.addEventListener('click', e => { e.stopPropagation(); cc.blank.blur(); cc.panel.classList.add('blank'); });
+  cc.panel.addEventListener('click', e => { if (blanked() && !e.target.closest('.focus-bar')) cc.panel.classList.remove('blank'); });
 
   // ---- Images: shrink to a small square thumbnail so a class fits in browser storage ----
   function thumbFromImage(im) {
@@ -1873,7 +1884,7 @@
   function focusRoot() { if (!focusId) return null; if (focusId === 'cc') return cc.panel; const v = views.get(focusId); return v ? v.root : null; }
   function setFocus(id, keepScreen) {
     const prev = focusRoot();
-    if (prev) prev.classList.remove('focused', 'rot', 'ccw');
+    if (prev) prev.classList.remove('focused', 'rot', 'ccw', 'blank');
     focusId = id === 'cc' || (id && views.has(id)) ? id : null;
     const root = focusRoot();
     document.body.classList.toggle('focus', !!root);
@@ -1951,7 +1962,7 @@
   window.addEventListener('resize', () => { clearTimeout(devTimer); syncOrient(); });
   document.addEventListener('keydown', e => {
     if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
-    if (e.key === ' ' && focusId === 'cc' && !e.target.matches('button')) { e.preventDefault(); doPick(); return; }
+    if (e.key === ' ' && focusId === 'cc' && !e.target.matches('button')) { e.preventDefault(); cc.panel.classList.remove('blank'); doPick(); return; }
     if (e.key !== 'Escape') return;
     if (focusId) setFocus(null); else if (document.body.classList.contains('big')) setBig(false);
   });
