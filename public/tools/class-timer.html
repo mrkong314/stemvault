@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Class Timer">
-<meta name="description" content="Countdown to the end of the current period with adjustable bell times, multiple named stopwatches and countdowns (any one can fill the screen in portrait or landscape), a lesson phase timer that logs starter, explicit teaching and independent practice times, and a cold-call name picker with class lists kept on the device.">
+<meta name="description" content="Countdown to the end of the current period with adjustable bell times, multiple named stopwatches and countdowns (any one, or the big display, can fill the screen and turns with the phone), a lesson phase timer that logs starter, explicit teaching and independent practice times, and a cold-call name picker with class lists kept on the device.">
 <style>
   /* Standalone reset: the artifact host supplied these, the standalone page supplies them itself. */
   [hidden] { display: none !important; }
@@ -440,7 +440,7 @@
   body.big { height: auto; min-height: 100dvh; overflow: auto; display: block; }
   body.big .scroll { overflow: visible; margin: 0; padding: 0; }
   body.big .coldcall, body.big .notes { display: none; }
-  body.big .period { justify-content: center; text-align: center; }
+  body.big .period { justify-content: center; text-align: center; container-type: inline-size; }   /* its readout sizes from the card itself */
   body.big .period .eyebrow { justify-content: center; }
   body.big .app > * { min-width: 0; }
   body.big .digits { font-size: clamp(4rem, 25cqw, 15rem); }
@@ -454,12 +454,14 @@
   body.big .timer.idle { display: none; }
   body.big.no-aux .scroll { display: none; }
   body.big.no-aux .app { grid-template-rows: 1fr; grid-template-columns: 1fr; }
-  /* The corner bar (Portrait / Landscape and exit) sits inside the stage so it turns with it. */
+  /* The exit button sits inside the stage so it turns with it. */
   body.big .app > .focus-bar { display: flex; align-items: center; gap: 8px; position: absolute; z-index: 1; top: env(safe-area-inset-top, 0px); right: 0; }
-  /* Landscape big display: side by side. Set by script from the chosen view and the stage width (760px+), not the window shape, so a turned stage gets it too. */
+  /* Landscape big display: side by side. Set by script from the stage as it is seen (760px+ wide), not the window shape, so a turned stage gets it too. */
   body.big.wide .app { grid-template-rows: 1fr; grid-template-columns: 1.3fr 1fr; align-items: stretch; }
   body.big.wide .timers { grid-template-columns: 1fr; align-content: center; }
-  body.big.wide .digits { font-size: clamp(5rem, 15.5cqw, 13rem); }
+  body.big.wide .digits { font-size: clamp(5rem, 29.2cqw, 13rem); }
+  /* With hours showing (next day's first bell) the readout is capped so it stays inside the card. */
+  body.big .period .digits:has(.h) { font-size: min(28cqw, 13rem); }
   body.big.wide .timer .digits { font-size: clamp(3rem, 9.2cqw, 7rem); }
   /* Turned big display: the stage swaps the viewport sides and scrolls inside itself; insets map onto the edges they now touch. */
   body.big.rot { overflow: hidden; }
@@ -475,10 +477,9 @@
   }
   body.big.rot.ccw .app > .focus-bar { top: max(10px, env(safe-area-inset-left, 0px)); right: max(10px, env(safe-area-inset-top, 0px)); }
 
-  /* Focus: one stopwatch or countdown fills the screen. The bar in the corner picks Portrait or
-     Landscape; when that differs from the way the screen is actually held (rotation lock on, or a
-     browser that cannot lock orientation) the stage is turned by CSS so the readout is upright once
-     the phone is rotated. Sizes use container units so they follow the turned stage, not the window. */
+  /* Focus: one stopwatch or countdown fills the screen. Both this and the big display follow the way
+     the phone is held: when the screen has not turned with it (rotation lock on) the stage is turned
+     by CSS so the readout stays upright. Sizes use container units so they follow the turned stage. */
   body.focus { overflow: hidden; }
   body.focus header.topbar, body.focus .period, body.focus .strip, body.focus .phase, body.focus .add-row, body.focus .coldcall, body.focus .notes, body.focus .timer:not(.focused) { visibility: hidden; }
   body.focus .timer.focused {
@@ -658,9 +659,6 @@
 </div>
 
 <div class="focus-bar" id="focusBar">
-  <div class="seg" role="tablist" aria-label="View">
-    <button type="button" data-orient="portrait" role="tab">Portrait</button><button type="button" data-orient="landscape" role="tab">Landscape</button>
-  </div>
   <button class="gbtn icon" id="focusExit" type="button" aria-label="Exit" title="Exit">
     <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
   </button>
@@ -780,7 +778,7 @@
   const $ = id => document.getElementById(id);
 
   // ---- State ----
-  let state = { theme: 'dark', chime: false, today: null, timers: null, v: 0, classes: [], cls: null, cc: null, orient: null };
+  let state = { theme: 'dark', chime: false, today: null, timers: null, v: 0, classes: [], cls: null, cc: null };
   try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
   if (!state.v) { state.theme = 'dark'; state.v = 3; }   // OLED black is the default from v3
   if (!Array.isArray(state.timers) || !state.timers.length) state.timers = [newTimer('sw')];
@@ -789,7 +787,6 @@
   if (!state.cc || typeof state.cc !== 'object') state.cc = { pools: {}, hist: {}, absent: null };
   if (!state.phase || typeof state.phase !== 'object') state.phase = { on: false, lesson: null };
   if (!state.bells || typeof state.bells !== 'object') state.bells = {};   // saved weekday bell times, keyed by day
-  if (state.orient !== 'landscape' && state.orient !== 'portrait') state.orient = null;   // full-screen view: null follows the screen until a view is chosen
   function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
   function newTimer(mode) { return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: '', mode, running: false, startAt: 0, acc: 0, target: 300000, laps: [], fired: false }; }
 
@@ -1480,8 +1477,8 @@
   function setBig(on) {
     if (on && focusId) setFocus(null, true);
     document.body.classList.toggle('big', on); bigBtn.classList.toggle('on', on); openSettings(false);
-    if (on) { appEl.appendChild(focusBar); if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); }
-    else { document.body.appendChild(focusBar); document.body.classList.remove('rot', 'ccw', 'wide'); unlockOrient(); if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); }
+    if (on) { appEl.appendChild(focusBar); askDevice(); if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); }
+    else { document.body.appendChild(focusBar); document.body.classList.remove('rot', 'ccw', 'wide'); listenDevice(false); if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); }
     syncOrient(); holdWake();
   }
   bigBtn.addEventListener('click', () => setBig(!document.body.classList.contains('big')));
@@ -1491,10 +1488,9 @@
     if (focusId) setFocus(null);
   });
 
-  // ---- Focus: one timer full screen, portrait or landscape ----
+  // ---- Focus: one timer full screen ----
   const focusBar = $('focusBar'), focusExit = $('focusExit');
   let focusId = null;
-  function unlockOrient() { try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {} }
   // keepScreen: leave browser full screen alone because the big display is taking over.
   function setFocus(id, keepScreen) {
     const prev = focusId && views.get(focusId);
@@ -1505,36 +1501,75 @@
     if (v) {
       if (document.body.classList.contains('big')) { document.body.classList.remove('big', 'rot', 'ccw', 'wide'); bigBtn.classList.remove('on'); }
       openSettings(false);
-      v.root.classList.add('focused'); v.root.appendChild(focusBar);
+      v.root.classList.add('focused'); v.root.appendChild(focusBar); askDevice();
       if (!document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
       holdWake();
     } else if (!keepScreen) {
       document.body.appendChild(focusBar);
-      unlockOrient();
+      listenDevice(false);
       if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
     }
     syncOrient();
   }
+
+  // ---- Device rotation ----
+  // The full-screen views follow how the phone is physically held. When the OS turns the screen
+  // with it (rotation lock off) nothing more is needed; when it does not, the stage is turned by CSS.
+  // The sensor is read only while a full-screen view is open, and iOS asks the user once for it.
+  let devAngle = 0, devSeen = false, devListening = false, devAllowed = null, devTimer = null;
+  function onDevOrient(e) {
+    if (e.beta == null || e.gamma == null) return;
+    const b = e.beta * Math.PI / 180, g = e.gamma * Math.PI / 180;
+    // Earth's "up" in the phone's own frame (x right, y to the top of the screen), from the spec's rotation order.
+    const ux = -Math.sin(g) * Math.cos(b), uy = Math.sin(b);
+    if (Math.hypot(ux, uy) < 0.35) return;                      // lying nearly flat: keep the last reading
+    const th = Math.atan2(ux, uy) * 180 / Math.PI;               // how far the phone is turned from upright, anticlockwise positive
+    const snap = Math.round(th / 90) * 90;
+    if (Math.abs(th - snap) > 35) return;                        // between two ways round: wait until it is firmly turned
+    const a = Math.abs(snap) === 180 ? 180 : snap;
+    devSeen = true;
+    if (a === devAngle) return;
+    devAngle = a;
+    // Give the OS a moment to turn the screen itself before turning the stage by CSS, so the two do not fight.
+    clearTimeout(devTimer); devTimer = setTimeout(syncOrient, 450);
+  }
+  function listenDevice(on) {
+    if (on === devListening) return;
+    devListening = on;
+    window[on ? 'addEventListener' : 'removeEventListener']('deviceorientation', onDevOrient);
+    if (!on) { clearTimeout(devTimer); devSeen = false; devAngle = 0; }
+  }
+  function askDevice() {
+    const D = window.DeviceOrientationEvent;
+    if (!D) return;
+    if (typeof D.requestPermission !== 'function') { listenDevice(true); return; }
+    if (devAllowed === null) D.requestPermission().then(r => { devAllowed = r === 'granted'; if (devAllowed) listenDevice(true); }).catch(() => { devAllowed = false; });
+    else if (devAllowed) listenDevice(true);
+  }
+  // How far the screen itself has been turned by the OS, anticlockwise positive, so a phone with rotation lock off needs no CSS turn.
+  function screenTurn() {
+    if (typeof window.orientation === 'number') return window.orientation;
+    const a = screen.orientation ? screen.orientation.angle : 0;
+    return a === 270 ? -90 : a;
+  }
+  // The CSS turn the stage needs: 90, -90 or 0. Upside down is left alone.
+  function stageTurn() {
+    if (!devSeen) return 0;
+    const d = ((devAngle - screenTurn()) % 360 + 540) % 360 - 180;
+    return d === 90 || d === -90 ? d : 0;
+  }
   function syncOrient() {
-    const wide = window.innerWidth > window.innerHeight, wantWide = state.orient ? state.orient === 'landscape' : wide;
-    focusBar.querySelectorAll('button[data-orient]').forEach(b => { const on = b.dataset.orient === (wantWide ? 'landscape' : 'portrait'); b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
     const v = focusId && views.get(focusId), big = !v && document.body.classList.contains('big');
     if (!v && !big) return;
-    // Turn the stage by CSS when the screen is not already the chosen way round (rotation lock, or no orientation API).
-    const stage = v ? v.root : document.body;
-    stage.classList.toggle('rot', wide !== wantWide);
-    stage.classList.toggle('ccw', wide && !wantWide);
+    const stage = v ? v.root : document.body, turn = stageTurn();
+    stage.classList.toggle('rot', turn !== 0);
+    stage.classList.toggle('ccw', turn === -90);
     // Big display goes side by side when the stage, as it will be seen, is landscape and 760px or wider.
-    if (big) document.body.classList.toggle('wide', wantWide && Math.max(window.innerWidth, window.innerHeight) >= 760);
-    // Where the browser allows it (full screen on Android), turn the screen itself; the resize that follows clears the CSS turn.
-    if (wide !== wantWide && screen.orientation && screen.orientation.lock) screen.orientation.lock(wantWide ? 'landscape' : 'portrait').catch(() => {});
+    const viewWide = window.innerWidth > window.innerHeight, stageWide = turn ? !viewWide : viewWide;
+    if (big) document.body.classList.toggle('wide', stageWide && Math.max(window.innerWidth, window.innerHeight) >= 760);
   }
-  focusBar.addEventListener('click', e => {
-    const b = e.target.closest('button[data-orient]'); if (!b || b.dataset.orient === state.orient) return;
-    state.orient = b.dataset.orient; save(); syncOrient();
-  });
   focusExit.addEventListener('click', () => { if (focusId) setFocus(null); else setBig(false); });
-  window.addEventListener('resize', syncOrient);
+  window.addEventListener('resize', () => { clearTimeout(devTimer); syncOrient(); });
   document.addEventListener('keydown', e => { if (e.key !== 'Escape' || e.target.closest('input, textarea')) return; if (focusId) setFocus(null); else if (document.body.classList.contains('big')) setBig(false); });
 
   // ---- Wake lock ----
