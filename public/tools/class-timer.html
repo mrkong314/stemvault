@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Class Timer">
-<meta name="description" content="Countdown to the end of the current period with adjustable bell times, multiple named stopwatches and countdowns (any one, or the big display, can fill the screen and turns with the phone), a lesson phase timer that logs starter, explicit teaching and independent practice times, and a cold-call name picker with class lists kept on the device.">
+<meta name="description" content="Countdown to the end of the current period with adjustable bell times, multiple named stopwatches and countdowns (any one, or the big display, can fill the screen and turns with the phone), a lesson phase timer that logs starter, explicit teaching and independent practice times, and a cold-call picker with pasted class rosters and photos, absentee marking and a full-screen stage, all kept on the device.">
 <style>
   /* Standalone reset: the artifact host supplied these, the standalone page supplies them itself. */
   [hidden] { display: none !important; }
@@ -321,12 +321,12 @@
   .name-input::placeholder { color: var(--ink-dim); font-weight: 500; }
   .timer .seg { flex-shrink: 0; }
   /* Pencil beside the name: the name is already an input, this makes that visible on touch. */
-  .timer .rename, .timer .focus-btn {
+  .timer .rename, .focus-btn {
     flex: none; width: 32px; height: 32px; margin-left: -4px; padding: 0; border: 0; border-radius: 8px;
     background: transparent; color: var(--ink-dim); display: inline-flex; align-items: center; justify-content: center;
   }
-  .timer .rename svg, .timer .focus-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .timer .rename:hover, .timer .head:focus-within .rename, .timer .focus-btn:hover { color: var(--accent); }
+  .timer .rename svg, .focus-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .timer .rename:hover, .timer .head:focus-within .rename, .focus-btn:hover { color: var(--accent); }
   .timer .focus-btn { margin-left: -8px; }
   /* Narrow phones: tighten the mode segment so the name keeps room beside the two icons. */
   @media (max-width: 400px) { .timer .head { gap: 6px; } .timer .head .seg button { padding-inline: 0.4rem; min-width: 0; } }
@@ -376,17 +376,25 @@
   .sheet-actions .gbtn { flex: 1; }
   .hint { font-size: 0.8rem; color: var(--ink-dim); }
 
-  /* Cold call panel */
+  /* Cold call panel. Collapsed to its header row until shown, so it stays out of the way between uses. */
+  :root { --av-1: #0a84ff; --av-2: #30d158; --av-3: #ff9f0a; --av-4: #bf5af2; --av-5: #ff375f; --av-6: #64d2ff; --av-7: #5e5ce6; --av-8: #ff453a; }
   .coldcall { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 14px; }
-  .cc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .cc-head { display: flex; align-items: center; gap: 8px; }
+  .cc-head .label { flex: 1; }
   .cc-head select {
-    min-width: 0; max-width: 60%; padding: 7px 28px 7px 12px; border-radius: 10px; border: 1px solid var(--glass-border);
+    min-width: 0; max-width: 50%; padding: 7px 28px 7px 12px; border-radius: 10px; border: 1px solid var(--glass-border);
     background: var(--glass-key); font-weight: 600; font-size: 0.9rem; appearance: none; -webkit-appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 8px center; background-size: 16px; text-overflow: ellipsis;
   }
+  .cc-head .focus-btn { margin-left: 0; }
+  .cc-body { display: flex; flex-direction: column; gap: 8px; }
+  .cc-stage { display: flex; align-items: center; gap: 12px; min-height: 64px; }
+  .avatar { position: relative; flex-shrink: 0; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: var(--av, var(--accent)); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-digits); font-weight: 700; font-size: 1.2rem; letter-spacing: 0.01em; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cc-face.cycling, .cc-name.cycling { opacity: 0.55; }
   .cc-name {
-    font-family: var(--font-digits); font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; text-wrap: balance;
+    flex: 1; min-width: 0; font-family: var(--font-digits); font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; text-wrap: balance;
     font-size: clamp(1.9rem, 9vw, 2.8rem); min-height: 1.1em; margin: 2px 0; overflow-wrap: anywhere;
   }
   .cc-name.empty { color: var(--ink-dim); font-weight: 500; font-size: 0.95rem; font-family: var(--font); letter-spacing: 0; min-height: 0; }
@@ -397,18 +405,59 @@
   .cc-foot .reset:disabled { color: var(--ink-dim); opacity: 0.6; }
   .cc-setup { display: flex; }
   .cc-setup .gbtn { flex: 1; min-height: 40px; }
+  /* Roster: tap a student to mark them away for today. */
+  .cc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 4px; max-height: 236px; overflow: auto; padding: 2px; -webkit-overflow-scrolling: touch; }
+  .cc-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px 4px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: var(--ink); min-height: 44px; }
+  .cc-tile:hover { background: var(--glass-key); }
+  .cc-tile .avatar { width: 44px; height: 44px; font-size: 0.9rem; }
+  .cc-tile .tname { font-size: 0.7rem; font-weight: 600; line-height: 1.15; text-align: center; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .cc-tile .badge { position: absolute; top: 2px; right: 8px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--good); color: #fff; font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; font-family: var(--font-digits); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .cc-tile.called .avatar { opacity: 0.45; }
+  .cc-tile.called .tname { color: var(--ink-dim); }
+  .cc-tile.away { opacity: 0.4; }
+  .cc-tile.away .tname { text-decoration: line-through; }
+  .cc-tile.current { border-color: var(--accent); }
+  .cc-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.74rem; color: var(--ink-dim); }
   body.big .coldcall { text-align: center; }
-  body.big .cc-head { justify-content: center; }
-  body.big .cc-name { font-size: clamp(3rem, 12vw, 9rem); }
-  body.big .cc-controls, body.big .cc-setup { max-width: 420px; margin: 0 auto; width: 100%; }
-  body.big .cc-foot { justify-content: center; }
+  /* Full-screen cold call: photo and name fill the stage, the roster stays off it. */
+  body.focus .coldcall.focused .cc-head select, body.focus .coldcall.focused .cc-head .tb, body.focus .coldcall.focused .cc-head .focus-btn,
+  body.focus .coldcall.focused .cc-grid, body.focus .coldcall.focused .cc-legend, body.focus .coldcall.focused .cc-away { display: none; }
+  body.focus .coldcall.focused .cc-head { flex: none; justify-content: center; }
+  body.focus .coldcall.focused .cc-head .label { flex: none; }
+  body.focus .coldcall.focused .cc-body { width: 100%; align-items: center; gap: 18px; }
+  body.focus .coldcall.focused #ccMain { display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
+  body.focus .coldcall.focused .cc-stage { flex-direction: column; justify-content: center; gap: 16px; width: 100%; }
+  body.focus .coldcall.focused .cc-face { width: min(60cqw, 42cqh); height: min(60cqw, 42cqh); font-size: min(22cqw, 16cqh); border: 4px solid var(--panel); box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+  body.focus .coldcall.focused .cc-name { flex: none; text-align: center; font-size: min(16cqw, 14cqh); max-width: 100%; }
+  body.focus .coldcall.focused .cc-name.empty { font-size: clamp(1rem, 3cqw, 1.4rem); }
+  body.focus .coldcall.focused .cc-controls { width: 100%; max-width: 520px; }
+  body.focus .coldcall.focused .cc-controls .gbtn { min-height: 60px; font-size: 1.15rem; }
+  body.focus .coldcall.focused .cc-foot { justify-content: center; font-size: 1rem; gap: 18px; }
+  body.focus .coldcall.focused .cc-foot .reset { font-size: 1rem; }
+  /* Class editor sheet: paste box, preview rows and student rows with photo circles. */
+  .cls-row .cls-name { flex: 1; width: auto; }
+  .pastebox { min-height: 92px; padding: 14px; border-radius: 12px; border: 2px dashed var(--rule-strong); background: var(--surface); color: var(--ink-dim); display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 500; font-size: 0.9rem; cursor: text; outline: none; overflow-wrap: anywhere; }
+  .pastebox:empty::before { content: attr(data-placeholder); }
+  .pastebox:focus { border-color: var(--accent); color: var(--ink); }
+  .pastebox.drag { border-color: var(--accent); background: var(--glass-key); }
+  .pastebox img { max-height: 40px; }
+  .rows { display: flex; flex-direction: column; }
+  .srow { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--rule); }
+  .srow:first-child { border-top: 0; }
+  .srow .avatar { width: 40px; height: 40px; font-size: 0.9rem; cursor: pointer; }
+  .srow .avatar.drag { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .srow .cls-name { flex: 1; min-width: 0; width: auto; padding: 8px 10px; }
+  .srow.skip { opacity: 0.4; }
+  .srow .x, .srow .photo { border: 1px solid var(--rule); background: transparent; color: var(--ink-dim); border-radius: 999px; min-height: 32px; padding: 0 10px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+  .srow .photo { color: var(--accent); }
+  .srow .x.armed, .gbtn.armed { color: #fff; background: var(--danger); border-color: transparent; }
+  .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 120; background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 0.9rem; font-weight: 600; max-width: calc(100vw - 32px); text-align: center; }
 
   /* Class list editor (bottom sheet) */
   .cls-row { display: flex; gap: 8px; align-items: center; }
   .cls-row select { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--rule-strong); background: var(--surface); }
   .cls-row .gbtn { flex: 0 0 auto; min-height: 40px; padding: 0 12px; }
   .cls-name { width: 100%; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--rule-strong); background: var(--surface); font-weight: 600; }
-  .cls-text { width: 100%; min-height: 200px; resize: vertical; padding: 12px; border-radius: 12px; border: 1px solid var(--rule-strong); background: var(--surface); line-height: 1.55; font-family: var(--font); }
   textarea { font: inherit; color: inherit; }
   textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   @media (pointer: coarse) { textarea { font-size: 16px; } }
@@ -481,8 +530,8 @@
      the phone is held: when the screen has not turned with it (rotation lock on) the stage is turned
      by CSS so the readout stays upright. Sizes use container units so they follow the turned stage. */
   body.focus { overflow: hidden; }
-  body.focus header.topbar, body.focus .period, body.focus .strip, body.focus .phase, body.focus .add-row, body.focus .coldcall, body.focus .notes, body.focus .timer:not(.focused) { visibility: hidden; }
-  body.focus .timer.focused {
+  body.focus header.topbar, body.focus .period, body.focus .strip, body.focus .phase, body.focus .add-row, body.focus .coldcall:not(.focused), body.focus .notes, body.focus .timer:not(.focused) { visibility: hidden; }
+  body.focus .focused {
     --fp-t: max(20px, env(safe-area-inset-top, 0px)); --fp-r: max(20px, env(safe-area-inset-right, 0px));
     --fp-b: max(20px, env(safe-area-inset-bottom, 0px)); --fp-l: max(20px, env(safe-area-inset-left, 0px));
     visibility: visible; position: fixed; inset: 0; z-index: 60; margin: 0; border: 0; border-radius: 0; box-shadow: none;
@@ -491,12 +540,12 @@
     padding: var(--fp-t) var(--fp-r) var(--fp-b) var(--fp-l);
   }
   /* Turned stage: swap the viewport sides and map the safe-area insets onto the edges they now touch. */
-  body.focus .timer.focused.rot {
+  body.focus .focused.rot {
     inset: auto; top: 50%; left: 50%; width: 100dvh; height: 100dvw; transform: translate(-50%, -50%) rotate(90deg);
     --fp-t: max(20px, env(safe-area-inset-right, 0px)); --fp-r: max(20px, env(safe-area-inset-bottom, 0px));
     --fp-b: max(20px, env(safe-area-inset-left, 0px)); --fp-l: max(20px, env(safe-area-inset-top, 0px));
   }
-  body.focus .timer.focused.rot.ccw {
+  body.focus .focused.rot.ccw {
     transform: translate(-50%, -50%) rotate(-90deg);
     --fp-t: max(20px, env(safe-area-inset-left, 0px)); --fp-r: max(20px, env(safe-area-inset-top, 0px));
     --fp-b: max(20px, env(safe-area-inset-right, 0px)); --fp-l: max(20px, env(safe-area-inset-bottom, 0px));
@@ -509,9 +558,9 @@
   body.focus .timer.focused .digits.long { font-size: min(18cqw, 46cqh); }
   body.focus .timer.focused .controls { width: 100%; max-width: 480px; }
   body.focus .timer.focused .controls .gbtn { min-height: 60px; font-size: 1.15rem; }
-  body.flash .timer.focused { animation: flash 0.4s steps(2, end) 3; }
+  body.flash .focused { animation: flash 0.4s steps(2, end) 3; }
   .focus-bar { display: none; }
-  body.focus .timer.focused .focus-bar {
+  body.focus .focused .focus-bar {
     display: flex; align-items: center; gap: 8px; position: absolute; z-index: 1;
     top: calc(var(--fp-t) - 8px); right: calc(var(--fp-r) - 8px);
   }
@@ -556,8 +605,8 @@
         <div class="sep"></div>
         <div class="row">
           <span class="label">Cold call</span>
-          <button type="button" class="gbtn ghost" id="editClassesBtn">Edit class lists</button>
-          <span class="hint">Names are stored only on this device.</span>
+          <button type="button" class="gbtn ghost" id="editClassesBtn">Edit classes</button>
+          <span class="hint">Names and photos are stored only on this device.</span>
         </div>
         <div class="sep"></div>
         <div class="row inline">
@@ -626,20 +675,30 @@
       <div class="cc-head">
         <span class="label">Cold call</span>
         <select id="ccClass" aria-label="Class" hidden></select>
+        <button type="button" class="focus-btn" id="ccFull" aria-label="Full screen" title="Full screen" hidden><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+        <button type="button" class="tb" id="ccToggle" aria-expanded="false" aria-controls="ccBody">Show</button>
       </div>
-      <div class="cc-setup" id="ccSetup" hidden>
-        <button type="button" class="gbtn ghost" id="ccSetupBtn">+ Add a class list</button>
-      </div>
-      <div id="ccMain" hidden>
-        <div class="cc-name empty" id="ccName" aria-live="polite">Tap Pick to call on someone</div>
-        <div class="cc-controls">
-          <button type="button" class="gbtn pill" id="ccPick">Pick</button>
-          <button type="button" class="gbtn" id="ccAbsent" disabled>Absent</button>
-          <button type="button" class="gbtn" id="ccUndo" disabled>Undo</button>
+      <div class="cc-body" id="ccBody" hidden>
+        <div class="cc-setup" id="ccSetup" hidden>
+          <button type="button" class="gbtn ghost" id="ccSetupBtn">+ Add a class</button>
         </div>
-        <div class="cc-foot">
-          <span class="num" id="ccCount"></span>
-          <button type="button" class="reset" id="ccReset">Restart cycle</button>
+        <div id="ccMain" hidden>
+          <div class="cc-stage">
+            <div class="avatar cc-face" id="ccFace" hidden></div>
+            <div class="cc-name empty" id="ccName" aria-live="polite">Tap Pick to call on someone</div>
+          </div>
+          <div class="cc-controls">
+            <button type="button" class="gbtn pill" id="ccPick">Pick</button>
+            <button type="button" class="gbtn" id="ccAbsent" disabled>Absent</button>
+            <button type="button" class="gbtn" id="ccUndo" disabled>Undo</button>
+          </div>
+          <div class="cc-foot">
+            <span class="num" id="ccCount"></span>
+            <button type="button" class="reset" id="ccReset">Restart cycle</button>
+          </div>
+          <div class="cc-grid" id="ccGrid"></div>
+          <div class="cc-legend" id="ccLegend"></div>
+          <div class="cc-foot cc-away" id="ccAwayBar" hidden><span></span><button type="button" class="reset" id="ccAllPresent">Everyone present</button></div>
         </div>
       </div>
     </section>
@@ -715,7 +774,7 @@
 <div class="overlay" id="classesOverlay" hidden>
   <div class="sheet" role="dialog" aria-labelledby="classesTitle">
     <div class="sheet-head">
-      <h3 id="classesTitle">Class lists</h3>
+      <h3 id="classesTitle">Classes</h3>
       <button type="button" class="gbtn ghost" id="classesDone" style="min-height:36px">Done</button>
     </div>
     <div class="sheet-body">
@@ -724,15 +783,38 @@
         <button type="button" class="gbtn ghost" id="clsNew">+ New</button>
       </div>
       <input type="text" class="cls-name" id="clsName" maxlength="30" autocomplete="off" placeholder="Class name, e.g. 10B Science" aria-label="Class name">
-      <textarea class="cls-text" id="clsText" spellcheck="false" autocomplete="off" autocapitalize="words" placeholder="One name per line&#10;Ryan&#10;George&#10;John P&#10;John G" aria-label="Student names, one per line"></textarea>
+      <span class="label">Paste a roster</span>
+      <div class="pastebox" id="pastebox" contenteditable="true" tabindex="0" role="textbox" aria-label="Paste a roster here" data-placeholder="Tap here, then paste a class list copied from your school system (names with photos, a table, or one name per line). Image files can be dropped here too."></div>
+      <div id="previewWrap" hidden>
+        <div class="cls-foot"><span class="label">Found in paste</span><span class="hint num" id="previewCount"></span></div>
+        <div class="rows" id="previewRows"></div>
+        <div class="sheet-actions">
+          <button type="button" class="gbtn pill" id="appendBtn">Add to class</button>
+          <button type="button" class="gbtn" id="replaceBtn">Replace class</button>
+          <button type="button" class="gbtn" id="discardBtn">Discard</button>
+        </div>
+      </div>
+      <div class="cls-foot"><span class="label">Students</span><span class="hint num" id="clsCount"></span></div>
+      <span class="hint">Tap a photo circle to choose a photo, or drag an image onto it.</span>
+      <div class="rows" id="studentRows"></div>
+      <div class="cls-row">
+        <input type="text" class="cls-name" id="addName" placeholder="Add a student" autocomplete="off" autocapitalize="words" aria-label="Add a student">
+        <button type="button" class="gbtn ghost" id="addBtn">Add</button>
+      </div>
+      <div class="sheet-actions">
+        <button type="button" class="gbtn" id="exportBtn">Export class file</button>
+        <button type="button" class="gbtn" id="importBtn">Import class file</button>
+      </div>
       <div class="cls-foot">
-        <span class="hint num" id="clsCount">0 names</span>
+        <span class="hint">Class files from the Cold Call tool import here too.</span>
         <button type="button" class="remove" id="clsDelete">Delete class</button>
       </div>
-      <span class="hint">Lists stay in this app on this device. They are never uploaded. Clearing Safari website data or removing the app from the home screen deletes them.</span>
+      <span class="hint">Classes, names and photos stay in this app on this device. They are never uploaded. Clearing Safari website data or removing the app from the home screen deletes them.</span>
     </div>
   </div>
 </div>
+<input type="file" id="photoFile" accept="image/*" hidden>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
 
 <script>
 (function () {
@@ -776,6 +858,7 @@
   const TZ = 'Australia/Melbourne';
   const STORE = 'class-timer-v2';
   const $ = id => document.getElementById(id);
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
   // ---- State ----
   let state = { theme: 'dark', chime: false, today: null, timers: null, v: 0, classes: [], cls: null, cc: null };
@@ -787,7 +870,25 @@
   if (!state.cc || typeof state.cc !== 'object') state.cc = { pools: {}, hist: {}, absent: null };
   if (!state.phase || typeof state.phase !== 'object') state.phase = { on: false, lesson: null };
   if (!state.bells || typeof state.bells !== 'object') state.bells = {};   // saved weekday bell times, keyed by day
-  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+  // v4: students are objects with an id and an optional photo, and cold-call records are keyed by id.
+  // Earlier classes kept one name per line; carry them and their turn records across.
+  ['pools', 'hist'].forEach(k => { if (!state.cc[k] || typeof state.cc[k] !== 'object') state.cc[k] = {}; });
+  state.classes.forEach(c => {
+    if (Array.isArray(c.students)) { c.students = c.students.filter(st => st && typeof st.name === 'string'); return; }
+    const seen = new Set();
+    c.students = String(c.text || '').split(/\r?\n/).map(x => x.trim()).filter(x => x && !seen.has(x) && seen.add(x)).map(n => ({ id: uid(), name: n, img: null }));
+    const idOf = n => { const st = c.students.find(x => x.name === n); return st ? st.id : null; };
+    const remap = arr => Array.isArray(arr) ? arr.map(idOf).filter(Boolean) : arr;
+    state.cc.pools[c.id] = remap(state.cc.pools[c.id]); state.cc.hist[c.id] = remap(state.cc.hist[c.id]);
+    if (state.cc.absent && state.cc.absent.by) state.cc.absent.by[c.id] = remap(state.cc.absent.by[c.id]);
+    delete c.text;
+  });
+  state.ccOpen = !!state.ccOpen;   // the cold call panel stays collapsed until it is wanted
+  let storageWarned = false;
+  function save() {
+    try { localStorage.setItem(STORE, JSON.stringify(state)); return true; }
+    catch (e) { if (!storageWarned) { storageWarned = true; toast('Storage is full. Remove some photos or classes.'); } return false; }
+  }
   function newTimer(mode) { return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: '', mode, running: false, startAt: 0, acc: 0, target: 300000, laps: [], fired: false }; }
 
   // ---- Clock ----
@@ -1021,10 +1122,10 @@
     return root;
   }
   function mountTimers() {
-    if (focusId) document.body.appendChild(focusBar);   // the bar lives inside the focused card, so rescue it before the cards are wiped
+    if (focusId && focusId !== 'cc') document.body.appendChild(focusBar);   // the bar lives inside the focused card, so rescue it before the cards are wiped
     views.clear(); timersEl.innerHTML = '';
     state.timers.forEach((t, i) => timersEl.appendChild(buildTimer(t, i)));
-    if (!focusId) return;
+    if (!focusId || focusId === 'cc') return;
     const v = views.get(focusId);
     if (v) { v.root.classList.add('focused'); v.root.appendChild(focusBar); syncOrient(); } else setFocus(null);
   }
@@ -1167,52 +1268,115 @@
   forgetBells.addEventListener('click', () => { const t = ensureToday(melb()); delete state.bells[bellsKey()]; t.periods = null; save(); bellsChanged(true); renderBellButtons(); });
 
   // ---- Cold call ----
-  const cc = { panel: $('coldcall'), classSel: $('ccClass'), setup: $('ccSetup'), main: $('ccMain'), name: $('ccName'), pick: $('ccPick'), absent: $('ccAbsent'), undo: $('ccUndo'), count: $('ccCount'), reset: $('ccReset') };
-  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const parseNames = text => { const seen = new Set(); return text.split(/\r?\n/).map(s => s.trim()).filter(s => s && !seen.has(s) && seen.add(s)); };
+  // Students are objects with an id, a name and an optional photo thumbnail. Turn pools, pick history
+  // and today's absentees are keyed by student id. Photos are 160px JPEG thumbnails so a class fits in storage.
+  const cc = { panel: $('coldcall'), classSel: $('ccClass'), full: $('ccFull'), toggle: $('ccToggle'), body: $('ccBody'), setup: $('ccSetup'), main: $('ccMain'),
+    face: $('ccFace'), name: $('ccName'), pick: $('ccPick'), absent: $('ccAbsent'), undo: $('ccUndo'), count: $('ccCount'), reset: $('ccReset'),
+    grid: $('ccGrid'), legend: $('ccLegend'), awayBar: $('ccAwayBar'), allPresent: $('ccAllPresent') };
+  const AV = ['--av-1', '--av-2', '--av-3', '--av-4', '--av-5', '--av-6', '--av-7', '--av-8'];
+  const THUMB = 160;
   const curClass = () => state.classes.find(c => c.id === state.cls) || null;
-  function classNames(c) { return c ? parseNames(c.text || '') : []; }
+  const roster = c => c ? c.students : [];
+  const byId = (c, id) => roster(c).find(s => s.id === id) || null;
   function absentToday() {
     const now = melb();
     if (!state.cc.absent || state.cc.absent.date !== now.dateKey) state.cc.absent = { date: now.dateKey, by: {} };
     return state.cc.absent.by;
   }
   function absentFor(c) { const by = absentToday(); if (!Array.isArray(by[c.id])) by[c.id] = []; return by[c.id]; }
-  function present(c) { const a = absentFor(c); return classNames(c).filter(n => !a.includes(n)); }
-  // Names still waiting for a turn, dropping anyone no longer in the list or marked absent today.
+  function present(c) { const a = absentFor(c); return roster(c).filter(s => !a.includes(s.id)); }
+  // Students still waiting for a turn, dropping anyone no longer in the class or marked absent today.
   function pool(c) {
-    const here = present(c);
+    const here = present(c).map(s => s.id);
     let p = state.cc.pools[c.id];
     if (!Array.isArray(p)) p = here.slice();
-    else p = p.filter(n => here.includes(n));
+    else p = p.filter(id => here.includes(id));
     state.cc.pools[c.id] = p;
     return p;
   }
   function hist(c) { if (!Array.isArray(state.cc.hist[c.id])) state.cc.hist[c.id] = []; return state.cc.hist[c.id]; }
-  let ccMsg = '';
+  const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ccMsg = '', toastT = null;
+  function toast(msg) {
+    let t = document.querySelector('.toast');
+    if (!t) { t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+    t.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2600);
+  }
+
+  // Avatars: the photo when there is one, otherwise initials on a tint chosen from the name.
+  function hue(name) { let h = 0; for (const ch of name) h = (h * 31 + ch.codePointAt(0)) >>> 0; return AV[h % AV.length]; }
+  function initials(name) { const p = name.trim().split(/\s+/).filter(Boolean); if (!p.length) return '?'; const a = p[0][0] || '', b = p.length > 1 ? p[p.length - 1][0] : ''; return (a + b).toUpperCase(); }
+  function avatar(s, extra) {
+    const d = document.createElement('div'); d.className = 'avatar' + (extra ? ' ' + extra : ''); d.style.setProperty('--av', 'var(' + hue(s.name || '') + ')');
+    if (s.img) { const im = document.createElement('img'); im.alt = ''; im.decoding = 'async'; im.draggable = false; im.src = s.img; im.addEventListener('error', () => { im.remove(); d.textContent = initials(s.name); }, { once: true }); d.appendChild(im); }
+    else d.textContent = initials(s.name);
+    return d;
+  }
+  function showStudent(s, cycling) {
+    const a = avatar(s, 'cc-face'); a.id = 'ccFace'; cc.face.replaceWith(a); cc.face = a;
+    cc.face.classList.toggle('cycling', !!cycling);
+    cc.name.textContent = s.name; cc.name.classList.remove('empty'); cc.name.classList.toggle('cycling', !!cycling);
+  }
 
   function renderCold() {
     const c = curClass();
     cc.classSel.innerHTML = '';
     state.classes.forEach(k => { const o = document.createElement('option'); o.value = k.id; o.textContent = k.name || 'Untitled class'; cc.classSel.appendChild(o); });
-    cc.classSel.hidden = !c;
+    const open = !!state.ccOpen;
+    cc.body.hidden = !open;
+    cc.toggle.textContent = open ? 'Hide' : 'Show'; cc.toggle.setAttribute('aria-expanded', String(open));
+    cc.classSel.hidden = !c || !open;
+    cc.full.hidden = !c || !open || !roster(c).length;
     cc.setup.hidden = !!c;
     cc.main.hidden = !c;
     if (!c) return;
     cc.classSel.value = c.id;
-    const here = present(c), p = pool(c), h = hist(c), last = h[h.length - 1];
-    const n = classNames(c).length;
-    if (last) { cc.name.textContent = last; cc.name.classList.remove('empty'); }
-    else { cc.name.textContent = n ? 'Tap Pick to call on someone' : 'No names yet. Add some in Edit class lists.'; cc.name.classList.add('empty'); }
-    cc.pick.disabled = !here.length;
+    const here = present(c), p = pool(c), h = hist(c), last = byId(c, h[h.length - 1]);
+    const n = roster(c).length;
+    if (cycleT) { /* mid-cycle: the stage is animating, leave it */ }
+    else if (last) showStudent(last, false);
+    else {
+      cc.face.hidden = true;
+      cc.name.textContent = n ? 'Tap Pick to call on someone' : 'No students yet. Add some in Classes.'; cc.name.classList.add('empty'); cc.name.classList.remove('cycling');
+    }
+    if (last && !cycleT) cc.face.hidden = false;
+    cc.pick.disabled = !here.length || !!cycleT;
     cc.absent.disabled = !last;
     cc.undo.disabled = !h.length;
     const absentN = n - here.length;
     cc.count.textContent = ccMsg || (n ? p.length + ' of ' + here.length + ' still to go' + (absentN ? ' · ' + absentN + ' absent' : '') : '');
     cc.reset.disabled = p.length === here.length && !h.length && !absentN;
+    renderGrid(c);
   }
+  function renderGrid(c) {
+    cc.grid.innerHTML = '';
+    const all = roster(c), away = absentFor(c), p = pool(c), lastId = hist(c)[hist(c).length - 1];
+    all.forEach(s => {
+      const t = document.createElement('button'); t.type = 'button'; t.className = 'cc-tile';
+      const isAway = away.includes(s.id), done = !isAway && !p.includes(s.id);
+      if (isAway) t.classList.add('away');
+      if (done) t.classList.add('called');
+      if (lastId === s.id) t.classList.add('current');
+      t.appendChild(avatar(s));
+      const nm = document.createElement('div'); nm.className = 'tname'; nm.textContent = s.name; t.appendChild(nm);
+      if (done) { const b = document.createElement('span'); b.className = 'badge'; b.textContent = '✓'; t.appendChild(b); }
+      t.setAttribute('aria-label', s.name + (isAway ? ', away' : '') + (done ? ', called' : ''));
+      t.title = 'Tap to mark away or present';
+      t.addEventListener('click', () => {
+        const a = absentFor(c), i = a.indexOf(s.id);
+        if (i >= 0) a.splice(i, 1); else a.push(s.id);
+        ccMsg = ''; save(); renderCold();
+      });
+      cc.grid.appendChild(t);
+    });
+    cc.legend.innerHTML = '';
+    if (all.length) ['Tap a student to mark them away', '✓ had a turn this cycle'].forEach(txt => { const s = document.createElement('span'); s.textContent = txt; cc.legend.appendChild(s); });
+    cc.awayBar.hidden = !away.length;
+  }
+  // Pick: the winner is chosen first, then faces flick past before landing on them.
+  let cycleT = null;
   function doPick() {
-    const c = curClass(); if (!c) return;
+    const c = curClass(); if (!c || cycleT) return;
     ccMsg = '';
     let p = pool(c);
     if (!p.length) { delete state.cc.pools[c.id]; p = pool(c); ccMsg = 'Everyone has had a turn. Starting again.'; }
@@ -1220,24 +1384,36 @@
     // on a fresh cycle, don't call the same person twice in a row
     const prev = hist(c)[hist(c).length - 1];
     const choices = p.length > 1 ? p.filter(x => x !== prev) : p;
-    const n = choices[Math.floor(Math.random() * choices.length)];
-    state.cc.pools[c.id] = p.filter(x => x !== n);
-    const h = hist(c); h.push(n); if (h.length > 50) h.shift();
-    save(); renderCold();
+    const id = choices[Math.floor(Math.random() * choices.length)];
+    const winner = byId(c, id);
+    const land = () => {
+      cycleT = null;
+      state.cc.pools[c.id] = pool(c).filter(x => x !== id);
+      const h = hist(c); h.push(id); if (h.length > 50) h.shift();
+      save(); renderCold();
+    };
+    const faces = present(c);
+    if (reducedMotion() || faces.length < 2) { land(); return; }
+    let delay = 70;
+    const step = () => {
+      showStudent(faces[Math.floor(Math.random() * faces.length)], true); delay *= 1.18;
+      cycleT = setTimeout(delay < 400 ? step : land, delay < 400 ? delay : 160);
+    };
+    cycleT = setTimeout(step, 0); cc.pick.disabled = true;
   }
   cc.pick.addEventListener('click', doPick);
   cc.undo.addEventListener('click', () => {
-    const c = curClass(); if (!c) return;
-    const h = hist(c), n = h.pop(); if (!n) return;
-    const p = pool(c); if (!p.includes(n) && present(c).includes(n)) p.push(n);
+    const c = curClass(); if (!c || cycleT) return;
+    const h = hist(c), id = h.pop(); if (!id) return;
+    const p = pool(c); if (!p.includes(id) && present(c).some(s => s.id === id)) p.push(id);
     ccMsg = ''; save(); renderCold();
   });
   cc.absent.addEventListener('click', () => {
-    // The shown name is away today: take their turn back and pick someone else straight away.
-    const c = curClass(); if (!c) return;
-    const h = hist(c), n = h.pop(); if (!n) return;
-    const a = absentFor(c); if (!a.includes(n)) a.push(n);
-    ccMsg = n + ' marked absent today.';
+    // The shown student is away today: take their turn back and pick someone else straight away.
+    const c = curClass(); if (!c || cycleT) return;
+    const h = hist(c), id = h.pop(); if (!id) return;
+    const a = absentFor(c); if (!a.includes(id)) a.push(id);
+    const s = byId(c, id); ccMsg = (s ? s.name : 'Student') + ' marked absent today.';
     const p = pool(c);
     if (p.length) {
       const next = p[Math.floor(Math.random() * p.length)];
@@ -1246,34 +1422,141 @@
     save(); renderCold();
   });
   cc.reset.addEventListener('click', () => {
-    const c = curClass(); if (!c) return;
+    const c = curClass(); if (!c || cycleT) return;
     delete state.cc.pools[c.id]; state.cc.hist[c.id] = []; absentToday()[c.id] = [];
     ccMsg = ''; save(); renderCold();
   });
+  cc.allPresent.addEventListener('click', () => { const c = curClass(); if (!c) return; absentToday()[c.id] = []; ccMsg = ''; save(); renderCold(); });
   cc.classSel.addEventListener('change', () => { state.cls = cc.classSel.value; ccMsg = ''; save(); renderCold(); });
+  cc.toggle.addEventListener('click', () => { state.ccOpen = !state.ccOpen; save(); renderCold(); });
+  cc.full.addEventListener('click', () => { if (!state.ccOpen) { state.ccOpen = true; save(); renderCold(); } setFocus('cc'); });
 
-  // ---- Class list editor ----
-  const clsOverlay = $('classesOverlay'), clsSelect = $('clsSelect'), clsName = $('clsName'), clsText = $('clsText'), clsCount = $('clsCount'), clsDelete = $('clsDelete');
-  let editId = null;
+  // ---- Images: shrink to a small square thumbnail so a class fits in browser storage ----
+  function thumbFromImage(im) {
+    const c = document.createElement('canvas'); c.width = THUMB; c.height = THUMB; const ctx = c.getContext('2d');
+    const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height; const side = Math.min(w, h);
+    ctx.drawImage(im, (w - side) / 2, (h - side) / 2, side, side, 0, 0, THUMB, THUMB);
+    return c.toDataURL('image/jpeg', 0.82);
+  }
+  function loadImage(src, cors) { return new Promise((res, rej) => { const im = new Image(); if (cors) im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = rej; im.src = src; }); }
+  // A data URL thumbnail when the image can be read, the original URL when it displays but cannot be
+  // read (cross-site without CORS), or null when it does not load at all.
+  async function cacheImage(src) {
+    if (!src) return null;
+    if (/^data:image\//i.test(src) || /^blob:/i.test(src)) { try { return thumbFromImage(await loadImage(src, false)); } catch (e) { return null; } }
+    try { return thumbFromImage(await loadImage(src, true)); } catch (e) {}
+    try { await loadImage(src, false); return src; } catch (e) { return null; }
+  }
+  function fileToThumb(file) { return new Promise(res => { const r = new FileReader(); r.onload = async () => { try { res(thumbFromImage(await loadImage(r.result, false))); } catch (e) { res(null); } }; r.onerror = () => res(null); r.readAsDataURL(file); }); }
+
+  // ---- Paste parsing: names, and photos when the paste carries them ----
+  const BLOCK = new Set(['DIV', 'P', 'TR', 'TD', 'TH', 'LI', 'BR', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'UL', 'OL', 'TABLE', 'TBODY', 'THEAD', 'FIGURE', 'FIGCAPTION', 'DT', 'DD', 'HR', 'PRE', 'BLOCKQUOTE', 'SPAN', 'A', 'LABEL', 'SMALL', 'TIME', 'STRONG', 'B', 'EM']);
+  function textLines(el) {
+    const out = []; let cur = '';
+    (function walk(n) {
+      if (n.nodeType === 3) { cur += n.nodeValue; return; }
+      if (n.nodeType !== 1) return;
+      const tag = n.tagName;
+      if (['SCRIPT', 'STYLE', 'TEMPLATE', 'NOSCRIPT', 'SELECT', 'BUTTON', 'SVG'].includes(tag)) return;
+      if (BLOCK.has(tag)) { out.push(cur); cur = ''; }
+      for (const c of n.childNodes) walk(c);
+      if (BLOCK.has(tag)) { out.push(cur); cur = ''; }
+    })(el);
+    out.push(cur);
+    return out.map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  }
+  const JUNK = /^(id|no\.?|#|photo|image|picture|edit|view|profile|details?|more|select|remove|absent|present|student( id)?|name|full name|surname|given name|first name|last name|year ?\d*|form|house|class|email|tutor|homegroup|home group)$/i;
+  function cleanName(s) {
+    if (!s) return '';
+    return s.replace(/^(photo|picture|image|portrait|avatar)\s+(of\s+)?/i, '').replace(/\s*\((?:student\s*)?(?:id)?\s*\d[\d\s-]*\)\s*$/i, '').replace(/[\s,;:]+$/, '').trim();
+  }
+  function looksLikeName(s) {
+    s = cleanName(s);
+    if (!s || s.length > 60 || s.length < 2) return false;
+    if (!/\p{L}/u.test(s)) return false;
+    if (/@|https?:|www\./i.test(s)) return false;
+    if (/^\d+[\d\s\-.:/]*$/.test(s)) return false;
+    if (JUNK.test(s)) return false;
+    const digits = (s.match(/\d/g) || []).length; if (digits > 3) return false;
+    return true;
+  }
+  function pickName(lines) { for (const l of lines) if (looksLikeName(l)) return cleanName(l); return ''; }
+  function parseHtml(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const entries = [];
+    const imgs = [...doc.querySelectorAll('img')].filter(im => { const src = im.getAttribute('src') || ''; if (!src || /^data:image\/svg/i.test(src)) return false; const w = +im.getAttribute('width') || 0, h = +im.getAttribute('height') || 0; return !(w && w <= 24) && !(h && h <= 24); });
+    if (imgs.length) {
+      const seen = new Set();
+      imgs.forEach(im => {
+        let card = im;
+        while (card.parentElement && card.parentElement !== doc.body && card.parentElement.querySelectorAll('img').length === 1) card = card.parentElement;
+        let name = pickName(textLines(card));
+        if (!name) name = cleanName(im.getAttribute('alt') || '') || cleanName(im.getAttribute('title') || '');
+        if (!looksLikeName(name)) name = '';
+        const src = im.src || im.getAttribute('src');
+        const key = name + '|' + src; if (seen.has(key)) return; seen.add(key);
+        entries.push({ name, src });
+      });
+      if (entries.some(e => e.name)) return entries.filter(e => e.name || e.src);
+    }
+    const rows = [...doc.querySelectorAll('tr')];
+    if (rows.length) { rows.forEach(r => { if (!r.querySelector('td')) return; const n = pickName(textLines(r)); if (n) entries.push({ name: n, src: null }); }); if (entries.length) return entries; }
+    textLines(doc.body).forEach(l => { if (looksLikeName(l)) entries.push({ name: cleanName(l), src: null }); });
+    return entries;
+  }
+  function parseText(text) {
+    const entries = [];
+    text.split(/\r?\n/).forEach(line => {
+      const cells = line.split('\t').map(s => s.trim()).filter(Boolean);
+      const n = pickName(cells.length ? cells : [line]);
+      if (n) entries.push({ name: n, src: null });
+    });
+    return entries;
+  }
+  async function ingest(dt) {
+    const files = [...(dt.files || [])].filter(f => /^image\//.test(f.type));
+    const html = dt.getData && dt.getData('text/html'); const text = dt.getData && dt.getData('text/plain');
+    let entries = [];
+    if (html) entries = parseHtml(html);
+    if (!entries.length && text) entries = parseText(text);
+    if (!entries.length && files.length) {
+      for (const f of files) entries.push({ name: cleanName(f.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_\-.]+/g, ' ')), src: null, file: f });
+    }
+    if (!entries.length) { toast('Nothing usable found in the paste'); return; }
+    toast('Reading ' + entries.length + (entries.length === 1 ? ' entry' : ' entries'));
+    let linked = 0, missing = 0;
+    for (const e of entries) {
+      if (e.file) e.img = await fileToThumb(e.file);
+      else if (e.src) { e.img = await cacheImage(e.src); if (e.img === e.src) linked++; else if (!e.img) missing++; }
+    }
+    preview = entries.map(e => ({ id: uid(), name: e.name || '', img: e.img || null, keep: true }));
+    renderPreview();
+    if (missing) toast(missing + (missing === 1 ? ' photo could' : ' photos could') + ' not be loaded. You can add photos by hand.');
+    else if (linked) toast(linked + (linked === 1 ? ' photo is' : ' photos are') + ' linked to the original site and shows only while you are signed in there.');
+  }
+
+  // ---- Class editor sheet ----
+  const clsOverlay = $('classesOverlay'), clsSelect = $('clsSelect'), clsName = $('clsName'), clsCount = $('clsCount'), clsDelete = $('clsDelete'), pastebox = $('pastebox');
+  let editId = null, preview = [];
   const editClass = () => state.classes.find(c => c.id === editId) || null;
-  function newClass() { const c = { id: uid(), name: '', text: '' }; state.classes.push(c); if (!state.cls) state.cls = c.id; return c; }
+  function newClass() { const c = { id: uid(), name: '', students: [] }; state.classes.push(c); if (!state.cls) state.cls = c.id; return c; }
   function renderClassEditor() {
     if (!editClass()) editId = (curClass() || state.classes[0] || newClass()).id;
     clsSelect.innerHTML = '';
     state.classes.forEach(k => { const o = document.createElement('option'); o.value = k.id; o.textContent = k.name || 'Untitled class'; clsSelect.appendChild(o); });
     clsSelect.value = editId;
-    const c = editClass();
-    clsName.value = c.name; clsText.value = c.text;
-    renderClassCount();
+    clsName.value = editClass().name;
+    renderStudentRows(); renderPreview();
   }
-  function renderClassCount() { const n = parseNames(clsText.value).length; clsCount.textContent = n + (n === 1 ? ' name' : ' names'); }
   function openClasses(on) {
     clsOverlay.hidden = !on;
     if (on) { openSettings(false); editId = state.cls; renderClassEditor(); }
     else {
+      preview = []; renderPreview();
       // drop classes left completely blank so an abandoned "+ New" doesn't linger
-      state.classes = state.classes.filter(c => c.name || parseNames(c.text || '').length);
+      state.classes = state.classes.filter(c => c.name || c.students.length);
       if (!curClass()) state.cls = state.classes.length ? state.classes[0].id : null;
+      if (curClass()) state.ccOpen = true;
       ccMsg = ''; save(); renderCold();
     }
   }
@@ -1284,21 +1567,116 @@
   clsSelect.addEventListener('change', () => { editId = clsSelect.value; state.cls = editId; save(); renderClassEditor(); });
   $('clsNew').addEventListener('click', () => { const c = newClass(); editId = c.id; state.cls = c.id; save(); renderClassEditor(); clsName.focus(); });
   clsName.addEventListener('input', () => { const c = editClass(); if (!c) return; c.name = clsName.value.trim(); save(); clsSelect.options[clsSelect.selectedIndex].textContent = c.name || 'Untitled class'; });
-  clsText.addEventListener('input', () => { const c = editClass(); if (!c) return; c.text = clsText.value; save(); renderClassCount(); });
-  let clsArm = null;
-  clsDelete.addEventListener('click', () => {
-    if (clsDelete.classList.contains('armed')) {
-      clearTimeout(clsArm); clsDelete.classList.remove('armed'); clsDelete.textContent = 'Delete class';
-      const id = editId;
-      state.classes = state.classes.filter(c => c.id !== id);
-      delete state.cc.pools[id]; delete state.cc.hist[id]; delete absentToday()[id];
-      editId = null; state.cls = state.classes.length ? state.classes[0].id : null;
-      editId = state.cls; save();
-      if (state.classes.length) renderClassEditor(); else openClasses(false);
-    } else {
-      clsDelete.classList.add('armed'); clsDelete.textContent = 'Tap again to delete';
-      clsArm = setTimeout(() => { clsDelete.classList.remove('armed'); clsDelete.textContent = 'Delete class'; }, 3000);
-    }
+  // Armed destructive buttons: first tap arms for 3 s, second tap acts.
+  function arm(btn, label, fn) {
+    let t = null;
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('armed')) { clearTimeout(t); btn.classList.remove('armed'); btn.textContent = label; fn(); }
+      else { btn.classList.add('armed'); btn.textContent = 'Tap again'; t = setTimeout(() => { btn.classList.remove('armed'); btn.textContent = label; }, 3000); }
+    });
+  }
+  arm(clsDelete, 'Delete class', () => {
+    const id = editId;
+    state.classes = state.classes.filter(c => c.id !== id);
+    delete state.cc.pools[id]; delete state.cc.hist[id]; delete absentToday()[id];
+    state.cls = state.classes.length ? state.classes[0].id : null; editId = state.cls; save();
+    if (state.classes.length) renderClassEditor(); else openClasses(false);
+  });
+  // Paste or drop onto the box, or anywhere on the sheet outside a text field.
+  pastebox.addEventListener('paste', e => { e.preventDefault(); ingest(e.clipboardData); pastebox.textContent = ''; });
+  ['dragenter', 'dragover'].forEach(ev => pastebox.addEventListener(ev, e => { e.preventDefault(); pastebox.classList.add('drag'); }));
+  ['dragleave', 'drop'].forEach(ev => pastebox.addEventListener(ev, () => pastebox.classList.remove('drag')));
+  pastebox.addEventListener('drop', e => { e.preventDefault(); ingest(e.dataTransfer); });
+  // Typed or dictated text is read as one name per line when Enter is pressed.
+  pastebox.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); const t = pastebox.innerText || pastebox.textContent; pastebox.textContent = ''; if (t.trim()) ingest({ getData: k => k === 'text/plain' ? t : '', files: [] }); } });
+  document.addEventListener('paste', e => { if (clsOverlay.hidden || e.target === pastebox || e.target.matches('input, textarea')) return; e.preventDefault(); ingest(e.clipboardData); });
+  function nameField(value, placeholder, onInput) {
+    const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'cls-name'; inp.value = value; inp.placeholder = placeholder; inp.setAttribute('aria-label', 'Name'); inp.autocomplete = 'off'; inp.maxLength = 80;
+    inp.addEventListener('input', () => onInput(inp.value)); return inp;
+  }
+  function renderPreview() {
+    const wrap = $('previewWrap'), rows = $('previewRows'); rows.innerHTML = '';
+    wrap.hidden = !preview.length; if (!preview.length) return;
+    $('previewCount').textContent = preview.filter(p => p.keep).length + ' to add';
+    preview.forEach(p => {
+      const r = document.createElement('div'); r.className = 'srow' + (p.keep ? '' : ' skip');
+      const av = avatar(p); av.title = 'Choose a photo'; av.addEventListener('click', () => choosePhoto(p, renderPreview)); wirePhotoDrop(av, p, renderPreview); r.appendChild(av);
+      r.appendChild(nameField(p.name, 'Name', v => { p.name = v; }));
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = p.keep ? 'Skip' : 'Keep'; x.addEventListener('click', () => { p.keep = !p.keep; renderPreview(); }); r.appendChild(x);
+      rows.appendChild(r);
+    });
+  }
+  function commitPreview(replace) {
+    const c = editClass(); if (!c) return;
+    const add = preview.filter(p => p.keep && p.name.trim()).map(p => ({ id: p.id, name: p.name.trim(), img: p.img }));
+    if (!add.length) { toast('No names to add'); return; }
+    if (replace) { c.students = add; delete state.cc.pools[c.id]; delete state.cc.hist[c.id]; delete absentToday()[c.id]; }
+    else add.forEach(a => { const dup = c.students.find(s => s.name.toLowerCase() === a.name.toLowerCase()); if (dup) { if (a.img && !dup.img) dup.img = a.img; } else c.students.push(a); });
+    const ok = save(); preview = []; renderClassEditor();
+    if (ok) toast(add.length + (add.length === 1 ? ' student ' : ' students ') + (replace ? 'now in class' : 'added'));
+  }
+  $('appendBtn').addEventListener('click', () => commitPreview(false));
+  arm($('replaceBtn'), 'Replace class', () => commitPreview(true));
+  $('discardBtn').addEventListener('click', () => { preview = []; renderPreview(); });
+  let photoTarget = null;
+  function choosePhoto(s, after) { photoTarget = { s, after }; $('photoFile').value = ''; $('photoFile').click(); }
+  $('photoFile').addEventListener('change', async () => {
+    const f = $('photoFile').files[0]; if (!f || !photoTarget) return;
+    const img = await fileToThumb(f); if (!img) { toast('That image could not be read'); return; }
+    photoTarget.s.img = img; save(); photoTarget.after();
+  });
+  function wirePhotoDrop(el, s, after) {
+    ['dragenter', 'dragover'].forEach(ev => el.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); el.classList.add('drag'); }));
+    ['dragleave', 'drop'].forEach(ev => el.addEventListener(ev, () => el.classList.remove('drag')));
+    el.addEventListener('drop', async e => {
+      e.preventDefault(); e.stopPropagation();
+      const f = [...e.dataTransfer.files].find(x => /^image\//.test(x.type));
+      let img = null;
+      if (f) img = await fileToThumb(f);
+      else { const html = e.dataTransfer.getData('text/html'); const m = html && html.match(/<img[^>]+src=["']([^"']+)/i); const url = (m && m[1]) || e.dataTransfer.getData('text/uri-list') || ''; if (url) img = await cacheImage(url.replace(/&amp;/g, '&')); }
+      if (!img) { toast('Drop an image file or a picture'); return; }
+      s.img = img; save(); after();
+    });
+  }
+  function renderStudentRows() {
+    const rows = $('studentRows'); rows.innerHTML = '';
+    const c = editClass(), list = roster(c);
+    clsCount.textContent = list.length + (list.length === 1 ? ' student' : ' students');
+    if (!list.length) { const d = document.createElement('div'); d.className = 'hint'; d.textContent = 'No students yet. Paste a roster above or add names below.'; rows.appendChild(d); return; }
+    list.forEach(s => {
+      const r = document.createElement('div'); r.className = 'srow';
+      const av = avatar(s); av.title = 'Choose a photo'; av.addEventListener('click', () => choosePhoto(s, renderStudentRows)); wirePhotoDrop(av, s, renderStudentRows); r.appendChild(av);
+      r.appendChild(nameField(s.name, 'Name', v => { s.name = v; save(); }));
+      if (s.img) { const ph = document.createElement('button'); ph.type = 'button'; ph.className = 'photo'; ph.textContent = 'No photo'; ph.title = 'Remove the photo'; ph.addEventListener('click', () => { s.img = null; save(); renderStudentRows(); }); r.appendChild(ph); }
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = 'Remove';
+      arm(x, 'Remove', () => { c.students = c.students.filter(o => o.id !== s.id); save(); renderStudentRows(); });
+      r.appendChild(x);
+      rows.appendChild(r);
+    });
+  }
+  function addStudent() { const c = editClass(), n = $('addName').value.trim(); if (!c || !n) return; c.students.push({ id: uid(), name: n, img: null }); $('addName').value = ''; save(); renderStudentRows(); $('addName').focus(); }
+  $('addBtn').addEventListener('click', addStudent);
+  $('addName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addStudent(); } });
+  // Export and import a class as a file, in the same format as the Cold Call tool.
+  $('exportBtn').addEventListener('click', () => {
+    const c = editClass(); if (!c) return;
+    const blob = new Blob([JSON.stringify({ app: 'stemvault-cold-call', version: 1, name: c.name, students: c.students })], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (c.name || 'class').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '.coldcall.json'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+  $('importBtn').addEventListener('click', () => { $('importFile').value = ''; $('importFile').click(); });
+  $('importFile').addEventListener('change', () => {
+    const f = $('importFile').files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const d = JSON.parse(r.result);
+        if (!d || !Array.isArray(d.students)) throw new Error('shape');
+        const c = { id: uid(), name: String(d.name || f.name.replace(/\.coldcall\.json$|\.json$/i, '')).slice(0, 30), students: d.students.filter(s => s && typeof s.name === 'string' && s.name.trim()).map(s => ({ id: uid(), name: s.name.trim().slice(0, 80), img: typeof s.img === 'string' && /^(data:image\/|https?:\/\/)/i.test(s.img) ? s.img : null })) };
+        state.classes.push(c); editId = c.id; state.cls = c.id; save(); renderClassEditor(); toast('Imported ' + c.students.length + (c.students.length === 1 ? ' student' : ' students'));
+      } catch (e) { toast('That file is not a class file'); }
+    };
+    r.readAsText(f);
   });
 
   // ---- Phase timer: starter, explicit teaching, independent practice. One lesson per teaching period, logged on this device. ----
@@ -1492,16 +1870,17 @@
   const focusBar = $('focusBar'), focusExit = $('focusExit');
   let focusId = null;
   // keepScreen: leave browser full screen alone because the big display is taking over.
+  function focusRoot() { if (!focusId) return null; if (focusId === 'cc') return cc.panel; const v = views.get(focusId); return v ? v.root : null; }
   function setFocus(id, keepScreen) {
-    const prev = focusId && views.get(focusId);
-    if (prev) prev.root.classList.remove('focused', 'rot', 'ccw');
-    focusId = id && views.has(id) ? id : null;
-    const v = focusId && views.get(focusId);
-    document.body.classList.toggle('focus', !!v);
-    if (v) {
+    const prev = focusRoot();
+    if (prev) prev.classList.remove('focused', 'rot', 'ccw');
+    focusId = id === 'cc' || (id && views.has(id)) ? id : null;
+    const root = focusRoot();
+    document.body.classList.toggle('focus', !!root);
+    if (root) {
       if (document.body.classList.contains('big')) { document.body.classList.remove('big', 'rot', 'ccw', 'wide'); bigBtn.classList.remove('on'); }
       openSettings(false);
-      v.root.classList.add('focused'); v.root.appendChild(focusBar); askDevice();
+      root.classList.add('focused'); root.appendChild(focusBar); askDevice();
       if (!document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
       holdWake();
     } else if (!keepScreen) {
@@ -1559,9 +1938,9 @@
     return d === 90 || d === -90 ? d : 0;
   }
   function syncOrient() {
-    const v = focusId && views.get(focusId), big = !v && document.body.classList.contains('big');
-    if (!v && !big) return;
-    const stage = v ? v.root : document.body, turn = stageTurn();
+    const root = focusRoot(), big = !root && document.body.classList.contains('big');
+    if (!root && !big) return;
+    const stage = root || document.body, turn = stageTurn();
     stage.classList.toggle('rot', turn !== 0);
     stage.classList.toggle('ccw', turn === -90);
     // Big display goes side by side when the stage, as it will be seen, is landscape and 760px or wider.
@@ -1570,7 +1949,12 @@
   }
   focusExit.addEventListener('click', () => { if (focusId) setFocus(null); else setBig(false); });
   window.addEventListener('resize', () => { clearTimeout(devTimer); syncOrient(); });
-  document.addEventListener('keydown', e => { if (e.key !== 'Escape' || e.target.closest('input, textarea')) return; if (focusId) setFocus(null); else if (document.body.classList.contains('big')) setBig(false); });
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    if (e.key === ' ' && focusId === 'cc' && !e.target.matches('button')) { e.preventDefault(); doPick(); return; }
+    if (e.key !== 'Escape') return;
+    if (focusId) setFocus(null); else if (document.body.classList.contains('big')) setBig(false);
+  });
 
   // ---- Wake lock ----
   let wake = null; const wakeStatus = $('wakeStatus');
