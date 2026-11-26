@@ -509,11 +509,18 @@
   body.big .timer.idle { display: none; }
   body.big.no-aux .scroll { display: none; }
   body.big.no-aux .app { grid-template-rows: 1fr; grid-template-columns: 1fr; }
+  /* With the stage to itself, the period readout grows to fill it rather than stopping at the card caps above:
+     sized from the card's width and height so it fits either way up, on a phone or a projected laptop. */
+  body.big.no-aux .period { container-type: size; }
+  body.big.no-aux .period h2 { font-size: clamp(2rem, min(6.5cqw, 9cqh), 7rem); }
+  body.big.no-aux .period .digits { font-size: min(28cqw, 42cqh); }
+  body.big.no-aux .period .digits:has(.h) { font-size: min(23cqw, 42cqh); }
   /* The exit button sits inside the stage so it turns with it. */
   body.big .app > .focus-bar { display: flex; align-items: center; gap: 8px; position: absolute; z-index: 1; top: env(safe-area-inset-top, 0px); right: 0; }
   /* Landscape big display: side by side. Set by script from the stage as it is seen (760px+ wide), not the window shape, so a turned stage gets it too. */
   body.big.wide .app { grid-template-rows: 1fr; grid-template-columns: 1.3fr 1fr; align-items: stretch; }
   body.big.wide .timers { grid-template-columns: 1fr; align-content: center; }
+  body.big.wide.no-aux .app { grid-template-columns: 1fr; }   /* nothing beside the period clock: no column held for it */
   body.big.wide .digits { font-size: clamp(5rem, 29.2cqw, 13rem); }
   /* With hours showing (next day's first bell) the readout is capped so it stays inside the card. */
   body.big .period .digits:has(.h) { font-size: min(28cqw, 13rem); }
